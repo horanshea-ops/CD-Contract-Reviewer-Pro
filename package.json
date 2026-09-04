@@ -9,10 +9,13 @@
     "lint": "eslint",
     "sample:generate": "tsx scripts/generate-sample-contract.ts",
     "pipeline:test": "tsx scripts/test-analysis.ts",
-    "standards:seed": "tsx scripts/seed-standards.ts"
+    "standards:seed": "tsx scripts/seed-standards.ts",
+    "associate:seed-test": "tsx scripts/seed-test-associate.ts",
+    "dev:login-link": "tsx scripts/dev-login-link.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
+    "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.115.0",
     "next": "16.3.4",
     "react": "19.2.8",
