@@ -2,25 +2,48 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #17233f;
+
+  /* ConferenceDirect brand palette, pulled from conferencedirect.com */
+  --cd-navy: #263566;
+  --cd-navy-dark: #17233f;
+  --cd-navy-darker: #112337;
+  --cd-blue: #6096ba;
+  --cd-blue-light: #a3cef1;
+  --cd-blue-pale: #eaf3fc;
+
+  --border: #e2e5eb;
+  --border-strong: #c7cdd8;
+  --text-primary: #17233f;
+  --text-secondary: #5b6472;
+  --text-muted: #8a93a3;
+  --surface: #ffffff;
+  --surface-muted: #f6f8fb;
+
+  --severity-high: #b3261e;
+  --severity-high-bg: #fbeceb;
+  --severity-medium: #a15c00;
+  --severity-medium-bg: #fdf3e2;
+  --severity-low: #5b6472;
+  --severity-low-bg: #f1f3f6;
+  --severity-note: #8a93a3;
+  --severity-note-bg: #f6f8fb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-cd-navy: var(--cd-navy);
+  --color-cd-navy-dark: var(--cd-navy-dark);
+  --color-cd-navy-darker: var(--cd-navy-darker);
+  --color-cd-blue: var(--cd-blue);
+  --color-cd-blue-light: var(--cd-blue-light);
+  --color-cd-blue-pale: var(--cd-blue-pale);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-muted);
+  color: var(--text-primary);
 }

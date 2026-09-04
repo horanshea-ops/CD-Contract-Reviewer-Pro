@@ -19,6 +19,8 @@ interface AnalysisResponse {
 }
 
 const POLL_INTERVAL_MS = 2000;
+const NAV_HEIGHT = 56;
+const SUBHEADER_HEIGHT = 53;
 
 export default function AnalysisPage() {
   const params = useParams<{ id: string }>();
@@ -86,10 +88,13 @@ export default function AnalysisPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+      <div
+        className="flex items-center justify-center px-4"
+        style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}
+      >
         <div className="text-center">
-          <p className="text-sm text-red-600 mb-2">{loadError}</p>
-          <Link href="/upload" className="text-sm text-neutral-500 underline">
+          <p className="text-sm text-[var(--severity-high)] mb-2">{loadError}</p>
+          <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
             Try uploading again
           </Link>
         </div>
@@ -99,24 +104,27 @@ export default function AnalysisPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <p className="text-sm text-neutral-500">Loading...</p>
+      <div className="flex items-center justify-center" style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}>
+        <p className="text-sm text-[var(--text-secondary)]">Loading...</p>
       </div>
     );
   }
 
   if (data.status === "queued" || data.status === "processing") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+      <div
+        className="flex items-center justify-center px-4"
+        style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}
+      >
         <div className="text-center max-w-sm">
-          <p className="text-sm font-medium text-neutral-900 mb-1">
+          <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
             {data.status === "queued" ? "Queued..." : "Analyzing " + data.filename}
           </p>
-          <p className="text-sm text-neutral-500 mb-3">
+          <p className="text-sm text-[var(--text-secondary)] mb-3">
             Usually 30-90 seconds, up to a few minutes for long contracts. ({elapsedSeconds}s elapsed)
           </p>
-          <div className="h-1.5 w-full rounded bg-neutral-200 overflow-hidden">
-            <div className="h-full w-1/3 bg-neutral-900 animate-pulse" />
+          <div className="h-1.5 w-64 mx-auto rounded bg-[var(--border)] overflow-hidden">
+            <div className="h-full w-1/3 bg-[var(--cd-navy)] animate-pulse" />
           </div>
         </div>
       </div>
@@ -125,13 +133,16 @@ export default function AnalysisPage() {
 
   if (data.status === "failed") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+      <div
+        className="flex items-center justify-center px-4"
+        style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}
+      >
         <div className="text-center max-w-md">
-          <p className="text-sm font-medium text-red-700 mb-1">Analysis failed</p>
-          <p className="text-sm text-neutral-600 mb-4">
+          <p className="text-sm font-medium text-[var(--severity-high)] mb-1">Analysis failed</p>
+          <p className="text-sm text-[var(--text-secondary)] mb-4">
             {data.error || "Something went wrong processing this contract."}
           </p>
-          <Link href="/upload" className="text-sm text-neutral-500 underline">
+          <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
             Try again
           </Link>
         </div>
@@ -145,31 +156,39 @@ export default function AnalysisPage() {
   });
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="border-b border-neutral-200 bg-white px-6 py-3 flex items-center justify-between">
+    <div>
+      <div
+        className="border-b border-[var(--border)] bg-white px-6 flex items-center justify-between"
+        style={{ height: SUBHEADER_HEIGHT }}
+      >
         <div>
-          <Link href="/" className="text-xs text-neutral-400 hover:text-neutral-700">
+          <Link href="/" className="text-xs text-[var(--text-muted)] hover:text-[var(--cd-navy)]">
             ← Back
           </Link>
-          <h1 className="text-sm font-semibold text-neutral-900">{data.filename}</h1>
+          <h1 className="text-sm font-semibold text-[var(--text-primary)]">{data.filename}</h1>
         </div>
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs text-[var(--text-muted)]">
           {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"} · not legal advice — review each one
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row" style={{ height: "calc(100vh - 53px)" }}>
-        <div className="lg:w-1/2 border-r border-neutral-200 bg-neutral-100">
+      <div
+        className="flex flex-col lg:flex-row"
+        style={{ height: `calc(100vh - ${NAV_HEIGHT}px - ${SUBHEADER_HEIGHT}px)` }}
+      >
+        <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)]">
           {data.documentUrl ? (
             <iframe src={data.documentUrl} className="w-full h-full" title="Contract document" />
           ) : (
-            <p className="p-6 text-sm text-neutral-500">Document preview unavailable.</p>
+            <p className="p-6 text-sm text-[var(--text-secondary)]">Document preview unavailable.</p>
           )}
         </div>
 
-        <div className="lg:w-1/2 overflow-y-auto px-4 py-4 space-y-3">
+        <div className="lg:w-1/2 overflow-y-auto px-4 py-4 space-y-3 bg-[var(--surface-muted)]">
           {sortedFindings.length === 0 ? (
-            <p className="text-sm text-neutral-500">No findings — nothing flagged against the standards library.</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              No findings — nothing flagged against the standards library.
+            </p>
           ) : (
             sortedFindings.map((f) => (
               <FindingCard key={f.id} finding={f} onActionRecorded={handleActionRecorded} />

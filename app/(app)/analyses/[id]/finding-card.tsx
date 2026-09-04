@@ -22,11 +22,19 @@ export interface Finding {
   } | null;
 }
 
-const SEVERITY_STYLE: Record<Finding["severity"], { label: string; border: string; text: string }> = {
-  high: { label: "HIGH", border: "border-l-4 border-l-red-600", text: "text-red-700" },
-  medium: { label: "MEDIUM", border: "border-l-4 border-l-amber-500", text: "text-amber-700" },
-  low: { label: "LOW", border: "border-l-2 border-l-neutral-400", text: "text-neutral-600" },
-  note: { label: "NOTE", border: "border-l-2 border-l-neutral-300", text: "text-neutral-500" },
+const SEVERITY_STYLE: Record<
+  Finding["severity"],
+  { label: string; borderColor: string; borderWidth: string; textColor: string }
+> = {
+  high: { label: "HIGH", borderColor: "var(--severity-high)", borderWidth: "4px", textColor: "var(--severity-high)" },
+  medium: {
+    label: "MEDIUM",
+    borderColor: "var(--severity-medium)",
+    borderWidth: "4px",
+    textColor: "var(--severity-medium)",
+  },
+  low: { label: "LOW", borderColor: "var(--severity-low)", borderWidth: "2px", textColor: "var(--severity-low)" },
+  note: { label: "NOTE", borderColor: "var(--severity-note)", borderWidth: "2px", textColor: "var(--severity-note)" },
 };
 
 const DISMISSAL_REASONS = [
@@ -36,6 +44,12 @@ const DISMISSAL_REASONS = [
   "Standard language is wrong for this case",
   "Other",
 ];
+
+const ACTION_LABEL: Record<string, string> = {
+  accept: "Accepted",
+  edit: "Edited",
+  dismiss: "Dismissed",
+};
 
 export default function FindingCard({
   finding,
@@ -86,48 +100,51 @@ export default function FindingCard({
   }
 
   return (
-    <div className={`bg-white rounded ${style.border} border border-neutral-200 p-4`}>
+    <div
+      className="bg-white rounded-md border border-[var(--border)] p-4"
+      style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
+    >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
-          <span className={`text-xs font-bold tracking-wide ${style.text}`}>{style.label}</span>
-          <span className="text-xs text-neutral-400 ml-2 uppercase tracking-wide">
+          <span className="text-xs font-bold tracking-wide" style={{ color: style.textColor }}>
+            {style.label}
+          </span>
+          <span className="text-xs text-[var(--text-muted)] ml-2 uppercase tracking-wide">
             {finding.clause_type.replace(/_/g, " ")}
           </span>
           {finding.is_missing_clause && (
-            <span className="text-xs text-neutral-500 ml-2">(missing from contract)</span>
+            <span className="text-xs text-[var(--text-muted)] ml-2">(missing from contract)</span>
           )}
         </div>
         {finding.current_action && (
-          <span className="text-xs font-medium rounded bg-neutral-100 px-2 py-0.5 text-neutral-600 shrink-0">
-            {finding.current_action.action === "accept" && "Accepted"}
-            {finding.current_action.action === "edit" && "Edited"}
-            {finding.current_action.action === "dismiss" && "Dismissed"}
+          <span className="text-xs font-medium rounded bg-[var(--cd-blue-pale)] px-2 py-0.5 text-[var(--cd-navy)] shrink-0">
+            {ACTION_LABEL[finding.current_action.action]}
           </span>
         )}
       </div>
 
       {finding.exposure_amount != null && (
-        <p className="text-lg font-semibold text-neutral-900 mb-1">
+        <p className="text-lg font-semibold text-[var(--text-primary)] mb-1">
           ${finding.exposure_amount.toLocaleString()}
-          <span className="text-xs font-normal text-neutral-500 ml-2">{finding.exposure_basis}</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)] ml-2">{finding.exposure_basis}</span>
         </p>
       )}
 
-      <p className="text-sm text-neutral-800 mb-2">{finding.finding_text}</p>
+      <p className="text-sm text-[var(--text-primary)] mb-2">{finding.finding_text}</p>
 
       {finding.quoted_text && (
-        <blockquote className="text-sm text-neutral-500 italic border-l-2 border-neutral-200 pl-2 mb-2">
+        <blockquote className="text-sm text-[var(--text-secondary)] italic border-l-2 border-[var(--border)] pl-2 mb-2">
           &ldquo;{finding.quoted_text}&rdquo;
         </blockquote>
       )}
 
       <details className="text-sm mb-2">
-        <summary className="cursor-pointer text-neutral-500">CD standard &amp; proposed language</summary>
-        <p className="mt-1 text-neutral-700">
+        <summary className="cursor-pointer text-[var(--text-secondary)]">CD standard &amp; proposed language</summary>
+        <p className="mt-1 text-[var(--text-primary)]">
           <span className="font-medium">CD standard: </span>
           {finding.cd_standard}
         </p>
-        <p className="mt-1 text-neutral-700">
+        <p className="mt-1 text-[var(--text-primary)]">
           <span className="font-medium">Proposed: </span>
           {finding.proposed_language}
         </p>
@@ -138,21 +155,21 @@ export default function FindingCard({
           <button
             onClick={() => submitAction("accept")}
             disabled={saving}
-            className="text-xs font-medium rounded bg-neutral-900 text-white px-3 py-1.5 disabled:opacity-50"
+            className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
           >
             Accept
           </button>
           <button
             onClick={() => setMode("editing")}
             disabled={saving}
-            className="text-xs font-medium rounded border border-neutral-300 px-3 py-1.5"
+            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-primary)] hover:bg-[var(--surface-muted)]"
           >
             Edit
           </button>
           <button
             onClick={() => setMode("dismissing")}
             disabled={saving}
-            className="text-xs font-medium rounded border border-neutral-300 px-3 py-1.5 text-neutral-500"
+            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]"
           >
             Dismiss
           </button>
@@ -165,17 +182,17 @@ export default function FindingCard({
             value={editedLanguage}
             onChange={(e) => setEditedLanguage(e.target.value)}
             rows={4}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
+            className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--cd-blue)]"
           />
           <div className="flex gap-2">
             <button
               onClick={() => submitAction("edit")}
               disabled={saving || !editedLanguage.trim()}
-              className="text-xs font-medium rounded bg-neutral-900 text-white px-3 py-1.5 disabled:opacity-50"
+              className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
             >
               Save edit
             </button>
-            <button onClick={() => setMode("view")} className="text-xs text-neutral-500">
+            <button onClick={() => setMode("view")} className="text-xs text-[var(--text-secondary)]">
               Cancel
             </button>
           </div>
@@ -187,7 +204,7 @@ export default function FindingCard({
           <select
             value={dismissalReason}
             onChange={(e) => setDismissalReason(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
+            className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
           >
             {DISMISSAL_REASONS.map((r) => (
               <option key={r} value={r}>
@@ -201,25 +218,25 @@ export default function FindingCard({
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               placeholder="Reason"
-              className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
+              className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
             />
           )}
           <div className="flex gap-2">
             <button
               onClick={() => submitAction("dismiss")}
               disabled={saving || (dismissalReason === "Other" && !customReason.trim())}
-              className="text-xs font-medium rounded bg-neutral-900 text-white px-3 py-1.5 disabled:opacity-50"
+              className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
             >
               Confirm dismiss
             </button>
-            <button onClick={() => setMode("view")} className="text-xs text-neutral-500">
+            <button onClick={() => setMode("view")} className="text-xs text-[var(--text-secondary)]">
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      {error && <p className="text-xs text-[var(--severity-high)] mt-2">{error}</p>}
     </div>
   );
 }

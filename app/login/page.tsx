@@ -15,7 +15,7 @@ function RedirectError() {
   const error = searchParams.get("error");
   if (!error || !REDIRECT_ERRORS[error]) return null;
   return (
-    <p className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+    <p className="mb-4 rounded-md border border-[color:var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-3 py-2 text-sm text-[var(--severity-medium)]">
       {REDIRECT_ERRORS[error]}
     </p>
   );
@@ -49,44 +49,78 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="text-xl font-semibold text-neutral-900 mb-1">CD Contract Reviewer</h1>
-        <p className="text-sm text-neutral-500 mb-6">
-          Sign in with your ConferenceDirect email. We&apos;ll send you a login link — no password needed.
-        </p>
+    <div className="min-h-screen flex">
+      <div className="hidden lg:flex lg:w-1/2 bg-[var(--cd-navy-darker)] relative overflow-hidden flex-col justify-between p-12">
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            background:
+              "radial-gradient(circle at 30% 20%, var(--cd-blue) 0%, transparent 45%), radial-gradient(circle at 80% 80%, var(--cd-blue-light) 0%, transparent 40%)",
+          }}
+        />
+        <div className="relative flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded bg-white text-[var(--cd-navy)] text-sm font-bold">
+            CD
+          </span>
+          <span className="text-white font-semibold tracking-tight">Contract Reviewer</span>
+        </div>
+        <div className="relative">
+          <h2 className="text-3xl font-semibold text-white leading-tight mb-3">
+            Every finding is a candidate for review, never a clearance.
+          </h2>
+          <p className="text-[var(--cd-blue-light)] text-sm max-w-sm">
+            A negotiating aid for ConferenceDirect associates — measured against how CD actually
+            negotiates, not generic industry defaults.
+          </p>
+        </div>
+      </div>
 
-        <Suspense fallback={null}>
-          <RedirectError />
-        </Suspense>
-
-        {status === "sent" ? (
-          <div className="rounded border border-neutral-200 bg-white p-4 text-sm text-neutral-700">
-            Check <span className="font-medium">{email}</span> for a login link. It expires in a
-            few minutes.
+      <div className="flex-1 flex items-center justify-center px-4 bg-white">
+        <div className="w-full max-w-sm">
+          <div className="lg:hidden flex items-center gap-2 mb-8">
+            <span className="flex h-8 w-8 items-center justify-center rounded bg-[var(--cd-navy)] text-white text-sm font-bold">
+              CD
+            </span>
+            <span className="text-[var(--text-primary)] font-semibold tracking-tight">Contract Reviewer</span>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@conferencedirect.com"
-              className="w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900"
-            />
-            <button
-              type="submit"
-              disabled={status === "sending"}
-              className="w-full rounded bg-neutral-900 text-white text-sm font-medium py-2 disabled:opacity-50"
-            >
-              {status === "sending" ? "Sending..." : "Send login link"}
-            </button>
-            {status === "error" && (
-              <p className="text-sm text-red-600">{errorMessage}</p>
-            )}
-          </form>
-        )}
+
+          <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-1">Sign in</h1>
+          <p className="text-sm text-[var(--text-secondary)] mb-6">
+            Use your ConferenceDirect email. We&apos;ll send you a login link — no password needed.
+          </p>
+
+          <Suspense fallback={null}>
+            <RedirectError />
+          </Suspense>
+
+          {status === "sent" ? (
+            <div className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-sm text-[var(--text-primary)]">
+              Check <span className="font-medium">{email}</span> for a login link. It expires in a
+              few minutes.
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@conferencedirect.com"
+                className="w-full rounded-md border border-[var(--border-strong)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--cd-blue)]"
+              />
+              <button
+                type="submit"
+                disabled={status === "sending"}
+                className="w-full rounded-md bg-[var(--cd-navy)] text-white text-sm font-medium py-2.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
+              >
+                {status === "sending" ? "Sending..." : "Send login link"}
+              </button>
+              {status === "error" && (
+                <p className="text-sm text-[var(--severity-high)]">{errorMessage}</p>
+              )}
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
