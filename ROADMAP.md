@@ -11,15 +11,19 @@ order — the checklist below just tracks progress against it.
 - [x] 1. Analysis pipeline, headless — stage-1 library, structured outputs, inline PDF
 - [ ] 2. Eval harness against a synthetic answer key — **deferred at request**, revisit
       once the library/UI are further along
-- [x] 3. Scaffold — Next.js, Supabase schema, own auth layer done; **deploy pipeline to
-      Vercel not started**, still local-only (`npm run dev`)
+- [x] 3. Scaffold — Next.js, Supabase schema, own auth layer, and GitHub repo
+      ([horanshea-ops/CD-Contract-Reviewer-Pro](https://github.com/horanshea-ops/CD-Contract-Reviewer-Pro))
+      all done; **Vercel deploy not started**, still local-only (`npm run dev`). Note
+      for later: real deploys need Vercel Pro ($20/mo) — Hobby's 60s function limit
+      is under our 300s analysis budget.
 - [x] 4. Upload and analysis flow — async job via `after()`, status polling, real
       failure states (upload validation, malformed-model-output retry-then-fail)
 - [x] 5. Findings review UI — document alongside findings, accept/edit/dismiss
 - [x] 6. Audit logging — wired into login, upload, analysis complete/failed, every
       finding action
-- [ ] 7. Standards library admin screen — **next up**
-- [ ] 8. Requested-revisions memo export
+- [x] 7. Standards library admin screen — admin-only (enforced server-side, not just
+      hidden nav), provenance visible and editable with a validation stamp
+- [ ] 8. Requested-revisions memo export — **next up**
 - [x] 9. Analysis history — folded into the dashboard's recent-analyses table rather
       than a separate screen; revisit if that's not enough once there's real volume
 
