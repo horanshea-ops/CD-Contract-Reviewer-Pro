@@ -1,7 +1,34 @@
 # Roadmap / open items
 
 Tracks decisions and follow-ups that are noted but deliberately not acted on yet,
-per the build brief's phasing. Not a task list — see the build brief for build order.
+per the build brief's phasing. See the build brief §11 for the authoritative build
+order — the checklist below just tracks progress against it.
+
+## Build order progress (build brief §11)
+
+**Now, on personal accounts, no CD data:**
+
+- [x] 1. Analysis pipeline, headless — stage-1 library, structured outputs, inline PDF
+- [ ] 2. Eval harness against a synthetic answer key — **deferred at request**, revisit
+      once the library/UI are further along
+- [x] 3. Scaffold — Next.js, Supabase schema, own auth layer done; **deploy pipeline to
+      Vercel not started**, still local-only (`npm run dev`)
+- [x] 4. Upload and analysis flow — async job via `after()`, status polling, real
+      failure states (upload validation, malformed-model-output retry-then-fail)
+- [x] 5. Findings review UI — document alongside findings, accept/edit/dismiss
+- [x] 6. Audit logging — wired into login, upload, analysis complete/failed, every
+      finding action
+- [ ] 7. Standards library admin screen — **next up**
+- [ ] 8. Requested-revisions memo export
+- [x] 9. Analysis history — folded into the dashboard's recent-analyses table rather
+      than a separate screen; revisit if that's not enough once there's real volume
+
+**When redacted contracts arrive, on CD's Anthropic org:** 10-12 not started — blocked
+on the open items below (CD's Anthropic org, confidentiality review, named associates).
+
+**After the accuracy gate:** 13-15 not started, correctly blocked on 10-12.
+
+**Roadmap, not v1:** 16-18 deferred by design, see open items below.
 
 ## Open items
 

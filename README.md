@@ -9,10 +9,15 @@ complete spec, non-negotiables, and phased rollout plan.
 
 ## Status
 
-Stage 1 of the build: proving the analysis pipeline works, headlessly, before any UI.
-The standards library is currently seeded from generic industry practice
-(`provenance: industry_default`) — not CD's actual negotiated positions. Nothing built
-on it yet should be described as "how ConferenceDirect negotiates."
+Working end to end, locally, on personal accounts: login, upload, background analysis,
+findings review (accept/edit/dismiss), audit logging, and a dashboard. See
+[ROADMAP.md](ROADMAP.md) for progress against the build brief's build order and what's
+still open.
+
+The standards library (19 clause types) is currently seeded from generic industry
+practice (`provenance: industry_default`) — not CD's actual negotiated positions.
+Nothing built on it yet should be described as "how ConferenceDirect negotiates."
+Not yet deployed anywhere — runs locally via `npm run dev` only.
 
 ## Local setup
 
