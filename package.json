@@ -8,10 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "sample:generate": "tsx scripts/generate-sample-contract.ts",
-    "pipeline:test": "tsx scripts/test-analysis.ts"
+    "pipeline:test": "tsx scripts/test-analysis.ts",
+    "standards:seed": "tsx scripts/seed-standards.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
+    "@supabase/supabase-js": "^2.115.0",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"

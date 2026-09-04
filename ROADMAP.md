@@ -5,18 +5,17 @@ per the build brief's phasing. Not a task list — see the build brief for build
 
 ## Open items
 
-- **Standards library category coverage.** The library currently covers the 11
-  clause types named in the build brief §1 (attrition, cancellation, F&B minimums,
-  force majeure, walk/relocation, cutoff dates, rebates, mandatory fees,
-  construction/renovation, master account & billing, review/audit dates). Candidate
-  additional categories worth evaluating once SMEs are available (see
-  `docs/additional-clause-candidates.md`): insurance & indemnification, damage/security
-  deposit, exclusivity (outside vendor/AV/catering restrictions), termination for
-  convenience vs. cause, assignment/subcontracting, brand/ownership change during
-  the contract term, and named-storm/hurricane-specific language in coastal markets.
-  Not adding these to the library yet — no senior associate available to validate
-  whether they're worth a full entry or how CD actually handles them. Revisit
-  alongside library validation (build brief §10.2, §15 item 3).
+- **Standards library breadth vs. depth.** The library now covers 19 clause types:
+  the 11 named in the build brief §1, plus 8 more drafted from general industry
+  practice (insurance & indemnification, damage/security deposit, exclusivity/outside
+  vendor restrictions, termination for convenience vs. cause, assignment/subcontracting,
+  brand/ownership change, named-storm/hurricane language, attendee data handling).
+  Every entry is `provenance: industry_default` — generic best practice, not CD's
+  actual negotiated position. Breadth (which categories exist) is done for v1;
+  depth (is each entry actually right, and what does CD concede first / where does
+  it walk) still requires a senior associate and cannot be shortcut. Revisit
+  alongside library validation (build brief §10.2, §15 item 3) — that is the gate,
+  not more categories.
 
 - **Real answer key** (build brief §10.2) — blocking for pilot. Needs a senior
   associate to review 25-30 of CD's past executed contracts cold and record what

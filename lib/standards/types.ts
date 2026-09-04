@@ -9,7 +9,15 @@ export type ClauseType =
   | "rebates"
   | "construction_renovation"
   | "master_account_billing"
-  | "review_audit_dates";
+  | "review_audit_dates"
+  | "insurance_indemnification"
+  | "damage_deposit"
+  | "exclusivity_vendors"
+  | "termination_rights"
+  | "assignment_subcontracting"
+  | "brand_ownership_change"
+  | "named_storm"
+  | "attendee_data_handling";
 
 export type Severity = "high" | "medium" | "low" | "note";
 

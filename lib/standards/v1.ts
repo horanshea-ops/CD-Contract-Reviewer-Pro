@@ -143,4 +143,100 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     version: "v1-industry-default",
     provenance: "industry_default",
   },
+  {
+    clause_type: "insurance_indemnification",
+    segment: "default",
+    position:
+      "The group should not indemnify the hotel for the hotel's own negligence — indemnification should be mutual and limited to each party's own acts or omissions. Any requirement that the group carry liability insurance and name the hotel as additional insured should be proportionate to the size of the event, not an open-ended minimum.",
+    fallback_language:
+      "Each party shall indemnify, defend, and hold harmless the other party from claims arising out of the indemnifying party's negligence or willful misconduct. Neither party indemnifies the other for that other party's own negligence. Group shall maintain commercial general liability insurance with limits appropriate to the size of the event and shall name Hotel as an additional insured on a certificate of insurance provided prior to arrival.",
+    walk_away_condition: "",
+    severity_default: "high",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
+  {
+    clause_type: "damage_deposit",
+    segment: "default",
+    position:
+      "Any security or damage deposit should be reasonable relative to the event's size and scope, refundable within a defined window (30 days is standard) absent documented, itemized damage, and should not be commingled with or used to offset unrelated charges like attrition or F&B minimums.",
+    fallback_language:
+      "Any security deposit collected under this Agreement will be refunded in full within thirty (30) days of the event's conclusion unless the Hotel provides Group with an itemized accounting of specific, documented damage caused by Group or its attendees beyond normal wear and tear. The deposit may not be applied toward attrition, cancellation, or F&B minimum shortfalls.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
+  {
+    clause_type: "exclusivity_vendors",
+    segment: "default",
+    position:
+      "Mandatory use of in-house AV, catering, decor, or other vendors should be disclosed up front with pricing available before signature, not discovered later. Where exclusivity is required, the group should retain the right to bring in outside vendors for a reasonable fee rather than an outright prohibition, and any such fee should be disclosed in the contract.",
+    fallback_language:
+      "Group may engage outside vendors for audio-visual, decor, and similar services, subject to the Hotel's standard vendor policies and a reasonable outside-vendor fee of no more than [X]%, disclosed here in full. The Hotel's in-house vendors are not mandatory for any service category not explicitly identified as exclusive in this Agreement.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
+  {
+    clause_type: "termination_rights",
+    segment: "default",
+    position:
+      "Termination for cause (material breach by the other party, such as failure to deliver contracted space or services) should be available to the group without triggering cancellation liquidated damages. Termination for convenience should follow the cancellation clause's sliding scale rather than a separate, harsher standard.",
+    fallback_language:
+      "Group may terminate this Agreement without liability upon Hotel's material breach, including failure to provide contracted room block, meeting space, or services, if such breach is not cured within [X] days of written notice. Termination for convenience is governed exclusively by the cancellation clause of this Agreement.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
+  {
+    clause_type: "assignment_subcontracting",
+    segment: "default",
+    position:
+      "The group should be able to assign the contract to a successor management company or affiliated entity (common for associations that rotate management) without the hotel's consent being unreasonably withheld, particularly where the event itself is unchanged.",
+    fallback_language:
+      "Group may assign this Agreement to a successor association management company or affiliated entity without Hotel's consent, provided the assignee assumes all obligations under this Agreement and the event dates, room block, and program remain substantially unchanged. Any other assignment requires Hotel's consent, not to be unreasonably withheld.",
+    walk_away_condition: "",
+    severity_default: "low",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
+  {
+    clause_type: "brand_ownership_change",
+    segment: "default",
+    position:
+      "If the property changes brand flag, management company, or ownership between signing and the event in a way that materially changes the product the group contracted for, the group should have the right to cancel without penalty or renegotiate — this is not covered by construction/renovation language and shouldn't be assumed to be.",
+    fallback_language:
+      "Should the Hotel change brand affiliation, management company, or ownership prior to the event in a manner that materially changes the quality, standards, or amenities of the property from those represented at signing, Group may cancel this Agreement without liability upon written notice to Hotel.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
+  {
+    clause_type: "named_storm",
+    segment: "default",
+    position:
+      "In coastal and hurricane-belt markets, force majeure language is often supplemented by a separate, narrower named-storm clause with its own notice period and cancellation window, since general force majeure language may not clearly cover a storm that threatens but does not destroy the property. This should be evaluated as its own clause, not assumed to be covered by general force majeure.",
+    fallback_language:
+      "In the event a named storm (hurricane, tropical storm) is forecast to affect the Hotel's location within 72 hours of any event date, either party may cancel the affected portion of the event without liability upon written or verbal (followed by written) notice, regardless of whether the storm ultimately causes physical damage to the Hotel.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
+  {
+    clause_type: "attendee_data_handling",
+    segment: "default",
+    position:
+      "Rooming list and attendee data provided to the hotel for reservation purposes should not be used by the hotel for its own marketing or sold to third parties without the group's consent. This is distinct from CD's own client-confidentiality question but sits in the same family of concerns.",
+    fallback_language:
+      "Hotel will use rooming list and attendee data solely for the purpose of fulfilling reservations under this Agreement. Hotel will not use such data for its own marketing purposes, nor disclose it to any third party, without Group's prior written consent.",
+    walk_away_condition: "",
+    severity_default: "low",
+    version: "v1-industry-default",
+    provenance: "industry_default",
+  },
 ];

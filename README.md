@@ -23,3 +23,10 @@ on it yet should be described as "how ConferenceDirect negotiates."
 4. Run it through the pipeline: `npm run pipeline:test`
 
 This calls the real Claude API and will use a small amount of paid API credit.
+
+## Database setup (Supabase)
+
+1. In your Supabase project, run `supabase/schema.sql` (SQL Editor → paste → Run).
+2. Add the project's URL and keys (Settings → API) to `.env.local`.
+3. Load the standards library into the database: `npm run standards:seed`
+   — safe to re-run any time the library changes in `lib/standards/v1.ts`.
