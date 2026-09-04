@@ -5,6 +5,7 @@ import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { processAnalysis } from "@/lib/analysis-pipeline";
+import { detectSourceFormat, convertToPdf } from "@/lib/document-conversion";
 
 export const maxDuration = 300;
 
@@ -31,12 +32,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
   }
 
-  if (file.type !== "application/pdf") {
+  const sourceFormat = detectSourceFormat(file.type);
+  if (!sourceFormat) {
     return NextResponse.json(
-      {
-        error:
-          "Only PDF is supported right now. DOCX/DOC support is planned but not built yet — please export or print the contract to PDF and try again.",
-      },
+      { error: "Unsupported file type. Upload a PDF, DOCX, or DOC contract." },
       { status: 400 }
     );
   }
@@ -74,12 +73,39 @@ export async function POST(request: Request) {
   }
 
   const analysisId = randomUUID();
-  const storagePath = `${associate.id}/${analysisId}/${file.name}`;
+  const fileBytes = Buffer.from(await file.arrayBuffer());
 
-  const fileBytes = await file.arrayBuffer();
+  let pdfBytes: Uint8Array;
+  let originalStoragePath: string | null = null;
+
+  if (sourceFormat === "pdf") {
+    pdfBytes = fileBytes;
+  } else {
+    try {
+      pdfBytes = await convertToPdf(fileBytes, sourceFormat, file.name);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not read this document.";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    originalStoragePath = `${associate.id}/${analysisId}/original-${file.name}`;
+    const { error: originalUploadError } = await admin.storage
+      .from(STORAGE_BUCKET)
+      .upload(originalStoragePath, fileBytes, { contentType: file.type });
+    if (originalUploadError) {
+      return NextResponse.json(
+        { error: `Could not store the original file: ${originalUploadError.message}` },
+        { status: 500 }
+      );
+    }
+  }
+
+  const pdfFilename = sourceFormat === "pdf" ? file.name : file.name.replace(/\.(docx?|DOCX?)$/, "") + ".pdf";
+  const storagePath = `${associate.id}/${analysisId}/${pdfFilename}`;
+
   const { error: uploadError } = await admin.storage
     .from(STORAGE_BUCKET)
-    .upload(storagePath, fileBytes, { contentType: file.type });
+    .upload(storagePath, pdfBytes, { contentType: "application/pdf" });
 
   if (uploadError) {
     return NextResponse.json(
@@ -94,6 +120,8 @@ export async function POST(request: Request) {
     client_id: clientId,
     filename: file.name,
     storage_path: storagePath,
+    source_format: sourceFormat,
+    original_storage_path: originalStoragePath,
     status: "queued",
   });
 
@@ -109,7 +137,7 @@ export async function POST(request: Request) {
     action: "analysis_upload",
     entityType: "analysis",
     entityId: analysisId,
-    metadata: { filename: file.name, client_name: clientName || null },
+    metadata: { filename: file.name, client_name: clientName || null, source_format: sourceFormat },
   });
 
   after(() => processAnalysis(analysisId));

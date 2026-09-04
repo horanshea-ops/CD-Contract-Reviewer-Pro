@@ -36,6 +36,19 @@ This calls the real Claude API and will use a small amount of paid API credit.
 3. Load the standards library into the database: `npm run standards:seed`
    — safe to re-run any time the library changes in `lib/standards/v1.ts`.
 
+Schema changes after the initial run are tracked as plain `alter table` statements —
+check recent commits/PRs for any that need to be run manually against an existing
+database (Supabase migrations aren't wired up yet).
+
+## Uploads
+
+PDF, DOCX, and DOC are all accepted, up to 32MB. DOCX/DOC are converted server-side:
+the actual text is extracted and re-flowed into a plain PDF (see
+`lib/document-conversion.ts`), which is what gets analyzed and shown in the reviewer —
+original formatting (tables, letterhead, styling) isn't preserved, and the UI says so.
+The original uploaded file is kept in storage regardless (`original_storage_path` on
+the `analyses` row), so nothing is lost for future work like tracked-changes export.
+
 ## Auth
 
 Email magic-link login (Supabase Auth), gated by the `associates` table — a successful

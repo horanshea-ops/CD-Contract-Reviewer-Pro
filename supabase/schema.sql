@@ -52,7 +52,9 @@ create table analyses (
   associate_id uuid not null references associates(id),
   client_id uuid references clients(id),
   filename text not null,
-  storage_path text not null,
+  storage_path text not null, -- always a PDF: the original for PDF uploads, or the converted PDF for DOCX/DOC
+  source_format text not null default 'pdf' check (source_format in ('pdf', 'docx', 'doc')),
+  original_storage_path text, -- set only when source_format != 'pdf'; the untouched uploaded file
   page_count integer,
   model_id text,
   library_version text,

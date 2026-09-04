@@ -48,20 +48,23 @@ export default function UploadPage() {
       <div className="rounded-lg border border-[var(--border)] bg-white p-6 mt-4">
         <h1 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Review a contract</h1>
         <p className="text-sm text-[var(--text-secondary)] mb-6">
-          PDF only, up to 32MB. This is a negotiating aid, not legal advice — review every
-          finding yourself before sending anything to a property.
+          PDF, DOCX, or DOC, up to 32MB. This is a negotiating aid, not legal advice — review
+          every finding yourself before sending anything to a property.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Contract (PDF)</label>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Contract</label>
             <input
               type="file"
-              accept="application/pdf"
+              accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
               required
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="block w-full text-sm text-[var(--text-secondary)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--cd-navy)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white file:cursor-pointer"
             />
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              DOCX/DOC are converted to text for review — original formatting isn&apos;t preserved.
+            </p>
           </div>
 
           <div>

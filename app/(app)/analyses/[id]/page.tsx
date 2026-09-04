@@ -8,6 +8,7 @@ import FindingCard, { type Finding } from "./finding-card";
 interface AnalysisResponse {
   id: string;
   filename: string;
+  source_format: "pdf" | "docx" | "doc";
   status: "queued" | "processing" | "complete" | "failed";
   error: string | null;
   created_at: string;
@@ -191,9 +192,15 @@ export default function AnalysisPage() {
         className="flex flex-col lg:flex-row"
         style={{ height: `calc(100vh - ${NAV_HEIGHT}px - ${SUBHEADER_HEIGHT}px)` }}
       >
-        <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)]">
+        <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
+          {data.source_format !== "pdf" && (
+            <div className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs px-4 py-2 shrink-0">
+              Converted from {data.source_format.toUpperCase()} for review — text only, original formatting
+              (tables, letterhead, styling) isn&apos;t preserved here.
+            </div>
+          )}
           {data.documentUrl ? (
-            <iframe src={data.documentUrl} className="w-full h-full" title="Contract document" />
+            <iframe src={data.documentUrl} className="w-full flex-1" title="Contract document" />
           ) : (
             <p className="p-6 text-sm text-[var(--text-secondary)]">Document preview unavailable.</p>
           )}

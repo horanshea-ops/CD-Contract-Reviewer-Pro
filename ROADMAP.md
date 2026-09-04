@@ -18,6 +18,11 @@ order — the checklist below just tracks progress against it.
       is under our 300s analysis budget.
 - [x] 4. Upload and analysis flow — async job via `after()`, status polling, real
       failure states (upload validation, malformed-model-output retry-then-fail)
+- [x] 4a. DOCX/DOC upload (added to scope, competitor parity) — converted
+      server-side to PDF (text extracted and re-flowed, not a pixel-faithful
+      copy — the UI says so) and fed through the same pipeline unchanged. The
+      original file is kept in storage either way, so the redline work below
+      isn't foreclosed by this approach.
 - [x] 5. Findings review UI — document alongside findings, accept/edit/dismiss
 - [x] 6. Audit logging — wired into login, upload, analysis complete/failed, every
       finding action
@@ -38,16 +43,9 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
-- **DOCX/DOC upload, then redlined/tracked-changes export (both PDF and DOCX)** —
-  requested explicitly (competitor parity), sequenced as the item right after the
-  memo export. Two genuinely different pieces of work, in this order:
-  1. **DOCX/DOC upload + analysis.** Was always in v1 scope (build brief §3) but
-     deferred when upload was first built — only PDF is accepted today. Moderate
-     effort: convert the uploaded Word file to PDF server-side, then it flows
-     through the existing pipeline unchanged (same analysis code, same document
-     viewer, same everything). The original file stays in storage regardless, so
-     this doesn't foreclose anything below.
-  2. **Redlined/tracked-changes export.** Two separate hard problems, not one —
+- **Redlined/tracked-changes export (both PDF and DOCX)** — requested explicitly
+  (competitor parity). DOCX/DOC upload + analysis (the prerequisite) is now done —
+  see build order item 4a below. What's left is the genuinely hard part:
      the build brief explicitly scoped both out of v1 for this reason (§9):
      - *Marked-up PDF*: strikethrough + margin callouts on the original document.
        Needs mapping quoted finding text back to exact page coordinates

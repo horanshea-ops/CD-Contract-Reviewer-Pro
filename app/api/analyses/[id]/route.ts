@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: analysis, error } = await admin
     .from("analyses")
-    .select("id, associate_id, client_id, filename, storage_path, status, error, created_at, completed_at, model_id, library_version")
+    .select("id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, completed_at, model_id, library_version")
     .eq("id", id)
     .maybeSingle();
 
