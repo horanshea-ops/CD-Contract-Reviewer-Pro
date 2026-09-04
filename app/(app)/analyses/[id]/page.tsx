@@ -155,6 +155,11 @@ export default function AnalysisPage() {
     return order[a.severity] - order[b.severity];
   });
 
+  const includedCount = sortedFindings.filter(
+    (f) => f.current_action?.action === "accept" || f.current_action?.action === "edit"
+  ).length;
+  const undecidedCount = sortedFindings.filter((f) => !f.current_action).length;
+
   return (
     <div>
       <div
@@ -167,9 +172,19 @@ export default function AnalysisPage() {
           </Link>
           <h1 className="text-sm font-semibold text-[var(--text-primary)]">{data.filename}</h1>
         </div>
-        <p className="text-xs text-[var(--text-muted)]">
-          {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"} · not legal advice — review each one
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-xs text-[var(--text-muted)]">
+            {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"}
+            {undecidedCount > 0 && ` · ${undecidedCount} still need a decision`}
+            {" · not legal advice — review each one"}
+          </p>
+          <a
+            href={`/api/analyses/${data.id}/export`}
+            className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors shrink-0"
+          >
+            Export memo ({includedCount})
+          </a>
+        </div>
       </div>
 
       <div

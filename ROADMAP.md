@@ -23,7 +23,8 @@ order — the checklist below just tracks progress against it.
       finding action
 - [x] 7. Standards library admin screen — admin-only (enforced server-side, not just
       hidden nav), provenance visible and editable with a validation stamp
-- [ ] 8. Requested-revisions memo export — **next up**
+- [x] 8. Requested-revisions memo export (v1, PDF) — only accepted/edited findings
+      are included (dismissed and undecided ones are excluded), sorted by severity
 - [x] 9. Analysis history — folded into the dashboard's recent-analyses table rather
       than a separate screen; revisit if that's not enough once there's real volume
 
@@ -32,9 +33,33 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 **After the accuracy gate:** 13-15 not started, correctly blocked on 10-12.
 
-**Roadmap, not v1:** 16-18 deferred by design, see open items below.
+**Roadmap, not v1:** 16-18 deferred by design, see open items below — except item 18
+(tracked-changes DOCX), whose priority just changed; see below.
 
 ## Open items
+
+- **DOCX/DOC upload, then redlined/tracked-changes export (both PDF and DOCX)** —
+  requested explicitly (competitor parity), sequenced as the item right after the
+  memo export. Two genuinely different pieces of work, in this order:
+  1. **DOCX/DOC upload + analysis.** Was always in v1 scope (build brief §3) but
+     deferred when upload was first built — only PDF is accepted today. Moderate
+     effort: convert the uploaded Word file to PDF server-side, then it flows
+     through the existing pipeline unchanged (same analysis code, same document
+     viewer, same everything). The original file stays in storage regardless, so
+     this doesn't foreclose anything below.
+  2. **Redlined/tracked-changes export.** Two separate hard problems, not one —
+     the build brief explicitly scoped both out of v1 for this reason (§9):
+     - *Marked-up PDF*: strikethrough + margin callouts on the original document.
+       Needs mapping quoted finding text back to exact page coordinates
+       (positional text extraction). Estimated 20-30 hours.
+     - *Tracked-changes DOCX*: real Word `w:ins`/`w:del` revision marks. The
+       common Python/JS libraries don't produce these natively — it means
+       hand-writing OOXML. Also estimated 20-30 hours, and it's a distinct
+       effort from the PDF version, not a shared one.
+     The build brief's original recommendation was to defer this until associates
+     ask for it during the pilot; a named competitor already having it is a
+     reasonable reason to move it up, but it should still be scoped as its own
+     initiative once DOCX upload exists under it, not folded into the same pass.
 
 - **Standards library breadth vs. depth.** The library now covers 19 clause types:
   the 11 named in the build brief §1, plus 8 more drafted from general industry
