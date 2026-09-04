@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logAudit } from "@/lib/audit";
 
 /**
  * Called right after a session is established (from either the PKCE `code`
@@ -22,13 +23,26 @@ export async function GET() {
   const admin = createAdminClient();
   const { data: associate } = await admin
     .from("associates")
-    .select("status")
+    .select("id, status")
     .eq("email", user.email)
     .maybeSingle();
 
   if (associate?.status === "active") {
+    await logAudit({
+      actorId: associate.id,
+      action: "login",
+      entityType: "associate",
+      entityId: associate.id,
+    });
     return NextResponse.json({ authorized: true });
   }
+
+  await logAudit({
+    actorId: null,
+    action: "login_denied",
+    entityType: "associate",
+    metadata: { email: user.email, reason: associate ? "revoked" : "not_on_allowlist" },
+  });
 
   await supabase.auth.signOut();
   return NextResponse.json({ authorized: false, reason: "not_on_allowlist" }, { status: 403 });

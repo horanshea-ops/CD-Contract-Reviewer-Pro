@@ -160,40 +160,59 @@ export async function analyzeContractPdf({
     userContent.push({ type: "text", text: contextNote });
   }
 
-  const response = await client.messages.create({
-    model: modelId,
-    max_tokens: 8000,
-    system: buildSystemPrompt(),
-    tools: [FINDINGS_TOOL_SCHEMA],
-    tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
-    messages: [{ role: "user", content: userContent }],
-  });
+  async function attempt(): Promise<AnalysisResult> {
+    const response = await client.messages.create({
+      model: modelId,
+      max_tokens: 16000,
+      system: buildSystemPrompt(),
+      tools: [FINDINGS_TOOL_SCHEMA],
+      tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
+      messages: [{ role: "user", content: userContent }],
+    });
 
-  const toolUseBlock = response.content.find(
-    (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-  );
+    const toolUseBlock = response.content.find(
+      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
+    );
 
-  if (!toolUseBlock) {
-    throw new Error("Model did not return structured findings (no tool_use block in response).");
+    if (!toolUseBlock) {
+      throw new Error("Model did not return structured findings (no tool_use block in response).");
+    }
+
+    const parsed = toolUseBlock.input as {
+      findings?: Finding[];
+      clauses_checked?: string[];
+      document_notes?: string;
+    };
+
+    // tool_choice makes this reliable, not guaranteed — the model can still
+    // omit a required field. Validate the shape rather than trusting it, per
+    // build brief §5: "model returned invalid JSON (retry once, then fail
+    // visibly)".
+    if (!Array.isArray(parsed.findings) || !Array.isArray(parsed.clauses_checked)) {
+      throw new Error(
+        `Model returned malformed JSON (missing findings or clauses_checked array). stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
+      );
+    }
+
+    const usage = response.usage;
+
+    return {
+      findings: parsed.findings,
+      clauses_checked: parsed.clauses_checked,
+      document_notes: parsed.document_notes ?? "",
+      model_id: modelId,
+      standards_library_version: STANDARDS_LIBRARY_VERSION,
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+      cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+    };
   }
 
-  const parsed = toolUseBlock.input as {
-    findings: Finding[];
-    clauses_checked: string[];
-    document_notes: string;
-  };
-
-  const usage = response.usage;
-
-  return {
-    findings: parsed.findings,
-    clauses_checked: parsed.clauses_checked,
-    document_notes: parsed.document_notes,
-    model_id: modelId,
-    standards_library_version: STANDARDS_LIBRARY_VERSION,
-    input_tokens: usage.input_tokens,
-    output_tokens: usage.output_tokens,
-    cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
-    cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
-  };
+  try {
+    return await attempt();
+  } catch (err) {
+    console.error("analyzeContractPdf: first attempt failed, retrying once —", err);
+    return await attempt();
+  }
 }
