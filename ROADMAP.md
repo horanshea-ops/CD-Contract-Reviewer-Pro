@@ -46,6 +46,62 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+- **Contract revision chains — not started, worth exploring.** Today each
+  upload is an independent analysis with no relationship to any other. Real
+  negotiations aren't single-shot: an associate sends requested revisions to
+  a property/client, the property sends back a revised contract, and right
+  now that revised version has to be uploaded as a brand-new, disconnected
+  analysis — there's no way to see what changed between rounds, what the
+  property actually fixed, what's still open, or whether they introduced
+  anything new. The idea: let an associate mark a new upload as a revision of
+  a specific prior analysis, then show a comparison view — per clause type,
+  resolved (flagged in the old version, no longer flagged now) / still open
+  (flagged in both) / new in this revision (flagged only in the new version —
+  arguably deserves *more* scrutiny than a first-pass finding, since it's
+  something the property introduced or changed between rounds, not something
+  original to the contract).
+  Some of this is more tractable than it sounds because of pieces that
+  already exist: every finding already keys off a stable `clause_type` (19
+  categories) rather than free text, which is a natural join key across two
+  analyses' findings without needing any fuzzy text diffing; `finding_actions`
+  already records what the associate asked for per finding (accept/edit,
+  with the edited language) with full audit attribution, which is exactly
+  the "what did we request" side of the comparison; `analyses.client_id`
+  already links analyses to a client, though that alone isn't enough to infer
+  a chain (one client can have several unrelated contracts over time, not
+  just revision rounds of the same negotiation) — an explicit link is needed,
+  not inference from client alone.
+  Real open questions, not yet resolved: how the associate indicates "this
+  upload is a revision of that one" (an explicit picker at upload time is
+  almost certainly simpler and more reliable than trying to auto-detect it
+  from filename/content similarity — worth deciding deliberately rather than
+  reaching for a heuristic); whether clause-type-level matching is enough
+  granularity or associates will want to see *how* the language itself
+  changed within a still-open clause (the former is a much smaller feature —
+  reuses existing structured findings as-is; the latter is closer to a real
+  text-diff feature and a bigger lift); the data model needed to actually
+  link analyses into a chain (e.g. a `previous_version_id` column) and the
+  new comparison screen/view to surface it — neither exists today. Scope this
+  properly (likely its own plan-mode pass, similar to the redline export
+  effort) before starting; don't fold it into a smaller ticket.
+
+- **Drag-and-drop file upload — not started, small and contained.** The
+  upload screen (`app/(app)/upload/page.tsx`) only supports the native
+  "Choose File" click-to-browse picker today (via `FieldInput` with
+  `type="file"` in `components/ui/field.tsx`). Add a drop zone around the
+  existing file field that accepts a dragged-and-dropped file and sets the
+  same `file` state the native picker's `onChange` already does — as an
+  *additional* affordance alongside the existing click-to-browse, not a
+  replacement (keeps keyboard/screen-reader users on the same working path).
+  Needs a visual drag-active state (e.g. a dashed border highlight during
+  `onDragOver`) and the same client-side validation gap already known and
+  accepted for the existing picker (no client-side file-type/size check
+  today — server-side `detectSourceFormat`/32MB check in
+  `app/api/analyses/route.ts` is the actual gate either way, so a dropped
+  oversized file fails exactly the same way a picked one does today — not a
+  new gap this introduces). Low risk, well-understood, doesn't need a
+  planning pass.
+
 - **Modern SaaS visual redesign — done.** Follow-up to the UI/UX refinement pass
   below, after the user pointed out that pass was mostly invisible at a glance
   (real bugs and accessibility fixes, but the same visual language). Three
