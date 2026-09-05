@@ -1,17 +1,9 @@
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StatusPill } from "@/components/ui/status-pill";
-
-const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  queued: { label: "Queued", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
-  processing: { label: "Analyzing...", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
-  complete: { label: "Complete", className: "bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)]" },
-  failed: { label: "Failed", className: "bg-[var(--severity-high-bg)] text-[var(--severity-high)]" },
-};
+import { RecentAnalysesCard } from "@/components/recent-analyses-card";
 
 function startOfMonthISO() {
   const d = new Date();
@@ -81,51 +73,15 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <Card padding="none" className="overflow-hidden">
-        <div className="px-5 py-3 border-b border-[var(--border)]">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Recent analyses</h2>
-        </div>
-
-        {!recentAnalyses || recentAnalyses.length === 0 ? (
-          <p className="text-sm text-[var(--text-secondary)] px-5 py-8 text-center">
-            Nothing yet — upload a contract to get started.
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
-                <th className="px-5 py-2 font-medium">Contract</th>
-                <th className="px-5 py-2 font-medium">Client</th>
-                <th className="px-5 py-2 font-medium">Date</th>
-                <th className="px-5 py-2 font-medium text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentAnalyses.map((a) => {
-                const style = STATUS_STYLE[a.status] ?? STATUS_STYLE.complete;
-                return (
-                  <tr key={a.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-muted)]">
-                    <td className="px-5 py-3">
-                      <Link href={`/analyses/${a.id}`} className="font-medium text-[var(--text-primary)] hover:text-[var(--cd-navy)]">
-                        {a.filename}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 text-[var(--text-secondary)]">
-                      {(a.clients as unknown as { name: string } | null)?.name ?? "—"}
-                    </td>
-                    <td className="px-5 py-3 text-[var(--text-secondary)]">
-                      {new Date(a.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <StatusPill label={style.label} className={style.className} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      <RecentAnalysesCard
+        analyses={(recentAnalyses ?? []).map((a) => ({
+          id: a.id,
+          filename: a.filename,
+          status: a.status,
+          created_at: a.created_at,
+          clientName: (a.clients as unknown as { name: string } | null)?.name ?? null,
+        }))}
+      />
     </div>
   );
 }
