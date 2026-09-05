@@ -85,22 +85,43 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
   properly (likely its own plan-mode pass, similar to the redline export
   effort) before starting; don't fold it into a smaller ticket.
 
-- **Drag-and-drop file upload — not started, small and contained.** The
-  upload screen (`app/(app)/upload/page.tsx`) only supports the native
-  "Choose File" click-to-browse picker today (via `FieldInput` with
-  `type="file"` in `components/ui/field.tsx`). Add a drop zone around the
-  existing file field that accepts a dragged-and-dropped file and sets the
-  same `file` state the native picker's `onChange` already does — as an
-  *additional* affordance alongside the existing click-to-browse, not a
-  replacement (keeps keyboard/screen-reader users on the same working path).
-  Needs a visual drag-active state (e.g. a dashed border highlight during
-  `onDragOver`) and the same client-side validation gap already known and
-  accepted for the existing picker (no client-side file-type/size check
-  today — server-side `detectSourceFormat`/32MB check in
-  `app/api/analyses/route.ts` is the actual gate either way, so a dropped
-  oversized file fails exactly the same way a picked one does today — not a
-  new gap this introduces). Low risk, well-understood, doesn't need a
-  planning pass.
+- **Drag-and-drop file upload — done.** The upload screen
+  (`app/(app)/upload/page.tsx`) now wraps the existing file `Field` in a
+  dropzone (`onDragOver`/`onDragLeave`/`onDrop`) that sets the same `file`
+  state the native "Choose File" picker's `onChange` already did — an
+  *additional* affordance alongside click-to-browse, not a replacement, so
+  keyboard/screen-reader users keep the same working path. Shows a dashed
+  blue border + tint during drag-over and a "Selected: <filename>" line once
+  a file lands. No new client-side validation was added — server-side
+  `detectSourceFormat`/32MB check in `app/api/analyses/route.ts` is the
+  actual gate either way, so a dropped oversized/wrong-type file fails the
+  same way a picked one already did. Verified in-browser: drag-over toggles
+  the highlight, and a dropped file populates state and enables "Start
+  review" without touching the native input.
+
+- **Preserve DOCX/DOC formatting on upload — not started, needs its own
+  plan-mode pass.** Raised after a user question about why the upload page
+  says original formatting isn't preserved (that line has since been removed
+  from the upload copy, but the underlying gap is real). Today
+  `document-conversion.ts` extracts raw text via `mammoth`/`word-extractor`
+  and `text-to-pdf.ts` re-flows it into a from-scratch PDF — deliberately,
+  because the act of drawing that PDF itself records exact `RenderedLine[]`
+  coordinates (`line-positions.json`), which is what powers clause
+  highlighting in the PDF viewer and marked-up PDF export. Any approach that
+  produces a real, pixel-faithful PDF (LibreOffice headless, a hosted
+  conversion API, or HTML→PDF rendering off `mammoth.convertToHtml`) breaks
+  that "we drew it, we know where it is" trick and would force highlighting
+  back onto real PDF text-extraction + fuzzy matching — the same approach
+  already flagged as unresolved/risky for tables and multi-column layouts in
+  `docs/redline-export-plan.md`. It also revives a dependency
+  (LibreOffice/headless-Chromium) already rejected twice elsewhere in this
+  codebase as too heavy for Vercel, and a hosted conversion API raises a
+  client-confidentiality question (sending contract text to a third party)
+  that should be a deliberate choice, not a default. Tracked-changes DOCX
+  export is unaffected either way — it already works off the original DOCX,
+  not this pipeline. Scope this properly (pick a conversion approach, decide
+  how highlighting degrades or gets rebuilt) before starting; don't fold it
+  into a smaller ticket.
 
 - **Modern SaaS visual redesign — done.** Follow-up to the UI/UX refinement pass
   below, after the user pointed out that pass was mostly invisible at a glance

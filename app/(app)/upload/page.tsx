@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Field, FieldInput } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -13,6 +14,14 @@ export default function UploadPage() {
   const [clientName, setClientName] = useState("");
   const [status, setStatus] = useState<"idle" | "uploading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [dragActive, setDragActive] = useState(false);
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragActive(false);
+    const dropped = e.dataTransfer.files?.[0];
+    if (dropped) setFile(dropped);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,16 +66,39 @@ export default function UploadPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Field label="Contract">
-            <FieldInput
-              type="file"
-              accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
-              required
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-            <p className="text-xs text-[var(--text-muted)] mt-1">
-              PDF, DOCX, or DOC, up to 32MB. DOCX/DOC are converted to text for review — original
-              formatting isn&apos;t preserved.
-            </p>
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setDragActive(false);
+              }}
+              onDrop={handleDrop}
+              className={cn(
+                "rounded-md border-2 border-dashed p-3 transition-colors",
+                dragActive
+                  ? "border-[var(--cd-blue)] bg-[var(--cd-blue)]/5"
+                  : "border-[var(--border-strong)]"
+              )}
+            >
+              <FieldInput
+                type="file"
+                accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
+                required
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+              <p className="text-xs text-[var(--text-muted)] mt-1">PDF, DOCX, or DOC, up to 32MB.</p>
+              <p className="text-xs text-[var(--text-muted)] mt-2">
+                Drag and drop a file here, or use the button above.
+              </p>
+              {file && (
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Selected: <span className="font-medium">{file.name}</span>
+                </p>
+              )}
+            </div>
           </Field>
 
           <Field label="Client name" hint="(optional)">
