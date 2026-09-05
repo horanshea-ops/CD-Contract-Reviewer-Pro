@@ -135,7 +135,15 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 - **Client confidentiality review** (build brief §15 item 2) — determines whether
   redaction is required before CD's executed contracts can be used to build the
-  stage-2/3 library.
+  stage-2/3 library. Note on scope: a competitor (EventNation) leads with client-side
+  PII stripping as their core trust feature, since they're a multi-tenant SaaS
+  serving many unrelated companies who don't trust each other or the vendor with raw
+  contract data. That reasoning doesn't transfer here — this tool is single-tenant,
+  built for and used only by CD, so there's no cross-customer trust boundary to
+  protect against in the same way. This item stays open only because of CD's own
+  compliance question (does CD's data-handling commitment to *its* clients require
+  redaction before their contracts reach any third-party model provider) — a distinct
+  question from the competitive one, not resolved or closed by it.
 
 - **Named senior associates for library validation and the answer key**
   (build brief §15 item 3) — the resource ask that gates stage 2/3 of the library
