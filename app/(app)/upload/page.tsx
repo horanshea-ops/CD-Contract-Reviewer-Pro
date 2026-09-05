@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Field, FieldInput } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -45,52 +48,47 @@ export default function UploadPage() {
         ← Back to dashboard
       </Link>
 
-      <div className="rounded-lg border border-[var(--border)] bg-white p-6 mt-4">
+      <Card padding="lg" className="mt-4">
         <h1 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Review a contract</h1>
         <p className="text-sm text-[var(--text-secondary)] mb-6">
-          PDF, DOCX, or DOC, up to 32MB. This is a negotiating aid, not legal advice — review
-          every finding yourself before sending anything to a property.
+          This is a negotiating aid, not legal advice — review every finding yourself before
+          sending anything to a property.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Contract</label>
-            <input
+          <Field label="Contract">
+            <FieldInput
               type="file"
               accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
               required
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-[var(--text-secondary)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--cd-navy)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white file:cursor-pointer"
             />
             <p className="text-xs text-[var(--text-muted)] mt-1">
-              DOCX/DOC are converted to text for review — original formatting isn&apos;t preserved.
+              PDF, DOCX, or DOC, up to 32MB. DOCX/DOC are converted to text for review — original
+              formatting isn&apos;t preserved.
             </p>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-              Client name <span className="text-[var(--text-muted)] font-normal">(optional)</span>
-            </label>
-            <input
+          <Field label="Client name" hint="(optional)">
+            <FieldInput
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="e.g. Acme Association"
-              className="w-full rounded-md border border-[var(--border-strong)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--cd-blue)]"
             />
-          </div>
+          </Field>
 
-          <button
-            type="submit"
-            disabled={!file || status === "uploading"}
-            className="w-full rounded-md bg-[var(--cd-navy)] text-white text-sm font-medium py-2.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
-          >
-            {status === "uploading" ? "Uploading..." : "Start review"}
-          </button>
+          <Button type="submit" fullWidth disabled={!file} loading={status === "uploading"} loadingText="Uploading...">
+            Start review
+          </Button>
 
-          {status === "error" && <p className="text-sm text-[var(--severity-high)]">{errorMessage}</p>}
+          {status === "error" && (
+            <p role="alert" className="text-sm text-[var(--severity-high)]">
+              {errorMessage}
+            </p>
+          )}
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

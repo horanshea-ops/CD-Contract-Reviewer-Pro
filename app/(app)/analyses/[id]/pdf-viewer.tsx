@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask, PageViewport } from "pdfjs-dist";
 import type { HighlightRect } from "@/lib/locate-text";
+import { Button } from "@/components/ui/button";
 
 export interface PdfViewerProps {
   documentUrl: string;
@@ -22,6 +23,7 @@ export default function PdfViewer({ documentUrl, activePage, highlightRects, hig
   const [numPages, setNumPages] = useState(0);
   const [renderVersion, setRenderVersion] = useState(0);
   const [loadError, setLoadError] = useState("");
+  const [firstRenderDone, setFirstRenderDone] = useState(false);
   const [boxes, setBoxes] = useState<{ left: number; top: number; width: number; height: number }[]>([]);
 
   // Jump to a finding's page when clicked, independent of highlight success.
@@ -146,6 +148,7 @@ export default function PdfViewer({ documentUrl, activePage, highlightRects, hig
       }
       if (cancelled) return;
       updateHighlightBoxes();
+      setFirstRenderDone(true);
     }
 
     render();
@@ -172,7 +175,16 @@ export default function PdfViewer({ documentUrl, activePage, highlightRects, hig
       <div ref={containerRef} className="relative flex-1 overflow-auto bg-[var(--surface-muted)] flex justify-center">
         {loadError ? (
           <p className="p-6 text-sm text-[var(--severity-high)]">{loadError}</p>
-        ) : (
+        ) : !firstRenderDone ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--cd-navy)]"
+              role="status"
+              aria-label="Loading document preview"
+            />
+          </div>
+        ) : null}
+        {!loadError && (
           <div className="relative h-fit">
             <canvas ref={canvasRef} className="block shadow-sm" />
             {boxes.map((box, i) => (
@@ -195,27 +207,24 @@ export default function PdfViewer({ documentUrl, activePage, highlightRects, hig
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] bg-white px-3 py-2 shrink-0">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage <= 1}
-            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-2 py-1 text-[var(--text-primary)] hover:bg-[var(--surface-muted)] disabled:opacity-40"
-          >
+          <Button variant="secondary" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}>
             ← Prev
-          </button>
+          </Button>
           <span className="text-xs text-[var(--text-muted)]">
             Page {currentPage} of {numPages || "..."}
           </span>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage >= numPages}
-            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-2 py-1 text-[var(--text-primary)] hover:bg-[var(--surface-muted)] disabled:opacity-40"
           >
             Next →
-          </button>
+          </Button>
         </div>
-        <a href={documentUrl} download className="text-xs text-[var(--cd-navy)] hover:underline shrink-0">
+        <Button variant="ghost" size="sm" href={documentUrl} download className="shrink-0">
           Download original
-        </a>
+        </Button>
       </div>
     </div>
   );

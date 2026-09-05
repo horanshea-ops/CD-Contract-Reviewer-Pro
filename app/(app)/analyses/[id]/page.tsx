@@ -6,6 +6,7 @@ import Link from "next/link";
 import FindingCard, { SEVERITY_STYLE, type Finding } from "./finding-card";
 import PdfViewer from "./pdf-viewer";
 import type { HighlightRect } from "@/lib/locate-text";
+import { Button } from "@/components/ui/button";
 
 interface AnalysisResponse {
   id: string;
@@ -197,25 +198,21 @@ export default function AnalysisPage() {
             {undecidedCount > 0 && ` · ${undecidedCount} still need a decision`}
             {" · not legal advice — review each one"}
           </p>
-          <a
-            href={`/api/analyses/${data.id}/export`}
-            className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors shrink-0"
-          >
+          <Button size="sm" href={`/api/analyses/${data.id}/export`} className="shrink-0">
             Export memo ({includedCount})
-          </a>
-          <a
-            href={`/api/analyses/${data.id}/export-markup`}
-            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition-colors shrink-0"
-          >
+          </Button>
+          <Button variant="secondary" size="sm" href={`/api/analyses/${data.id}/export-markup`} className="shrink-0">
             Export marked-up PDF
-          </a>
+          </Button>
           {data.source_format === "docx" && (
-            <a
+            <Button
+              variant="secondary"
+              size="sm"
               href={`/api/analyses/${data.id}/export-redline-docx`}
-              className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition-colors shrink-0"
+              className="shrink-0"
             >
               Export tracked-changes DOCX
-            </a>
+            </Button>
           )}
         </div>
       </div>

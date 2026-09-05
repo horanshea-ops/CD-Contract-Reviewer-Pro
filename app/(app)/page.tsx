@@ -2,6 +2,9 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { redirect } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { StatusPill } from "@/components/ui/status-pill";
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   queued: { label: "Queued", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
@@ -64,24 +67,19 @@ export default async function DashboardPage() {
             Welcome back, {associate.name.split(" ")[0]}.
           </p>
         </div>
-        <Link
-          href="/upload"
-          className="rounded-md bg-[var(--cd-navy)] text-white text-sm font-medium px-4 py-2 hover:bg-[var(--cd-navy-dark)] transition-colors"
-        >
-          Review a new contract
-        </Link>
+        <Button href="/upload">Review a new contract</Button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-lg border border-[var(--border)] bg-white px-4 py-3">
+          <Card key={s.label} padding="sm">
             <p className="text-2xl font-semibold text-[var(--cd-navy)]">{s.value}</p>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">{s.label}</p>
-          </div>
+          </Card>
         ))}
       </div>
 
-      <div className="rounded-lg border border-[var(--border)] bg-white overflow-hidden">
+      <Card padding="none" className="overflow-hidden">
         <div className="px-5 py-3 border-b border-[var(--border)]">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Recent analyses</h2>
         </div>
@@ -117,9 +115,7 @@ export default async function DashboardPage() {
                       {new Date(a.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <span className={`inline-block text-xs font-medium rounded px-2 py-1 ${style.className}`}>
-                        {style.label}
-                      </span>
+                      <StatusPill label={style.label} className={style.className} />
                     </td>
                   </tr>
                 );
@@ -127,7 +123,7 @@ export default async function DashboardPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

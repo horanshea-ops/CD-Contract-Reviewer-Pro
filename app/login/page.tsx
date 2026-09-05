@@ -3,6 +3,8 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Field, FieldInput } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 
 const REDIRECT_ERRORS: Record<string, string> = {
   not_authorized:
@@ -15,7 +17,10 @@ function RedirectError() {
   const error = searchParams.get("error");
   if (!error || !REDIRECT_ERRORS[error]) return null;
   return (
-    <p className="mb-4 rounded-md border border-[color:var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-3 py-2 text-sm text-[var(--severity-medium)]">
+    <p
+      role="alert"
+      className="mb-4 rounded-md border border-[color:var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-3 py-2 text-sm text-[var(--severity-medium)]"
+    >
       {REDIRECT_ERRORS[error]}
     </p>
   );
@@ -94,29 +99,34 @@ export default function LoginPage() {
           </Suspense>
 
           {status === "sent" ? (
-            <div className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-sm text-[var(--text-primary)]">
+            <div
+              role="status"
+              aria-live="polite"
+              className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-sm text-[var(--text-primary)]"
+            >
               Check <span className="font-medium">{email}</span> for a login link. It expires in a
               few minutes.
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@conferencedirect.com"
-                className="w-full rounded-md border border-[var(--border-strong)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--cd-blue)]"
-              />
-              <button
-                type="submit"
-                disabled={status === "sending"}
-                className="w-full rounded-md bg-[var(--cd-navy)] text-white text-sm font-medium py-2.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
-              >
-                {status === "sending" ? "Sending..." : "Send login link"}
-              </button>
+              <Field label="Email">
+                <FieldInput
+                  type="email"
+                  required
+                  autoComplete="email"
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@conferencedirect.com"
+                />
+              </Field>
+              <Button type="submit" fullWidth loading={status === "sending"} loadingText="Sending...">
+                Send login link
+              </Button>
               {status === "error" && (
-                <p className="text-sm text-[var(--severity-high)]">{errorMessage}</p>
+                <p role="alert" className="text-sm text-[var(--severity-high)]">
+                  {errorMessage}
+                </p>
               )}
             </form>
           )}

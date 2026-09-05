@@ -5,6 +5,14 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // eslint-config-next bundles jsx-a11y but only enables rules that catch
+      // misuse of aria/alt attributes already present — not this one, which
+      // is the actual gap this codebase had (labels not wired to controls).
+      "jsx-a11y/label-has-associated-control": "warn",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

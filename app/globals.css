@@ -16,7 +16,10 @@
   --border-strong: #c7cdd8;
   --text-primary: #17233f;
   --text-secondary: #5b6472;
-  --text-muted: #8a93a3;
+  /* Darkened from the original #8a93a3 (~3.1:1 on white) to meet WCAG AA's
+     4.5:1 minimum for normal text — this is used as real body/caption copy
+     (dashboard captions, form hints), not just a decorative tint. */
+  --text-muted: #686e7a;
   --surface: #ffffff;
   --surface-muted: #f6f8fb;
 
@@ -26,8 +29,15 @@
   --severity-medium-bg: #fdf3e2;
   --severity-low: #5b6472;
   --severity-low-bg: #f1f3f6;
-  --severity-note: #8a93a3;
+  /* Same contrast fix as --text-muted above (was the same failing hex). */
+  --severity-note: #686e7a;
   --severity-note-bg: #f6f8fb;
+
+  /* Tokenizes the one color in the app that wasn't sourced from this system
+     (standards-list's "CD validated" badge used raw Tailwind emerald-50/700
+     directly) — same visual values, just promoted to the token system. */
+  --status-success: #047857;
+  --status-success-bg: #ecfdf5;
 }
 
 @theme inline {
@@ -46,4 +56,14 @@
 body {
   background: var(--surface-muted);
   color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

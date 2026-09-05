@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Field, FieldSelect, FieldTextarea } from "@/components/ui/field";
+import { StatusPill } from "@/components/ui/status-pill";
+import { useToast } from "@/components/ui/toast";
 
 export interface StandardRow {
   id: string;
@@ -21,7 +26,7 @@ export interface StandardRow {
 const PROVENANCE_STYLE: Record<StandardRow["provenance"], { label: string; className: string }> = {
   industry_default: { label: "Industry default · unvalidated", className: "bg-[var(--severity-medium-bg)] text-[var(--severity-medium)]" },
   extracted: { label: "Extracted from CD contracts · unvalidated", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
-  cd_validated: { label: "CD validated", className: "bg-emerald-50 text-emerald-700" },
+  cd_validated: { label: "CD validated", className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
 };
 
 const SEVERITY_OPTIONS = ["high", "medium", "low", "note"] as const;
@@ -61,6 +66,7 @@ function StandardCard({
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
   const [form, setForm] = useState({
     position: standard.position,
     fallback_language: standard.fallback_language,
@@ -83,10 +89,12 @@ function StandardCard({
       const body = await res.json();
       if (!res.ok) {
         setError(body.error || "Could not save.");
+        showToast(body.error || "Could not save.", "error");
         return;
       }
       onUpdated(body);
       setEditing(false);
+      showToast("Standard saved.");
     } finally {
       setSaving(false);
     }
@@ -105,7 +113,7 @@ function StandardCard({
   }
 
   return (
-    <div className="rounded-md border border-[var(--border)] bg-white p-4">
+    <Card>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
           <span className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wide">
@@ -113,9 +121,7 @@ function StandardCard({
           </span>
           <span className="text-xs text-[var(--text-muted)] ml-2">segment: {standard.segment}</span>
         </div>
-        <span className={`text-xs font-medium rounded px-2 py-0.5 shrink-0 ${provenanceStyle.className}`}>
-          {provenanceStyle.label}
-        </span>
+        <StatusPill label={provenanceStyle.label} className={`shrink-0 ${provenanceStyle.className}`} />
       </div>
 
       {standard.provenance === "cd_validated" && standard.validated_by && (
@@ -143,89 +149,76 @@ function StandardCard({
               {standard.walk_away_condition || <span className="text-[var(--text-muted)]">none set</span>}
             </p>
           </details>
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-primary)] hover:bg-[var(--surface-muted)]"
-          >
+          <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
             Edit
-          </button>
+          </Button>
         </>
       ) : (
         <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Position</label>
-            <textarea
+          <Field label="Position">
+            <FieldTextarea
               value={form.position}
               onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
               rows={3}
-              className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Fallback language</label>
-            <textarea
+          </Field>
+          <Field label="Fallback language">
+            <FieldTextarea
               value={form.fallback_language}
               onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
               rows={4}
-              className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Walk-away condition</label>
-            <textarea
+          </Field>
+          <Field label="Walk-away condition">
+            <FieldTextarea
               value={form.walk_away_condition}
               onChange={(e) => setForm((f) => ({ ...f, walk_away_condition: e.target.value }))}
               rows={2}
               placeholder="Leave blank if none"
-              className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
             />
-          </div>
+          </Field>
           <div className="flex gap-4">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Severity default</label>
-              <select
+            <Field label="Severity default">
+              <FieldSelect
                 value={form.severity_default}
                 onChange={(e) => setForm((f) => ({ ...f, severity_default: e.target.value as StandardRow["severity_default"] }))}
-                className="rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
               >
                 {SEVERITY_OPTIONS.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Provenance</label>
-              <select
+              </FieldSelect>
+            </Field>
+            <Field label="Provenance">
+              <FieldSelect
                 value={form.provenance}
                 onChange={(e) => setForm((f) => ({ ...f, provenance: e.target.value as StandardRow["provenance"] }))}
-                className="rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
               >
                 {PROVENANCE_OPTIONS.map((p) => (
                   <option key={p} value={p}>
                     {p}
                   </option>
                 ))}
-              </select>
-            </div>
+              </FieldSelect>
+            </Field>
           </div>
 
           <div className="flex gap-2">
-            <button
-              onClick={save}
-              disabled={saving}
-              className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
-            <button onClick={cancel} className="text-xs text-[var(--text-secondary)]">
+            <Button size="sm" onClick={save} loading={saving} loadingText="Saving...">
+              Save
+            </Button>
+            <Button variant="ghost" size="sm" onClick={cancel}>
               Cancel
-            </button>
+            </Button>
           </div>
-          {error && <p className="text-xs text-[var(--severity-high)]">{error}</p>}
+          {error && (
+            <p role="alert" className="text-xs text-[var(--severity-high)]">
+              {error}
+            </p>
+          )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

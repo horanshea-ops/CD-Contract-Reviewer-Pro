@@ -46,6 +46,50 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+- **UI/UX refinement pass — done.** Full audit of all 13 UI files ahead of presenting
+  to ConferenceDirect and its associates. Fixed real bugs and structural gaps rather
+  than reskinning: an unhandled-rejection bug in `app/auth/callback/page.tsx` that
+  stranded users forever on "Signing you in..." on an expired magic link (the exact
+  case its own error copy was written for); a completely unreachable mobile nav
+  (`components/nav-bar.tsx` was `hidden sm:flex` with no hamburger/drawer at all,
+  now has one, plus `aria-current`/active-link styling); all 7 unassociated form
+  labels sitewide (`<label>` with no `htmlFor`/`id` pairing, login's email field had
+  no `<label>` at all); a real WCAG AA contrast failure (`--text-muted`/`--severity-note`
+  at ~3.1:1 on white, now ~5:1). Introduced a small shared `components/ui/` primitive
+  set (`Button`, `Field`/`FieldInput`/`FieldTextarea`/`FieldSelect`, `Card`,
+  `StatusPill`) to collapse 4+ inconsistent hand-rolled button recipes and make
+  label association structural going forward rather than a one-time cleanup;
+  migrated all 13 files onto it. Added a dependency-free toast confirmation system
+  (nothing existed before — every save/action was silent), loading skeletons
+  (`app/(app)/loading.tsx`, a PDF-viewer spinner), and branded `app/error.tsx`/
+  `app/not-found.tsx` in place of bare Next.js defaults. Enabled
+  `jsx-a11y/label-has-associated-control` in `eslint.config.mjs` so the label-gap
+  class of regression can't silently return.
+  **Verified live**: keyboard/label-association checks via the accessibility tree
+  (not just visual screenshots) on login/upload; mobile hamburger nav opening,
+  closing, and reaching every route with correct active-state highlighting; toast
+  confirmations firing on finding accept/edit/dismiss and on a standards-library
+  save; the branded 404 page; the PDF viewer's loading spinner. One real false
+  alarm during testing, worth recording: toast confirmations appeared to silently
+  fail after an awaited `fetch()`, which cost significant debugging effort chasing
+  a suspected React/Next.js interaction bug — it turned out to be pure dev-server
+  compile latency in this session's testing (a fresh, actively-recompiling Turbopack
+  process needs several seconds to settle per interaction, not the sub-second
+  windows initially assumed), not a real defect. No workaround was needed once
+  waits were long enough; don't re-introduce one without re-confirming the bug is
+  real first.
+  **Deferred to a backlog, not attempted this pass** (all genuinely lower-urgency
+  than a first presentation, not correctness gaps): dashboard pagination (hardcoded
+  `.limit(12)`, no "view all"); standards-library search/filter (fine at 19 entries,
+  won't scale); a confirmation step before saving a standards edit (the data-layer
+  safeguards — the self-clearing validation stamp and audit log — already exist;
+  this would be a UI affordance on top, not a data-integrity fix); dark mode;
+  a real retry-analysis mechanism (today "Try again" on a failed analysis just
+  links to a blank upload form, not a true retry of the same file); the dashboard's
+  one `<table>` has no mobile-specific treatment (no `overflow-x-auto`, no
+  `truncate` on long filenames) — currently tolerable at 4 short columns but
+  untested at real-world edge cases.
+
 - **Custom PDF viewer with in-place clause highlighting — done.** The review screen's
   `<iframe>` (browser-native PDF display, page-jump only) is replaced with
   [`pdf-viewer.tsx`](app/(app)/analyses/[id]/pdf-viewer.tsx): a canvas-based viewer

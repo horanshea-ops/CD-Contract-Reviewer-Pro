@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import NavBar from "@/components/nav-bar";
+import { ToastProvider } from "@/components/ui/toast";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -21,9 +22,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .maybeSingle();
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <NavBar associate={associate} />
-      <div className="flex-1">{children}</div>
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen flex flex-col">
+        <NavBar associate={associate} />
+        <div className="flex-1">{children}</div>
+      </div>
+    </ToastProvider>
   );
 }

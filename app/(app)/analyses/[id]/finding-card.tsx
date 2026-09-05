@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
+import { StatusPill } from "@/components/ui/status-pill";
+import { useToast } from "@/components/ui/toast";
 
 export interface Finding {
   id: string;
@@ -86,6 +91,7 @@ export default function FindingCard({
   const [customReason, setCustomReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { showToast } = useToast();
 
   const style = SEVERITY_STYLE[finding.severity];
 
@@ -108,6 +114,7 @@ export default function FindingCard({
       const body = await res.json();
       if (!res.ok) {
         setError(body.error || "Could not save.");
+        showToast(body.error || "Could not save.", "error");
         return;
       }
       onActionRecorded(finding.id, {
@@ -116,16 +123,14 @@ export default function FindingCard({
         dismissal_reason: action === "dismiss" ? reason : null,
       });
       setMode("view");
+      showToast(`${ACTION_LABEL[action]}.`);
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div
-      className="bg-white rounded-md border border-[var(--border)] p-4"
-      style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
-    >
+    <Card style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
           <span className="text-xs font-bold tracking-wide" style={{ color: style.textColor }}>
@@ -139,9 +144,10 @@ export default function FindingCard({
           )}
         </div>
         {finding.current_action && (
-          <span className="text-xs font-medium rounded bg-[var(--cd-blue-pale)] px-2 py-0.5 text-[var(--cd-navy)] shrink-0">
-            {ACTION_LABEL[finding.current_action.action]}
-          </span>
+          <StatusPill
+            label={ACTION_LABEL[finding.current_action.action]}
+            className="shrink-0 bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]"
+          />
         )}
       </div>
 
@@ -150,7 +156,7 @@ export default function FindingCard({
           {finding.location_page != null ? (
             <button
               onClick={() => onSelectFinding?.(finding)}
-              className="text-[var(--cd-navy)] hover:underline"
+              className="text-[var(--cd-navy)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
             >
               Page {finding.location_page} →
             </button>
@@ -191,91 +197,83 @@ export default function FindingCard({
 
       {mode === "view" && (
         <div className="flex gap-2 mt-3">
-          <button
-            onClick={() => submitAction("accept")}
-            disabled={saving}
-            className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
-          >
+          <Button size="sm" onClick={() => submitAction("accept")} loading={saving} loadingText="Accepting...">
             Accept
-          </button>
-          <button
-            onClick={() => setMode("editing")}
-            disabled={saving}
-            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-primary)] hover:bg-[var(--surface-muted)]"
-          >
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setMode("editing")} disabled={saving}>
             Edit
-          </button>
-          <button
-            onClick={() => setMode("dismissing")}
-            disabled={saving}
-            className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]"
-          >
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
       {mode === "editing" && (
         <div className="mt-3 space-y-2">
-          <textarea
-            value={editedLanguage}
-            onChange={(e) => setEditedLanguage(e.target.value)}
-            rows={4}
-            className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--cd-blue)]"
-          />
+          <Field label="Edited language">
+            <FieldTextarea value={editedLanguage} onChange={(e) => setEditedLanguage(e.target.value)} rows={4} />
+          </Field>
           <div className="flex gap-2">
-            <button
+            <Button
+              size="sm"
               onClick={() => submitAction("edit")}
-              disabled={saving || !editedLanguage.trim()}
-              className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
+              disabled={!editedLanguage.trim()}
+              loading={saving}
+              loadingText="Saving..."
             >
               Save edit
-            </button>
-            <button onClick={() => setMode("view")} className="text-xs text-[var(--text-secondary)]">
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setMode("view")}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {mode === "dismissing" && (
         <div className="mt-3 space-y-2">
-          <select
-            value={dismissalReason}
-            onChange={(e) => setDismissalReason(e.target.value)}
-            className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
-          >
-            {DISMISSAL_REASONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+          <Field label="Reason for dismissal">
+            <FieldSelect value={dismissalReason} onChange={(e) => setDismissalReason(e.target.value)}>
+              {DISMISSAL_REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
           {dismissalReason === "Other" && (
-            <input
-              type="text"
-              value={customReason}
-              onChange={(e) => setCustomReason(e.target.value)}
-              placeholder="Reason"
-              className="w-full rounded-md border border-[var(--border-strong)] px-2 py-1.5 text-sm"
-            />
+            <Field label="Please specify">
+              <FieldInput
+                type="text"
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                placeholder="Reason"
+              />
+            </Field>
           )}
           <div className="flex gap-2">
-            <button
+            <Button
+              size="sm"
               onClick={() => submitAction("dismiss")}
-              disabled={saving || (dismissalReason === "Other" && !customReason.trim())}
-              className="text-xs font-medium rounded-md bg-[var(--cd-navy)] text-white px-3 py-1.5 hover:bg-[var(--cd-navy-dark)] transition-colors disabled:opacity-50"
+              disabled={dismissalReason === "Other" && !customReason.trim()}
+              loading={saving}
+              loadingText="Dismissing..."
             >
               Confirm dismiss
-            </button>
-            <button onClick={() => setMode("view")} className="text-xs text-[var(--text-secondary)]">
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setMode("view")}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      {error && <p className="text-xs text-[var(--severity-high)] mt-2">{error}</p>}
-    </div>
+      {error && (
+        <p role="alert" className="text-xs text-[var(--severity-high)] mt-2">
+          {error}
+        </p>
+      )}
+    </Card>
   );
 }

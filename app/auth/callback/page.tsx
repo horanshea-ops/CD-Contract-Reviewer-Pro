@@ -65,7 +65,13 @@ export default function AuthCallbackPage() {
       }
     }
 
-    finishLogin();
+    // An expired/invalid magic-link code makes exchangeCodeForSession reject —
+    // exactly the case the auth_failed error copy exists for. Without this,
+    // that rejection would throw inside the effect and strand the user on
+    // "Signing you in..." forever, since the code below it never runs.
+    finishLogin().catch(() => {
+      if (!cancelled) router.replace("/login?error=auth_failed");
+    });
     return () => {
       cancelled = true;
     };
