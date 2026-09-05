@@ -8,6 +8,12 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
  * paginated. Good enough for clause-level analysis (which is fundamentally
  * about the words, not the formatting) and honest about the tradeoff in the
  * UI rather than silently pretending it's the original document.
+ *
+ * Also returns the exact position of every line it draws. Because this same
+ * loop both renders the text AND reports where it put it, a marked-up-PDF
+ * export can find a finding's quoted text by exact substring match against
+ * this data — no fuzzy PDF text-extraction/matching needed, since there's
+ * nothing foreign to reconcile against.
  */
 
 const MARGIN = 56;
@@ -16,6 +22,20 @@ const MAX_WIDTH = PAGE_SIZE[0] - MARGIN * 2;
 const FONT_SIZE = 10;
 const LINE_HEIGHT = 14;
 const PARAGRAPH_GAP = 6;
+
+export interface RenderedLine {
+  text: string;
+  pageIndex: number;
+  x: number;
+  y: number; // baseline
+  width: number;
+  height: number;
+}
+
+export interface TextToPdfResult {
+  pdfBytes: Uint8Array;
+  lines: RenderedLine[];
+}
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
@@ -35,16 +55,19 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
   return lines;
 }
 
-export async function textToPdf(title: string, bodyText: string): Promise<Uint8Array> {
+export async function textToPdf(title: string, bodyText: string): Promise<TextToPdfResult> {
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   let page = pdfDoc.addPage(PAGE_SIZE);
+  let pageIndex = 0;
   let y = PAGE_SIZE[1] - MARGIN;
+  const renderedLines: RenderedLine[] = [];
 
   function newPage() {
     page = pdfDoc.addPage(PAGE_SIZE);
+    pageIndex += 1;
     y = PAGE_SIZE[1] - MARGIN;
   }
 
@@ -71,6 +94,14 @@ export async function textToPdf(title: string, bodyText: string): Promise<Uint8A
     ensureSpace(lines.length * LINE_HEIGHT);
     for (const line of lines) {
       page.drawText(line, { x: MARGIN, y, size: FONT_SIZE, font, color: rgb(0, 0, 0) });
+      renderedLines.push({
+        text: line,
+        pageIndex,
+        x: MARGIN,
+        y,
+        width: font.widthOfTextAtSize(line, FONT_SIZE),
+        height: LINE_HEIGHT,
+      });
       y -= LINE_HEIGHT;
     }
     y -= PARAGRAPH_GAP;
@@ -89,5 +120,6 @@ export async function textToPdf(title: string, bodyText: string): Promise<Uint8A
     });
   }
 
-  return pdfDoc.save();
+  const pdfBytes = await pdfDoc.save();
+  return { pdfBytes, lines: renderedLines };
 }

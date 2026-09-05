@@ -3,9 +3,20 @@ loadEnvLocal();
 
 import { createAdminClient } from "../lib/supabase/admin";
 
-/** Creates the private storage bucket contract files are uploaded into. Safe to re-run. */
+/** Creates (or updates) the private storage bucket contract files are uploaded into. Safe to re-run. */
 
 const BUCKET = "contracts";
+
+const BUCKET_OPTIONS = {
+  public: false,
+  fileSizeLimit: "50MB",
+  allowedMimeTypes: [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+    "application/json", // sidecar line-position data for DOCX/DOC-sourced marked-up PDF export
+  ],
+};
 
 async function main() {
   const admin = createAdminClient();
@@ -13,19 +24,13 @@ async function main() {
   if (listError) throw listError;
 
   if (buckets.some((b) => b.name === BUCKET)) {
-    console.log(`Bucket "${BUCKET}" already exists.`);
+    const { error } = await admin.storage.updateBucket(BUCKET, BUCKET_OPTIONS);
+    if (error) throw error;
+    console.log(`Updated bucket "${BUCKET}".`);
     return;
   }
 
-  const { error } = await admin.storage.createBucket(BUCKET, {
-    public: false,
-    fileSizeLimit: "50MB",
-    allowedMimeTypes: [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/msword",
-    ],
-  });
+  const { error } = await admin.storage.createBucket(BUCKET, BUCKET_OPTIONS);
   if (error) throw error;
   console.log(`Created bucket "${BUCKET}".`);
 }

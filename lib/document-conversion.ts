@@ -1,6 +1,6 @@
 import mammoth from "mammoth";
 import WordExtractor from "word-extractor";
-import { textToPdf } from "./text-to-pdf";
+import { textToPdf, type TextToPdfResult } from "./text-to-pdf";
 
 export const SUPPORTED_MIME_TYPES = {
   pdf: "application/pdf",
@@ -33,7 +33,7 @@ export async function convertToPdf(
   fileBuffer: Buffer,
   sourceFormat: "docx" | "doc",
   filename: string
-): Promise<Uint8Array> {
+): Promise<TextToPdfResult> {
   let text: string;
 
   if (sourceFormat === "docx") {

@@ -82,7 +82,23 @@ export async function POST(request: Request) {
     pdfBytes = fileBytes;
   } else {
     try {
-      pdfBytes = await convertToPdf(fileBytes, sourceFormat, file.name);
+      const converted = await convertToPdf(fileBytes, sourceFormat, file.name);
+      pdfBytes = converted.pdfBytes;
+
+      // Sidecar file recording exactly where each line of text landed on the
+      // generated PDF — lets a marked-up-PDF export find a finding's quoted
+      // text by exact match instead of fuzzy PDF text-extraction, since we
+      // rendered this PDF ourselves and know precisely what we drew.
+      const positionsPath = `${associate.id}/${analysisId}/line-positions.json`;
+      const { error: positionsUploadError } = await admin.storage
+        .from(STORAGE_BUCKET)
+        .upload(positionsPath, JSON.stringify(converted.lines), { contentType: "application/json" });
+      if (positionsUploadError) {
+        return NextResponse.json(
+          { error: `Could not store document layout data: ${positionsUploadError.message}` },
+          { status: 500 }
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not read this document.";
       return NextResponse.json({ error: message }, { status: 400 });

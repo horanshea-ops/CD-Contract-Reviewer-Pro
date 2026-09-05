@@ -23,6 +23,9 @@ order — the checklist below just tracks progress against it.
       copy — the UI says so) and fed through the same pipeline unchanged. The
       original file is kept in storage either way, so the redline work below
       isn't foreclosed by this approach.
+- [~] 4b. Marked-up PDF / tracked-changes DOCX (added to scope, competitor parity) —
+      Phase A (marked-up PDF, DOCX/DOC-sourced) done; Phases B (PDF-sourced) and C
+      (tracked-changes DOCX) not started. See open items below for detail.
 - [x] 5. Findings review UI — document alongside findings, accept/edit/dismiss
 - [x] 6. Audit logging — wired into login, upload, analysis complete/failed, every
       finding action
@@ -44,20 +47,28 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 ## Open items
 
 - **Redlined/tracked-changes export (both PDF and DOCX)** — requested explicitly
-  (competitor parity). DOCX/DOC upload + analysis (the prerequisite) is now done —
-  see build order item 4a below. What's left is the genuinely hard part:
-     the build brief explicitly scoped both out of v1 for this reason (§9):
-     - *Marked-up PDF*: strikethrough + margin callouts on the original document.
-       Needs mapping quoted finding text back to exact page coordinates
-       (positional text extraction). Estimated 20-30 hours.
-     - *Tracked-changes DOCX*: real Word `w:ins`/`w:del` revision marks. The
-       common Python/JS libraries don't produce these natively — it means
-       hand-writing OOXML. Also estimated 20-30 hours, and it's a distinct
-       effort from the PDF version, not a shared one.
-     The build brief's original recommendation was to defer this until associates
-     ask for it during the pilot; a named competitor already having it is a
-     reasonable reason to move it up, but it should still be scoped as its own
-     initiative once DOCX upload exists under it, not folded into the same pass.
+  (competitor parity). Full scope at
+  [docs/redline-export-plan.md](docs/redline-export-plan.md) (three phases, ordered
+  by risk). Status:
+  - [x] **Phase A — marked-up PDF for DOCX/DOC-sourced analyses.** Done. Key insight:
+    since we generate that PDF ourselves ([`lib/text-to-pdf.ts`](lib/text-to-pdf.ts)),
+    it now also records exactly where every line landed, so a finding's quoted text
+    is found by exact match — no fuzzy PDF text-extraction needed, no schema
+    migration. [`lib/redline-pdf.ts`](lib/redline-pdf.ts) draws the strikethrough +
+    numbered margin markers + a "Redline Notes" appendix (missing-clause findings
+    collected under "Requested Additions"). Verified end to end against a real
+    generated DOCX: multi-line strikethrough spans, marker placement, and the
+    appendix all confirmed correct on inspection.
+  - [ ] **Phase B — marked-up PDF for genuinely PDF-sourced analyses.** Not started.
+    The real hard part — needs `unpdf`/`pdfjs-dist` text-extraction plus fuzzy
+    matching against arbitrary real-world PDF layouts. No solid time estimate
+    up front; needs iteration against real sample documents.
+  - [ ] **Phase C — tracked-changes DOCX.** Not started. DOCX-sourced only — there's
+    no Word document to inject revisions into for PDF- or DOC-sourced analyses.
+    Needs `jszip` + surgical string-splicing of `word/document.xml` (deliberately
+    not a generic XML-tree rebuild, to avoid corrupting a file Word can't open).
+    True verification needs a human opening a sample in real Word/Google Docs —
+    not something this environment can confirm on its own.
 
 - **Standards library breadth vs. depth.** The library now covers 19 clause types:
   the 11 named in the build brief §1, plus 8 more drafted from general industry
