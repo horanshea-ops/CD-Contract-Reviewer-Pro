@@ -147,11 +147,15 @@ export async function generateTrackedChangesDocx({
   const date = new Date().toISOString();
 
   const ops: EditOp[] = [];
-  const needsAppendix: MemoFinding[] = []; // missing-clause, or couldn't be located in place
+  // Two different situations, kept separate rather than lumped into one bucket:
+  // a clause that genuinely doesn't exist in the contract vs. one that does but
+  // couldn't be pinpointed precisely enough for in-place markup.
+  const missingClauses: MemoFinding[] = [];
+  const notLocated: MemoFinding[] = [];
 
   for (const finding of findings) {
     if (finding.is_missing_clause || !finding.quoted_text) {
-      needsAppendix.push(finding);
+      missingClauses.push(finding);
       continue;
     }
 
@@ -159,7 +163,7 @@ export async function generateTrackedChangesDocx({
     const overlapping = match ? runs.filter((r) => r.plainStart < match.end && r.plainEnd > match.start) : [];
 
     if (!match || overlapping.length === 0) {
-      needsAppendix.push(finding);
+      notLocated.push(finding);
       continue;
     }
 
@@ -167,7 +171,7 @@ export async function generateTrackedChangesDocx({
     const last = overlapping[overlapping.length - 1];
     const conflicts = ops.some((op) => op.start < last.runEnd && op.end > first.runStart);
     if (conflicts) {
-      needsAppendix.push(finding);
+      notLocated.push(finding);
       continue;
     }
 
@@ -206,22 +210,33 @@ export async function generateTrackedChangesDocx({
     newDocumentXml = newDocumentXml.slice(0, op.start) + op.replacementXml + newDocumentXml.slice(op.end);
   }
 
-  if (needsAppendix.length > 0) {
-    const heading = `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">REQUESTED ADDITIONS (not marked in place above)</w:t></w:r></w:p>`;
-    const items = needsAppendix
+  function buildAppendixSection(heading: string, items: MemoFinding[]): string {
+    if (items.length === 0) return "";
+    const headingXml = `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${encodeXmlEntities(heading)}</w:t></w:r></w:p>`;
+    const itemsXml = items
       .map((f) => {
         const label = `${f.severity.toUpperCase()} — ${f.clause_type.replace(/_/g, " ").toUpperCase()}: `;
         return buildInsertedParagraph(label + f.language, revisionId, author, date);
       })
       .join("");
+    return headingXml + itemsXml;
+  }
 
+  const appendixXml =
+    buildAppendixSection("REQUESTED ADDITIONS (not present in the original)", missingClauses) +
+    buildAppendixSection(
+      "COULD NOT BE LOCATED FOR MARKUP (present in the contract — see the app for exact wording)",
+      notLocated
+    );
+
+  if (appendixXml) {
     const sectPrIndex = newDocumentXml.lastIndexOf("<w:sectPr");
     const insertAt = sectPrIndex !== -1 ? sectPrIndex : newDocumentXml.lastIndexOf("</w:body>");
-    newDocumentXml = newDocumentXml.slice(0, insertAt) + heading + items + newDocumentXml.slice(insertAt);
+    newDocumentXml = newDocumentXml.slice(0, insertAt) + appendixXml + newDocumentXml.slice(insertAt);
   }
 
   zip.file("word/document.xml", newDocumentXml);
   const docxBytes = await zip.generateAsync({ type: "uint8array" });
 
-  return { docxBytes, matchedCount: ops.length, unmatchedCount: needsAppendix.length };
+  return { docxBytes, matchedCount: ops.length, unmatchedCount: missingClauses.length + notLocated.length };
 }

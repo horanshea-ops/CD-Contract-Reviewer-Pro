@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type RGB } from "pdf-lib";
 import type { RenderedLine } from "./text-to-pdf";
 import type { MemoFinding } from "./export-memo";
+import { findMatchingLineIndices } from "./locate-text";
 
 /**
  * Draws a marked-up version of an already-rendered contract PDF: a
@@ -27,34 +28,6 @@ const SEVERITY_COLOR: Record<MemoFinding["severity"], RGB> = {
   low: rgb(0.35, 0.39, 0.45),
   note: rgb(0.54, 0.58, 0.64),
 };
-
-function normalize(s: string): string {
-  return s.replace(/\s+/g, " ").trim().toLowerCase();
-}
-
-function findMatchingLineIndices(lines: RenderedLine[], quotedText: string): number[] | null {
-  const normalizedQuoted = normalize(quotedText);
-  if (!normalizedQuoted) return null;
-
-  let concatenated = "";
-  const lineStarts: number[] = [];
-  for (const line of lines) {
-    lineStarts.push(concatenated.length);
-    concatenated += normalize(line.text) + " ";
-  }
-
-  const idx = concatenated.indexOf(normalizedQuoted);
-  if (idx === -1) return null;
-  const end = idx + normalizedQuoted.length;
-
-  const matched: number[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    const start = lineStarts[i];
-    const stop = i + 1 < lines.length ? lineStarts[i + 1] : concatenated.length;
-    if (start < end && stop > idx) matched.push(i);
-  }
-  return matched.length ? matched : null;
-}
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const lines: string[] = [];

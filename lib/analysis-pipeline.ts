@@ -1,6 +1,8 @@
 import { createAdminClient } from "./supabase/admin";
 import { analyzeContractPdf } from "./anthropic";
 import { logAudit } from "./audit";
+import { getPositionedLines } from "./get-positioned-lines";
+import { findMatchingLineIndices } from "./locate-text";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -15,7 +17,7 @@ export async function processAnalysis(analysisId: string) {
 
   const { data: analysis, error: fetchError } = await admin
     .from("analyses")
-    .select("id, storage_path, associate_id")
+    .select("id, storage_path, associate_id, source_format")
     .eq("id", analysisId)
     .single();
 
@@ -59,8 +61,38 @@ export async function processAnalysis(analysisId: string) {
         model_confidence: f.model_confidence,
       }));
 
-      const { error: insertError } = await admin.from("findings").insert(findingRows);
+      const { data: insertedFindings, error: insertError } = await admin
+        .from("findings")
+        .insert(findingRows)
+        .select("id, is_missing_clause, quoted_text");
       if (insertError) throw new Error(`Could not save findings: ${insertError.message}`);
+
+      // Best-effort: precompute which findings can be located on the
+      // rendered document, so the review screen can show that immediately
+      // instead of only discovering it lazily at export time. A failure
+      // here is a missed enhancement, not a failed analysis — it must never
+      // flip an otherwise-successful analysis to "failed".
+      try {
+        const lines = await getPositionedLines({
+          admin,
+          associateId: analysis.associate_id,
+          analysisId,
+          sourceFormat: analysis.source_format,
+          pdfBytes: new Uint8Array(arrayBuffer),
+        });
+
+        for (const finding of insertedFindings ?? []) {
+          if (finding.is_missing_clause || !finding.quoted_text) continue;
+          const matchedIndices = findMatchingLineIndices(lines, finding.quoted_text);
+          if (!matchedIndices) continue;
+          await admin
+            .from("findings")
+            .update({ location_page: lines[matchedIndices[0]].pageIndex + 1 })
+            .eq("id", finding.id);
+        }
+      } catch (locateErr) {
+        console.error(`processAnalysis: could not precompute finding locations for ${analysisId}`, locateErr);
+      }
     }
 
     await admin

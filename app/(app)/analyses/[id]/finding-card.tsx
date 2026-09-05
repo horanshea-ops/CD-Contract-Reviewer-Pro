@@ -10,6 +10,7 @@ export interface Finding {
   exposure_amount: number | null;
   exposure_basis: string | null;
   location_section: string | null;
+  location_page: number | null;
   quoted_text: string | null;
   finding_text: string;
   cd_standard: string;
@@ -54,9 +55,11 @@ const ACTION_LABEL: Record<string, string> = {
 export default function FindingCard({
   finding,
   onActionRecorded,
+  onJumpToPage,
 }: {
   finding: Finding;
   onActionRecorded: (findingId: string, action: Finding["current_action"]) => void;
+  onJumpToPage?: (page: number) => void;
 }) {
   const [mode, setMode] = useState<"view" | "editing" | "dismissing">("view");
   const [editedLanguage, setEditedLanguage] = useState(finding.proposed_language);
@@ -122,6 +125,23 @@ export default function FindingCard({
           </span>
         )}
       </div>
+
+      {!finding.is_missing_clause && finding.quoted_text && (
+        <p className="text-xs mb-1">
+          {finding.location_page != null ? (
+            <button
+              onClick={() => onJumpToPage?.(finding.location_page!)}
+              className="text-[var(--cd-navy)] hover:underline"
+            >
+              Page {finding.location_page} →
+            </button>
+          ) : (
+            <span className="text-[var(--text-muted)]">
+              Location not pinpointed — won&apos;t be marked in place if exported
+            </span>
+          )}
+        </p>
+      )}
 
       {finding.exposure_amount != null && (
         <p className="text-lg font-semibold text-[var(--text-primary)] mb-1">

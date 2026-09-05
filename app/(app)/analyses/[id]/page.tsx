@@ -28,6 +28,7 @@ export default function AnalysisPage() {
   const [data, setData] = useState<AnalysisResponse | null>(null);
   const [loadError, setLoadError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activePage, setActivePage] = useState<number | null>(null);
   const startedAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -214,7 +215,11 @@ export default function AnalysisPage() {
             </div>
           )}
           {data.documentUrl ? (
-            <iframe src={data.documentUrl} className="w-full flex-1" title="Contract document" />
+            <iframe
+              src={activePage ? `${data.documentUrl}#page=${activePage}` : data.documentUrl}
+              className="w-full flex-1"
+              title="Contract document"
+            />
           ) : (
             <p className="p-6 text-sm text-[var(--text-secondary)]">Document preview unavailable.</p>
           )}
@@ -227,7 +232,12 @@ export default function AnalysisPage() {
             </p>
           ) : (
             sortedFindings.map((f) => (
-              <FindingCard key={f.id} finding={f} onActionRecorded={handleActionRecorded} />
+              <FindingCard
+                key={f.id}
+                finding={f}
+                onActionRecorded={handleActionRecorded}
+                onJumpToPage={setActivePage}
+              />
             ))
           )}
         </div>

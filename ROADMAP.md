@@ -46,6 +46,36 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+- **Custom PDF viewer with in-place clause highlighting.** The review screen currently
+  shows the contract via the browser's native PDF display (a plain `<iframe>`) — we
+  don't control what's rendered inside it. That's fine for reading, but it means we
+  can only ever jump to a *page* when a finding is clicked (a URL fragment the native
+  viewer honors), not actually highlight the specific clause on top of the document,
+  which is what the build brief's interface direction originally envisioned ("clicking
+  one scrolls and highlights the relevant clause"). Doing real highlighting means
+  replacing the iframe with a custom-built viewer — rendering PDF pages to canvas
+  ourselves (via `pdfjs-dist`, which `unpdf` already wraps) and drawing a highlight
+  overlay positioned from the same finding-location data the redline exports already
+  compute. This is a genuinely separate, sizable UI project (a real PDF reader
+  component, not a small addition) — not something to fold into the page-jump work.
+  Revisit once there's a sense of how much associates actually want this versus
+  page-level jumping being good enough. Page-level jumping itself (below) is done.
+
+- **Location transparency + click-to-page navigation — done.** Two gaps from the
+  redline work being export-only: the tracked-changes DOCX appendix used to lump
+  "clause doesn't exist" and "clause exists but couldn't be pinpointed" into one
+  heading (fixed — `lib/tracked-changes-docx.ts` now emits two distinct sections);
+  and the review screen had no way to show whether a finding would actually get
+  marked up before export (fixed — `location_page` is now computed once at analysis
+  time in `lib/analysis-pipeline.ts`, reusing the exact-match logic extracted into
+  `lib/locate-text.ts`, and surfaced per finding as either a clickable "Page N"
+  affordance or an honest "location not pinpointed" caveat). Clicking jumps the PDF
+  iframe to that page via the `#page=N` fragment. Verified: uploaded a fresh DOCX,
+  confirmed `location_page` populated correctly for locatable findings and left
+  `null` for missing-clause ones; confirmed the caveat renders for a simulated
+  unmatched case; confirmed the split appendix headings in a real tracked-changes
+  DOCX export.
+
 - **Redlined/tracked-changes export (both PDF and DOCX)** — requested explicitly
   (competitor parity). Full scope at
   [docs/redline-export-plan.md](docs/redline-export-plan.md) (three phases, ordered

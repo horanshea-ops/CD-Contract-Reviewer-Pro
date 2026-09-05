@@ -4,8 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { getActionedFindings } from "@/lib/get-actioned-findings";
 import { generateMarkupPdf } from "@/lib/redline-pdf";
-import { extractPdfLines } from "@/lib/extract-pdf-lines";
-import type { RenderedLine } from "@/lib/text-to-pdf";
+import { getPositionedLines } from "@/lib/get-positioned-lines";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -51,29 +50,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
   const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
 
-  let lines: RenderedLine[];
-  if (analysis.source_format === "pdf") {
-    try {
-      // A separate copy: unpdf appears to detach/consume the underlying
-      // buffer it's given, which would otherwise corrupt pdfBytes before
-      // pdf-lib gets to load it below.
-      lines = await extractPdfLines(pdfBytes.slice());
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not read this PDF's text.";
-      return NextResponse.json({ error: `Could not extract text from the PDF: ${message}` }, { status: 500 });
-    }
-  } else {
-    const positionsPath = `${analysis.associate_id}/${id}/line-positions.json`;
-    const { data: positionsBlob, error: positionsError } = await admin.storage
-      .from(STORAGE_BUCKET)
-      .download(positionsPath);
-    if (positionsError || !positionsBlob) {
-      return NextResponse.json(
-        { error: `Could not load document layout data: ${positionsError?.message}` },
-        { status: 500 }
-      );
-    }
-    lines = JSON.parse(await positionsBlob.text());
+  let lines;
+  try {
+    lines = await getPositionedLines({
+      admin,
+      associateId: analysis.associate_id,
+      analysisId: id,
+      sourceFormat: analysis.source_format,
+      pdfBytes,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not read this document's text.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   const findings = await getActionedFindings(admin, id);
