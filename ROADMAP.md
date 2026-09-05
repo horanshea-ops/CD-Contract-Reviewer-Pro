@@ -127,6 +127,20 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
     verified, and can't be from this environment**: whether Word's Reviewing pane
     actually renders these as accept/reject-able suggestions with the right styling —
     needs a human opening the file in real Word or Google Docs.
+  - **Open gap: legacy `.doc` uploads have no same-format redline output.** DOCX-sourced
+    and PDF-sourced analyses both already round-trip in their original format (DOCX
+    tracked-changes for the former, marked-up PDF operating on the real original file
+    for the latter) — `.doc` is the one source format where the redline export (PDF)
+    doesn't match the import format. Not a straightforward fix: `.doc` is Microsoft's
+    old binary Word format (OLE2/Word Binary File Format), not XML, so it can't be
+    string-spliced the way [`lib/tracked-changes-docx.ts`](lib/tracked-changes-docx.ts)
+    handles real `.docx`. The realistic options are Apache POI (Java) to write the
+    binary format directly, or converting `.doc`→`.docx` via something like LibreOffice
+    headless first — the same "heavy binary dependency, awkward on Vercel" tradeoff
+    already rejected once for the DOCX upload-conversion step. Not impossible, but a
+    real infra cost this project has otherwise avoided; low priority unless real usage
+    shows associates uploading legacy `.doc` files often (DOCX has been Word's default
+    since 2007).
 
 - **Standards library breadth vs. depth.** The library now covers 19 clause types:
   the 11 named in the build brief §1, plus 8 more drafted from general industry
