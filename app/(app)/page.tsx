@@ -62,17 +62,19 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-[var(--text-primary)]">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">Dashboard</h1>
           <p className="text-sm text-[var(--text-secondary)]">
             Welcome back, {associate.name.split(" ")[0]}.
           </p>
         </div>
-        <Button href="/upload">Review a new contract</Button>
+        <Button href="/upload" gradient>
+          Review a new contract
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {stats.map((s) => (
-          <Card key={s.label} padding="sm">
+          <Card key={s.label} padding="sm" elevated>
             <p className="text-2xl font-semibold text-[var(--cd-navy)]">{s.value}</p>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">{s.label}</p>
           </Card>

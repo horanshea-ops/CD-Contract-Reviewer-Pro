@@ -35,14 +35,14 @@ export const SEVERITY_STYLE: Record<
   high: {
     label: "HIGH",
     borderColor: "var(--severity-high)",
-    borderWidth: "4px",
+    borderWidth: "3px",
     textColor: "var(--severity-high)",
     bg: "var(--severity-high-bg)",
   },
   medium: {
     label: "MEDIUM",
     borderColor: "var(--severity-medium)",
-    borderWidth: "4px",
+    borderWidth: "3px",
     textColor: "var(--severity-medium)",
     bg: "var(--severity-medium-bg)",
   },
@@ -132,15 +132,13 @@ export default function FindingCard({
   return (
     <Card style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}>
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div>
-          <span className="text-xs font-bold tracking-wide" style={{ color: style.textColor }}>
-            {style.label}
-          </span>
-          <span className="text-xs text-[var(--text-muted)] ml-2 uppercase tracking-wide">
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusPill label={style.label} style={{ background: style.bg, color: style.textColor }} />
+          <span className="text-xs text-[var(--text-muted)] uppercase tracking-wide">
             {finding.clause_type.replace(/_/g, " ")}
           </span>
           {finding.is_missing_clause && (
-            <span className="text-xs text-[var(--text-muted)] ml-2">(missing from contract)</span>
+            <span className="text-xs text-[var(--text-muted)]">(missing from contract)</span>
           )}
         </div>
         {finding.current_action && (

@@ -89,7 +89,7 @@ export default function LoginPage() {
             <span className="text-[var(--text-primary)] font-semibold tracking-tight">Contract Reviewer</span>
           </div>
 
-          <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-1">Sign in</h1>
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Sign in</h1>
           <p className="text-sm text-[var(--text-secondary)] mb-6">
             Use your ConferenceDirect email. We&apos;ll send you a login link — no password needed.
           </p>

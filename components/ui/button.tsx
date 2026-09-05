@@ -11,6 +11,10 @@ interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "chi
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
+  /** Gradient background instead of the flat primary color — reserved for
+   * the one hero-CTA use case (e.g. the dashboard's primary action), not a
+   * general-purpose variant. Only meaningful with the default primary look. */
+  gradient?: boolean;
   loading?: boolean;
   loadingText?: string;
   href?: string;
@@ -41,37 +45,48 @@ export function Button({
   variant = "primary",
   size = "md",
   fullWidth,
+  gradient,
   loading,
   loadingText,
   href,
   download,
   disabled,
   className,
+  style,
   children,
   ...rest
 }: ButtonProps) {
   const classes = cn(
-    "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors",
+    "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors",
     "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]",
-    VARIANT_CLASSES[variant],
+    gradient ? "text-white hover:brightness-110" : VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     fullWidth && "w-full",
     className
   );
+  const mergedStyle = gradient
+    ? { background: "linear-gradient(135deg, var(--cd-navy), var(--cd-navy-darker))", ...style }
+    : style;
 
   const content = loading ? (loadingText ?? "Loading...") : children;
 
   if (href) {
     return (
-      <Link href={href} download={download} className={classes}>
+      <Link href={href} download={download} className={classes} style={mergedStyle}>
         {content}
       </Link>
     );
   }
 
   return (
-    <button {...rest} disabled={disabled || loading} aria-busy={loading || undefined} className={classes}>
+    <button
+      {...rest}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={classes}
+      style={mergedStyle}
+    >
       {content}
     </button>
   );

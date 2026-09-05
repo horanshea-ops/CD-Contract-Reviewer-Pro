@@ -23,8 +23,6 @@ interface AnalysisResponse {
 }
 
 const POLL_INTERVAL_MS = 2000;
-const NAV_HEIGHT = 56;
-const SUBHEADER_HEIGHT = 53;
 
 export default function AnalysisPage() {
   const params = useParams<{ id: string }>();
@@ -108,10 +106,7 @@ export default function AnalysisPage() {
 
   if (loadError) {
     return (
-      <div
-        className="flex items-center justify-center px-4"
-        style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}
-      >
+      <div className="h-full flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-sm text-[var(--severity-high)] mb-2">{loadError}</p>
           <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
@@ -124,7 +119,7 @@ export default function AnalysisPage() {
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center" style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}>
+      <div className="h-full flex items-center justify-center">
         <p className="text-sm text-[var(--text-secondary)]">Loading...</p>
       </div>
     );
@@ -132,10 +127,7 @@ export default function AnalysisPage() {
 
   if (data.status === "queued" || data.status === "processing") {
     return (
-      <div
-        className="flex items-center justify-center px-4"
-        style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}
-      >
+      <div className="h-full flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
             {data.status === "queued" ? "Queued..." : "Analyzing " + data.filename}
@@ -153,10 +145,7 @@ export default function AnalysisPage() {
 
   if (data.status === "failed") {
     return (
-      <div
-        className="flex items-center justify-center px-4"
-        style={{ minHeight: `calc(100vh - ${NAV_HEIGHT}px)` }}
-      >
+      <div className="h-full flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <p className="text-sm font-medium text-[var(--severity-high)] mb-1">Analysis failed</p>
           <p className="text-sm text-[var(--text-secondary)] mb-4">
@@ -181,11 +170,8 @@ export default function AnalysisPage() {
   const undecidedCount = sortedFindings.filter((f) => !f.current_action).length;
 
   return (
-    <div>
-      <div
-        className="border-b border-[var(--border)] bg-white px-6 flex items-center justify-between"
-        style={{ height: SUBHEADER_HEIGHT }}
-      >
+    <div className="h-full flex flex-col">
+      <div className="border-b border-[var(--border)] bg-white px-6 py-3 flex items-center justify-between shrink-0">
         <div>
           <Link href="/" className="text-xs text-[var(--text-muted)] hover:text-[var(--cd-navy)]">
             ← Back
@@ -217,10 +203,7 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      <div
-        className="flex flex-col lg:flex-row"
-        style={{ height: `calc(100vh - ${NAV_HEIGHT}px - ${SUBHEADER_HEIGHT}px)` }}
-      >
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
           {data.source_format !== "pdf" && (
             <div className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs px-4 py-2 shrink-0">

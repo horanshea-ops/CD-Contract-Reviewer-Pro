@@ -48,8 +48,8 @@ export default function UploadPage() {
         ← Back to dashboard
       </Link>
 
-      <Card padding="lg" className="mt-4">
-        <h1 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Review a contract</h1>
+      <Card padding="lg" elevated className="mt-4">
+        <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Review a contract</h1>
         <p className="text-sm text-[var(--text-secondary)] mb-6">
           This is a negotiating aid, not legal advice — review every finding yourself before
           sending anything to a property.

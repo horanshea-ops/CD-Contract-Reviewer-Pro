@@ -35,7 +35,7 @@ export default async function StandardsAdminPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-1">Standards library</h1>
+      <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Standards library</h1>
       <p className="text-sm text-[var(--text-secondary)] mb-4">
         CD&apos;s negotiating playbook, admin-only. Associates see individual findings during a
         review but never this list — it&apos;s the source those findings are measured against.

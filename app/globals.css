@@ -38,6 +38,12 @@
      directly) — same visual values, just promoted to the token system. */
   --status-success: #047857;
   --status-success-bg: #ecfdf5;
+
+  /* Elevation for hero/stat surfaces (Modern SaaS redesign) — deliberately
+     not used on list/table contexts (findings list, standards cards), which
+     stay flat-bordered so a dense page doesn't look busy. */
+  --shadow-sm: 0 1px 3px rgba(23, 35, 63, 0.06), 0 1px 2px rgba(23, 35, 63, 0.04);
+  --shadow-md: 0 4px 16px rgba(23, 35, 63, 0.08), 0 2px 6px rgba(23, 35, 63, 0.05);
 }
 
 @theme inline {

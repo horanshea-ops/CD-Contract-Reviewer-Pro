@@ -46,6 +46,57 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+- **Modern SaaS visual redesign — done.** Follow-up to the UI/UX refinement pass
+  below, after the user pointed out that pass was mostly invisible at a glance
+  (real bugs and accessibility fixes, but the same visual language). Three
+  directions were sketched and shown live as mini finding-card mockups —
+  Refined Minimal (safe polish), Modern SaaS (sidebar nav, bolder color-blocked
+  badges — chosen), Dense Professional (power-user density) — the user picked
+  Modern SaaS for maximum visual impression ahead of presenting to
+  ConferenceDirect. No build brief file, brand guideline, or design-system
+  source exists anywhere in the repo beyond `app/globals.css`'s CD navy/blue
+  palette (confirmed via a full repo search) — this redesign extends that
+  palette, it doesn't invent a new one.
+  Replaced the top nav bar with a persistent left sidebar
+  (`components/sidebar-nav.tsx`, `components/nav-links.tsx` for the shared
+  link-list/icon/footer markup reused by both the sidebar and the mobile
+  drawer) — `components/nav-bar.tsx` is gone, replaced by this plus
+  `components/mobile-top-bar.tsx` below `lg`. This forced a genuine fix,
+  not just a rename: the review screen's `NAV_HEIGHT`/`SUBHEADER_HEIGHT`
+  hardcoded-pixel viewport-height math (flagged as fragile but deliberately
+  deferred in the prior pass) had no equivalent constant to compute once
+  there's no desktop top bar at all — replaced with a proper flex-based
+  full-height shell (`app/(app)/layout.tsx` is now `h-screen` + sidebar +
+  scrollable `<main>`, `app/(app)/analyses/[id]/page.tsx` is now `h-full`
+  flex throughout) instead of `calc(100vh - Npx)` subtraction. Added filled
+  pastel-pill severity badges (`components/ui/status-pill.tsx` now accepts an
+  optional `style` prop for the one caller — severity — whose color comes
+  from a runtime lookup rather than a static className, since Tailwind can't
+  generate a class from an interpolated value) alongside a thinner card-left
+  accent border, not instead of it — color is still never the only signal.
+  `components/ui/card.tsx` gained an `elevated` variant (shadow instead of
+  border, for stat tiles only — list/table surfaces stay flat-bordered so a
+  dense page doesn't look busy) and `components/ui/button.tsx` gained a
+  `gradient` variant reserved for the one hero-CTA use case (dashboard's
+  "Review a new contract"). Bumped `rounded-md` → `rounded-lg` on `Card`/
+  `Button`, and page `h1`s one step up the type scale.
+  **Verified live**: sidebar renders and every route is reachable at desktop
+  width; the mobile drawer (same open/close/`aria-expanded` mechanism from
+  the prior pass's nav, re-housed) opens/closes and reaches every route;
+  computed styles confirmed the gradient CTA, the shadow token, and the
+  8px/`rounded-lg` radius are genuinely applied, not just visually plausible;
+  confirmed no page-level horizontal overflow at mobile width on the
+  standards and review screens (`document.body.scrollWidth === window.innerWidth`)
+  despite the chunkier pill badges looking visually tight in a screenshot at
+  that width — not a real bug, just cosmetically snug on a long provenance
+  label; the review screen's new flex-based height fix fills the viewport
+  correctly with no clipping or gap, replacing the removed pixel-math
+  entirely rather than just updating the constants.
+  **Not attempted this pass, worth a follow-up**: the review screen's
+  subheader row (findings count + 3 export buttons) doesn't responsively
+  wrap on narrow viewports and looks cramped there — pre-existing from before
+  this redesign, not a regression it introduced, but not fixed either.
+
 - **UI/UX refinement pass — done.** Full audit of all 13 UI files ahead of presenting
   to ConferenceDirect and its associates. Fixed real bugs and structural gaps rather
   than reskinning: an unhandled-rejection bug in `app/auth/callback/page.tsx` that
