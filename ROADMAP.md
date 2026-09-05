@@ -24,7 +24,7 @@ order — the checklist below just tracks progress against it.
       original file is kept in storage either way, so the redline work below
       isn't foreclosed by this approach.
 - [~] 4b. Marked-up PDF / tracked-changes DOCX (added to scope, competitor parity) —
-      Phase A (marked-up PDF, DOCX/DOC-sourced) done; Phases B (PDF-sourced) and C
+      marked-up PDF (Phases A + B, both DOCX/DOC- and PDF-sourced) done. Phase C
       (tracked-changes DOCX) not started. See open items below for detail.
 - [x] 5. Findings review UI — document alongside findings, accept/edit/dismiss
 - [x] 6. Audit logging — wired into login, upload, analysis complete/failed, every
@@ -59,10 +59,18 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
     collected under "Requested Additions"). Verified end to end against a real
     generated DOCX: multi-line strikethrough spans, marker placement, and the
     appendix all confirmed correct on inspection.
-  - [ ] **Phase B — marked-up PDF for genuinely PDF-sourced analyses.** Not started.
-    The real hard part — needs `unpdf`/`pdfjs-dist` text-extraction plus fuzzy
-    matching against arbitrary real-world PDF layouts. No solid time estimate
-    up front; needs iteration against real sample documents.
+  - [x] **Phase B — marked-up PDF for genuinely PDF-sourced analyses.** Done, for
+    standard single-column layouts — verified against a real PDF-native contract on
+    the first attempt (after fixing a real bug: `unpdf` detaches the buffer it's
+    given, corrupting `pdf-lib`'s copy of the same bytes). Turned out simpler than
+    planned: [`lib/extract-pdf-lines.ts`](lib/extract-pdf-lines.ts) via `unpdf`
+    returns positioned text in the same shape Phase A already produces, so the
+    existing exact-match code in `lib/redline-pdf.ts` works unchanged — no new fuzzy
+    matching needed. **Still unvalidated**: multi-column layouts, tables, and
+    scanned/image-based pages, where a PDF's content-stream order can depart from
+    reading order. The not-found fallback (skip + list in appendix) is the safety
+    net for that case but hasn't been stress-tested against a real adversarial
+    layout yet.
   - [ ] **Phase C — tracked-changes DOCX.** Not started. DOCX-sourced only — there's
     no Word document to inject revisions into for PDF- or DOC-sourced analyses.
     Needs `jszip` + surgical string-splicing of `word/document.xml` (deliberately

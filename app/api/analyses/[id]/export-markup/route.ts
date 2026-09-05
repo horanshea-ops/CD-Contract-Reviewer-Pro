@@ -4,17 +4,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { getActionedFindings } from "@/lib/get-actioned-findings";
 import { generateMarkupPdf } from "@/lib/redline-pdf";
+import { extractPdfLines } from "@/lib/extract-pdf-lines";
 import type { RenderedLine } from "@/lib/text-to-pdf";
 
 const STORAGE_BUCKET = "contracts";
 
 /**
  * Marked-up PDF export — strikethrough + numbered margin markers on the
- * actual document, with full detail in an appendix. Phase A: DOCX/DOC-
- * sourced analyses only, since locating quoted text relies on the exact
- * line-position data recorded when we generated that PDF ourselves (see
- * lib/text-to-pdf.ts). Genuinely PDF-sourced analyses need real PDF text
- * extraction and fuzzy matching — a separate, harder phase, not built yet.
+ * actual document, with full detail in an appendix. Works for every source
+ * format now: DOCX/DOC-sourced analyses use the exact line-position data
+ * recorded when we generated that PDF ourselves (lib/text-to-pdf.ts);
+ * genuinely PDF-sourced analyses use real PDF text extraction
+ * (lib/extract-pdf-lines.ts). Either way, lib/redline-pdf.ts's
+ * matching/drawing logic is unchanged — it just takes positioned text.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const associate = await getCurrentAssociate();
@@ -40,33 +42,41 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (analysis.status !== "complete") {
     return NextResponse.json({ error: "Analysis isn't complete yet." }, { status: 400 });
   }
-  if (analysis.source_format === "pdf") {
-    return NextResponse.json(
-      { error: "Marked-up export isn't available yet for contracts uploaded as PDF — only DOCX/DOC for now." },
-      { status: 400 }
-    );
-  }
 
-  const positionsPath = `${analysis.associate_id}/${id}/line-positions.json`;
-  const [{ data: pdfBlob, error: pdfError }, { data: positionsBlob, error: positionsError }] = await Promise.all([
-    admin.storage.from(STORAGE_BUCKET).download(analysis.storage_path),
-    admin.storage.from(STORAGE_BUCKET).download(positionsPath),
-  ]);
-
+  const { data: pdfBlob, error: pdfError } = await admin.storage
+    .from(STORAGE_BUCKET)
+    .download(analysis.storage_path);
   if (pdfError || !pdfBlob) {
     return NextResponse.json({ error: `Could not load the document: ${pdfError?.message}` }, { status: 500 });
   }
-  if (positionsError || !positionsBlob) {
-    return NextResponse.json(
-      { error: `Could not load document layout data: ${positionsError?.message}` },
-      { status: 500 }
-    );
+  const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+
+  let lines: RenderedLine[];
+  if (analysis.source_format === "pdf") {
+    try {
+      // A separate copy: unpdf appears to detach/consume the underlying
+      // buffer it's given, which would otherwise corrupt pdfBytes before
+      // pdf-lib gets to load it below.
+      lines = await extractPdfLines(pdfBytes.slice());
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not read this PDF's text.";
+      return NextResponse.json({ error: `Could not extract text from the PDF: ${message}` }, { status: 500 });
+    }
+  } else {
+    const positionsPath = `${analysis.associate_id}/${id}/line-positions.json`;
+    const { data: positionsBlob, error: positionsError } = await admin.storage
+      .from(STORAGE_BUCKET)
+      .download(positionsPath);
+    if (positionsError || !positionsBlob) {
+      return NextResponse.json(
+        { error: `Could not load document layout data: ${positionsError?.message}` },
+        { status: 500 }
+      );
+    }
+    lines = JSON.parse(await positionsBlob.text());
   }
 
-  const lines: RenderedLine[] = JSON.parse(await positionsBlob.text());
-  const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
   const findings = await getActionedFindings(admin, id);
-
   const markupBytes = await generateMarkupPdf({ pdfBytes, lines, findings });
 
   await logAudit({
@@ -74,7 +84,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     action: "markup_exported",
     entityType: "analysis",
     entityId: id,
-    metadata: { findings_included: findings.length },
+    metadata: { findings_included: findings.length, source_format: analysis.source_format },
   });
 
   return new NextResponse(Buffer.from(markupBytes), {
