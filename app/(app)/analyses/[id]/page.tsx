@@ -191,6 +191,14 @@ export default function AnalysisPage() {
           >
             Export marked-up PDF
           </a>
+          {data.source_format === "docx" && (
+            <a
+              href={`/api/analyses/${data.id}/export-redline-docx`}
+              className="text-xs font-medium rounded-md border border-[var(--border-strong)] px-3 py-1.5 text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition-colors shrink-0"
+            >
+              Export tracked-changes DOCX
+            </a>
+          )}
         </div>
       </div>
 

@@ -120,41 +120,60 @@ item in the appendix instead of guessing) is the safety net for exactly this cas
 it's shared, already-exercised code from Phase A, but real-world stress-testing is still
 open. Revisit once real (or more adversarial synthetic) contract PDFs are available.
 
-### Phase C — Tracked-changes DOCX (DOCX-sourced only) — NOT STARTED
+### Phase C — Tracked-changes DOCX (DOCX-sourced only) — DONE
 
-1. Add `jszip` (read/write the DOCX's zip container) — deliberately **not** a generic
-   XML-tree parse/rebuild library for `word/document.xml`. Word's XML is sensitive to
-   exact attribute order and namespace formatting; round-tripping the whole tree through
-   a generic parser risks producing a file Word can't open, or that silently loses
-   formatting. Instead: treat `document.xml` as a string and do targeted, surgical
-   splicing — locate the run(s) containing each finding's `quoted_text` via a narrow
-   regex over `<w:r>...<w:t>...</w:t>...</w:r>` sequences, and wrap only that span in
-   `<w:del><w:r><w:delText>...</w:delText></w:r></w:del>` followed by
-   `<w:ins><w:r><w:t>...</w:t></w:r></w:ins>` — everything else in the file stays
-   byte-for-byte untouched.
-2. DOCX splits text across `<w:r>` runs unpredictably (formatting/spell-check
-   boundaries), which is a different flavor of the same underlying problem Phase B
-   solved for PDF text items — worth checking whether the same exact-match approach
-   holds up here too before assuming fuzzy matching is actually needed.
-3. Missing-clause findings: same approach as Phase A — appended as a new, clearly
-   labeled "Requested Additions" section wrapped in `<w:ins>`, not inserted in-place.
-4. `GET /api/analyses/[id]/export-redline-docx` — same pattern again, gated to
-   `source_format === 'docx'` (400 otherwise), audit-logged.
-5. Review screen: a third button, visible only when `source_format === 'docx'`.
-6. **Verification limit to flag honestly**: this environment can confirm the output is
-   a structurally valid docx (re-opens cleanly, e.g. round-tripped through `mammoth`),
-   but can't confirm Word's actual Reviewing pane renders it correctly — there's no
-   Word here. The real check is opening a generated sample in real Word, or uploading
-   it to Google Docs (which also honors `w:ins`/`w:del` as suggestions on import).
+1. [`lib/tracked-changes-docx.ts`](../lib/tracked-changes-docx.ts) uses `jszip` to read/write
+   the DOCX's zip container — deliberately **not** a generic XML-tree parse/rebuild of
+   `word/document.xml`. Instead: treat it as a string, build an index of every `<w:r>`
+   run's exact XML position, its `<w:rPr>` (to preserve formatting), and its decoded
+   text mapped to a position in a reconstructed plain-text view of the document. A
+   finding's `quoted_text` is located in that plain text with a whitespace-tolerant
+   regex (built by escaping the text and joining words with `\s+`, so it survives
+   whitespace differences without needing an offset-remapping step afterward — simpler
+   than the normalize-then-remap approach from Phases A/B, and possible here because
+   we need an exact character position for splicing, not just "which lines"). The
+   answer turned out to be: **the exact-match approach holds up for DOCX too** — no
+   fuzzy matching was needed, same as Phase B.
+2. Matched spans (potentially crossing multiple runs) get replaced with
+   `<w:del>` wrapping the original run(s) (as `<w:delText>`, preserving each run's
+   `<w:rPr>`) immediately followed by one `<w:ins>` with the requested language —
+   both stamped with the associate's name and a timestamp as `w:author`/`w:date`, so
+   Word attributes the suggestion correctly. Everything else in the 20KB+ zip
+   (styles, relationships, media) stays byte-for-byte untouched. Revision IDs start
+   above any already present in the document, not from 0, to avoid collisions.
+3. Findings that are missing-clause, or whose quoted text can't be located, are
+   appended as a new "REQUESTED ADDITIONS (not marked in place above)" section at the
+   end of the body (inserted before `<w:sectPr>`, matching real DOCX structure),
+   wholly wrapped in `<w:ins>`.
+4. `GET /api/analyses/[id]/export-redline-docx` — same pattern as the other two export
+   routes, gated to `source_format === 'docx'` (400 otherwise, verified), operating on
+   the preserved *original* uploaded DOCX (`original_storage_path`), not the flat
+   converted PDF used for analysis/display. Audit-logged with matched/unmatched counts.
+5. Review screen: a third button, visible only when `source_format === 'docx'`
+   (verified hidden for a PDF-sourced analysis).
+6. **Rationale is not embedded in the file** — Word's equivalent (threaded comments)
+   is a separate zip part/relationship mechanism, out of scope for this pass. The
+   rationale is already visible in the app and in the other two export formats.
+
+**Verified**: ran against the real original DOCX for an analysis with two present
+clauses (attrition, cancellation — both correctly matched and replaced) and one
+missing-clause finding (walk/relocation — correctly appended). Confirmed by direct
+inspection: exact XML structure (`<w:del>`/`<w:ins>` with correct content and author),
+valid well-formed XML, and a full round-trip through `mammoth`'s text extraction, which
+correctly resolved the tracked changes to their "accepted" reading (new clause text
+shown, old text absent, addition present at the end) — exactly the semantics real Word
+uses. **What this environment cannot verify**: whether Word's actual Reviewing pane
+renders these as accept/reject-able suggestions with the expected strikethrough/underline
+styling — there's no Word (or Google Docs) available here. That check needs a human
+opening the generated file in one of those.
 
 ## Recommended sequencing
 
-Phase A shipped first — fast, low-risk, immediately useful for every DOCX/DOC upload.
-Phase B shipped next and validated cleanly against a standard single-column layout,
-faster than expected since the exact-match approach from Phase A turned out to extend
-directly rather than needing new fuzzy-matching logic. Phase C is next, and should
-start by checking whether that same exact-match approach holds up for DOCX's run
-structure before assuming it needs its own matching logic.
+All three phases shipped, each faster than the build brief's original 20-30-hour
+estimate for the whole effort — largely because Phase A's exact-match trick (matching
+text against positions we recorded ourselves at generation time) turned out to extend
+cleanly to both Phase B (real PDF text extraction) and Phase C (DOCX run structure)
+without needing the fuzzy-matching logic originally assumed necessary for either.
 
 ## Explicitly out of scope
 

@@ -23,9 +23,9 @@ order — the checklist below just tracks progress against it.
       copy — the UI says so) and fed through the same pipeline unchanged. The
       original file is kept in storage either way, so the redline work below
       isn't foreclosed by this approach.
-- [~] 4b. Marked-up PDF / tracked-changes DOCX (added to scope, competitor parity) —
-      marked-up PDF (Phases A + B, both DOCX/DOC- and PDF-sourced) done. Phase C
-      (tracked-changes DOCX) not started. See open items below for detail.
+- [x] 4b. Marked-up PDF / tracked-changes DOCX (added to scope, competitor parity) —
+      all three phases done. See open items below for what's still genuinely
+      unvalidated (complex PDF layouts; a human opening the DOCX output in real Word).
 - [x] 5. Findings review UI — document alongside findings, accept/edit/dismiss
 - [x] 6. Audit logging — wired into login, upload, analysis complete/failed, every
       finding action
@@ -41,8 +41,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 **After the accuracy gate:** 13-15 not started, correctly blocked on 10-12.
 
-**Roadmap, not v1:** 16-18 deferred by design, see open items below — except item 18
-(tracked-changes DOCX), whose priority just changed; see below.
+**Roadmap, not v1:** 16-17 deferred by design, see open items below. Item 18
+(tracked-changes DOCX) is done — see 4b above and the open items below.
 
 ## Open items
 
@@ -71,12 +71,18 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
     reading order. The not-found fallback (skip + list in appendix) is the safety
     net for that case but hasn't been stress-tested against a real adversarial
     layout yet.
-  - [ ] **Phase C — tracked-changes DOCX.** Not started. DOCX-sourced only — there's
-    no Word document to inject revisions into for PDF- or DOC-sourced analyses.
-    Needs `jszip` + surgical string-splicing of `word/document.xml` (deliberately
-    not a generic XML-tree rebuild, to avoid corrupting a file Word can't open).
-    True verification needs a human opening a sample in real Word/Google Docs —
-    not something this environment can confirm on its own.
+  - [x] **Phase C — tracked-changes DOCX.** Done, DOCX-sourced only (no Word document
+    to inject revisions into for PDF- or DOC-sourced analyses).
+    [`lib/tracked-changes-docx.ts`](lib/tracked-changes-docx.ts) uses `jszip` +
+    surgical string-splicing of `word/document.xml` — deliberately not a generic
+    XML-tree rebuild, to avoid producing a file Word can't open. The same exact-match
+    approach from Phases A/B turned out to work here too — no fuzzy matching needed.
+    **Verified**: valid well-formed XML, correct `<w:del>`/`<w:ins>` content and
+    author/date attribution on direct inspection, and a full round-trip through
+    `mammoth` that correctly resolves to the "accepted changes" reading. **Not
+    verified, and can't be from this environment**: whether Word's Reviewing pane
+    actually renders these as accept/reject-able suggestions with the right styling —
+    needs a human opening the file in real Word or Google Docs.
 
 - **Standards library breadth vs. depth.** The library now covers 19 clause types:
   the 11 named in the build brief §1, plus 8 more drafted from general industry
