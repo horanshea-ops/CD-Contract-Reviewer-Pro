@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import FindingCard, { type Finding } from "./finding-card";
+import FindingCard, { SEVERITY_STYLE, type Finding } from "./finding-card";
+import PdfViewer from "./pdf-viewer";
+import type { HighlightRect } from "@/lib/locate-text";
 
 interface AnalysisResponse {
   id: string;
@@ -29,6 +31,8 @@ export default function AnalysisPage() {
   const [loadError, setLoadError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [activePage, setActivePage] = useState<number | null>(null);
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
+  const [highlightCache, setHighlightCache] = useState<Record<string, HighlightRect[] | null>>({});
   const startedAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -76,6 +80,19 @@ export default function AnalysisPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, [data]);
+
+  async function handleSelectFinding(finding: Finding) {
+    setActivePage(finding.location_page);
+    setSelectedFindingId(finding.id);
+    if (finding.location_page == null || finding.id in highlightCache) return;
+    try {
+      const res = await fetch(`/api/findings/${finding.id}/highlight`);
+      const body = await res.json();
+      setHighlightCache((prev) => ({ ...prev, [finding.id]: res.ok ? (body.rects ?? null) : null }));
+    } catch {
+      setHighlightCache((prev) => ({ ...prev, [finding.id]: null }));
+    }
+  }
 
   function handleActionRecorded(findingId: string, action: Finding["current_action"]) {
     setData((prev) =>
@@ -215,11 +232,16 @@ export default function AnalysisPage() {
             </div>
           )}
           {data.documentUrl ? (
-            <iframe
-              src={activePage ? `${data.documentUrl}#page=${activePage}` : data.documentUrl}
-              className="w-full flex-1"
-              title="Contract document"
-            />
+            <div className="flex-1 min-h-0">
+              <PdfViewer
+                documentUrl={data.documentUrl}
+                activePage={activePage}
+                highlightRects={selectedFindingId ? (highlightCache[selectedFindingId] ?? null) : null}
+                highlightColor={
+                  SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
+                }
+              />
+            </div>
           ) : (
             <p className="p-6 text-sm text-[var(--text-secondary)]">Document preview unavailable.</p>
           )}
@@ -236,7 +258,7 @@ export default function AnalysisPage() {
                 key={f.id}
                 finding={f}
                 onActionRecorded={handleActionRecorded}
-                onJumpToPage={setActivePage}
+                onSelectFinding={handleSelectFinding}
               />
             ))
           )}

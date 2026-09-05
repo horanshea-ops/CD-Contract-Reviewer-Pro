@@ -46,20 +46,34 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
-- **Custom PDF viewer with in-place clause highlighting.** The review screen currently
-  shows the contract via the browser's native PDF display (a plain `<iframe>`) — we
-  don't control what's rendered inside it. That's fine for reading, but it means we
-  can only ever jump to a *page* when a finding is clicked (a URL fragment the native
-  viewer honors), not actually highlight the specific clause on top of the document,
-  which is what the build brief's interface direction originally envisioned ("clicking
-  one scrolls and highlights the relevant clause"). Doing real highlighting means
-  replacing the iframe with a custom-built viewer — rendering PDF pages to canvas
-  ourselves (via `pdfjs-dist`, which `unpdf` already wraps) and drawing a highlight
-  overlay positioned from the same finding-location data the redline exports already
-  compute. This is a genuinely separate, sizable UI project (a real PDF reader
-  component, not a small addition) — not something to fold into the page-jump work.
-  Revisit once there's a sense of how much associates actually want this versus
-  page-level jumping being good enough. Page-level jumping itself (below) is done.
+- **Custom PDF viewer with in-place clause highlighting — done.** The review screen's
+  `<iframe>` (browser-native PDF display, page-jump only) is replaced with
+  [`pdf-viewer.tsx`](app/(app)/analyses/[id]/pdf-viewer.tsx): a canvas-based viewer
+  using `pdfjs-dist` (a genuinely new dependency — `unpdf`'s internal pdfjs build is
+  server/edge-oriented, not reusable for a browser worker), with prev/next page
+  controls and a "Download original" link replacing the native chrome that was lost.
+  Highlight rects are computed on demand (no schema migration, no persisted bounding
+  boxes) by a new `GET /api/findings/[id]/highlight` endpoint, reusing
+  `getPositionedLines()`/`findMatchingLineIndices()` unchanged and adding
+  `findHighlightRects()` to [`lib/locate-text.ts`](lib/locate-text.ts) — it merges
+  adjacent matched items into per-line boxes (guarded by page + baseline-y + a bounded
+  horizontal gap, so two items sharing a y in different table cells/columns don't get
+  bridged into one box). Clicking a finding sets the page immediately and fetches/caches
+  highlight rects separately, so page-jump keeps working even if a highlight can't be
+  computed — exactly like the existing "location not pinpointed" case. Real security
+  catch during the build: `npm install` flagged `pdfjs-dist@5.6.83–6.2.108` as a
+  disclosed high-severity arbitrary-JS-execution-from-a-malicious-PDF vulnerability,
+  which lands squarely in this app's threat model (associates upload contract PDFs
+  from outside parties) — pinned to the patched `^6.3.289` instead.
+  **Verified live**: uploaded a fresh DOCX-sourced and a fresh PDF-sourced synthetic
+  contract, clicked findings on both, confirmed multi-line highlight boxes land
+  tightly on the correct clause text (line-level merge for DOCX/DOC, word-level merge
+  for genuine PDFs), rescale correctly on window resize, and don't re-fetch on a
+  repeat click of the same finding; confirmed the pre-existing "not pinpointed"
+  fallback and older (pre-dating this feature) analyses still render correctly.
+  **Not verified**: the multi-column/table PDF edge case the merge guard exists for —
+  no adversarial sample available yet, same open gap as Phase B of the redline export
+  (see below).
 
 - **Location transparency + click-to-page navigation — done.** Two gaps from the
   redline work being export-only: the tracked-changes DOCX appendix used to lump

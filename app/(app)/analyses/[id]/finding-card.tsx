@@ -23,19 +23,38 @@ export interface Finding {
   } | null;
 }
 
-const SEVERITY_STYLE: Record<
+export const SEVERITY_STYLE: Record<
   Finding["severity"],
-  { label: string; borderColor: string; borderWidth: string; textColor: string }
+  { label: string; borderColor: string; borderWidth: string; textColor: string; bg: string }
 > = {
-  high: { label: "HIGH", borderColor: "var(--severity-high)", borderWidth: "4px", textColor: "var(--severity-high)" },
+  high: {
+    label: "HIGH",
+    borderColor: "var(--severity-high)",
+    borderWidth: "4px",
+    textColor: "var(--severity-high)",
+    bg: "var(--severity-high-bg)",
+  },
   medium: {
     label: "MEDIUM",
     borderColor: "var(--severity-medium)",
     borderWidth: "4px",
     textColor: "var(--severity-medium)",
+    bg: "var(--severity-medium-bg)",
   },
-  low: { label: "LOW", borderColor: "var(--severity-low)", borderWidth: "2px", textColor: "var(--severity-low)" },
-  note: { label: "NOTE", borderColor: "var(--severity-note)", borderWidth: "2px", textColor: "var(--severity-note)" },
+  low: {
+    label: "LOW",
+    borderColor: "var(--severity-low)",
+    borderWidth: "2px",
+    textColor: "var(--severity-low)",
+    bg: "var(--severity-low-bg)",
+  },
+  note: {
+    label: "NOTE",
+    borderColor: "var(--severity-note)",
+    borderWidth: "2px",
+    textColor: "var(--severity-note)",
+    bg: "var(--severity-note-bg)",
+  },
 };
 
 const DISMISSAL_REASONS = [
@@ -55,11 +74,11 @@ const ACTION_LABEL: Record<string, string> = {
 export default function FindingCard({
   finding,
   onActionRecorded,
-  onJumpToPage,
+  onSelectFinding,
 }: {
   finding: Finding;
   onActionRecorded: (findingId: string, action: Finding["current_action"]) => void;
-  onJumpToPage?: (page: number) => void;
+  onSelectFinding?: (finding: Finding) => void;
 }) {
   const [mode, setMode] = useState<"view" | "editing" | "dismissing">("view");
   const [editedLanguage, setEditedLanguage] = useState(finding.proposed_language);
@@ -130,7 +149,7 @@ export default function FindingCard({
         <p className="text-xs mb-1">
           {finding.location_page != null ? (
             <button
-              onClick={() => onJumpToPage?.(finding.location_page!)}
+              onClick={() => onSelectFinding?.(finding)}
               className="text-[var(--cd-navy)] hover:underline"
             >
               Page {finding.location_page} →

@@ -35,3 +35,66 @@ export function findMatchingLineIndices(lines: RenderedLine[], quotedText: strin
   }
   return matched.length ? matched : null;
 }
+
+export interface HighlightRect {
+  pageIndex: number; // 0-based, matches RenderedLine.pageIndex
+  x: number;
+  y: number; // box BOTTOM edge, PDF point space (not a baseline)
+  width: number;
+  height: number;
+}
+
+// First-pass estimates: RenderedLine.y is a text baseline, and .height means a
+// fixed line-pitch constant for DOCX/DOC-generated PDFs (lib/text-to-pdf.ts)
+// but a measured glyph bounding-box height for genuine PDFs (lib/extract-pdf-lines.ts,
+// via unpdf) — the same proportional padding applied to two different underlying
+// quantities is a judgment call, tuned by eye against real rendered output rather
+// than derived exactly.
+const TOP_FRACTION = 0.65; // of line.height, above the baseline
+const BOTTOM_FRACTION = 0.2; // of line.height, below the baseline (descender allowance)
+const Y_EPSILON = 1.0; // points; baselines within this count as "the same visual line"
+const MAX_MERGE_GAP = 24; // points; don't bridge a horizontal gap wider than this —
+// guards against merging across separate table cells/columns that happen to share a baseline y
+
+/**
+ * Like findMatchingLineIndices, but returns drawable highlight boxes instead
+ * of raw line indices — for the in-app PDF viewer's highlight overlay, not the
+ * export-time strikethrough drawing in lib/redline-pdf.ts (which draws one
+ * segment per matched item with no merging, fine for a 1px line but not for a
+ * filled box, where unmerged adjacent words would show visible gaps).
+ * Adjacent matched items are merged into one rect only when they share a page
+ * and a near-identical baseline y *and* a bounded horizontal gap, so two items
+ * that happen to share a y (e.g. two cells in the same table row) don't get
+ * bridged into a single box spanning unrelated content.
+ */
+export function findHighlightRects(lines: RenderedLine[], quotedText: string): HighlightRect[] | null {
+  const matchedIndices = findMatchingLineIndices(lines, quotedText);
+  if (!matchedIndices) return null;
+
+  const rects: HighlightRect[] = [];
+  for (const idx of matchedIndices) {
+    const line = lines[idx];
+    const top = line.y + line.height * TOP_FRACTION;
+    const bottom = line.y - line.height * BOTTOM_FRACTION;
+    const candidate: HighlightRect = {
+      pageIndex: line.pageIndex,
+      x: line.x,
+      y: bottom,
+      width: line.width,
+      height: top - bottom,
+    };
+
+    const prev = rects[rects.length - 1];
+    const sameLine = !!prev && prev.pageIndex === candidate.pageIndex && Math.abs(prev.y - candidate.y) < Y_EPSILON;
+    const gap = sameLine ? candidate.x - (prev.x + prev.width) : Infinity;
+
+    if (prev && sameLine && gap < MAX_MERGE_GAP) {
+      const newRight = Math.max(prev.x + prev.width, candidate.x + candidate.width);
+      prev.width = newRight - prev.x;
+      prev.height = Math.max(prev.height, candidate.height);
+    } else {
+      rects.push(candidate);
+    }
+  }
+  return rects.length ? rects : null;
+}
