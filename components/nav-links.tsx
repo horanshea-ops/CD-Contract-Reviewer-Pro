@@ -59,7 +59,15 @@ export function navLinks(associate: NavAssociate | null) {
  * drawer — one visual recipe (icon + label, pill-highlighted active state)
  * instead of maintaining the same list twice.
  */
-export function NavLinkList({ associate, onNavigate }: { associate: NavAssociate | null; onNavigate?: () => void }) {
+export function NavLinkList({
+  associate,
+  onNavigate,
+  collapsed,
+}: {
+  associate: NavAssociate | null;
+  onNavigate?: () => void;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
   const links = navLinks(associate);
 
@@ -73,8 +81,11 @@ export function NavLinkList({ associate, onNavigate }: { associate: NavAssociate
             href={link.href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
+            title={collapsed ? link.label : undefined}
+            aria-label={collapsed ? link.label : undefined}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+              collapsed && "justify-center px-0",
               active
                 ? "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] font-medium"
                 : "text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--cd-navy)]"
@@ -83,7 +94,7 @@ export function NavLinkList({ associate, onNavigate }: { associate: NavAssociate
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
               {ICONS[link.href]}
             </svg>
-            {link.label}
+            {!collapsed && link.label}
           </Link>
         );
       })}
@@ -92,7 +103,32 @@ export function NavLinkList({ associate, onNavigate }: { associate: NavAssociate
 }
 
 /** Associate name/admin badge + sign out, pinned to the bottom of either nav surface. */
-export function NavFooter({ associate }: { associate: NavAssociate | null }) {
+export function NavFooter({ associate, collapsed }: { associate: NavAssociate | null; collapsed?: boolean }) {
+  if (collapsed) {
+    const initials = associate?.name
+      ? associate.name
+          .split(" ")
+          .map((part) => part[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase()
+      : "";
+
+    return (
+      <div className="px-3 flex flex-col items-center gap-2 pb-1">
+        {associate && (
+          <div
+            title={`${associate.name}${associate.is_admin ? " (admin)" : ""}`}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs font-semibold"
+          >
+            {initials}
+          </div>
+        )}
+        <SignOutButton iconOnly />
+      </div>
+    );
+  }
+
   return (
     <div className="px-3">
       {associate && (
@@ -110,16 +146,24 @@ export function NavFooter({ associate }: { associate: NavAssociate | null }) {
   );
 }
 
-export function BrandMark() {
+export function BrandMark({ collapsed }: { collapsed?: boolean } = {}) {
   return (
-    <Link href="/" className="flex items-center gap-2 px-5 h-16 border-b border-[var(--border)] shrink-0">
+    <Link
+      href="/"
+      className={cn(
+        "flex items-center gap-2 h-16 border-b border-[var(--border)] shrink-0",
+        collapsed ? "justify-center px-0" : "px-5"
+      )}
+    >
       <span
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-bold"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-bold shrink-0"
         style={{ background: "linear-gradient(135deg, var(--cd-navy), var(--cd-navy-darker))" }}
       >
         CD
       </span>
-      <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">Contract Reviewer</span>
+      {!collapsed && (
+        <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">Contract Reviewer</span>
+      )}
     </Link>
   );
 }
