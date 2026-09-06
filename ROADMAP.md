@@ -46,6 +46,34 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+- **DOCX-to-preview pipeline — NEXT PRIORITY, not scoped yet.** Escalated
+  2026-09-06 after the user spent real hands-on time in the dev server
+  reviewing DOCX-sourced analyses (including their own real CD Ideal
+  Standard Contract) and found the resulting preview genuinely bad and not
+  helpful — not a nice-to-have polish item, the next thing to fix, ahead of
+  other feature work. Explicit instruction: do not scope a solution yet:
+  the user is still actively exploring via the dev server and will give
+  direction once they've formed a clearer view of what's actually wrong
+  and what "good" should look like — don't jump ahead to picking a
+  conversion approach.
+  Background technical context, from earlier scoping (`document-conversion.ts`
+  extracts raw text via `mammoth`/`word-extractor`, `text-to-pdf.ts` re-flows
+  it into a from-scratch PDF with no tables/headers/styling): this is what's
+  producing the preview the user is now reacting to. That from-scratch PDF
+  also records exact `RenderedLine[]` coordinates (`line-positions.json`),
+  which is what powers clause highlighting and marked-up PDF export — any
+  fix that changes how the DOCX-derived PDF is produced needs to either
+  replicate that "we drew it, we know where it is" property or fall back to
+  real PDF text-extraction + fuzzy matching (already flagged as
+  unresolved/risky for tables/multi-column layouts in
+  `docs/redline-export-plan.md`). A real, pixel-faithful conversion
+  (LibreOffice headless, a hosted conversion API, HTML→PDF off
+  `mammoth.convertToHtml`) also revives a heavy-dependency tradeoff already
+  rejected twice elsewhere in this codebase, and a hosted API raises a
+  client-confidentiality question. None of that is a decision yet — just
+  the constraints whoever scopes this will need to weigh once the user is
+  ready.
+
 - **Contract revision chains — not started, worth exploring.** Today each
   upload is an independent analysis with no relationship to any other. Real
   negotiations aren't single-shot: an associate sends requested revisions to
@@ -98,30 +126,6 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
   same way a picked one already did. Verified in-browser: drag-over toggles
   the highlight, and a dropped file populates state and enables "Start
   review" without touching the native input.
-
-- **Preserve DOCX/DOC formatting on upload — not started, needs its own
-  plan-mode pass.** Raised after a user question about why the upload page
-  says original formatting isn't preserved (that line has since been removed
-  from the upload copy, but the underlying gap is real). Today
-  `document-conversion.ts` extracts raw text via `mammoth`/`word-extractor`
-  and `text-to-pdf.ts` re-flows it into a from-scratch PDF — deliberately,
-  because the act of drawing that PDF itself records exact `RenderedLine[]`
-  coordinates (`line-positions.json`), which is what powers clause
-  highlighting in the PDF viewer and marked-up PDF export. Any approach that
-  produces a real, pixel-faithful PDF (LibreOffice headless, a hosted
-  conversion API, or HTML→PDF rendering off `mammoth.convertToHtml`) breaks
-  that "we drew it, we know where it is" trick and would force highlighting
-  back onto real PDF text-extraction + fuzzy matching — the same approach
-  already flagged as unresolved/risky for tables and multi-column layouts in
-  `docs/redline-export-plan.md`. It also revives a dependency
-  (LibreOffice/headless-Chromium) already rejected twice elsewhere in this
-  codebase as too heavy for Vercel, and a hosted conversion API raises a
-  client-confidentiality question (sending contract text to a third party)
-  that should be a deliberate choice, not a default. Tracked-changes DOCX
-  export is unaffected either way — it already works off the original DOCX,
-  not this pipeline. Scope this properly (pick a conversion approach, decide
-  how highlighting degrades or gets rebuilt) before starting; don't fold it
-  into a smaller ticket.
 
 - **Modern SaaS visual redesign — done.** Follow-up to the UI/UX refinement pass
   below, after the user pointed out that pass was mostly invisible at a glance
