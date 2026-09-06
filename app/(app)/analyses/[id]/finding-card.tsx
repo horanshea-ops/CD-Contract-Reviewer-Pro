@@ -202,7 +202,7 @@ export default function FindingCard({
 
       {mode === "view" && finding.current_action && !changingDecision && (
         <div className="mt-3">
-          <Button variant="ghost" size="sm" onClick={() => setChangingDecision(true)}>
+          <Button variant="secondary" size="sm" onClick={() => setChangingDecision(true)}>
             Change decision
           </Button>
         </div>
