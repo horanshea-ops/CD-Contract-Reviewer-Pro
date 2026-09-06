@@ -37,6 +37,51 @@ export interface TextToPdfResult {
   lines: RenderedLine[];
 }
 
+// Word documents commonly use symbol-font glyphs (checkboxes, dingbat
+// bullets, arrows) for things like "[ ] Check any that may apply" lists.
+// The standard Helvetica font used below only supports WinAnsi (Windows-1252)
+// encoding, which doesn't include most of these — pdf-lib throws rather than
+// substituting, which would otherwise crash the whole upload on a perfectly
+// normal contract. Known list-marker-shaped symbols get a plain-text
+// equivalent; anything else unencodable is dropped rather than raising.
+const SYMBOL_SUBSTITUTIONS: Record<string, string> = {
+  "☐": "-", // ☐ ballot box
+  "☑": "-", // ☑ ballot box with check
+  "☒": "-", // ☒ ballot box with x
+  "■": "-", // ■ black square
+  "□": "-", // □ white square
+  "▪": "-", // ▪ black small square
+  "▫": "-", // ▫ white small square
+  "●": "-", // ● black circle
+  "○": "-", // ○ white circle
+  "▶": "-", // ▶ black right-pointing triangle
+  "▸": "-", // ▸ black right-pointing small triangle
+  "‣": "-", // ‣ triangular bullet
+  "→": "->", // →
+  "←": "<-", // ←
+  "↑": "^", // ↑
+  "↓": "v", // ↓
+};
+
+function sanitizeForFont(text: string, font: PDFFont): string {
+  let result = "";
+  for (const ch of text) {
+    const substitute = SYMBOL_SUBSTITUTIONS[ch];
+    if (substitute !== undefined) {
+      result += substitute;
+      continue;
+    }
+    try {
+      font.encodeText(ch);
+      result += ch;
+    } catch {
+      // Not in this font's encoding and no known substitution — drop it
+      // rather than crash the conversion over one stray glyph.
+    }
+  }
+  return result;
+}
+
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [""];
@@ -59,6 +104,9 @@ export async function textToPdf(title: string, bodyText: string): Promise<TextTo
   const pdfDoc = await PDFDocument.create();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  title = sanitizeForFont(title, boldFont);
+  bodyText = sanitizeForFont(bodyText, font);
 
   let page = pdfDoc.addPage(PAGE_SIZE);
   let pageIndex = 0;
