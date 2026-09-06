@@ -133,7 +133,7 @@ export default function AnalysisPage() {
             {data.status === "queued" ? "Queued..." : "Analyzing " + data.filename}
           </p>
           <p className="text-sm text-[var(--text-secondary)] mb-3">
-            Usually 30-90 seconds, up to a few minutes for long contracts. ({elapsedSeconds}s elapsed)
+            Usually 1-3 minutes, longer if the model needs a retry or the contract is unusually long. ({elapsedSeconds}s elapsed)
           </p>
           <div className="h-1.5 w-64 mx-auto rounded bg-[var(--border)] overflow-hidden">
             <div className="h-full w-1/3 bg-[var(--cd-navy)] animate-pulse" />
