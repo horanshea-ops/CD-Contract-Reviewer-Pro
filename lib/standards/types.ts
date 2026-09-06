@@ -17,7 +17,13 @@ export type ClauseType =
   | "assignment_subcontracting"
   | "brand_ownership_change"
   | "named_storm"
-  | "attendee_data_handling";
+  | "attendee_data_handling"
+  | "ada_compliance"
+  | "governing_law_venue"
+  | "labor_disputes"
+  | "rate_parity"
+  | "gratuity_service_charge"
+  | "resale_mitigation_duty";
 
 export type Severity = "high" | "medium" | "low" | "note";
 

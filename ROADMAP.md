@@ -314,17 +314,60 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
     shows associates uploading legacy `.doc` files often (DOCX has been Word's default
     since 2007).
 
-- **Standards library breadth vs. depth.** The library now covers 19 clause types:
-  the 11 named in the build brief §1, plus 8 more drafted from general industry
-  practice (insurance & indemnification, damage/security deposit, exclusivity/outside
-  vendor restrictions, termination for convenience vs. cause, assignment/subcontracting,
-  brand/ownership change, named-storm/hurricane language, attendee data handling).
-  Every entry is `provenance: industry_default` — generic best practice, not CD's
-  actual negotiated position. Breadth (which categories exist) is done for v1;
-  depth (is each entry actually right, and what does CD concede first / where does
-  it walk) still requires a senior associate and cannot be shortcut. Revisit
-  alongside library validation (build brief §10.2, §15 item 3) — that is the gate,
-  not more categories.
+- **Standards library breadth vs. depth — significant progress, still not the
+  validation gate.** The library now covers 25 clause types (19 original + 6
+  added below) and 20 of the 25 are `provenance: extracted` rather than
+  generic `industry_default`, sourced from a real CD document: "ConferenceDirect
+  Ideal Standard Contract (REVISED 2013)," provided directly by the user. Both
+  `lib/standards/v1.ts` (what the model actually reads — see the wiring note
+  below) and the live `standards` DB table (what the admin screen shows) were
+  updated together so the two stay in sync. 14 of the original 19 entries were
+  rewritten with real language/numbers from that document (e.g. attrition's
+  threshold changed from a generic 80% to CD's actual 70%-cumulative formula
+  with a 95%-occupancy full-credit day; cancellation's mitigation/resale-credit
+  and rebooking-credit mechanics; fb_minimum's real 35%-of-shortfall penalty
+  instead of a flat fee). 5 entries (`cutoff_date`, `damage_deposit`,
+  `assignment_subcontracting`, `named_storm`, `attendee_data_handling`) were
+  deliberately left as `industry_default`, unedited — the source document
+  said nothing usable for them, and stamping them "extracted" anyway would
+  overstate what's actually backed by a real CD position (the whole point of
+  the provenance field). One entry (`attrition`) was already `cd_validated` in
+  the live DB from earlier session testing of the admin save flow (not a real
+  associate sign-off) — user confirmed overwriting it to `extracted` with the
+  new content rather than leaving stale text under a "validated" stamp.
+  6 new clause types were added because the source document covered them
+  substantively and nothing previously checked for them at all:
+  `ada_compliance`, `governing_law_venue`, `labor_disputes`, `rate_parity`,
+  `gratuity_service_charge`, `resale_mitigation_duty`.
+  **Real architecture finding surfaced during this work**: the analysis
+  pipeline never reads the `standards` DB table — `lib/anthropic.ts` imports
+  `STANDARDS_LIBRARY` directly from `lib/standards/v1.ts` and embeds it in the
+  system prompt. The DB table (and the admin screen built for it, item 7
+  above) is a one-time seeded mirror with its own admin-editable copy, wired
+  to nothing downstream. Editing only the DB would have changed what admins
+  see without changing model behavior at all — worth fixing (either point the
+  model at the DB live, or make that intentional and documented) before this
+  gets confusing again.
+  **Verified live, end to end**: extended `scripts/generate-sample-contract.ts`
+  with two new deliberately-unfavorable sections (a Delaware/Wilmington
+  governing-law clause; an undifferentiated 22% service charge) so all 6 new
+  categories had something to check against, regenerated the fixture, and
+  uploaded it through the real `/api/analyses` endpoint under an authenticated
+  session. All 25 clause types appeared in `clauses_checked`; every new
+  category produced a correct finding — `ada_compliance`, `labor_disputes`,
+  `rate_parity`, and `resale_mitigation_duty` correctly flagged as missing,
+  while `governing_law_venue` and `gratuity_service_charge` were correctly
+  identified as present-but-unfavorable rather than missing, proving the
+  model distinguishes the two. Findings on unchanged categories cited the new
+  real numbers verbatim (e.g. "CD's cumulative, 70%-threshold, 70%-of-rate
+  standard"), confirming the model is reading the updated file, not a cached
+  prompt.
+  Breadth and depth both moved meaningfully with this real CD document, but
+  this is still not the validation gate: no named senior associate has
+  reviewed this against real deal outcomes, so nothing here should be
+  presented as "how ConferenceDirect negotiates" until that happens (build
+  brief §10.2, §15 item 3, and the "Real answer key" item below) — this gets
+  CD roughly 70% of the way there by the user's own estimate, not to 100%.
 
 - **Real answer key** (build brief §10.2) — blocking for pilot. Needs a senior
   associate to review 25-30 of CD's past executed contracts cold and record what

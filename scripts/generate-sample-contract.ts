@@ -42,6 +42,14 @@ const SECTIONS: { heading: string; body: string }[] = [
     heading: "§8. Master Account",
     body: "All charges to the Group master account are due in full within fifteen (15) days of the Group's departure date. A late payment fee of 2% per month will apply to any unpaid balance.",
   },
+  {
+    heading: "§9. Governing Law",
+    body: "This Agreement shall be governed by the laws of the State of Delaware, and any dispute arising under this Agreement shall be resolved exclusively in the state or federal courts located in Wilmington, Delaware, regardless of Group's location.",
+  },
+  {
+    heading: "§10. Service Charge",
+    body: "A twenty-two percent (22%) service charge will be added to all food and beverage charges incurred by Group and retained by the Hotel.",
+  },
 ];
 
 async function main() {
