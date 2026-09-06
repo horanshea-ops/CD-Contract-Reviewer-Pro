@@ -91,7 +91,13 @@ export default function FindingCard({
   const [customReason, setCustomReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [changingDecision, setChangingDecision] = useState(false);
   const { showToast } = useToast();
+
+  function cancelToView() {
+    setMode("view");
+    setChangingDecision(false);
+  }
 
   const style = SEVERITY_STYLE[finding.severity];
 
@@ -123,6 +129,7 @@ export default function FindingCard({
         dismissal_reason: action === "dismiss" ? reason : null,
       });
       setMode("view");
+      setChangingDecision(false);
       showToast(`${ACTION_LABEL[action]}.`);
     } finally {
       setSaving(false);
@@ -193,7 +200,15 @@ export default function FindingCard({
         </p>
       </details>
 
-      {mode === "view" && (
+      {mode === "view" && finding.current_action && !changingDecision && (
+        <div className="mt-3">
+          <Button variant="ghost" size="sm" onClick={() => setChangingDecision(true)}>
+            Change decision
+          </Button>
+        </div>
+      )}
+
+      {mode === "view" && (!finding.current_action || changingDecision) && (
         <div className="flex gap-2 mt-3">
           <Button size="sm" onClick={() => submitAction("accept")} loading={saving} loadingText="Accepting...">
             Accept
@@ -204,6 +219,11 @@ export default function FindingCard({
           <Button variant="secondary" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>
             Dismiss
           </Button>
+          {finding.current_action && (
+            <Button variant="ghost" size="sm" onClick={() => setChangingDecision(false)} disabled={saving}>
+              Cancel
+            </Button>
+          )}
         </div>
       )}
 
@@ -222,7 +242,7 @@ export default function FindingCard({
             >
               Save edit
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setMode("view")}>
+            <Button variant="ghost" size="sm" onClick={cancelToView}>
               Cancel
             </Button>
           </div>
@@ -260,7 +280,7 @@ export default function FindingCard({
             >
               Confirm dismiss
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setMode("view")}>
+            <Button variant="ghost" size="sm" onClick={cancelToView}>
               Cancel
             </Button>
           </div>
