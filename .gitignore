@@ -42,3 +42,13 @@ next-env.d.ts
 
 # generated
 /public/pdf.worker.min.mjs
+
+# contract documents — MASTER_PLAN.md §1.11: synthetic fixtures only, never a
+# real CD client contract. Committed fixtures live in the two allowlisted
+# directories below; a Word or PDF file anywhere else is ignored by default so
+# a real contract can't be staged by accident.
+*.doc
+*.docx
+*.pdf
+!tests/fixtures/**
+!data/sample-contracts/**

@@ -4,6 +4,7 @@ loadEnvLocal();
 import { readFile } from "fs/promises";
 import path from "path";
 import { analyzeContractPdf } from "../lib/anthropic";
+import { loadStandardsLibrary } from "../lib/standards/load";
 
 /**
  * Headless proof-of-concept: run one sample contract through the pipeline
@@ -19,10 +20,24 @@ async function main() {
   const pdfBytes = await readFile(contractPath);
   const pdfBase64 = pdfBytes.toString("base64");
 
+  // Reads the standards table when database env is present, otherwise the
+  // bundled library. Reported either way so a surprising result can always be
+  // traced to the library that produced it.
+  const standards = await loadStandardsLibrary();
+  console.log(
+    `Standards library: ${standards.entries.length} entries from ${standards.source}` +
+      (standards.fallbackReason ? ` — ${standards.fallbackReason}` : "") +
+      `\n  hash ${standards.hash.slice(0, 12)}`
+  );
+
   console.log("Sending to Claude for analysis... (this can take 30-90 seconds)");
   const start = Date.now();
 
-  const result = await analyzeContractPdf({ pdfBase64 });
+  const result = await analyzeContractPdf({
+    pdfBase64,
+    standards: standards.entries,
+    standardsVersion: standards.version,
+  });
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   console.log(`\nDone in ${elapsed}s using ${result.model_id} (standards library ${result.standards_library_version})`);

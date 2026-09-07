@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "./standards/v1";
+import type { StandardEntry } from "./standards/types";
 
 /**
  * THE single module for outbound calls to the model. Non-negotiable #5 in the
@@ -94,7 +94,7 @@ const FINDINGS_TOOL_SCHEMA = {
   },
 };
 
-function buildSystemPrompt() {
+function buildSystemPrompt(standards: StandardEntry[], standardsVersion: string) {
   const instructions = `You are reviewing a hotel or venue contract on behalf of ConferenceDirect (CD), a meetings and events company. Your job is to find terms that create financial exposure for CD's client, measured against the standards library below, which encodes how CD negotiates.
 
 Rules:
@@ -105,8 +105,8 @@ Rules:
 - List every clause type you checked in clauses_checked, whether or not it produced a finding — this is how the reviewer knows what was actually reviewed.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
-  const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${STANDARDS_LIBRARY_VERSION}):\n${JSON.stringify(
-    STANDARDS_LIBRARY,
+  const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
+    standards,
     null,
     2
   )}`;
@@ -126,12 +126,18 @@ Rules:
 
 export interface AnalyzeContractPdfArgs {
   pdfBase64: string;
+  /** The library to review against — load it with loadStandardsLibrary(). Required
+   *  so no call site can silently fall back to the bundled copy (build brief §14). */
+  standards: StandardEntry[];
+  standardsVersion: string;
   contextNote?: string;
   model?: string;
 }
 
 export async function analyzeContractPdf({
   pdfBase64,
+  standards,
+  standardsVersion,
   contextNote,
   model,
 }: AnalyzeContractPdfArgs): Promise<AnalysisResult> {
@@ -164,7 +170,7 @@ export async function analyzeContractPdf({
     const response = await client.messages.create({
       model: modelId,
       max_tokens: 16000,
-      system: buildSystemPrompt(),
+      system: buildSystemPrompt(standards, standardsVersion),
       tools: [FINDINGS_TOOL_SCHEMA],
       tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
       messages: [{ role: "user", content: userContent }],
@@ -201,7 +207,7 @@ export async function analyzeContractPdf({
       clauses_checked: parsed.clauses_checked,
       document_notes: parsed.document_notes ?? "",
       model_id: modelId,
-      standards_library_version: STANDARDS_LIBRARY_VERSION,
+      standards_library_version: standardsVersion,
       input_tokens: usage.input_tokens,
       output_tokens: usage.output_tokens,
       cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,

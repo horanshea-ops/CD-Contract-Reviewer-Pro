@@ -1,0 +1,32 @@
+name: CI
+
+# Runs on every push and pull request. The point is a known-good baseline:
+# with AI-assisted development producing large multi-file changes, "the checks
+# were green at this commit" is what makes a bad afternoon recoverable.
+# See MASTER_PLAN.md §0.2.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test

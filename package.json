@@ -7,10 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "sample:generate": "tsx scripts/generate-sample-contract.ts",
     "pipeline:test": "tsx scripts/test-analysis.ts",
     "standards:seed": "tsx scripts/seed-standards.ts",
+    "standards:status": "tsx scripts/standards-status.ts",
     "associate:seed-test": "tsx scripts/seed-test-associate.ts",
     "dev:login-link": "tsx scripts/dev-login-link.ts"
   },
@@ -21,6 +25,7 @@
     "jszip": "^3.10.1",
     "mammoth": "^1.12.2",
     "next": "16.3.4",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -29,14 +34,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.13.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
-    "pdf-lib": "^1.17.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.0"
   }
 }
