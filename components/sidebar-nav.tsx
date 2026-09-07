@@ -1,37 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { cn } from "@/lib/cn";
 import { BrandMark, NavFooter, NavLinkList, type NavAssociate } from "@/components/nav-links";
 
 const COLLAPSED_STORAGE_KEY = "cd-sidebar-collapsed";
 
+// The collapsed preference lives in localStorage, which React can't read during
+// SSR — so it's modelled as an external store rather than component state.
+// useSyncExternalStore is built for exactly this case: it renders the server
+// snapshot (expanded) on the server, then swaps to the real value on hydration
+// without a mismatch, and without a setState-inside-an-effect cascade.
+const listeners = new Set<() => void>();
+
+function subscribe(onChange: () => void) {
+  listeners.add(onChange);
+  // Also react to writes from another tab, which "storage" fires for.
+  window.addEventListener("storage", onChange);
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getSnapshot(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1";
+  } catch {
+    // Storage unavailable (private mode, etc.) — default to expanded.
+    return false;
+  }
+}
+
+/** Server and first client render agree on expanded; the stored value arrives on hydration. */
+function getServerSnapshot(): boolean {
+  return false;
+}
+
+function setCollapsed(next: boolean) {
+  try {
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, next ? "1" : "0");
+  } catch {
+    // Ignore — persistence is a nicety, not a requirement. The store still
+    // notifies, so the sidebar toggles for this session either way.
+  }
+  for (const listener of listeners) listener();
+}
+
 /** Persistent left sidebar, desktop only (lg and up) — see MobileTopBar for the collapsed/drawer equivalent below that breakpoint. */
 export default function SidebarNav({ associate }: { associate: NavAssociate | null }) {
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Read the persisted preference after mount rather than in the initial
-  // state so server and client agree on the first render (localStorage
-  // isn't available during SSR) — avoids a hydration mismatch.
-  useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1");
-    } catch {
-      // Storage unavailable (private mode, etc.) — default to expanded.
-    }
-  }, []);
-
-  function toggle() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(COLLAPSED_STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        // Ignore — persistence is a nicety, not a requirement.
-      }
-      return next;
-    });
-  }
+  const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
     <div
@@ -44,7 +62,7 @@ export default function SidebarNav({ associate }: { associate: NavAssociate | nu
 
       <button
         type="button"
-        onClick={toggle}
+        onClick={() => setCollapsed(!collapsed)}
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         className="absolute -right-3 top-14 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-strong)] bg-white text-[var(--text-secondary)] shadow-sm hover:text-[var(--cd-navy)] hover:bg-[var(--surface-muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"

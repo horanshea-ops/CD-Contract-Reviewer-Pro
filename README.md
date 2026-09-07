@@ -31,14 +31,16 @@ This calls the real Claude API and will use a small amount of paid API credit.
 
 ## Database setup (Supabase)
 
-1. In your Supabase project, run `supabase/schema.sql` (SQL Editor → paste → Run).
+1. In your Supabase project, run every file in `supabase/migrations/` in
+   filename order (SQL Editor → paste → Run). `001_baseline.sql` is the original
+   schema; later files are incremental changes.
 2. Add the project's URL and keys (Settings → API) to `.env.local`.
 3. Load the standards library into the database: `npm run standards:seed`
    — safe to re-run any time the library changes in `lib/standards/v1.ts`.
 
-Schema changes after the initial run are tracked as plain `alter table` statements —
-check recent commits/PRs for any that need to be run manually against an existing
-database (Supabase migrations aren't wired up yet).
+Schema changes are numbered migration files, applied in order and never edited
+once committed. To change the schema, add a new file — do not amend an old one,
+or databases that already ran it will silently diverge.
 
 ## Uploads
 
