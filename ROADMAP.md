@@ -349,15 +349,28 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
   substantively and nothing previously checked for them at all:
   `ada_compliance`, `governing_law_venue`, `labor_disputes`, `rate_parity`,
   `gratuity_service_charge`, `resale_mitigation_duty`.
-  **Real architecture finding surfaced during this work**: the analysis
-  pipeline never reads the `standards` DB table — `lib/anthropic.ts` imports
-  `STANDARDS_LIBRARY` directly from `lib/standards/v1.ts` and embeds it in the
-  system prompt. The DB table (and the admin screen built for it, item 7
-  above) is a one-time seeded mirror with its own admin-editable copy, wired
-  to nothing downstream. Editing only the DB would have changed what admins
-  see without changing model behavior at all — worth fixing (either point the
-  model at the DB live, or make that intentional and documented) before this
-  gets confusing again.
+  **Real architecture finding surfaced during this work — FIXED 2026-09-07**:
+  the analysis pipeline never read the `standards` DB table. `lib/anthropic.ts`
+  imported `STANDARDS_LIBRARY` straight from `lib/standards/v1.ts`, so the DB
+  table and the admin screen built for it (item 7 above) were a seeded mirror
+  wired to nothing downstream — an admin could edit an entry, see it save, and
+  change nothing about how contracts were reviewed.
+  Now: `lib/standards/load.ts` reads the table, and `analyzeContractPdf` takes
+  the library as a required argument rather than importing it, so no call site
+  can silently fall back. The bundled array stays as seed and fallback (a
+  transient DB problem shouldn't fail an analysis) but that path is recorded in
+  `analyses.standards_source` and warned about, never silent — build brief §14.
+  This also needed a traceability fix. 001's schema comment says
+  `library_version` exists so a finding is traceable to the exact library that
+  produced it, but every row shares the version string `v1-industry-default`
+  (it is the seed script's upsert conflict key), so an admin edit changes
+  content while leaving the version identical. Migration `003` adds
+  `standards_hash` — a SHA-256 of the exact entries sent — alongside
+  `standards_source`.
+  Verified live: 25 entries load from `database`, hash identical to the bundled
+  library, so the change is behaviour-neutral until someone actually edits a
+  standard. `npm run standards:status` reports that comparison, since the two
+  can now legitimately diverge.
   **Verified live, end to end**: extended `scripts/generate-sample-contract.ts`
   with two new deliberately-unfavorable sections (a Delaware/Wilmington
   governing-law clause; an undifferentiated 22% service charge) so all 6 new
