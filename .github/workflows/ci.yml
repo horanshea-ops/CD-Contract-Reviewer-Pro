@@ -25,6 +25,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Runs `next typegen` first (see the npm script): Next 16 generates global
+      # types like LayoutProps into .next/types, which is gitignored and so is
+      # absent from a fresh checkout. Without it tsc fails in CI while passing
+      # locally, purely because a dev server had already generated them.
       - name: Typecheck
         run: npm run typecheck
 
