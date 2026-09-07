@@ -111,7 +111,12 @@ export async function processAnalysis(analysisId: string) {
       }
     }
 
-    await admin
+    // Checked, unlike the status updates above: if this write fails the row
+    // stays "processing" forever and the review screen polls an analysis that
+    // silently never arrives — after the model call has already been paid for.
+    // A pending migration is the likeliest cause, so surface it as a failure
+    // the associate can see rather than a hang.
+    const { error: completeError } = await admin
       .from("analyses")
       .update({
         status: "complete",
@@ -128,6 +133,13 @@ export async function processAnalysis(analysisId: string) {
         },
       })
       .eq("id", analysisId);
+
+    if (completeError) {
+      throw new Error(
+        `Analysis succeeded but could not be saved: ${completeError.message}. ` +
+          `If this mentions an unknown column, a migration in supabase/migrations/ has not been applied.`
+      );
+    }
 
     await logAudit({
       actorId: analysis.associate_id,
