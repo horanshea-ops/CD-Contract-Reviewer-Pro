@@ -4,6 +4,17 @@ Tracks decisions and follow-ups that are noted but deliberately not acted on yet
 per the build brief's phasing. See the build brief §11 for the authoritative build
 order — the checklist below just tracks progress against it.
 
+**As of 2026-09-07, `MASTER_PLAN.md` governs the current work package** (Part 1,
+the DOCX revision pipeline). `CLAUDE.md` records the four agreed deviations from
+it — chiefly that §1.7's LibreOffice worker is dropped in favour of a new §1.4a
+HTML preview. This file remains the living progress log.
+
+- [x] **Phase 0 — groundwork (2026-09-07).** Vitest + `npm test`, `npm run
+      typecheck`, GitHub Actions CI, and `supabase/migrations/`. Also fixed
+      `pdf-lib` sitting in `devDependencies` while three runtime modules import
+      it — a production install would have failed. Migration `002` is written
+      but **not yet applied to the live database**.
+
 ## Build order progress (build brief §11)
 
 **Now, on personal accounts, no CD data:**
@@ -46,33 +57,28 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
-- **DOCX-to-preview pipeline — NEXT PRIORITY, not scoped yet.** Escalated
-  2026-09-06 after the user spent real hands-on time in the dev server
-  reviewing DOCX-sourced analyses (including their own real CD Ideal
-  Standard Contract) and found the resulting preview genuinely bad and not
-  helpful — not a nice-to-have polish item, the next thing to fix, ahead of
-  other feature work. Explicit instruction: do not scope a solution yet:
-  the user is still actively exploring via the dev server and will give
-  direction once they've formed a clearer view of what's actually wrong
-  and what "good" should look like — don't jump ahead to picking a
-  conversion approach.
-  Background technical context, from earlier scoping (`document-conversion.ts`
-  extracts raw text via `mammoth`/`word-extractor`, `text-to-pdf.ts` re-flows
-  it into a from-scratch PDF with no tables/headers/styling): this is what's
-  producing the preview the user is now reacting to. That from-scratch PDF
-  also records exact `RenderedLine[]` coordinates (`line-positions.json`),
-  which is what powers clause highlighting and marked-up PDF export — any
-  fix that changes how the DOCX-derived PDF is produced needs to either
-  replicate that "we drew it, we know where it is" property or fall back to
-  real PDF text-extraction + fuzzy matching (already flagged as
-  unresolved/risky for tables/multi-column layouts in
-  `docs/redline-export-plan.md`). A real, pixel-faithful conversion
-  (LibreOffice headless, a hosted conversion API, HTML→PDF off
-  `mammoth.convertToHtml`) also revives a heavy-dependency tradeoff already
-  rejected twice elsewhere in this codebase, and a hosted API raises a
-  client-confidentiality question. None of that is a decision yet — just
-  the constraints whoever scopes this will need to weigh once the user is
-  ready.
+- **DOCX-to-preview pipeline — SCOPED AND FOLDED IN, 2026-09-07.** Closed as a
+  standalone item. It is now `MASTER_PLAN.md` §1.4a, sequenced immediately
+  after §1.4 extraction.
+  The diagnosis: the preview is bad because the code *discards structure*, not
+  because the conversion is imprecise. `document-conversion.ts` calls
+  `mammoth.extractRawText`, dropping every heading, table and list before
+  `text-to-pdf.ts` re-flows the remains. Cancellation schedules and attrition
+  sliding scales are tables, and they carry the largest dollar exposure in the
+  contract — so they reach *the model doing the analysis* as flattened prose.
+  That makes this an accuracy problem before a UI one.
+  The fix: §1.4 must build a character-to-source-node map regardless. Render the
+  preview as HTML from that map instead of converting to a PDF. Highlighting
+  becomes an exact offset lookup rather than fuzzy coordinate matching, and
+  `line-positions.json`, the `text-to-pdf` reflow and `get-positioned-lines`
+  all retire for DOCX-sourced analyses. Genuine PDF uploads keep the pdfjs viewer.
+  A LibreOffice or hosted conversion was considered and **rejected**: it would
+  cost roughly $2-4/month, but the real objection is that it adds another vendor
+  account for CD to inherit at handoff (master plan §4.7) to solve a problem
+  solvable for nothing. The earlier no-heavy-dependency decision therefore stands.
+  Tradeoff accepted: the preview will not match the property's exact fonts and
+  page breaks. That never mattered — the file sent back to the hotel is the
+  tracked-changes DOCX, byte-identical outside changed spans.
 
 - **Contract revision chains — not started, worth exploring.** Today each
   upload is an independent analysis with no relationship to any other. Real
