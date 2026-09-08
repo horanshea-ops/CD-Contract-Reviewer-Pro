@@ -80,10 +80,13 @@ export default function FindingCard({
   finding,
   onActionRecorded,
   onSelectFinding,
+  locateMode = "pdf",
 }: {
   finding: Finding;
   onActionRecorded: (findingId: string, action: Finding["current_action"]) => void;
   onSelectFinding?: (finding: Finding) => void;
+  /** "docx" for the HTML preview (no page concept — always offers to jump to the match). Defaults to "pdf". */
+  locateMode?: "pdf" | "docx";
 }) {
   const [mode, setMode] = useState<"view" | "editing" | "dismissing">("view");
   const [editedLanguage, setEditedLanguage] = useState(finding.proposed_language);
@@ -158,7 +161,14 @@ export default function FindingCard({
 
       {!finding.is_missing_clause && finding.quoted_text && (
         <p className="text-xs mb-1">
-          {finding.location_page != null ? (
+          {locateMode === "docx" ? (
+            <button
+              onClick={() => onSelectFinding?.(finding)}
+              className="text-[var(--cd-navy)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+            >
+              Show in document →
+            </button>
+          ) : finding.location_page != null ? (
             <button
               onClick={() => onSelectFinding?.(finding)}
               className="text-[var(--cd-navy)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import FindingCard, { SEVERITY_STYLE, type Finding } from "./finding-card";
 import PdfViewer from "./pdf-viewer";
+import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +21,10 @@ interface AnalysisResponse {
   documentUrl: string | null;
   findings: Finding[];
   error_message?: string;
+  intake_route: "docx_native" | "pdf" | null;
+  had_existing_revisions: boolean | null;
+  existing_revision_authors: string[] | null;
+  existing_revision_count: number | null;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -81,8 +86,13 @@ export default function AnalysisPage() {
   }, [data]);
 
   async function handleSelectFinding(finding: Finding) {
-    setActivePage(finding.location_page);
     setSelectedFindingId(finding.id);
+    if (data?.intake_route === "docx_native") {
+      // DocxPreview resolves its own highlight from data it already has —
+      // no PDF page/coordinate concept applies here.
+      return;
+    }
+    setActivePage(finding.location_page);
     if (finding.location_page == null || finding.id in highlightCache) return;
     try {
       const res = await fetch(`/api/findings/${finding.id}/highlight`);
@@ -205,13 +215,24 @@ export default function AnalysisPage() {
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
-          {data.source_format !== "pdf" && (
+          {data.source_format !== "pdf" && data.intake_route !== "docx_native" && (
             <div className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs px-4 py-2 shrink-0">
               Converted from {data.source_format.toUpperCase()} for review — text only, original formatting
               (tables, letterhead, styling) isn&apos;t preserved here.
             </div>
           )}
-          {data.documentUrl ? (
+          {data.intake_route === "docx_native" ? (
+            <DocxPreview
+              analysisId={data.id}
+              hadExistingRevisions={!!data.had_existing_revisions}
+              existingRevisionAuthors={data.existing_revision_authors ?? []}
+              existingRevisionCount={data.existing_revision_count ?? 0}
+              selectedFinding={sortedFindings.find((f) => f.id === selectedFindingId) ?? null}
+              highlightColor={
+                SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
+              }
+            />
+          ) : data.documentUrl ? (
             <div className="flex-1 min-h-0">
               <PdfViewer
                 documentUrl={data.documentUrl}
@@ -239,6 +260,7 @@ export default function AnalysisPage() {
                 finding={f}
                 onActionRecorded={handleActionRecorded}
                 onSelectFinding={handleSelectFinding}
+                locateMode={data.intake_route === "docx_native" ? "docx" : "pdf"}
               />
             ))
           )}

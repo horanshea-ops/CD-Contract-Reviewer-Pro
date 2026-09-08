@@ -7,7 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { processAnalysis } from "@/lib/analysis-pipeline";
 import { detectSourceFormat, convertToPdf } from "@/lib/document-conversion";
 import { extractDocx } from "@/lib/docx";
-import type { IntakeHealth } from "@/lib/docx";
+import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
 
 export const maxDuration = 300;
 
@@ -85,10 +85,12 @@ export async function POST(request: Request) {
   // Legacy .doc predates the OOXML format entirely and uploaded PDFs have no
   // runs to edit, so both take the PDF path unconditionally.
   let intakeHealth: IntakeHealth | null = null;
+  let existingRevisions: ExistingRevisions | null = null;
   if (sourceFormat === "docx") {
     try {
       const extracted = await extractDocx(fileBytes, { fileSizeBytes: fileBytes.byteLength });
       intakeHealth = extracted.health;
+      existingRevisions = extracted.existingRevisions;
     } catch (err) {
       // Unreadable as OOXML: not fatal, it just cannot take the DOCX path.
       intakeHealth = {
@@ -165,6 +167,9 @@ export async function POST(request: Request) {
     original_storage_path: originalStoragePath,
     intake_route: intakeRoute,
     intake_health: intakeHealth,
+    had_existing_revisions: existingRevisions?.present ?? null,
+    existing_revision_authors: existingRevisions?.authors ?? null,
+    existing_revision_count: existingRevisions?.count ?? null,
     status: "queued",
   });
 
