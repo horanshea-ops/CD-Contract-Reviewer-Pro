@@ -85,20 +85,27 @@ function document(bodyXml: string) {
 <w:document ${W_NS}><w:body>${bodyXml}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`;
 }
 
+// Fixed timestamp so regenerating the fixtures produces byte-identical files.
+// This is a per-entry option, not a generateAsync one — passing it to
+// generateAsync type-checks as an error and silently does nothing, which would
+// leave every fixture carrying its own build time and make §1.4.8's
+// determinism test fail for reasons that have nothing to do with extraction.
+const FIXED_DATE = new Date("2026-01-01T00:00:00Z");
+
 async function writeDocx(name: string, bodyXml: string) {
   const zip = new JSZip();
-  zip.file("[Content_Types].xml", CONTENT_TYPES);
-  zip.file("_rels/.rels", ROOT_RELS);
-  zip.file("word/document.xml", document(bodyXml));
-  zip.file("word/_rels/document.xml.rels", DOC_RELS);
-  zip.file("word/styles.xml", STYLES);
-  // Fixed date so fixtures are byte-stable across runs — the determinism test
-  // in §1.4.8 compares extraction output, but a churning fixture makes any
-  // failure ambiguous.
-  const bytes = await zip.generateAsync({
-    type: "uint8array",
-    date: new Date("2026-01-01T00:00:00Z"),
-  });
+  // createFolders:false is per-entry, not a generateAsync option. Without it
+  // JSZip synthesises directory entries (_rels/, word/, word/_rels/) stamped
+  // with the current time, ignoring the date below — a regenerated fixture then
+  // differed by exactly six bytes, but only when a run crossed a clock second.
+  // Real Word documents contain no directory entries anyway.
+  const at = { date: FIXED_DATE, createFolders: false };
+  zip.file("[Content_Types].xml", CONTENT_TYPES, at);
+  zip.file("_rels/.rels", ROOT_RELS, at);
+  zip.file("word/document.xml", document(bodyXml), at);
+  zip.file("word/_rels/document.xml.rels", DOC_RELS, at);
+  zip.file("word/styles.xml", STYLES, at);
+  const bytes = await zip.generateAsync({ type: "uint8array" });
   const out = path.join("tests", "fixtures", name);
   await writeFile(out, bytes);
   console.log(`  ${name}  (${bytes.length.toLocaleString()} bytes)`);

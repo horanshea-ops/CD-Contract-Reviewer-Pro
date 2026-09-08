@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "sample:generate": "tsx scripts/generate-sample-contract.ts",
+    "fixtures:generate": "tsx scripts/generate-docx-fixtures.ts",
     "pipeline:test": "tsx scripts/test-analysis.ts",
     "standards:seed": "tsx scripts/seed-standards.ts",
     "standards:status": "tsx scripts/standards-status.ts",

@@ -42,8 +42,11 @@ async function shapeOf(buf: Buffer | Uint8Array): Promise<Shape> {
     delText: (xml.match(/<w:delText\b/g) ?? []).length,
     tables: (xml.match(/<w:tbl>/g) ?? []).length,
     rows: (xml.match(/<w:tr\b/g) ?? []).length,
-    bold: (xml.match(/<w:b\/>/g) ?? []).length,
-    italic: (xml.match(/<w:i\/>/g) ?? []).length,
+    // Match any form: docXMLater re-emits <w:b/> as <w:b w:val="1"/>, which is
+    // semantically identical. A /<w:b\/>/ regex reports that as lost formatting
+    // and nearly disqualified the library on a false alarm.
+    bold: (xml.match(/<w:b[ \/>]/g) ?? []).length,
+    italic: (xml.match(/<w:i[ \/>]/g) ?? []).length,
     authors: [...new Set([...xml.matchAll(/w:author="([^"]+)"/g)].map((m) => m[1]))].sort(),
     text: textOnly.replace(/\s+/g, " ").trim(),
     xmlLength: xml.length,
