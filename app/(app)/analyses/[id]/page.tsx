@@ -8,6 +8,7 @@ import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
 import { Button } from "@/components/ui/button";
+import { RedlineExportButton } from "@/components/redline-export-button";
 
 interface AnalysisResponse {
   id: string;
@@ -200,16 +201,7 @@ export default function AnalysisPage() {
           <Button variant="secondary" size="sm" href={`/api/analyses/${data.id}/export-markup`} className="shrink-0">
             Export marked-up PDF
           </Button>
-          {data.source_format === "docx" && (
-            <Button
-              variant="secondary"
-              size="sm"
-              href={`/api/analyses/${data.id}/export-redline-docx`}
-              className="shrink-0"
-            >
-              Export tracked-changes DOCX
-            </Button>
-          )}
+          {data.source_format === "docx" && <RedlineExportButton analysisId={data.id} />}
         </div>
       </div>
 

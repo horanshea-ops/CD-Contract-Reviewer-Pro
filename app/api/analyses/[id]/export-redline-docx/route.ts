@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { getActionedFindings } from "@/lib/get-actioned-findings";
 import { generateTrackedChangesDocx } from "@/lib/tracked-changes-docx";
+import { UNAPPLIED_REASON_TEXT, validateRedline } from "@/lib/redline-validation";
+import { recordExport } from "@/lib/export-log";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -12,19 +14,31 @@ const STORAGE_BUCKET = "contracts";
  * the original uploaded document. DOCX-sourced analyses only: there's no
  * Word document to inject revisions into for PDF- or DOC-sourced ones (see
  * docs/redline-export-plan.md for why).
+ *
+ * Nothing is streamed until the oracle has passed it (MASTER_PLAN.md §1.6).
+ * Three outcomes, never all-or-nothing:
+ *
+ *   clean     every finding applied, validation passed — deliver the .docx
+ *   partial   some refused, validation passed — deliver it, with the list
+ *   fallback  validation failed — discard the file, route to the marked-up PDF
+ *
+ * `?preflight=1` returns the verdict as JSON without the file, so the associate
+ * sees what could not be applied before they download it. Only the request that
+ * actually delivers a file writes to `exports`, or every dialog double-counts.
  */
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const associate = await getCurrentAssociate();
   if (!associate) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
   const { id } = await params;
+  const preflight = new URL(request.url).searchParams.get("preflight") === "1";
   const admin = createAdminClient();
 
   const { data: analysis } = await admin
     .from("analyses")
-    .select("id, associate_id, filename, original_storage_path, source_format, status")
+    .select("id, associate_id, filename, storage_path, original_storage_path, source_format, status")
     .eq("id", id)
     .maybeSingle();
 
@@ -55,11 +69,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const findings = await getActionedFindings(admin, id);
+  const originalBytes = new Uint8Array(await originalBlob.arrayBuffer());
 
-  let result;
+  let engineResult;
   try {
-    result = await generateTrackedChangesDocx({
-      originalDocxBytes: new Uint8Array(await originalBlob.arrayBuffer()),
+    engineResult = await generateTrackedChangesDocx({
+      originalDocxBytes: originalBytes,
       findings,
       author: associate.name,
     });
@@ -68,20 +83,67 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
+  const report = await validateRedline({ originalBytes, engineResult, author: associate.name });
+
+  const unapplied = report.unapplied.map((u) => ({ ...u, explanation: UNAPPLIED_REASON_TEXT[u.reason] }));
+  const markupPdfUrl = `/api/analyses/${id}/export-markup`;
+
+  if (preflight) {
+    return NextResponse.json({
+      outcome: report.outcome,
+      appliedCount: report.appliedCount,
+      unapplied,
+      fallbackReason: report.fallbackReason,
+      markupPdfUrl,
+    });
+  }
+
+  await recordExport(admin, {
+    analysisId: id,
+    associateId: associate.id,
+    format: "docx",
+    outcome: report.outcome,
+    fallbackReason: report.fallbackReason,
+    findingsApplied: report.appliedCount,
+    findingsUnapplied: report.unapplied.length,
+    unappliedDetail: report.unapplied.length ? report.unapplied : null,
+    analysisPaths: analysis,
+  });
+
   await logAudit({
     actorId: associate.id,
     action: "redline_docx_exported",
     entityType: "analysis",
     entityId: id,
-    metadata: { matched: result.appliedCount, unmatched: result.unapplied.length },
+    metadata: {
+      outcome: report.outcome,
+      matched: report.appliedCount,
+      unmatched: report.unapplied.length,
+      fallback_reason: report.fallbackReason,
+    },
   });
 
+  // §1.6.4 — discard the output entirely rather than hand over a file that
+  // might not open. The marked-up PDF carries the same findings.
+  if (report.outcome === "fallback") {
+    return NextResponse.json(
+      {
+        error: "The marked-up Word file did not pass validation, so it was discarded.",
+        outcome: report.outcome,
+        fallbackReason: report.fallbackReason,
+        markupPdfUrl,
+      },
+      { status: 409 }
+    );
+  }
+
   const outFilename = analysis.filename.replace(/\.docx$/i, "") + "-redline.docx";
-  return new NextResponse(Buffer.from(result.docxBytes), {
+  return new NextResponse(Buffer.from(engineResult.docxBytes), {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": `attachment; filename="${outFilename}"`,
+      "X-Export-Outcome": report.outcome,
     },
   });
 }
