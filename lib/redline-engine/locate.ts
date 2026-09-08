@@ -252,6 +252,7 @@ function decide(
   }
   return {
     resolution: "unresolved",
+    ambiguous: true,
     reason:
       `The quoted wording appears ${candidates.length} times in the contract and the finding's ` +
       `section reference does not say which one is meant.`,

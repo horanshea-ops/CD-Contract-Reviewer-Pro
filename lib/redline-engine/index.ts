@@ -144,7 +144,13 @@ export async function generateRedline({
           "Another finding already marks up overlapping wording."
         );
       } else {
-        refuse(finding, "not_located", "unresolved", "blocked_cross_paragraph", span.reason);
+        refuse(
+          finding,
+          span.ambiguous ? "ambiguous_quote" : "not_located",
+          "unresolved",
+          "blocked_cross_paragraph",
+          span.reason
+        );
       }
       continue;
     }

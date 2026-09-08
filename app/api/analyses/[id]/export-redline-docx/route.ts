@@ -3,9 +3,9 @@ import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { getActionedFindings } from "@/lib/get-actioned-findings";
-import { generateTrackedChangesDocx } from "@/lib/tracked-changes-docx";
+import { generateRedline } from "@/lib/redline-engine";
 import { UNAPPLIED_REASON_TEXT, validateRedline } from "@/lib/redline-validation";
-import { recordExport } from "@/lib/export-log";
+import { recordExport, recordResolutions } from "@/lib/export-log";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -73,7 +73,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   let engineResult;
   try {
-    engineResult = await generateTrackedChangesDocx({
+    engineResult = await generateRedline({
       originalDocxBytes: originalBytes,
       findings,
       author: associate.name,
@@ -97,6 +97,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       markupPdfUrl,
     });
   }
+
+  await recordResolutions(admin, engineResult.resolutions);
 
   await recordExport(admin, {
     analysisId: id,

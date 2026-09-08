@@ -44,6 +44,12 @@ export interface UnlocatedSpan {
   resolution: "unresolved";
   /** Plain language, recorded in `findings.applicability_detail`. */
   reason: string;
+  /**
+   * True when the wording was found in several places and nothing separated
+   * them. A different problem from wording that is not in the contract at all,
+   * and the associate needs to be told which.
+   */
+  ambiguous?: boolean;
 }
 
 export type LocateResult = LocatedSpan | UnlocatedSpan;

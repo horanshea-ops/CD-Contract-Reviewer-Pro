@@ -29,6 +29,37 @@ export interface RecordExportInput {
 export class OriginalOverwriteError extends Error {}
 
 /**
+ * Records how each finding resolved (§1.5.1, §1.5.3).
+ *
+ * Written at export because that is when it is known — the span is located
+ * against the document as it stands, never cached. Best effort: a failure here
+ * must not cost the associate their download.
+ */
+export async function recordResolutions(
+  admin: SupabaseClient,
+  resolutions: {
+    findingId: string;
+    spanResolution: string;
+    applicability: string;
+    detail: string;
+  }[]
+): Promise<void> {
+  await Promise.all(
+    resolutions.map(async (r) => {
+      const { error } = await admin
+        .from("findings")
+        .update({
+          span_resolution: r.spanResolution,
+          applicability: r.applicability,
+          applicability_detail: r.detail,
+        })
+        .eq("id", r.findingId);
+      if (error) console.error(`Could not record how finding ${r.findingId} resolved:`, error.message);
+    })
+  );
+}
+
+/**
  * §1.6.7 — never overwrite the stored original. Asserted in code, not by
  * convention.
  *

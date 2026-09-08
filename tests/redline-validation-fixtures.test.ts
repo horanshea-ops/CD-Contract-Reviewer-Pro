@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateTrackedChangesDocx } from "@/lib/tracked-changes-docx";
+import { generateRedline } from "@/lib/redline-engine";
 import { validateRedline } from "@/lib/redline-validation";
 import { FIXTURE_AUTHOR, FIXTURE_CORPUS, readFixture } from "./helpers/fixture-corpus";
 
@@ -15,7 +15,7 @@ import { FIXTURE_AUTHOR, FIXTURE_CORPUS, readFixture } from "./helpers/fixture-c
 async function runFixture(index: number) {
   const { file, findings } = FIXTURE_CORPUS[index];
   const originalBytes = new Uint8Array(await readFixture(file));
-  const engineResult = await generateTrackedChangesDocx({
+  const engineResult = await generateRedline({
     originalDocxBytes: originalBytes,
     findings,
     author: FIXTURE_AUTHOR,

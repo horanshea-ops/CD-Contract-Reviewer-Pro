@@ -122,7 +122,19 @@ describe("what it still refuses, and says so", () => {
     const { result } = await redline(new Uint8Array(bytes), [SWAP]);
 
     expect(result.appliedCount).toBe(0);
-    expect(result.unapplied[0].reason).toBe("not_located");
+    // Told apart from wording that is simply not in the contract, because the
+    // associate can fix one of those and not the other.
+    expect(result.unapplied[0].reason).toBe("ambiguous_quote");
+  });
+
+  it("applies it once the finding names its section", async () => {
+    const bytes = await readFile(path.join("tests", "fixtures", "11-repeated-phrases.docx"));
+    const { result, report } = await redline(new Uint8Array(bytes), [
+      finding({ ...SWAP, location_section: "2. Cancellation" }),
+    ]);
+
+    expect(result.appliedCount).toBe(1);
+    expect(report.outcome).toBe("clean");
   });
 
   it("refuses a second finding overlapping wording already marked up", async () => {
@@ -151,6 +163,22 @@ describe("what it still refuses, and says so", () => {
         detail: "Not in the contract — added to the appendix as a tracked insertion.",
       },
     ]);
+  });
+});
+
+describe("wording Word split apart", () => {
+  it("marks up a phrase broken across runs mid-word", async () => {
+    // Ported from the deleted engine's suite. Word splits a word across runs
+    // for its own reasons, and a phrase that reads as one thing on screen can
+    // be four runs in the file.
+    const bytes = new Uint8Array(await readFile(path.join("tests", "fixtures", "10-word-run-splitting.docx")));
+    const { result, report, xml } = await redline(bytes, [
+      finding({ quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" }),
+    ]);
+
+    expect(result.appliedCount).toBe(1);
+    expect(report.outcome).toBe("clean");
+    expect(xml).toContain("seventy percent (70%)");
   });
 });
 

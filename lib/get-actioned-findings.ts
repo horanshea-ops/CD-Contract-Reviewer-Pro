@@ -1,22 +1,26 @@
 import type { createAdminClient } from "./supabase/admin";
-import type { MemoFinding } from "./export-memo";
+import type { RevisionFinding } from "./redline-engine/types";
 
 const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2, note: 3 };
 
 /**
- * Fetches every accepted/edited finding for an analysis, in the shape both
- * export formats need (requested-revisions memo, marked-up PDF): the
- * associate's edited language where they edited, otherwise the model's
- * proposed language; dismissed and undecided findings excluded; sorted by
- * severity. Shared because both export routes need exactly this.
+ * Fetches every accepted/edited finding for an analysis, in the shape the
+ * export formats need. The associate's edited language where they edited,
+ * otherwise the model's proposed language; dismissed and undecided findings
+ * excluded; sorted by severity. Shared because every export route needs
+ * exactly this.
+ *
+ * It carries the finding's id and section reference too. §1.5 needs the section
+ * to tell two copies of the same wording apart, and the id to write back how
+ * each one resolved; the memo and PDF exports ignore both.
  */
 export async function getActionedFindings(
   admin: ReturnType<typeof createAdminClient>,
   analysisId: string
-): Promise<MemoFinding[]> {
+): Promise<RevisionFinding[]> {
   const { data: findingRowsRaw } = await admin
     .from("findings")
-    .select("id, clause_type, severity, is_missing_clause, quoted_text, finding_text, cd_standard, proposed_language")
+    .select("id, clause_type, severity, is_missing_clause, quoted_text, location_section, finding_text, cd_standard, proposed_language")
     .eq("analysis_id", analysisId);
   const findingRows = findingRowsRaw ?? [];
   type FindingRow = (typeof findingRows)[number];
@@ -44,6 +48,8 @@ export async function getActionedFindings(
     )
     .sort((a, b) => SEVERITY_ORDER[a.f.severity] - SEVERITY_ORDER[b.f.severity])
     .map(({ f, action }) => ({
+      id: f.id,
+      location_section: f.location_section,
       clause_type: f.clause_type,
       severity: f.severity,
       is_missing_clause: f.is_missing_clause,
