@@ -14,6 +14,25 @@ HTML preview. This file remains the living progress log.
       `pdf-lib` sitting in `devDependencies` while three runtime modules import
       it — a production install would have failed. Migration `002` is written
       but **not yet applied to the live database**.
+      *Update 2026-09-07: migrations 002 and 003 applied and verified. CI was
+      failing on every run — Next 16 generates route types into the gitignored
+      .next folder, so tsc passed locally and failed on a fresh checkout;
+      `next typegen` now runs as part of `npm run typecheck`.*
+
+- [x] **§1.3 Library evaluation (2026-09-07).** Decision: **hand-roll the
+      revision engine**, no third-party redlining library. `docx-redline-js`
+      does not exist on npm. `docXMLater` preserves existing revisions, tables
+      and formatting on a round trip, but when the text being changed sits
+      inside the counterparty's own insertion it rewrites that text in place
+      under *their* author name and creates no revision of ours — reporting
+      success. That forges provenance, hides our redline, and is the common
+      case from round two of a negotiation onward. Header and footer text is
+      also unreachable by its edit API. Full evidence in
+      `docs/library-evaluation.md`.
+      Also corrected the plan: §1.6.2's reject-all oracle must be scoped to our
+      own author, or it rejects the counterparty's pre-existing revisions too
+      and winds the document back past what they sent.
+      Five byte-stable synthetic fixtures landed with it (§1.11 nos. 1-4, 6).
 
 ## Build order progress (build brief §11)
 
