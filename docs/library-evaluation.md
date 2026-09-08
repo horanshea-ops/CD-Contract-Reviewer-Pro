@@ -142,3 +142,121 @@ The five synthetic fixtures built for this evaluation are §1.11 fixtures 1, 2, 
 4 and 6, and stay. They are byte-stable across regeneration
 (`npm run fixtures:generate`) and their intent is asserted in
 `tests/fixtures.test.ts`.
+
+---
+
+# Round 2 — five harder fixtures
+
+The first round used four hand-built fixtures, which is thin evidence for a
+decision that sets the schedule for the rest of Part 1. Round 2 added five
+fixtures covering what real contracts actually contain: Word's move tracking,
+multi-level numbering with a cross-reference field, content controls and field
+codes, tracked changes inside table cells, and the run splitting Word itself
+emits.
+
+**The decision is unchanged and now much better supported.** Two of the five
+reproduced the attribution bug independently, and two entirely new failures
+appeared — one of which is worse than anything found in round 1.
+
+## Results
+
+| Fixture | Case | Outcome |
+|---|---|---|
+| 05 move | edit outside the move (control) | ✅ tracked correctly |
+| 05 move | edit the moved clause | ❌ **untracked, no revision** |
+| 07 numbering | edit a numbered list item | ✅ tracked; numbering and fields preserved |
+| 08 content controls | edit inside a content control | ⚠️ `count: 0` — cannot see the text |
+| 09 tables | edit inside a tracked change in a cell | ❌ **untracked, no revision** |
+| 10 run splitting | phrase split across runs | ❌ **`count: 0` — cannot find the text** |
+
+Structurally, nothing was destroyed: numbering, content controls, field codes,
+tables and move revisions all survived every round trip, and no part was
+dropped.
+
+## New finding 1 — it cannot match text spanning run boundaries
+
+**This is the most consequential result of the evaluation.**
+
+Fixture 10 reads, to a human and to the model:
+
+> Client shall be liable for eighty percent (80%) of the group rate for each
+> unsold room night.
+
+Underneath, Word has split that across four runs mid-word, with a `proofErr`
+between them — exactly what Word emits after ordinary editing and spell-check:
+
+```xml
+<w:r w:rsidR="00A12B34"><w:t>Client shall be liable for eighty per</w:t></w:r>
+<w:proofErr w:type="spellStart"/>
+<w:r w:rsidR="00A12B34"><w:t>cent</w:t></w:r>
+<w:proofErr w:type="spellEnd"/>
+<w:r w:rsidR="00B57C11"><w:t> (80</w:t></w:r>
+<w:r w:rsidR="00B57C11"><w:t>%) of the group rate</w:t></w:r>
+```
+
+Measured behaviour:
+
+```
+findAndReplaceAll("eighty percent (80%)")  ->  count = 0   (not found)
+findAndReplaceAll("thirty (30) days")      ->  count = 0   (not found)
+findAndReplaceAll("eighty per")            ->  count = 1   (fits in one run)
+findAndReplaceAll("of the group rate")     ->  count = 1   (fits in one run)
+```
+
+It matches only within a single run. The analysis pipeline returns
+`quoted_text` copied verbatim from the document's *visible* text, so those
+quotes will routinely straddle run boundaries — and would silently fail to
+apply.
+
+**The existing `lib/tracked-changes-docx.ts` already handles this correctly**,
+by building a plain-text projection across runs and mapping matches back to
+run offsets (`buildRunIndex`). On the single most common real-world case, the
+library is a regression against what the repository already has.
+
+## New finding 2 — the attribution bug is not limited to `w:ins`
+
+Round 1 found that editing text inside the counterparty's insertion rewrites it
+in place under their name. Round 2 shows the same failure in two further shapes:
+
+- **Inside a `moveFrom`/`moveTo` pair** (fixture 05): `count: 2`, our revision
+  elements: 0. It edited both copies of the moved clause, untracked.
+- **Inside a tracked change in a table cell** (fixture 09): `count: 2`, our
+  revision elements: 0. It silently changed a cancellation damages figure from
+  "seventy-five percent (75%)" to "sixty percent (60%)" with no redline.
+
+Fixture 09 is the worst case found. The cancellation schedule carries the
+largest dollar exposure in a hotel contract, and this alters a damages
+percentage invisibly, in a table, with no mark for the counterparty to see.
+
+Across both rounds the bug reproduced in **five independent scenarios**, with
+two authors, three document structures and replacement text unrelated to
+anything deleted. Control edits outside existing revisions worked correctly
+every time, which is what makes it dangerous: it works until it doesn't, and it
+never says so.
+
+## New finding 3 — content-control text is invisible
+
+Fixture 08 returned `count: 0` for a span inside a `w:sdt`. That happens to
+satisfy §1.5.3's "refuse to edit inside a content control", but for the wrong
+reason — it cannot see the text rather than deliberately declining. The
+practical effect matches the header/footer limitation: terms stored there can be
+analysed but never marked up, and nothing reports that they were skipped.
+
+## Harness caveat
+
+Fixture 10's oracle line also reported a failure, but that one was an artifact
+of the harness's own accepted-text extraction mishandling `proofErr` elements
+between runs, not a library defect. The real finding for fixture 10 is the
+`count: 0` above. Noted because two earlier apparent failures — dropped bold
+formatting, and the unscoped reject-all — were likewise harness bugs, and a
+decision this size should be explicit about which measurements were wrong.
+
+## Conclusion
+
+Ten fixtures, sixteen scenarios. The library preserves documents well and edits
+plain body text correctly, but it cannot find the text the model will actually
+quote, and when the target sits inside any existing revision it edits under
+someone else's name without saying so. Both are silent failures in a document
+that gets emailed to a counterparty.
+
+**Confirmed: hand-roll per §1.3.3.** All ten fixtures stay as §1.11 corpus.

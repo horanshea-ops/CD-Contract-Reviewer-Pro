@@ -260,6 +260,159 @@ const fixture06 = [
   para(run("Client agrees to a room block of two hundred (200) rooms at $329.00 per night.")),
 ].join("");
 
+// --- Fixture 5: moveFrom / moveTo -----------------------------------------
+// Word records a relocated clause as a move pair, not delete+insert. An engine
+// that only understands w:ins/w:del sees the moveFrom text as still present in
+// the contract, and would analyse a clause that has actually moved elsewhere.
+const fixture05 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Deposits"),
+  para(
+    run("A deposit is due at signing. ") +
+      `<w:moveFromRangeStart w:id="300" w:name="move_indemnity"/>` +
+      `<w:moveFrom w:id="301" w:author="${COUNTERPARTY}" w:date="${CP_DATE}"><w:r><w:delText xml:space="preserve">Group shall indemnify Hotel against all claims arising from the event.</w:delText></w:r></w:moveFrom>` +
+      `<w:moveFromRangeEnd w:id="300"/>`
+  ),
+  heading("2. Indemnification"),
+  para(
+    `<w:moveToRangeStart w:id="302" w:name="move_indemnity"/>` +
+      `<w:moveTo w:id="303" w:author="${COUNTERPARTY}" w:date="${CP_DATE}"><w:r><w:t xml:space="preserve">Group shall indemnify Hotel against all claims arising from the event.</w:t></w:r></w:moveTo>` +
+      `<w:moveToRangeEnd w:id="302"/>` +
+      run(" Each party's liability is capped at the total contract value.")
+  ),
+].join("");
+
+// --- Fixture 7: multi-level numbering and a cross-reference field ----------
+const NUMBERING_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering ${W_NS}>
+  <w:abstractNum w:abstractNumId="0">
+    <w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl>
+    <w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%1.%2"/></w:lvl>
+    <w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="lowerRoman"/><w:lvlText w:val="%1.%2.%3"/></w:lvl>
+  </w:abstractNum>
+  <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>
+</w:numbering>`;
+
+function numbered(text: string, level: number) {
+  return para(run(text), `<w:pPr><w:numPr><w:ilvl w:val="${level}"/><w:numId w:val="1"/></w:numPr></w:pPr>`);
+}
+
+const FIXTURE07_PARTS: ExtraParts = {
+  contentTypes: CONTENT_TYPES.replace(
+    "</Types>",
+    `  <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
+</Types>`
+  ),
+  docRels: DOC_RELS.replace(
+    "</Relationships>",
+    `  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+</Relationships>`
+  ),
+  files: { "word/numbering.xml": NUMBERING_XML },
+};
+
+const fixture07 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  numbered("Attrition and Cancellation", 0),
+  numbered("Attrition is measured cumulatively across the room block.", 1),
+  numbered("Liability applies only below seventy percent (70%) pickup.", 2),
+  numbered("Resold rooms are credited against any shortfall.", 2),
+  numbered("Cancellation damages follow the schedule below.", 1),
+  numbered("Force Majeure", 0),
+  // "Section 1.a" here is a field RESULT, not literal text. §1.4.7 requires
+  // treating field results as non-modifiable, and instrText as invisible.
+  para(
+    run("The obligations described in ") +
+      `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> REF _Ref_attrition \\h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>` +
+      run("Section 1.a") +
+      `<w:r><w:fldChar w:fldCharType="end"/></w:r>` +
+      run(" are suspended during a force majeure event.")
+  ),
+].join("");
+
+// --- Fixture 8: content controls and field codes ---------------------------
+// §1.5.3 requires REFUSING to edit spans inside these, so they must first be
+// detectable. A content control holding the attrition percentage is the exact
+// shape of a clause we would otherwise try to redline.
+const fixture08 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  para(
+    run("This Agreement is between Harborview Grand Hotel and ") +
+      `<w:sdt><w:sdtPr><w:alias w:val="ClientName"/><w:tag w:val="client_name"/><w:id w:val="9001"/><w:text/></w:sdtPr><w:sdtContent><w:r><w:t xml:space="preserve">Acme Association</w:t></w:r></w:sdtContent></w:sdt>` +
+      run(" (the Group).")
+  ),
+  heading("1. Attrition"),
+  para(
+    run("Group shall be liable for ") +
+      `<w:sdt><w:sdtPr><w:alias w:val="AttritionPct"/><w:tag w:val="attrition_pct"/><w:id w:val="9002"/><w:text/></w:sdtPr><w:sdtContent><w:r><w:t xml:space="preserve">eighty percent (80%)</w:t></w:r></w:sdtContent></w:sdt>` +
+      run(" of the group rate for unsold rooms.")
+  ),
+  heading("2. Dates"),
+  para(
+    run("This agreement was generated on ") +
+      `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> DATE \\@ "MMMM d, yyyy" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r>` +
+      run("March 14, 2026") +
+      `<w:r><w:fldChar w:fldCharType="end"/></w:r>` +
+      run(" and supersedes prior drafts.")
+  ),
+].join("");
+
+// --- Fixture 9: tracked changes inside table cells -------------------------
+// The cancellation schedule carries the largest dollar exposure in the
+// contract and it is a table. Revisions inside cells are a distinct case from
+// revisions in body paragraphs, and §1.5.3 blocks spans crossing cell
+// boundaries — so the engine has to tell the two apart.
+function trackedCell(before: string, after: string, id: number) {
+  return (
+    `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr><w:p>` +
+    del(id, COUNTERPARTY, CP_DATE, before) +
+    ins(id + 1, COUNTERPARTY, CP_DATE, run(after)) +
+    `</w:p></w:tc>`
+  );
+}
+
+function plainCell(text: string, bold = false) {
+  return `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr>${para(
+    run(text, bold ? "<w:rPr><w:b/></w:rPr>" : "")
+  )}</w:tc>`;
+}
+
+const fixture09 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Cancellation Schedule"),
+  `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="3000"/></w:tblGrid>` +
+    `<w:tr>${plainCell("Days Prior", true)}${plainCell("Damages", true)}</w:tr>` +
+    `<w:tr>${plainCell("180 to 91")}${trackedCell("fifty percent (50%)", "seventy-five percent (75%)", 401)}</w:tr>` +
+    `<w:tr>${plainCell("90 to 31")}${trackedCell("seventy-five percent (75%)", "ninety percent (90%)", 403)}</w:tr>` +
+    `</w:tbl>`,
+  para(run("Damages are calculated on anticipated room revenue.")),
+].join("");
+
+// --- Fixture 10: realistic Word run splitting ------------------------------
+// What Word actually emits. Editing sessions and the spell checker shatter a
+// phrase across runs mid-word, with rsid attributes, proofErr elements and
+// bookmarks interleaved. A quoted phrase is almost never one contiguous run,
+// which is precisely what §1.5.1 and §1.5.4 have to cope with.
+const fixture10 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Attrition"),
+  para(
+    `<w:r w:rsidR="00A12B34"><w:t xml:space="preserve">Client shall be liable for eighty per</w:t></w:r>` +
+      `<w:proofErr w:type="spellStart"/>` +
+      `<w:r w:rsidR="00A12B34"><w:t>cent</w:t></w:r>` +
+      `<w:proofErr w:type="spellEnd"/>` +
+      `<w:r w:rsidR="00B57C11"><w:t xml:space="preserve"> (80</w:t></w:r>` +
+      `<w:r w:rsidR="00B57C11"><w:t xml:space="preserve">%) of the group rate</w:t></w:r>` +
+      `<w:bookmarkStart w:id="500" w:name="_Ref_attrition"/>` +
+      `<w:r><w:t xml:space="preserve"> for each unsold room night.</w:t></w:r>` +
+      `<w:bookmarkEnd w:id="500"/>`
+  ),
+  heading("2. Cutoff"),
+  para(
+    `<w:r><w:t xml:space="preserve">The cutoff date is thir</w:t></w:r><w:r><w:t>ty</w:t></w:r><w:r><w:t xml:space="preserve"> (30) days prior to arrival.</w:t></w:r>`
+  ),
+].join("");
+
 async function main() {
   await mkdir(path.join("tests", "fixtures"), { recursive: true });
   console.log("Generating synthetic DOCX fixtures:");
@@ -267,7 +420,12 @@ async function main() {
   await writeDocx("02-heavy-tables.docx", fixture02);
   await writeDocx("03-tracked-one-author.docx", fixture03);
   await writeDocx("04-tracked-two-authors.docx", fixture04);
+  await writeDocx("05-move-from-to.docx", fixture05);
   await writeDocx("06-header-footer-terms.docx", fixture06, FIXTURE06_PARTS);
+  await writeDocx("07-numbering-crossref.docx", fixture07, FIXTURE07_PARTS);
+  await writeDocx("08-content-controls-fields.docx", fixture08);
+  await writeDocx("09-tracked-in-tables.docx", fixture09);
+  await writeDocx("10-word-run-splitting.docx", fixture10);
   console.log("Done.");
 }
 
