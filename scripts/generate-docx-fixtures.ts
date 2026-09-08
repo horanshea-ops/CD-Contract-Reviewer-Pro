@@ -36,7 +36,9 @@ const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:pPr><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style>
 </w:styles>`;
 
-const W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+const W_NS =
+  'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+  'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
 
 function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -80,9 +82,9 @@ function table(rows: string[][], opts: { header?: boolean } = {}) {
   return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>${grid}${body}</w:tbl>`;
 }
 
-function document(bodyXml: string) {
+function document(bodyXml: string, sectPrExtra = "") {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document ${W_NS}><w:body>${bodyXml}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`;
+<w:document ${W_NS}><w:body>${bodyXml}<w:sectPr>${sectPrExtra}<w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`;
 }
 
 // Fixed timestamp so regenerating the fixtures produces byte-identical files.
@@ -92,7 +94,14 @@ function document(bodyXml: string) {
 // determinism test fail for reasons that have nothing to do with extraction.
 const FIXED_DATE = new Date("2026-01-01T00:00:00Z");
 
-async function writeDocx(name: string, bodyXml: string) {
+interface ExtraParts {
+  contentTypes?: string;
+  docRels?: string;
+  files?: Record<string, string>;
+  sectPrExtra?: string;
+}
+
+async function writeDocx(name: string, bodyXml: string, extra: ExtraParts = {}) {
   const zip = new JSZip();
   // createFolders:false is per-entry, not a generateAsync option. Without it
   // JSZip synthesises directory entries (_rels/, word/, word/_rels/) stamped
@@ -100,11 +109,12 @@ async function writeDocx(name: string, bodyXml: string) {
   // differed by exactly six bytes, but only when a run crossed a clock second.
   // Real Word documents contain no directory entries anyway.
   const at = { date: FIXED_DATE, createFolders: false };
-  zip.file("[Content_Types].xml", CONTENT_TYPES, at);
+  zip.file("[Content_Types].xml", extra.contentTypes ?? CONTENT_TYPES, at);
   zip.file("_rels/.rels", ROOT_RELS, at);
-  zip.file("word/document.xml", document(bodyXml), at);
-  zip.file("word/_rels/document.xml.rels", DOC_RELS, at);
+  zip.file("word/document.xml", document(bodyXml, extra.sectPrExtra ?? ""), at);
+  zip.file("word/_rels/document.xml.rels", extra.docRels ?? DOC_RELS, at);
   zip.file("word/styles.xml", STYLES, at);
+  for (const [partPath, content] of Object.entries(extra.files ?? {})) zip.file(partPath, content, at);
   const bytes = await zip.generateAsync({ type: "uint8array" });
   const out = path.join("tests", "fixtures", name);
   await writeFile(out, bytes);
@@ -216,6 +226,40 @@ const fixture04 = [
   ),
 ].join("");
 
+// --- Fixture 6: contract terms in headers and footers ---------------------
+// Hotels routinely put the cutoff date and cancellation notice terms in a
+// header or footer. The current pipeline never reads those parts, so terms
+// living there are invisible to analysis entirely (§1.4.1).
+const HEADER_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:hdr ${W_NS}>${para(run("Harborview Grand Hotel - Group Agreement. Room block cutoff: thirty (30) days prior to arrival."))}</w:hdr>`;
+
+const FOOTER_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr ${W_NS}>${para(run("Cancellation notices must be delivered in writing to the Director of Sales. Late notice incurs one hundred percent (100%) of anticipated room revenue."))}</w:ftr>`;
+
+const FIXTURE06_PARTS: ExtraParts = {
+  contentTypes: CONTENT_TYPES.replace(
+    "</Types>",
+    `  <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+  <Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+</Types>`
+  ),
+  docRels: DOC_RELS.replace(
+    "</Relationships>",
+    `  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
+</Relationships>`
+  ),
+  files: { "word/header1.xml": HEADER_XML, "word/footer1.xml": FOOTER_XML },
+  sectPrExtra: `<w:headerReference w:type="default" r:id="rId2"/><w:footerReference w:type="default" r:id="rId3"/>`,
+};
+
+const fixture06 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  para(run("The terms set out in the header and footer of this document form part of this Agreement.")),
+  heading("1. Room Block"),
+  para(run("Client agrees to a room block of two hundred (200) rooms at $329.00 per night.")),
+].join("");
+
 async function main() {
   await mkdir(path.join("tests", "fixtures"), { recursive: true });
   console.log("Generating synthetic DOCX fixtures:");
@@ -223,6 +267,7 @@ async function main() {
   await writeDocx("02-heavy-tables.docx", fixture02);
   await writeDocx("03-tracked-one-author.docx", fixture03);
   await writeDocx("04-tracked-two-authors.docx", fixture04);
+  await writeDocx("06-header-footer-terms.docx", fixture06, FIXTURE06_PARTS);
   console.log("Done.");
 }
 
