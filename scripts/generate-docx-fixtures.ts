@@ -413,6 +413,164 @@ const fixture10 = [
   ),
 ].join("");
 
+// --- Fixture 11: the same phrase four times -------------------------------
+// The live engine takes the FIRST regex match and stops (findQuoteMatch), so a
+// finding about the cancellation clause can silently redline the attrition
+// clause instead. The wrong clause is edited and nothing reports it.
+const fixture11 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Attrition"),
+  para(run("Group shall be liable for eighty percent (80%) of the group rate for unsold rooms.")),
+  heading("2. Cancellation"),
+  para(run("Cancellation damages are eighty percent (80%) of anticipated room revenue.")),
+  heading("3. Food and Beverage"),
+  para(run("Any F&B shortfall is billed at eighty percent (80%) of the contracted minimum.")),
+  heading("4. No-Show Rooms"),
+  para(run("No-show rooms are charged at eighty percent (80%) of the group rate.")),
+].join("");
+
+// --- Fixture 12: tabs, breaks, symbols and smart punctuation --------------
+// buildRunIndex skips any run without <w:t>, so tab and break runs are
+// invisible to its offset arithmetic while still sitting between text runs.
+// Curly quotes and non-breaking hyphens also defeat naive matching, and §1.4.6
+// exists to normalise exactly these.
+const fixture12 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Payment Schedule"),
+  para(
+    run("Deposit") +
+      `<w:r><w:tab/></w:r>` +
+      run("25% at signing") +
+      `<w:r><w:br/></w:r>` +
+      run("Balance") +
+      `<w:r><w:tab/></w:r>` +
+      run("due 30 days prior")
+  ),
+  heading("2. Definitions"),
+  // Curly quotes, a non-breaking hyphen (U+2011), a soft hyphen (U+00AD) inside
+  // "reasonable", and a non-breaking space before the percent sign.
+  para(
+    run("The “Group” shall mean the party identified above. Rates are non‑commissionable. ") +
+      run("Hotel will use rea­sonable efforts to resell. Attrition is measured at 90 % of the block.")
+  ),
+  heading("3. Symbols"),
+  para(run("Deliverables: ☐ signed contract ☐ deposit → confirmation • final rooming list")),
+].join("");
+
+// --- Fixture 13: nested tables and merged cells ---------------------------
+// §1.5.3 must refuse a span crossing a cell boundary. A nested table inside a
+// cell, plus horizontal (gridSpan) and vertical (vMerge) merges, is where a
+// naive "find the runs between these offsets" approach quietly spans cells.
+const INNER_TABLE =
+  `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr><w:tblGrid><w:gridCol w:w="1400"/><w:gridCol w:w="1400"/></w:tblGrid>` +
+  `<w:tr><w:tc><w:tcPr><w:tcW w:w="1400" w:type="dxa"/></w:tcPr>${para(run("Tier A"))}</w:tc>` +
+  `<w:tc><w:tcPr><w:tcW w:w="1400" w:type="dxa"/></w:tcPr>${para(run("fifty percent (50%)"))}</w:tc></w:tr>` +
+  `<w:tr><w:tc><w:tcPr><w:tcW w:w="1400" w:type="dxa"/></w:tcPr>${para(run("Tier B"))}</w:tc>` +
+  `<w:tc><w:tcPr><w:tcW w:w="1400" w:type="dxa"/></w:tcPr>${para(run("seventy percent (70%)"))}</w:tc></w:tr>` +
+  `</w:tbl>`;
+
+const fixture13 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Cancellation Matrix"),
+  `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="3000"/></w:tblGrid>` +
+    // A header cell spanning both columns.
+    `<w:tr><w:tc><w:tcPr><w:tcW w:w="6000" w:type="dxa"/><w:gridSpan w:val="2"/></w:tcPr>${para(
+      run("Cancellation Damages", "<w:rPr><w:b/></w:rPr>")
+    )}</w:tc></w:tr>` +
+    // A vertically merged cell beside a nested table.
+    `<w:tr><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:vMerge w:val="restart"/></w:tcPr>${para(
+      run("Group cancels")
+    )}</w:tc><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr>${INNER_TABLE}${para(run(""))}</w:tc></w:tr>` +
+    `<w:tr><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:vMerge/></w:tcPr>${para(run(""))}</w:tc>` +
+    `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr>${para(
+      run("Hotel resells and credits proceeds")
+    )}</w:tc></w:tr>` +
+    `</w:tbl>`,
+  para(run("Damages are calculated on anticipated room revenue.")),
+].join("");
+
+// --- Fixture 14: existing revision ids, including a very high one ---------
+// The live engine picks its next id by scanning EVERY w:id attribute, not just
+// revision ids, and Word rejects a document with duplicate revision ids. A
+// bookmark id of 999999 sits here to see whether id allocation collides or
+// jumps somewhere unusable.
+const fixture14 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Attrition"),
+  para(
+    run("Attrition is measured at ") +
+      del(2147483000, COUNTERPARTY, CP_DATE, "ninety percent (90%)") +
+      ins(2147483001, COUNTERPARTY, CP_DATE, run("eighty percent (80%)")) +
+      run(" of the contracted block.")
+  ),
+  heading("2. Cutoff"),
+  para(
+    `<w:bookmarkStart w:id="999999" w:name="_Ref_cutoff"/>` +
+      run("The cutoff date is thirty (30) days prior to arrival.") +
+      `<w:bookmarkEnd w:id="999999"/>`
+  ),
+  heading("3. Deposit"),
+  para(
+    // A comment range whose id deliberately overlaps the revision id space.
+    `<w:commentRangeStart w:id="1"/>` +
+      run("A deposit of twenty-five percent (25%) is due at signing.") +
+      `<w:commentRangeEnd w:id="1"/><w:r><w:commentReference w:id="1"/></w:r>`
+  ),
+].join("");
+
+// --- Fixture 15: hyperlinks, footnotes, comments and bookmarks ------------
+// Real contracts carry all of these across the clauses we want to redline.
+// Editing across them must not orphan a reference or drop the relationship.
+const FOOTNOTES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:footnotes ${W_NS}>
+  <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+  <w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>
+  <w:footnote w:id="1">${para(run("Rates exclude applicable state and local occupancy taxes."))}</w:footnote>
+</w:footnotes>`;
+
+const COMMENTS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:comments ${W_NS}>
+  <w:comment w:id="1" w:author="${COUNTERPARTY}" w:date="${CP_DATE}" w:initials="DR">${para(
+  run("Confirm this matches the signed LOI.")
+)}</w:comment>
+</w:comments>`;
+
+const FIXTURE15_PARTS: ExtraParts = {
+  contentTypes: CONTENT_TYPES.replace(
+    "</Types>",
+    `  <Override PartName="/word/footnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>
+  <Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>
+</Types>`
+  ),
+  docRels: DOC_RELS.replace(
+    "</Relationships>",
+    `  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com/resort-fees" TargetMode="External"/>
+</Relationships>`
+  ),
+  files: { "word/footnotes.xml": FOOTNOTES_XML, "word/comments.xml": COMMENTS_XML },
+};
+
+const fixture15 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Resort Fees"),
+  para(
+    `<w:commentRangeStart w:id="1"/>` +
+      run("A mandatory resort fee of thirty-five dollars ($35.00) per room per night applies, as described at ") +
+      `<w:hyperlink r:id="rId4"><w:r><w:rPr><w:color w:val="0000FF"/><w:u w:val="single"/></w:rPr><w:t xml:space="preserve">the hotel fee schedule</w:t></w:r></w:hyperlink>` +
+      run(".") +
+      `<w:r><w:footnoteReference w:id="1"/></w:r>` +
+      `<w:commentRangeEnd w:id="1"/><w:r><w:commentReference w:id="1"/></w:r>`
+  ),
+  heading("2. Attrition"),
+  para(
+    `<w:bookmarkStart w:id="700" w:name="_Ref_attrition_clause"/>` +
+      run("Group is liable for eighty percent (80%) of the group rate for each unsold room night, measured night-by-night.") +
+      `<w:bookmarkEnd w:id="700"/>`
+  ),
+].join("");
+
 async function main() {
   await mkdir(path.join("tests", "fixtures"), { recursive: true });
   console.log("Generating synthetic DOCX fixtures:");
@@ -426,6 +584,11 @@ async function main() {
   await writeDocx("08-content-controls-fields.docx", fixture08);
   await writeDocx("09-tracked-in-tables.docx", fixture09);
   await writeDocx("10-word-run-splitting.docx", fixture10);
+  await writeDocx("11-repeated-phrases.docx", fixture11);
+  await writeDocx("12-tabs-breaks-symbols.docx", fixture12);
+  await writeDocx("13-nested-merged-tables.docx", fixture13);
+  await writeDocx("14-revision-id-collisions.docx", fixture14);
+  await writeDocx("15-links-footnotes-comments.docx", fixture15, FIXTURE15_PARTS);
   console.log("Done.");
 }
 

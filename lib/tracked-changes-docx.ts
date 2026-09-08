@@ -114,8 +114,22 @@ function buildDelInsXml({
   return del + ins;
 }
 
-function buildInsertedParagraph(text: string, revisionId: () => number, author: string, date: string): string {
-  return `<w:p><w:ins w:id="${revisionId()}" w:author="${encodeXmlEntities(author)}" w:date="${date}"><w:r><w:t xml:space="preserve">${encodeXmlEntities(text)}</w:t></w:r></w:ins></w:p>`;
+/**
+ * A paragraph that is itself an insertion needs the paragraph-mark marked too,
+ * not just its runs: without the marker in pPr/rPr, rejecting all changes
+ * removes the text but leaves an empty paragraph behind.
+ */
+function buildInsertedParagraph(
+  text: string,
+  revisionId: () => number,
+  author: string,
+  date: string,
+  rPrXml = ""
+): string {
+  const a = encodeXmlEntities(author);
+  const pPr = `<w:pPr><w:rPr><w:ins w:id="${revisionId()}" w:author="${a}" w:date="${date}"/></w:rPr></w:pPr>`;
+  const body = `<w:ins w:id="${revisionId()}" w:author="${a}" w:date="${date}"><w:r>${rPrXml}<w:t xml:space="preserve">${encodeXmlEntities(text)}</w:t></w:r></w:ins>`;
+  return `<w:p>${pPr}${body}</w:p>`;
 }
 
 export interface TrackedChangesResult {
@@ -201,6 +215,33 @@ export async function generateTrackedChangesDocx({
       ? `<w:r>${last.rPrXml}<w:t xml:space="preserve">${encodeXmlEntities(afterText)}</w:t></w:r>`
       : "";
 
+    // Refuse any span that crosses a structural boundary. The splice below
+    // replaces everything between the first and last run, so a span reaching
+    // out of its container swallows that container's tags: crossing a cell
+    // merges two cells and leaves the row short of the declared grid, and
+    // crossing a <w:ins> or content control produces XML that does not parse
+    // at all — a file Word refuses to open.
+    //
+    // Randomised testing put the corruption rate at 16% of realistic redlines
+    // (scripts/fuzz-tracked-changes.ts), concentrated on documents that already
+    // contain the counterparty's tracked changes — that is, every negotiation
+    // round after the first.
+    //
+    // Refusing is the conservative half of the trade: the finding is reported
+    // as unapplied and listed for the associate rather than silently mangling
+    // the document. Handling these properly, especially nesting a deletion
+    // inside the counterparty's insertion, is MASTER_PLAN.md §1.5.7.
+    //
+    // The character class after each name keeps <w:p> from matching <w:pPr>,
+    // <w:tc> from <w:tcPr>, and <w:del> from <w:delText>.
+    const spannedXml = documentXml.slice(first.runStart, last.runEnd);
+    const CROSSES_BOUNDARY =
+      /<\/?w:(?:p|tc|tr|tbl|ins|del|moveFrom|moveTo|sdt|sdtContent|hyperlink|fldChar)[ />]/;
+    if (CROSSES_BOUNDARY.test(spannedXml)) {
+      notLocated.push(finding);
+      continue;
+    }
+
     ops.push({ start: first.runStart, end: last.runEnd, replacementXml: beforeXml + delInsXml + afterXml });
   }
 
@@ -212,7 +253,11 @@ export async function generateTrackedChangesDocx({
 
   function buildAppendixSection(heading: string, items: MemoFinding[]): string {
     if (items.length === 0) return "";
-    const headingXml = `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${encodeXmlEntities(heading)}</w:t></w:r></w:p>`;
+    // The heading must be an insertion like the items under it. As plain text it
+    // survived a reject-all, leaving internal tooling language ("COULD NOT BE
+    // LOCATED FOR MARKUP...") permanently in a contract sent to a counterparty,
+    // with no way for them to remove it by rejecting changes.
+    const headingXml = buildInsertedParagraph(heading, revisionId, author, date, "<w:rPr><w:b/></w:rPr>");
     const itemsXml = items
       .map((f) => {
         const label = `${f.severity.toUpperCase()} — ${f.clause_type.replace(/_/g, " ").toUpperCase()}: `;
