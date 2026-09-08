@@ -29,7 +29,7 @@ const authorsOf = (xml: string) =>
 describe("DOCX fixtures", () => {
   it("contain no directory entries, which is what keeps them byte-stable", async () => {
     const all = (await readdir(DIR)).filter((f) => f.endsWith(".docx")).sort();
-    expect(all).toHaveLength(10);
+    expect(all.length).toBeGreaterThanOrEqual(15);
     for (const f of all) {
       const { entries } = await docXml(f);
       expect(entries.filter((e) => e.endsWith("/")), `${f} has folder entries`).toHaveLength(0);
