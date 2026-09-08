@@ -4,7 +4,7 @@ import path from "node:path";
 import { NumberingResolver, loadDocx, walkPart, type WalkResult } from "@/lib/docx";
 import { locateQuote } from "@/lib/redline-engine/locate";
 import { isLocated } from "@/lib/redline-engine/types";
-import { buildDocx, documentXml, headerXml, para, run, table } from "../helpers/docx-package";
+import { buildDocx, headerXml, para, run, table } from "../helpers/docx-package";
 
 /**
  * Finding the wording a model quoted (MASTER_PLAN.md §1.5.1).
