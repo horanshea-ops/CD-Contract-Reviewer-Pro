@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { processAnalysis } from "@/lib/analysis-pipeline";
 import { detectSourceFormat, convertToPdf } from "@/lib/document-conversion";
+import { extractDocx } from "@/lib/docx";
+import type { IntakeHealth } from "@/lib/docx";
 
 export const maxDuration = 300;
 
@@ -75,6 +77,29 @@ export async function POST(request: Request) {
   const analysisId = randomUUID();
   const fileBytes = Buffer.from(await file.arrayBuffer());
 
+  // Decide at intake, before analysis, whether this document can be safely
+  // edited (§1.4.9). Doing it here rather than at export means an associate is
+  // told they are getting a PDF markup *before* spending an hour reviewing
+  // findings that could never be applied.
+  //
+  // Legacy .doc predates the OOXML format entirely and uploaded PDFs have no
+  // runs to edit, so both take the PDF path unconditionally.
+  let intakeHealth: IntakeHealth | null = null;
+  if (sourceFormat === "docx") {
+    try {
+      const extracted = await extractDocx(fileBytes, { fileSizeBytes: fileBytes.byteLength });
+      intakeHealth = extracted.health;
+    } catch (err) {
+      // Unreadable as OOXML: not fatal, it just cannot take the DOCX path.
+      intakeHealth = {
+        route: "pdf",
+        checks: [{ name: "archive_integrity", passed: false, detail: err instanceof Error ? err.message : String(err) }],
+        reason: "This file could not be read as a Word document, so it can't be edited directly.",
+      };
+    }
+  }
+  const intakeRoute = sourceFormat === "docx" ? (intakeHealth?.route ?? "pdf") : "pdf";
+
   let pdfBytes: Uint8Array;
   let originalStoragePath: string | null = null;
 
@@ -138,6 +163,8 @@ export async function POST(request: Request) {
     storage_path: storagePath,
     source_format: sourceFormat,
     original_storage_path: originalStoragePath,
+    intake_route: intakeRoute,
+    intake_health: intakeHealth,
     status: "queued",
   });
 
@@ -153,7 +180,15 @@ export async function POST(request: Request) {
     action: "analysis_upload",
     entityType: "analysis",
     entityId: analysisId,
-    metadata: { filename: file.name, client_name: clientName || null, source_format: sourceFormat },
+    metadata: {
+      filename: file.name,
+      client_name: clientName || null,
+      source_format: sourceFormat,
+      // Which path the document took, and why if it was downgraded — this is
+      // the dataset that tells us which constructs break the engine (§1.6.5).
+      intake_route: intakeRoute,
+      intake_downgrade_reason: intakeHealth?.reason ?? null,
+    },
   });
 
   after(() => processAnalysis(analysisId));

@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase/admin";
-import { analyzeContractPdf } from "./anthropic";
+import { analyzeContract, type AnalyzableDocument } from "./anthropic";
+import { extractDocx } from "./docx";
 import { loadStandardsLibrary } from "./standards/load";
 import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
@@ -18,7 +19,7 @@ export async function processAnalysis(analysisId: string) {
 
   const { data: analysis, error: fetchError } = await admin
     .from("analyses")
-    .select("id, storage_path, associate_id, source_format")
+    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path")
     .eq("id", analysisId)
     .single();
 
@@ -55,8 +56,34 @@ export async function processAnalysis(analysisId: string) {
       );
     }
 
-    const result = await analyzeContractPdf({
-      pdfBase64,
+    // What the model reads. A DOCX that passed the intake health gate is
+    // re-extracted here rather than analysed as a converted PDF, so tables
+    // arrive as tables — the accuracy problem §1.4.5 describes, where
+    // cancellation schedules and attrition scales reach the model flattened
+    // into prose. Extraction is re-run rather than cached: §1.1 forbids
+    // persisting the map, since a stale one against a re-uploaded file places
+    // edits in the wrong part of the document.
+    let document: AnalyzableDocument = { kind: "pdf", pdfBase64 };
+    if (analysis.intake_route === "docx_native" && analysis.original_storage_path) {
+      try {
+        const { data: originalBlob, error: originalErr } = await admin.storage
+          .from(STORAGE_BUCKET)
+          .download(analysis.original_storage_path);
+        if (originalErr || !originalBlob) throw new Error(originalErr?.message ?? "original file unavailable");
+        const extracted = await extractDocx(new Uint8Array(await originalBlob.arrayBuffer()));
+        document = { kind: "text", text: contractText(extracted) };
+      } catch (extractErr) {
+        // Falling back to the PDF loses table structure but still produces an
+        // analysis, which beats failing the run outright. Recorded, not silent.
+        console.warn(
+          `processAnalysis: ${analysisId} could not extract the original DOCX, analysing the converted PDF instead —`,
+          extractErr
+        );
+      }
+    }
+
+    const result = await analyzeContract({
+      document,
       standards: standards.entries,
       standardsVersion: standards.version,
     });
@@ -169,4 +196,21 @@ export async function processAnalysis(analysisId: string) {
       metadata: { error: message },
     });
   }
+}
+
+/**
+ * Flattens the extracted parts into the single block of text the model reads.
+ * Headers and footers are labelled rather than silently concatenated, because a
+ * cutoff date in a header is a real contract term and the associate needs to
+ * know where a finding came from.
+ */
+function contractText(extracted: Awaited<ReturnType<typeof extractDocx>>): string {
+  return extracted.parts
+    .map((part) =>
+      part.part === "document"
+        ? part.text
+        : `\n\n[${part.part.toUpperCase()} — these terms form part of the agreement]\n${part.text}`
+    )
+    .join("")
+    .trim();
 }
