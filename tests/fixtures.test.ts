@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
@@ -28,10 +28,12 @@ const authorsOf = (xml: string) =>
 
 describe("DOCX fixtures", () => {
   it("contain no directory entries, which is what keeps them byte-stable", async () => {
-    for (const f of ["01-clean-simple.docx", "02-heavy-tables.docx", "03-tracked-one-author.docx", "04-tracked-two-authors.docx"]) {
+    const all = (await readdir(DIR)).filter((f) => f.endsWith(".docx")).sort();
+    expect(all).toHaveLength(10);
+    for (const f of all) {
       const { entries } = await docXml(f);
       expect(entries.filter((e) => e.endsWith("/")), `${f} has folder entries`).toHaveLength(0);
-      expect(entries).toHaveLength(5);
+      expect(entries.length).toBeGreaterThanOrEqual(5);
     }
   });
 
@@ -67,5 +69,59 @@ describe("DOCX fixtures", () => {
     expect(count(xml, /<w:b\/>/g)).toBe(2);
     expect(count(xml, /<w:i\/>/g)).toBe(1);
     expect(xml).toContain("$47,500.00");
+  });
+
+  it("05 uses Word's move tracking, not delete-plus-insert", async () => {
+    const { xml } = await docXml("05-move-from-to.docx");
+    expect(count(xml, /<w:moveFrom\b/g)).toBe(1);
+    expect(count(xml, /<w:moveTo\b/g)).toBe(1);
+    // Paired by name: an engine that ignores the pairing sees the clause twice.
+    expect(xml).toContain('w:name="move_indemnity"');
+  });
+
+  it("06 keeps contract terms in the header and footer parts", async () => {
+    const { entries } = await docXml("06-header-footer-terms.docx");
+    expect(entries).toContain("word/header1.xml");
+    expect(entries).toContain("word/footer1.xml");
+  });
+
+  it("07 has multi-level numbering and a cross-reference field", async () => {
+    const { xml, entries } = await docXml("07-numbering-crossref.docx");
+    expect(entries).toContain("word/numbering.xml");
+    expect(count(xml, /<w:numPr>/g)).toBe(6);
+    expect(count(xml, /<w:ilvl w:val="2"\/>/g)).toBe(2);
+    // "Section 1.a" is a field result — §1.4.7 says never treat it as editable.
+    expect(xml).toContain("<w:instrText");
+    expect(xml).toContain("REF _Ref_attrition");
+  });
+
+  it("08 puts a negotiable term inside a content control", async () => {
+    const { xml } = await docXml("08-content-controls-fields.docx");
+    expect(count(xml, /<w:sdt>/g)).toBe(2);
+    // The attrition percentage lives inside the control, so §1.5.3's refusal
+    // has something real to fire on.
+    expect(xml).toMatch(/<w:sdtContent><w:r><w:t[^>]*>eighty percent \(80%\)<\/w:t>/);
+  });
+
+  it("09 has tracked changes inside table cells, where the money is", async () => {
+    const { xml } = await docXml("09-tracked-in-tables.docx");
+    expect(count(xml, /<w:tbl>/g)).toBe(1);
+    expect(count(xml, /<w:ins\b/g)).toBe(2);
+    expect(count(xml, /<w:del\b/g)).toBe(2);
+    // Both revisions sit inside <w:tc>, not in a body paragraph.
+    const cells = xml.match(/<w:tc>[\s\S]*?<\/w:tc>/g) ?? [];
+    expect(cells.filter((c) => /<w:ins\b/.test(c))).toHaveLength(2);
+  });
+
+  it("10 splits a phrase across runs the way Word actually does", async () => {
+    const { xml } = await docXml("10-word-run-splitting.docx");
+    // The phrase is readable but exists in no single run — the case that
+    // defeated docXMLater entirely (docs/library-evaluation.md).
+    expect(xml).not.toContain("eighty percent (80%)");
+    expect(xml).toContain("eighty per");
+    expect(xml).toContain("cent</w:t>");
+    expect(count(xml, /<w:proofErr/g)).toBe(2);
+    expect(xml).toMatch(/w:rsidR="00A12B34"/);
+    expect(count(xml, /<w:bookmarkStart/g)).toBe(1);
   });
 });
