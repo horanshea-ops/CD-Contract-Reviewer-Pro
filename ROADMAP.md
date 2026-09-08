@@ -108,6 +108,54 @@ HTML preview. This file remains the living progress log.
       confirmed correct (fixture 04's two authors and counts landed exactly
       right). Full suite 102/102, typecheck and lint clean.
 
+- [x] **§1.6 Validation oracle (2026-09-08).** The gap this closes was live:
+      the export route generated a tracked-changes file and streamed it to the
+      associate unchecked — no structural validation, no reject-all round
+      trip, no Clean/Partial/Fallback classification, and nothing written to
+      the `exports` table at all. Stage 0's invariants existed but only inside
+      a fuzz harness, as regexes over a `word/document.xml` string.
+      `lib/redline-validation/` is now a real module taking an original/output
+      byte pair. It parses every XML and `.rels` part rather than only
+      `document.xml`, checks Content_Types and relationship consistency,
+      revision id uniqueness and range, insertion/deletion markup (nested
+      del-inside-ins stays legal, since §1.5.7 needs it), and table shape row
+      by row. Deliberately engine-agnostic — it validates the legacy engine
+      today and §1.5's replacement unchanged, against a declared
+      `RedlineEngineResult` contract rather than either engine's internals.
+      Two corrections to the plan text, both in code with tests named after
+      them: §1.6.2's round trip rejects only the revisions *this export*
+      wrote and accepts everyone else's (rejecting all of them unwinds the
+      property's edits and winds the contract back past what they sent), and
+      attribution is by revision id rather than author name, so an export
+      stays verifiable when the property's counsel shares a name with the
+      associate. Paragraph counts are checked separately from text, because an
+      inserted paragraph whose mark was never marked inserted leaves a blank
+      paragraph on reject with no text difference to see — Stage 0's defect 3.
+      **Found a fourth real defect in the live engine.** Pointing the 1000-
+      document fuzz corpus at the new oracle failed 2-5% of documents
+      immediately: the splice only indexes and re-emits `w:t` text, so a tab,
+      line break or footnote marker caught between the first and last matched
+      run was destroyed — silently, outside any revision mark. The engine now
+      refuses those spans, the same conservative trade Stage 0 made for spans
+      crossing a structural boundary.
+      Wired into the request path, not left as a library: the route validates
+      before streaming, Fallback discards the bytes and routes to the marked-up
+      PDF, and `?preflight=1` lets the button show the Partial list before the
+      download. All three export routes write `exports` rows, so §1.6.5's
+      weekly review and §1.6.6's rate have data. §1.6.7 is asserted in
+      `recordExport`, the only place an export path can be written, which
+      refuses any path equal to the uploaded original or the analysed PDF.
+      **Verified live** against a real 25-finding DOCX analysis: the Partial
+      dialog listed both unapplied findings with plain-language reasons before
+      download, and the `exports` rows landed correctly for redline, memo and
+      marked-up PDF. That live check caught a real bug — one click on
+      "Download anyway" wrote two rows, because a `next/link` pointing at a
+      side-effectful export route fires on mount as well as on click. All three
+      export controls are click handlers now, verified at one row per click.
+      Corpus degradation rate 0% fallback with 3 Partials across 16 cases
+      (`npm run export:degradation-rate`). 149 tests, typecheck and lint clean.
+      §1.6.3's LibreOffice deep check stays dropped per CLAUDE.md.
+
 ## Build order progress (build brief §11)
 
 **Now, on personal accounts, no CD data:**
