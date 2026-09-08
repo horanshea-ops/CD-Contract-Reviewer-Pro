@@ -25,6 +25,15 @@ export interface SourceRef {
   insideIns: boolean;
   /** Inside a table cell — §1.5.3 refuses spans crossing cell boundaries. */
   insideTable: boolean;
+  /**
+   * Which table and which cell, in document order within the part; null outside
+   * a table. §1.5 needs the identity, not just the fact: a change confined to
+   * one cell is edited in place, and one spanning cells replaces the whole
+   * table. Counted in the same pre-order the DOM reports, so these line up with
+   * §1.6's table-shape check.
+   */
+  tableIndex: number | null;
+  cellIndex: number | null;
   /** Inside a w:sdt content control — not modifiable (§1.4.7). */
   insideContentControl: boolean;
   /** Inside a field result — not modifiable (§1.4.7). */

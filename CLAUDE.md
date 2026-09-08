@@ -73,6 +73,14 @@ override it.
    receives extracted structured text for DOCX rather than a converted PDF, which is
    what §1.4.5 requires so tables reach it as tables.
 
+6. **§1.5.11's rationale-as-Word-comments is dropped** (decided by the user,
+   2026-09-08). Explaining a change inside the document puts CD's reasoning in
+   front of the property, so it would have to be deleted before sending — and a
+   manual step someone has to remember is a leak waiting to happen. The
+   reasoning stays in the app sidebar and the memo export. Same principle as
+   §1.8.3: CD's internal position is negotiating leverage and must not reach the
+   property by accident. The redline carries the changes and nothing else.
+
 # Response Style
 
 Read this as binding, not advisory. Claude's default house style in recent iterations — the announcing, the colon-hinged sentences, the stacked abstraction, the unspecified density — is a dramatic sink on my productivity and my joy in using Claude. When responses follow this guide, Claude is genuinely useful and pleasant to me. When they drift, every response costs me decoding and editing. Drift happens most in long, abstract conversations, so re-check these rules/focus on them/keep them in mind exactly when the material turns philosophical or dense or the thread runs long. If a rule here conflicts with your instinct for how smart prose sounds, the rule wins. These are instructions for better communications with humans. 
