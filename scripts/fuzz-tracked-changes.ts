@@ -1,7 +1,8 @@
 import JSZip from "jszip";
-import { DOMParser } from "@xmldom/xmldom";
 import { generateTrackedChangesDocx } from "../lib/tracked-changes-docx";
+import { validateRedline } from "../lib/redline-validation";
 import type { MemoFinding } from "../lib/export-memo";
+import { CONTENT_TYPES, DOC_RELS, ROOT_RELS, zipParts } from "../tests/helpers/docx-package";
 
 /**
  * Randomised stress test for the live tracked-changes engine.
@@ -14,6 +15,11 @@ import type { MemoFinding } from "../lib/export-memo";
  * does: a random span of the document's *visible* text.
  *
  * Every run is seeded, so any failure reproduces with `--seed <n>`.
+ *
+ * The invariants are not defined here. Each document goes through
+ * lib/redline-validation — the same oracle the export route runs at request
+ * time — so a thousand randomised contracts test what actually ships rather
+ * than a second implementation drifting alongside it.
  */
 
 // --- seeded RNG ------------------------------------------------------------
@@ -166,60 +172,22 @@ function buildDocument(seed: number) {
 <w:document ${W_NS}><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:body></w:document>`;
 }
 
-const CONTENT_TYPES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
-<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`;
-const ROOT_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
-
 async function toDocx(xml: string) {
-  const zip = new JSZip();
-  const at = { date: new Date("2026-01-01T00:00:00Z"), createFolders: false };
-  zip.file("[Content_Types].xml", CONTENT_TYPES, at);
-  zip.file("_rels/.rels", ROOT_RELS, at);
-  zip.file("word/document.xml", xml, at);
-  zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`, at);
-  return zip.generateAsync({ type: "uint8array" });
+  return zipParts({
+    "[Content_Types].xml": CONTENT_TYPES,
+    "_rels/.rels": ROOT_RELS,
+    "word/document.xml": xml,
+    "word/_rels/document.xml.rels": DOC_RELS,
+  });
 }
 
-// --- invariants ------------------------------------------------------------
+// --- helpers ---------------------------------------------------------------
 const collapse = (s: string) => s.replace(/\s+/g, " ").trim();
+
+/** The contract as it currently reads. Used to pick targets and to confirm a redline landed. */
 function acceptedText(xml: string) {
   const noDel = xml.replace(/<w:del\b[\s\S]*?<\/w:del>/g, "");
   return collapse([...noDel.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map((m) => m[1]).join(""));
-}
-function rejectOurs(xml: string) {
-  const a = OUR_AUTHOR.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const noIns = xml.replace(new RegExp(`<w:ins\\b[^>]*w:author="${a}"[^>]*>[\\s\\S]*?<\\/w:ins>`, "g"), "");
-  const restored = noIns.replace(
-    new RegExp(`<w:del\\b[^>]*w:author="${a}"[^>]*>([\\s\\S]*?)<\\/w:del>`, "g"),
-    (_m, inner: string) => inner.replace(/<w:delText/g, "<w:t").replace(/<\/w:delText>/g, "</w:t>")
-  );
-  return acceptedText(restored);
-}
-function parseErrors(xml: string) {
-  const errs: string[] = [];
-  try {
-    new DOMParser({ onError: (lvl: string, m: unknown) => { if (lvl !== "warning") errs.push(String(m)); } })
-      .parseFromString(xml, "text/xml");
-  } catch (e) {
-    // xmldom throws on a fatal mismatch rather than reporting it. That is the
-    // most serious outcome there is here — Word will not open the file — so it
-    // must be recorded as a failure, not allowed to kill the run.
-    errs.push((e as Error).message);
-  }
-  return errs;
-}
-function elCount(xml: string, tag: string) {
-  try {
-    const doc = new DOMParser({ onError: () => {} }).parseFromString(xml, "text/xml");
-    return doc.getElementsByTagName(tag).length;
-  } catch {
-    return -1; // unparseable; the parse check above already recorded it
-  }
 }
 
 /**
@@ -272,33 +240,32 @@ export async function runOne(seed: number) {
     return { seed, skipped: false, quote, failures: [`engine threw: ${(e as Error).message.slice(0, 90)}`] };
   }
 
+  const report = await validateRedline({
+    originalBytes: bytes,
+    engineResult: out,
+    author: OUR_AUTHOR,
+  });
+  for (const check of report.checks) {
+    if (!check.passed) failures.push(`${check.name}: ${check.detail}`);
+  }
+
+  // Not an oracle check: a gate that refused everything would satisfy every
+  // invariant above while making the feature useless, so confirm the engine
+  // did the work it reported doing.
   const afterXml = await (await JSZip.loadAsync(out.docxBytes)).file("word/document.xml")!.async("string");
-
-  const errs = parseErrors(afterXml);
-  if (errs.length) failures.push(`XML does not parse: ${errs[0].slice(0, 70)}`);
-
-  for (const tag of ["w:tbl", "w:tr", "w:tc"]) {
-    const b = elCount(beforeXml, tag), a = elCount(afterXml, tag);
-    if (a !== b) failures.push(`${tag} count changed ${b} -> ${a}`);
-  }
-
-  const ids = [...afterXml.matchAll(/<w:(?:ins|del)\b[^>]*w:id="(\d+)"/g)].map((m) => m[1]);
-  if (new Set(ids).size !== ids.length) failures.push("duplicate revision ids");
-  if (ids.some((v) => Number(v) > 2147483647)) failures.push("revision id exceeds int32");
-
-  if (/<w:del\b[^>]*>(?:(?!<\/w:del>)[\s\S])*?<w:t[ >]/.test(afterXml)) failures.push("w:del contains a plain w:t");
-
-  const got = rejectOurs(afterXml), want = acceptedText(beforeXml);
-  if (got !== want) {
-    let i = 0; while (i < got.length && i < want.length && got[i] === want[i]) i++;
-    failures.push(`reject-ours != input at char ${i}\n        got  "${got.slice(Math.max(0, i - 25), i + 55)}"\n        want "${want.slice(Math.max(0, i - 25), i + 55)}"`);
-  }
-
   if (out.appliedCount > 0 && !acceptedText(afterXml).includes("NEGOTIATED REPLACEMENT LANGUAGE")) {
     failures.push("applied, but the replacement is not in the accepted view");
   }
 
-  return { seed, skipped: false, quote, applied: out.appliedCount, unapplied: out.unapplied.length, failures };
+  return {
+    seed,
+    skipped: false,
+    quote,
+    applied: out.appliedCount,
+    unapplied: out.unapplied.length,
+    outcome: report.outcome,
+    failures,
+  };
 }
 
 async function main() {
@@ -316,7 +283,7 @@ async function main() {
     const r = await runOne(seed);
     if (r.skipped) { console.log(`seed ${String(seed).padEnd(11)} skipped (document too short)`); continue; }
     const status = r.failures.length ? "FAIL" : " ok ";
-    console.log(`seed ${String(seed).padEnd(11)} ${status}  applied=${r.applied ?? 0} unapplied=${r.unapplied ?? 0}  quote: "${String(r.quote).slice(0, 46)}"`);
+    console.log(`seed ${String(seed).padEnd(11)} ${status}  ${String(r.outcome ?? "-").padEnd(8)} applied=${r.applied ?? 0} unapplied=${r.unapplied ?? 0}  quote: "${String(r.quote).slice(0, 46)}"`);
     for (const f of r.failures) console.log(`        ${f}`);
     if (r.failures.length) failed++;
     if ((r.applied ?? 0) > 0) appliedCount++;

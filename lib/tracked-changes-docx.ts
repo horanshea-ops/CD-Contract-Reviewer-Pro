@@ -260,6 +260,23 @@ export async function generateTrackedChangesDocx({
       continue;
     }
 
+    // Refuse a span holding content the splice cannot carry across. Only w:t
+    // text is indexed and re-emitted, so a tab, a line break or a footnote
+    // marker sitting between the first and last matched run is destroyed —
+    // silently, and outside any revision mark, so rejecting every change no
+    // longer returns the document the property sent.
+    //
+    // Found by the §1.6 oracle on the randomised corpus at roughly 2-5% of
+    // generated documents (scripts/fuzz-tracked-changes.ts). Bookmarks and
+    // proofErr markers are left out on purpose: losing one drops no content
+    // and gating on them would refuse a great many legitimate edits.
+    const SWALLOWS_CONTENT =
+      /<w:(?:tab|br|cr|noBreakHyphen|softHyphen|sym|drawing|pict|object|footnoteReference|endnoteReference|commentReference)[ />]/;
+    if (SWALLOWS_CONTENT.test(spannedXml)) {
+      refuse(finding, "spans_non_text_content");
+      continue;
+    }
+
     ops.push({ start: first.runStart, end: last.runEnd, replacementXml: beforeXml + delInsXml + afterXml });
   }
 
