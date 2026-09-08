@@ -20,7 +20,9 @@ async function walk(bytes: Uint8Array | Buffer): Promise<WalkResult[]> {
   return pkg.textParts.map((p) => walkPart(p, new NumberingResolver(pkg.numbering)));
 }
 
-const xml = (el: Element) => new XMLSerializer().serializeToString(el);
+// xmldom's serializer takes its own node type, not the DOM lib's.
+type SerializableNode = Parameters<XMLSerializer["serializeToString"]>[0];
+const xml = (el: Element) => new XMLSerializer().serializeToString(el as unknown as SerializableNode);
 
 async function coverFor(body: string, quote: string) {
   const parts = await walk(await buildDocx(body));
