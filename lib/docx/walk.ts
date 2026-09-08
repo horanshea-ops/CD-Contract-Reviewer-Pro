@@ -69,7 +69,9 @@ class Sink {
     raw: string,
     ref: Omit<SourceRef, "offsetWithinRun">,
     views: { accepted: boolean; original: boolean },
-    revision: RevisionInfo | null
+    revision: RevisionInfo | null,
+    /** Where this text child starts within the run's concatenated text. */
+    baseOffset = 0
   ) {
     if (!raw) return;
     let normalized = "";
@@ -80,8 +82,11 @@ class Sink {
       if (views.accepted) {
         this.text += out;
         // offsetWithinRun points at the ORIGINAL index, which is what §1.5
-        // needs to locate the character in the untouched XML.
-        this.map.push({ ...ref, offsetWithinRun: i });
+        // needs to locate the character in the untouched XML. A run may hold
+        // more than one text child, so the offset runs across all of them
+        // rather than restarting — otherwise two characters in one run share
+        // an address and §1.5 splits at the wrong place.
+        this.map.push({ ...ref, offsetWithinRun: baseOffset + i });
       }
     }
     if (views.original) this.originalText += normalized;
@@ -184,14 +189,16 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       insideHyperlink: ctx.insideHyperlink,
     };
 
+    let baseOffset = 0;
     for (const child of childrenOf(node)) {
       switch (tag(child)) {
         case "w:t":
-          if (!field.inInstruction) sink.real(child.textContent ?? "", ref, views, ctx.revision);
+        case "w:delText": {
+          const raw = child.textContent ?? "";
+          if (!field.inInstruction) sink.real(raw, ref, views, ctx.revision, baseOffset);
+          baseOffset += raw.length;
           break;
-        case "w:delText":
-          if (!field.inInstruction) sink.real(child.textContent ?? "", ref, views, ctx.revision);
-          break;
+        }
         case "w:instrText":
           // §1.4.7: field instructions are machinery, never contract language.
           break;

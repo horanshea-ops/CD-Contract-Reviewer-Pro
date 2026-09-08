@@ -3,6 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { NumberingResolver, isSynthetic, loadDocx, normalizeChar, walkPart } from "@/lib/docx";
 import type { SourceRef } from "@/lib/docx";
+import { buildDocx } from "../helpers/docx-package";
 
 /**
  * The two things §1.5 needs from §1.4's map, and neither is checked elsewhere.
@@ -52,6 +53,25 @@ describe("run index resolves to the right element", () => {
         expect(normalizeChar(runText(run)[ref.offsetWithinRun])).toBe(part.text[i]);
       }
     }
+  });
+});
+
+describe("a run holding more than one text child", () => {
+  it("numbers offsets across the whole run, not from zero in each child", async () => {
+    // Legal OOXML, and Word does emit it. If the offset restarted in the second
+    // child, two characters of one run would share an address and §1.5 would
+    // split the run at the wrong place — silently, and only on some documents.
+    const bytes = await buildDocx(
+      `<w:p><w:r><w:t xml:space="preserve">Deposit </w:t><w:t xml:space="preserve">schedule</w:t></w:r></w:p>`
+    );
+    const pkg = await loadDocx(bytes);
+    const [document] = pkg.textParts.map((p) => walkPart(p, new NumberingResolver(pkg.numbering)));
+
+    const at = document.text.indexOf("schedule");
+    expect(at).toBeGreaterThan(-1);
+    const ref = document.map[at] as SourceRef;
+    expect(ref.offsetWithinRun).toBe("Deposit ".length);
+    expect(runText(document.runs[ref.runIndex]).slice(ref.offsetWithinRun)).toBe("schedule");
   });
 });
 
