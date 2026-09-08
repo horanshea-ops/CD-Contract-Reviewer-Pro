@@ -6,6 +6,8 @@ import {
   allRevisions,
   type ReadPackage,
 } from "./package";
+import type { Ownership } from "./views";
+import { isOurs } from "./views";
 
 /**
  * Structural validation of a marked-up document (MASTER_PLAN.md §1.6.1).
@@ -208,13 +210,39 @@ export function checkRevisionMarks(output: ReadPackage): CheckResult {
   return pass("revision_marks_wellformed", "Insertions and deletions are marked up correctly.");
 }
 
-/** One entry per table in document order, holding that table's cell count per row. */
-function tableShape(doc: Document): number[][] {
-  return elementsByTag(doc, "w:tbl").map((tbl) =>
-    childElements(tbl)
+/** The `w:ins` or `w:del` in a row's trPr, which marks the row itself as added or struck. */
+function rowRevision(row: Element, tagName: "w:ins" | "w:del"): { id: string; author: string } | null {
+  const trPr = childElements(row).find((c) => c.nodeName === "w:trPr");
+  if (!trPr) return null;
+  const mark = childElements(trPr).find((c) => c.nodeName === tagName);
+  if (!mark) return null;
+  return { id: mark.getAttribute("w:id") ?? "", author: mark.getAttribute("w:author") ?? "" };
+}
+
+/**
+ * One entry per table in document order, holding that table's cell count per row —
+ * as the document would read with our own changes rejected.
+ *
+ * Replacing a table means striking the original and inserting an edited copy, so
+ * the output holds two tables where the input held one. Comparing the raw shapes
+ * would read that as corruption. Rows we inserted come out, a table left with no
+ * rows disappears with them, and what remains is what the property gets back if
+ * they reject everything — which is the assertion this check always meant to make.
+ */
+function tableShape(doc: Document, own?: Ownership): number[][] {
+  const shapes: number[][] = [];
+  for (const tbl of elementsByTag(doc, "w:tbl")) {
+    const rows = childElements(tbl)
       .filter((c) => c.nodeName === "w:tr")
-      .map((row) => childElements(row).filter((c) => c.nodeName === "w:tc").length)
-  );
+      .filter((row) => {
+        if (!own) return true;
+        const inserted = rowRevision(row, "w:ins");
+        return !(inserted && isOurs(own, inserted.id, inserted.author));
+      });
+    if (own && rows.length === 0) continue; // the whole table goes on a reject
+    shapes.push(rows.map((row) => childElements(row).filter((c) => c.nodeName === "w:tc").length));
+  }
+  return shapes;
 }
 
 /**
@@ -223,14 +251,18 @@ function tableShape(doc: Document): number[][] {
  * Compared row by row rather than as totals. The splice bug Stage 0 found
  * merged two cells in one row and left the totals looking plausible.
  */
-export function checkTableStructure(input: ReadPackage, output: ReadPackage): CheckResult {
+export function checkTableStructure(
+  input: ReadPackage,
+  output: ReadPackage,
+  own: Ownership
+): CheckResult {
   let tables = 0;
 
   for (const inPart of input.textParts) {
     const outPart = output.xmlParts.get(inPart.path);
     if (!outPart) continue; // parts_preserved reports this
     const before = tableShape(inPart.doc);
-    const after = tableShape(outPart.doc);
+    const after = tableShape(outPart.doc, own);
     tables += before.length;
 
     if (before.length !== after.length) {

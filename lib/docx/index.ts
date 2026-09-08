@@ -4,8 +4,14 @@ import { DocxParseError, loadDocx } from "./parts";
 import { walkPart } from "./walk";
 import type { ExistingRevisions, ExtractedDocument } from "./types";
 
-export { DocxParseError } from "./parts";
+export { DocxParseError, loadDocx, parseXml } from "./parts";
+export type { DocxPackage, ParsedPart } from "./parts";
 export { normalizeChar, normalizeText, collapseWhitespace } from "./normalize";
+export { NumberingResolver } from "./numbering";
+// §1.5 walks parts itself: it needs the DOM and the run elements, which the
+// extraction result deliberately does not carry.
+export { walkPart } from "./walk";
+export type { WalkResult } from "./walk";
 export * from "./types";
 
 /**

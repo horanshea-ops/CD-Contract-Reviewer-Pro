@@ -156,6 +156,60 @@ HTML preview. This file remains the living progress log.
       (`npm run export:degradation-rate`). 149 tests, typecheck and lint clean.
       §1.6.3's LibreOffice deep check stays dropped per CLAUDE.md.
 
+- [x] **§1.5 Revision engine (2026-09-08).** Replaces `lib/tracked-changes-docx.ts`,
+      which found text with regexes over `word/document.xml` as a string and edited by
+      splicing that string. That technique is why it refused so much: it can only
+      replace one contiguous stretch of characters, so any structure caught inside
+      that stretch was destroyed. Stage 0 and §1.6 each found a corruption bug of
+      exactly that shape.
+      **The architecture question was settled by experiment before planning.** The old
+      engine's header warned against parsing and rebuilding the XML tree. Measured on
+      15 fixtures and 5 real Word/Google-Docs contracts up to 214KB, a parse-and-
+      reserialise round trip changes exactly one character — the line ending after the
+      XML declaration — which `serialize.ts` now preserves. So `lib/redline-engine/`
+      edits a DOM, and only the parts it actually touches are written back.
+      **Three refusals became real redlines**, each tested through §1.6's oracle: a
+      change inside the counterparty's own insertion (§1.5.7's nested case, which falls
+      out of working on the tree rather than a string), a change spanning a tab or line
+      break, and a change inside a single table cell. Terms in headers and footers are
+      redlined at last — `docs/live-engine-validation.md` had that as a known gap.
+      Cross-cell table changes strike the table and insert a cloned, edited copy per
+      the 2026-09-07 decision, with row-level markers and a separator paragraph so Word
+      renders it correctly and does not merge the two tables.
+      **One deliberate behaviour change.** A quote appearing in more than one clause is
+      resolved by the finding's section reference or refused. The old engine took the
+      first match, so a short repeated phrase could redline the wrong clause silently —
+      on `02-heavy-tables.docx` it picked a row out of a cancellation schedule, which is
+      the most expensive silent error available. Section references are matched against
+      real headings and numbered clauses, not raw text, because searching a contract for
+      "2" hits dates, room counts and dollar figures.
+      **Evidence for the cutover**, from a harness running both engines over the same
+      documents with fixed seeds: 250 generated contracts, applied 149 → 188, zero
+      fallbacks; the 21 the old engine applied and this does not are all ambiguous
+      quotes. On the fixture corpus 15 → 15 with two gained and two given up, both
+      correctly — the ambiguous schedule row above, and text inside a content control
+      that §1.4.7 and §1.5.3 both say to refuse and the old engine edited anyway.
+      §1.5.11 is dropped (CLAUDE.md deviation 6): explaining a change inside the
+      document puts CD's reasoning in front of the property and would have to be
+      deleted before sending. The appendix carries proposed contract language only —
+      the old engine's severity labels and its "COULD NOT BE LOCATED FOR MARKUP" list
+      are both gone.
+      **Verified live** against the real 25-finding `ConferenceDirect Ideal Standard
+      Contract REVISED 2013.docx` in the dev database. The same analysis exported
+      `partial, 0 applied` under the old engine and `clean, 3 applied` under this one.
+      All ten oracle checks pass on the 187KB result, 14 of its 15 XML parts come out
+      byte-identical, and `span_resolution`/`applicability` are now populated. Not
+      opened in Word — verification is the reject-all round trip, not a human eyeball.
+      `lib/tracked-changes-docx.ts` is deleted along with the two harnesses that
+      existed only to exercise it; Stage 0's findings stay in
+      `docs/live-engine-validation.md`. 227 tests, 300 randomised documents, lint and
+      typecheck clean.
+      *Open, for a follow-up*: a table quote that omits the extractor's `|` separators
+      lands just under the 0.95 fuzzy threshold and is reported as not located
+      (`13-nested-merged-tables.docx`). §1.4's live check showed the model does include
+      them, so this is a narrow case — but tables are where the money is, and matching
+      against a pipe-stripped projection would close it.
+
 ## Build order progress (build brief §11)
 
 **Now, on personal accounts, no CD data:**

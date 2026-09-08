@@ -1,11 +1,11 @@
 import JSZip from "jszip";
-import { generateTrackedChangesDocx } from "../lib/tracked-changes-docx";
+import { generateRedline, type RevisionFinding } from "../lib/redline-engine";
 import { validateRedline } from "../lib/redline-validation";
-import type { MemoFinding } from "../lib/export-memo";
+import type { RedlineEngineResult } from "../lib/redline-validation";
 import { CONTENT_TYPES, DOC_RELS, ROOT_RELS, zipParts } from "../tests/helpers/docx-package";
 
 /**
- * Randomised stress test for the live tracked-changes engine.
+ * Randomised stress test for the revision engine.
  *
  * Hand-built fixtures only probe the failures somebody already thought of.
  * This assembles documents from random combinations of the structures real
@@ -209,61 +209,85 @@ function paragraphTexts(xml: string): string[] {
   return out;
 }
 
-function pickQuote(rnd: () => number, xml: string): string | null {
-  const paras = paragraphTexts(xml).filter((t) => t.split(" ").length >= 5);
-  if (!paras.length) return null;
-  const para = paras[Math.floor(rnd() * paras.length)];
-  const words = para.split(" ").filter(Boolean);
+/**
+ * A target, and the section it sits in.
+ *
+ * The section matters. A real finding carries `location_section`, which is what
+ * separates two copies of the same wording; leaving it out makes every repeated
+ * phrase look unresolvable and understates what the engine can do.
+ */
+function pickQuote(rnd: () => number, xml: string): { quote: string; section: string | null } | null {
+  const all = paragraphTexts(xml);
+  const eligible = all.map((t, i) => ({ t, i })).filter(({ t }) => t.split(" ").length >= 5);
+  if (!eligible.length) return null;
+
+  const chosen = eligible[Math.floor(rnd() * eligible.length)];
+  const words = chosen.t.split(" ").filter(Boolean);
   const len = Math.max(2, Math.min(words.length, 3 + Math.floor(rnd() * 8)));
   const start = Math.floor(rnd() * Math.max(1, words.length - len + 1));
-  return words.slice(start, start + len).join(" ");
+
+  let section: string | null = null;
+  for (let i = chosen.i; i >= 0; i--) {
+    if (/^\d+\.\s/.test(all[i])) { section = all[i]; break; }
+  }
+  return { quote: words.slice(start, start + len).join(" "), section };
 }
 
+/** One generated contract through the engine and the oracle. */
 export async function runOne(seed: number) {
   const rnd = mulberry32(seed ^ 0x9e3779b9);
   const beforeXml = buildDocument(seed);
   const bytes = await toDocx(beforeXml);
-  const quote = pickQuote(rnd, beforeXml);
-  if (!quote) return { seed, skipped: true, failures: [] as string[] };
+  const target = pickQuote(rnd, beforeXml);
+  if (!target) return { seed, skipped: true, failures: [] as string[] };
+  const { quote, section } = target;
 
-  const findings: MemoFinding[] = [{
-    clause_type: "attrition", severity: "high", is_missing_clause: false,
+  const base = {
+    clause_type: "attrition", severity: "high" as const, is_missing_clause: false,
     quoted_text: quote, language: "NEGOTIATED REPLACEMENT LANGUAGE",
     finding_text: "x", cd_standard: "y",
-  }];
+  };
+  const findings: RevisionFinding[] = [{ ...base, id: "fuzz-1", location_section: section }];
 
   const failures: string[] = [];
-  let out;
-  try {
-    out = await generateTrackedChangesDocx({ originalDocxBytes: bytes, findings, author: OUR_AUTHOR });
-  } catch (e) {
-    return { seed, skipped: false, quote, failures: [`engine threw: ${(e as Error).message.slice(0, 90)}`] };
+
+  async function check(
+    label: string,
+    engine: () => Promise<RedlineEngineResult>
+  ): Promise<{ applied: number; outcome: string; reasons: string[] } | null> {
+    let out: RedlineEngineResult;
+    try {
+      out = await engine();
+    } catch (e) {
+      failures.push(`${label} threw: ${(e as Error).message.slice(0, 90)}`);
+      return null;
+    }
+
+    const report = await validateRedline({ originalBytes: bytes, engineResult: out, author: OUR_AUTHOR });
+    for (const c of report.checks) if (!c.passed) failures.push(`${label} ${c.name}: ${c.detail}`);
+
+    // Not an oracle check: a gate that refused everything would satisfy every
+    // invariant above while making the feature useless, so confirm the engine
+    // did the work it reported doing.
+    const afterXml = await (await JSZip.loadAsync(out.docxBytes)).file("word/document.xml")!.async("string");
+    if (out.appliedCount > 0 && !acceptedText(afterXml).includes("NEGOTIATED REPLACEMENT LANGUAGE")) {
+      failures.push(`${label}: applied, but the replacement is not in the accepted view`);
+    }
+    return { applied: out.appliedCount, outcome: report.outcome, reasons: out.unapplied.map((u) => u.reason) };
   }
 
-  const report = await validateRedline({
-    originalBytes: bytes,
-    engineResult: out,
-    author: OUR_AUTHOR,
-  });
-  for (const check of report.checks) {
-    if (!check.passed) failures.push(`${check.name}: ${check.detail}`);
-  }
-
-  // Not an oracle check: a gate that refused everything would satisfy every
-  // invariant above while making the feature useless, so confirm the engine
-  // did the work it reported doing.
-  const afterXml = await (await JSZip.loadAsync(out.docxBytes)).file("word/document.xml")!.async("string");
-  if (out.appliedCount > 0 && !acceptedText(afterXml).includes("NEGOTIATED REPLACEMENT LANGUAGE")) {
-    failures.push("applied, but the replacement is not in the accepted view");
-  }
+  const result = await check("engine", () =>
+    generateRedline({ originalDocxBytes: bytes, findings, author: OUR_AUTHOR })
+  );
 
   return {
     seed,
     skipped: false,
     quote,
-    applied: out.appliedCount,
-    unapplied: out.unapplied.length,
-    outcome: report.outcome,
+    applied: result?.applied ?? 0,
+    unapplied: result?.reasons.length ?? 0,
+    outcome: result?.outcome ?? "-",
+    reasons: result?.reasons ?? [],
     failures,
   };
 }
@@ -272,7 +296,7 @@ async function main() {
   const arg = process.argv.indexOf("--seed");
   const seeds = arg >= 0
     ? [Number(process.argv[arg + 1])]
-    : Array.from({ length: Number(process.argv[2] ?? 10) }, (_, i) => Math.floor(Math.random() * 1e9));
+    : Array.from({ length: Number(process.argv[2] ?? 10) }, () => Math.floor(Math.random() * 1e9));
 
   console.log("=".repeat(78));
   console.log(`Randomised stress test — ${seeds.length} generated contracts`);

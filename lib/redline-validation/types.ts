@@ -12,6 +12,7 @@
 export type UnappliedReason =
   | "missing_clause"
   | "not_located"
+  | "ambiguous_quote"
   | "crosses_boundary"
   | "spans_non_text_content"
   | "overlaps_another_change"
@@ -30,6 +31,8 @@ export interface UnappliedFinding {
 export const UNAPPLIED_REASON_TEXT: Record<UnappliedReason, string> = {
   missing_clause: "Not in the contract — added to the appendix at the end instead.",
   not_located: "The quoted wording could not be found in the document.",
+  ambiguous_quote:
+    "The quoted wording appears in more than one clause and nothing in the finding says which one is meant.",
   crosses_boundary:
     "The wording runs across a table cell, a content control, or the property's own tracked change, which cannot be marked up safely.",
   spans_non_text_content:

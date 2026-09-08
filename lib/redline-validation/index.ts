@@ -61,6 +61,11 @@ export async function validateRedline({
   const output = outputRead.pkg;
   checks.push({ name: "archive_readable", passed: true, detail: "The marked-up file is a readable Word archive." });
 
+  const own = {
+    ownIds: new Set(engineResult.ownRevisionIds),
+    ownAuthor: author || null,
+  };
+
   const structural = [
     () => checkPartsParse(output),
     () => checkPartsPreserved(input, output),
@@ -68,7 +73,7 @@ export async function validateRedline({
     () => checkRelationships(output),
     () => checkRevisionIds(output),
     () => checkRevisionMarks(output),
-    () => checkTableStructure(input, output),
+    () => checkTableStructure(input, output, own),
   ];
   for (const run of structural) {
     try {
@@ -81,11 +86,6 @@ export async function validateRedline({
       });
     }
   }
-
-  const own = {
-    ownIds: new Set(engineResult.ownRevisionIds),
-    ownAuthor: author || null,
-  };
 
   try {
     checks.push({ name: "paragraph_count_preserved", ...checkParagraphCount(input, output, own) });

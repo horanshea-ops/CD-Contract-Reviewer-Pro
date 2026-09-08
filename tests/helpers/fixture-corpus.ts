@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { MemoFinding } from "@/lib/export-memo";
+import type { RevisionFinding } from "@/lib/redline-engine";
 
 /**
  * The §1.11 fixture corpus, with a realistic finding for each document.
@@ -12,8 +12,12 @@ import type { MemoFinding } from "@/lib/export-memo";
 export const FIXTURE_DIR = path.join("tests", "fixtures");
 export const FIXTURE_AUTHOR = "Jane Associate";
 
-function finding(over: Partial<MemoFinding> = {}): MemoFinding {
+let nextId = 0;
+
+function finding(over: Partial<RevisionFinding> = {}): RevisionFinding {
   return {
+    id: `fixture-${nextId++}`,
+    location_section: null,
     clause_type: "attrition",
     severity: "high",
     is_missing_clause: false,
@@ -27,7 +31,7 @@ function finding(over: Partial<MemoFinding> = {}): MemoFinding {
 
 export interface FixtureCase {
   file: string;
-  findings: MemoFinding[];
+  findings: RevisionFinding[];
 }
 
 export const FIXTURE_CORPUS: FixtureCase[] = [

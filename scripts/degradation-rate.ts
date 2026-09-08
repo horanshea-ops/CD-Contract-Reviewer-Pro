@@ -1,5 +1,5 @@
 import { loadEnvLocal } from "./load-env";
-import { generateTrackedChangesDocx } from "../lib/tracked-changes-docx";
+import { generateRedline } from "../lib/redline-engine";
 import { validateRedline } from "../lib/redline-validation";
 import { UNAPPLIED_REASON_TEXT } from "../lib/redline-validation";
 import { degradationRate, readRate } from "../lib/export-log";
@@ -28,7 +28,7 @@ async function corpus() {
 
   for (const { file, findings } of FIXTURE_CORPUS) {
     const originalBytes = new Uint8Array(await readFixture(file));
-    const engineResult = await generateTrackedChangesDocx({
+    const engineResult = await generateRedline({
       originalDocxBytes: originalBytes,
       findings,
       author: FIXTURE_AUTHOR,

@@ -24,6 +24,8 @@ interface Ctx {
   part: string;
   insideIns: boolean;
   insideTable: boolean;
+  tableIndex: number | null;
+  cellIndex: number | null;
   insideContentControl: boolean;
   insideHyperlink: boolean;
   /** Set between a field's "separate" and "end" — the visible field result. */
@@ -67,7 +69,9 @@ class Sink {
     raw: string,
     ref: Omit<SourceRef, "offsetWithinRun">,
     views: { accepted: boolean; original: boolean },
-    revision: RevisionInfo | null
+    revision: RevisionInfo | null,
+    /** Where this text child starts within the run's concatenated text. */
+    baseOffset = 0
   ) {
     if (!raw) return;
     let normalized = "";
@@ -78,8 +82,11 @@ class Sink {
       if (views.accepted) {
         this.text += out;
         // offsetWithinRun points at the ORIGINAL index, which is what §1.5
-        // needs to locate the character in the untouched XML.
-        this.map.push({ ...ref, offsetWithinRun: i });
+        // needs to locate the character in the untouched XML. A run may hold
+        // more than one text child, so the offset runs across all of them
+        // rather than restarting — otherwise two characters in one run share
+        // an address and §1.5 splits at the wrong place.
+        this.map.push({ ...ref, offsetWithinRun: baseOffset + i });
       }
     }
     if (views.original) this.originalText += normalized;
@@ -127,13 +134,24 @@ export interface WalkResult extends ExtractedPart {
   paragraphCount: number;
   runCount: number;
   tableCount: number;
+  /**
+   * Every run element, indexed by the same `runIndex` the map records.
+   *
+   * §1.5 has to reach the element to split it and wrap it. Walking a second
+   * time to rebuild this order would risk the two walks drifting apart, which
+   * is the silent corruption this module already warns about, so the one walk
+   * that assigns the indices hands back what it walked.
+   */
+  runs: Element[];
 }
 
 export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkResult {
   const sink = new Sink();
+  const runs: Element[] = [];
   let paragraphIndex = -1;
   let runIndex = -1;
   let tableCount = 0;
+  let cellCount = 0;
 
   const root =
     part.doc.getElementsByTagName("w:body")[0] ??
@@ -145,6 +163,8 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     part: part.name,
     insideIns: false,
     insideTable: false,
+    tableIndex: null,
+    cellIndex: null,
     insideContentControl: false,
     insideHyperlink: false,
     insideField: false,
@@ -155,25 +175,30 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
   /** Emits the run's text children, honouring the field-code state machine. */
   function walkRun(node: Element, ctx: Ctx, field: FieldState, views: { accepted: boolean; original: boolean }) {
     runIndex++;
+    runs.push(node);
     const ref: Omit<SourceRef, "offsetWithinRun"> = {
       part: ctx.part,
       paragraphIndex,
       runIndex,
       insideIns: ctx.insideIns,
       insideTable: ctx.insideTable,
+      tableIndex: ctx.tableIndex,
+      cellIndex: ctx.cellIndex,
       insideContentControl: ctx.insideContentControl,
       insideField: ctx.insideField || field.inResult,
       insideHyperlink: ctx.insideHyperlink,
     };
 
+    let baseOffset = 0;
     for (const child of childrenOf(node)) {
       switch (tag(child)) {
         case "w:t":
-          if (!field.inInstruction) sink.real(child.textContent ?? "", ref, views, ctx.revision);
+        case "w:delText": {
+          const raw = child.textContent ?? "";
+          if (!field.inInstruction) sink.real(raw, ref, views, ctx.revision, baseOffset);
+          baseOffset += raw.length;
           break;
-        case "w:delText":
-          if (!field.inInstruction) sink.real(child.textContent ?? "", ref, views, ctx.revision);
-          break;
+        }
         case "w:instrText":
           // §1.4.7: field instructions are machinery, never contract language.
           break;
@@ -226,7 +251,7 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
   }
 
   function walkTable(node: Element, ctx: Ctx) {
-    tableCount++;
+    const tableIndex = tableCount++;
     sink.synthetic("\n");
     const rows = childrenOf(node).filter((c) => tag(c) === "w:tr");
     rows.forEach((row, rowIdx) => {
@@ -234,7 +259,7 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       sink.synthetic("|");
       for (const cell of cells) {
         sink.synthetic(" ");
-        walkChildren(cell, { ...ctx, insideTable: true, inCell: true });
+        walkChildren(cell, { ...ctx, insideTable: true, inCell: true, tableIndex, cellIndex: cellCount++ });
         sink.synthetic(" |");
       }
       sink.synthetic("\n");
@@ -321,5 +346,6 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     paragraphCount: paragraphIndex + 1,
     runCount: runIndex + 1,
     tableCount,
+    runs,
   };
 }
