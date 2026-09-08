@@ -26,7 +26,7 @@ export interface Ownership {
 }
 
 /** Which revisions this export owns. */
-function isOurs(own: Ownership, id: string, author: string): boolean {
+export function isOurs(own: Ownership, id: string, author: string): boolean {
   if (own.ownIds.size > 0) return own.ownIds.has(id);
   return own.ownAuthor !== null && author === own.ownAuthor;
 }

@@ -15,7 +15,7 @@ import type { RevisionIds } from "./ids";
  * built by splicing text.
  */
 
-const childElements = (node: Element): Element[] => {
+export const childElements = (node: Element): Element[] => {
   const out: Element[] = [];
   for (let i = 0; i < node.childNodes.length; i++) {
     const c = node.childNodes[i];
@@ -25,7 +25,7 @@ const childElements = (node: Element): Element[] => {
 };
 
 /** Runs that sit next to each other under the same parent, so one wrapper can hold them. */
-function siblingGroups(runs: Element[]): Element[][] {
+export function siblingGroups(runs: Element[]): Element[][] {
   const groups: Element[][] = [];
   for (const run of runs) {
     const last = groups[groups.length - 1];
@@ -36,7 +36,7 @@ function siblingGroups(runs: Element[]): Element[][] {
   return groups;
 }
 
-function revisionElement(doc: Document, tagName: string, ids: RevisionIds, author: string, date: string): Element {
+export function revisionElement(doc: Document, tagName: string, ids: RevisionIds, author: string, date: string): Element {
   const el = doc.createElement(tagName);
   el.setAttribute("w:id", String(ids.take()));
   el.setAttribute("w:author", author);
@@ -45,7 +45,7 @@ function revisionElement(doc: Document, tagName: string, ids: RevisionIds, autho
 }
 
 /** Deleted text lives in `w:delText`, or it reappears when the change is rejected. */
-function toDeletedText(run: Element) {
+export function toDeletedText(run: Element) {
   const doc = run.ownerDocument!;
   for (const child of childElements(run)) {
     if (child.nodeName !== "w:t") continue;

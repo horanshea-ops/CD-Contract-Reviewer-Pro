@@ -6,6 +6,7 @@ import { locateQuote } from "./locate";
 import { appendClauses } from "./paragraphs";
 import { replaceSpan } from "./revise";
 import { runsForSpan } from "./runs";
+import { replaceTable } from "./tables";
 import { serializePart } from "./serialize";
 import { isLocated, type Applicability, type RevisionFinding, type SpanResolution } from "./types";
 
@@ -156,8 +157,20 @@ export async function generateRedline({
     }
 
     if (verdict.strategy === "table_replacement") {
-      // Wired up in the next step; refused rather than half-applied until then.
-      refuse(finding, "crosses_boundary", span.resolution, "blocked_table", verdict.detail);
+      const replaced = replaceTable({ part, span, replacement: finding.language, author, date, ids });
+      if (!replaced.ok) {
+        refuse(finding, "crosses_boundary", span.resolution, "blocked_table", replaced.reason);
+        continue;
+      }
+      editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
+      walked = null;
+      appliedCount++;
+      resolutions.push({
+        findingId: finding.id,
+        spanResolution: span.resolution,
+        applicability: "applicable",
+        detail: verdict.detail,
+      });
       continue;
     }
 
