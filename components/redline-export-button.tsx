@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { startDownload } from "@/lib/download";
 
 /**
  * Tracked-changes export, gated on the §1.6 oracle.
@@ -32,25 +33,17 @@ interface Preflight {
 
 const titleCase = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
-/**
- * The route answers with a file attachment, not a page, so this is a download
- * rather than a navigation and the router has no part in it.
- */
-function startDownload(url: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
 export function RedlineExportButton({ analysisId }: { analysisId: string }) {
   const { showToast } = useToast();
   const [checking, setChecking] = useState(false);
   const [verdict, setVerdict] = useState<Preflight | null>(null);
 
   const downloadUrl = `/api/analyses/${analysisId}/export-redline-docx`;
+
+  function download(url: string) {
+    startDownload(url);
+    setVerdict(null);
+  }
 
   async function check() {
     setChecking(true);
@@ -110,7 +103,7 @@ export function RedlineExportButton({ analysisId }: { analysisId: string }) {
                   <Button variant="ghost" size="sm" onClick={() => setVerdict(null)}>
                     Cancel
                   </Button>
-                  <Button size="sm" href={downloadUrl} onClick={() => setVerdict(null)}>
+                  <Button size="sm" onClick={() => download(downloadUrl)}>
                     Download anyway
                   </Button>
                 </div>
@@ -136,7 +129,7 @@ export function RedlineExportButton({ analysisId }: { analysisId: string }) {
                   <Button variant="ghost" size="sm" onClick={() => setVerdict(null)}>
                     Close
                   </Button>
-                  <Button size="sm" href={verdict.markupPdfUrl} onClick={() => setVerdict(null)}>
+                  <Button size="sm" onClick={() => download(verdict.markupPdfUrl)}>
                     Download marked-up PDF
                   </Button>
                 </div>

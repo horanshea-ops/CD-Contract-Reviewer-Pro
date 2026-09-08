@@ -1,4 +1,4 @@
-import "./load-env";
+import { loadEnvLocal } from "./load-env";
 import { generateTrackedChangesDocx } from "../lib/tracked-changes-docx";
 import { validateRedline } from "../lib/redline-validation";
 import { UNAPPLIED_REASON_TEXT } from "../lib/redline-validation";
@@ -13,6 +13,8 @@ import { FIXTURE_AUTHOR, FIXTURE_CORPUS, readFixture } from "../tests/helpers/fi
  * while §1.5 is built. The live section runs only when Supabase credentials are
  * present, and is what the weekly pilot review reads.
  */
+
+loadEnvLocal();
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 

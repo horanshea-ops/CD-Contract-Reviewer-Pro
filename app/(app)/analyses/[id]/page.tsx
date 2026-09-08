@@ -9,6 +9,7 @@ import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
 import { Button } from "@/components/ui/button";
 import { RedlineExportButton } from "@/components/redline-export-button";
+import { startDownload } from "@/lib/download";
 
 interface AnalysisResponse {
   id: string;
@@ -195,10 +196,15 @@ export default function AnalysisPage() {
             {undecidedCount > 0 && ` · ${undecidedCount} still need a decision`}
             {" · not legal advice — review each one"}
           </p>
-          <Button size="sm" href={`/api/analyses/${data.id}/export`} className="shrink-0">
+          <Button size="sm" onClick={() => startDownload(`/api/analyses/${data.id}/export`)} className="shrink-0">
             Export memo ({includedCount})
           </Button>
-          <Button variant="secondary" size="sm" href={`/api/analyses/${data.id}/export-markup`} className="shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => startDownload(`/api/analyses/${data.id}/export-markup`)}
+            className="shrink-0"
+          >
             Export marked-up PDF
           </Button>
           {data.source_format === "docx" && <RedlineExportButton analysisId={data.id} />}
