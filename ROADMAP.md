@@ -63,6 +63,51 @@ HTML preview. This file remains the living progress log.
       §1.5.3 blocks those spans — so table clauses may analyse well but not be
       redlinable in place. Worth deciding how to handle before §1.5 ends.
 
+- [x] **§1.4a HTML preview (2026-09-08).** Closes the "DOCX-to-preview"
+      priority below. The review screen's left pane used to render every
+      DOCX/DOC upload through `convertToPdf()` → `mammoth.extractRawText()`,
+      which discards tables/headings/lists before flattening to a PDF — so a
+      cancellation schedule or attrition sliding scale showed as run-together
+      prose even though the model reads it as a real table. For
+      `intake_route === "docx_native"` analyses, `lib/docx-preview.ts` now
+      parses §1.4's markup spans into an actual block tree (headings,
+      paragraphs, lists, tables, with existing tracked changes rendered
+      inline) and `app/(app)/analyses/[id]/docx-preview.tsx` renders it as a
+      real web page — real `<table>` elements, not `#`/`|` decoration.
+      Highlighting is an exact-then-normalized character-offset lookup
+      (`resolveHighlight`) instead of PDF coordinate matching; genuine PDF
+      uploads, `.doc`, and docx that fails the intake health gate all keep
+      the existing pdfjs viewer unchanged. Scoped to the on-screen preview
+      only — the upload pipeline and every export route (marked-up PDF,
+      tracked-changes DOCX) are untouched for every source format, including
+      docx_native, so `line-positions.json`/`text-to-pdf` are not fully
+      retired the way this section's original framing below described, only
+      narrowed to no longer govern the live preview.
+      Also closed a real gap found while building the "round 2+" banner:
+      §1.4.2's existing-revisions data (`had_existing_revisions`,
+      `existing_revision_authors`, `existing_revision_count`) was computed by
+      `extractDocx()` since §1.4 landed but never written to the DB or read
+      by any route — wired up both directions now.
+      **Verified live** against a real docx_native analysis
+      (`cancellation-schedule-test.docx`): the cancellation schedule and
+      attrition sliding scale render as real tables, and clicking a
+      table-quoting finding correctly highlighted the matching cells. That
+      live check caught a real bug: the model flattens a table quote as
+      `"cell | cell | cell"`, omitting the extractor's own `| --- |`
+      separator row that sits between the header and first data row in the
+      real text — so exact and whitespace-normalized matching both missed
+      it. Added a third "flattened" match tier against the parsed block
+      structure (which has already dropped the separator row) to fix it.
+      19 new tests (`tests/docx/preview.test.ts`), including a round-trip
+      offset invariant across all 15 §1.4 fixtures and a regression test for
+      the flattened-table-quote case. Additionally re-verified directly
+      against 6 real docx_native analyses in the dev database (the one
+      existing real upload plus 5 more created from fixtures 02/04/05/09/13
+      via the same intake logic as the upload route) before merging — 0
+      parse failures, 0 offset mismatches, existing-revisions persistence
+      confirmed correct (fixture 04's two authors and counts landed exactly
+      right). Full suite 102/102, typecheck and lint clean.
+
 ## Build order progress (build brief §11)
 
 **Now, on personal accounts, no CD data:**
@@ -105,9 +150,10 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
-- **DOCX-to-preview pipeline — SCOPED AND FOLDED IN, 2026-09-07.** Closed as a
-  standalone item. It is now `MASTER_PLAN.md` §1.4a, sequenced immediately
-  after §1.4 extraction.
+- **DOCX-to-preview pipeline — DONE, 2026-09-08.** Was scoped and folded in as
+  `MASTER_PLAN.md` §1.4a on 2026-09-07; built, verified, and merged the next
+  day. See the §1.4a entry in the stage log above for what shipped and what
+  was verified.
   The diagnosis: the preview is bad because the code *discards structure*, not
   because the conversion is imprecise. `document-conversion.ts` calls
   `mammoth.extractRawText`, dropping every heading, table and list before
