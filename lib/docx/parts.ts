@@ -38,7 +38,8 @@ export interface DocxPackage {
 
 export class DocxParseError extends Error {}
 
-function parseXml(xml: string, path: string): Document {
+/** Strict parse. xmldom throws on a mismatched tag and reports other faults, so both paths raise. */
+export function parseXml(xml: string, path: string): Document {
   const errors: string[] = [];
   const parser = new DOMParser({
     onError: (level: string, msg: unknown) => {
