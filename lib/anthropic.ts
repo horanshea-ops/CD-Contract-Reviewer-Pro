@@ -101,6 +101,7 @@ Rules:
 - This is a negotiating aid, not legal advice. Do not describe any finding as a legal opinion, and do not state or imply that a contract is "safe" or "cleared."
 - For every clause type in the standards library, check whether the contract's language matches CD's position. If it does not, or the clause is missing entirely, record a finding.
 - quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
+- If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
 - List every clause type you checked in clauses_checked, whether or not it produced a finding — this is how the reviewer knows what was actually reviewed.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
@@ -124,8 +125,17 @@ Rules:
   ];
 }
 
+/**
+ * What the model reads. DOCX uploads that pass the intake health gate send
+ * extracted text, so tables reach the model as tables rather than as prose
+ * flattened by a PDF conversion (§1.4.5). Everything else sends the PDF.
+ */
+export type AnalyzableDocument =
+  | { kind: "pdf"; pdfBase64: string }
+  | { kind: "text"; text: string };
+
 export interface AnalyzeContractPdfArgs {
-  pdfBase64: string;
+  document: AnalyzableDocument;
   /** The library to review against — load it with loadStandardsLibrary(). Required
    *  so no call site can silently fall back to the bundled copy (build brief §14). */
   standards: StandardEntry[];
@@ -134,8 +144,8 @@ export interface AnalyzeContractPdfArgs {
   model?: string;
 }
 
-export async function analyzeContractPdf({
-  pdfBase64,
+export async function analyzeContract({
+  document,
   standards,
   standardsVersion,
   contextNote,
@@ -151,16 +161,10 @@ export async function analyzeContractPdf({
   const client = new Anthropic({ apiKey });
   const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
-  const userContent: Anthropic.Messages.ContentBlockParam[] = [
-    {
-      type: "document",
-      source: {
-        type: "base64",
-        media_type: "application/pdf",
-        data: pdfBase64,
-      },
-    },
-  ];
+  const userContent: Anthropic.Messages.ContentBlockParam[] =
+    document.kind === "pdf"
+      ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
+      : [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }];
 
   if (contextNote) {
     userContent.push({ type: "text", text: contextNote });
@@ -218,7 +222,7 @@ export async function analyzeContractPdf({
   try {
     return await attempt();
   } catch (err) {
-    console.error("analyzeContractPdf: first attempt failed, retrying once —", err);
+    console.error("analyzeContract: first attempt failed, retrying once —", err);
     return await attempt();
   }
 }

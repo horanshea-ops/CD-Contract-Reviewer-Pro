@@ -3,7 +3,7 @@ loadEnvLocal();
 
 import { readFile } from "fs/promises";
 import path from "path";
-import { analyzeContractPdf } from "../lib/anthropic";
+import { analyzeContract } from "../lib/anthropic";
 import { loadStandardsLibrary } from "../lib/standards/load";
 
 /**
@@ -33,8 +33,8 @@ async function main() {
   console.log("Sending to Claude for analysis... (this can take 30-90 seconds)");
   const start = Date.now();
 
-  const result = await analyzeContractPdf({
-    pdfBase64,
+  const result = await analyzeContract({
+    document: { kind: "pdf", pdfBase64 },
     standards: standards.entries,
     standardsVersion: standards.version,
   });
