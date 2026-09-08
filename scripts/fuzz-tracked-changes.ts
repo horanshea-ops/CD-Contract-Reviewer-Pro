@@ -294,11 +294,11 @@ export async function runOne(seed: number) {
     failures.push(`reject-ours != input at char ${i}\n        got  "${got.slice(Math.max(0, i - 25), i + 55)}"\n        want "${want.slice(Math.max(0, i - 25), i + 55)}"`);
   }
 
-  if (out.matchedCount > 0 && !acceptedText(afterXml).includes("NEGOTIATED REPLACEMENT LANGUAGE")) {
+  if (out.appliedCount > 0 && !acceptedText(afterXml).includes("NEGOTIATED REPLACEMENT LANGUAGE")) {
     failures.push("applied, but the replacement is not in the accepted view");
   }
 
-  return { seed, skipped: false, quote, applied: out.matchedCount, unapplied: out.unmatchedCount, failures };
+  return { seed, skipped: false, quote, applied: out.appliedCount, unapplied: out.unapplied.length, failures };
 }
 
 async function main() {

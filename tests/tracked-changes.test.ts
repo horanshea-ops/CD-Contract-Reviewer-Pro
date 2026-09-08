@@ -90,8 +90,8 @@ describe("tracked-changes engine — structural safety", () => {
       }),
     ]);
 
-    expect(result.matchedCount).toBe(0);
-    expect(result.unmatchedCount).toBe(1);
+    expect(result.appliedCount).toBe(0);
+    expect(result.unapplied).toHaveLength(1);
 
     const before = parse(beforeXml).doc;
     const after = parse(afterXml).doc;
@@ -123,7 +123,7 @@ describe("tracked-changes engine — structural safety", () => {
     const { result, afterXml } = await redline("10-word-run-splitting.docx", [
       finding({ quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" }),
     ]);
-    expect(result.matchedCount).toBe(1);
+    expect(result.appliedCount).toBe(1);
     expect(acceptedText(afterXml)).toContain("seventy percent (70%)");
   });
 });

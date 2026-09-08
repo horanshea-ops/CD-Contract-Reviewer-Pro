@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateRedline } from "@/lib/redline-validation";
-import type { CheckName, RedlineEngineResult, UnappliedFinding } from "@/lib/redline-validation";
+import type { CheckName, RedlineEngineResult, UnappliedFinding, ValidationReport } from "@/lib/redline-validation";
 import {
   CONTENT_TYPES,
   DOC_RELS,
@@ -58,8 +58,7 @@ async function validate(
   return validateRedline({ originalBytes, engineResult: engine(outputBytes, over), author });
 }
 
-const checkFor = (report: { checks: { name: CheckName; passed: boolean }[] }, name: CheckName) =>
-  report.checks.find((c) => c.name === name);
+const checkFor = (report: ValidationReport, name: CheckName) => report.checks.find((c) => c.name === name);
 
 // ---------------------------------------------------------------------------
 // Control: a correct redline passes everything.

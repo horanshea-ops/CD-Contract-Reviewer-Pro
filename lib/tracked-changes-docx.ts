@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import type { MemoFinding } from "./export-memo";
+import type { RedlineEngineResult, UnappliedFinding, UnappliedReason } from "./redline-validation/types";
 
 /**
  * Injects real Word tracked-changes (`<w:ins>`/`<w:del>`) into the ORIGINAL
@@ -132,11 +133,7 @@ function buildInsertedParagraph(
   return `<w:p>${pPr}${body}</w:p>`;
 }
 
-export interface TrackedChangesResult {
-  docxBytes: Uint8Array;
-  matchedCount: number;
-  unmatchedCount: number;
-}
+export type TrackedChangesResult = RedlineEngineResult;
 
 export async function generateTrackedChangesDocx({
   originalDocxBytes,
@@ -146,7 +143,7 @@ export async function generateTrackedChangesDocx({
   originalDocxBytes: Uint8Array;
   findings: MemoFinding[];
   author: string;
-}): Promise<TrackedChangesResult> {
+}): Promise<RedlineEngineResult> {
   const zip = await JSZip.loadAsync(originalDocxBytes);
   const documentXmlFile = zip.file("word/document.xml");
   if (!documentXmlFile) {
@@ -157,19 +154,40 @@ export async function generateTrackedChangesDocx({
 
   const existingIds = [...documentXml.matchAll(/w:id="(\d+)"/g)].map((m) => parseInt(m[1], 10));
   let nextId = existingIds.length ? Math.max(...existingIds) + 1 : 9000;
-  const revisionId = () => nextId++;
+  // Recorded so §1.6's oracle attributes revisions by id rather than by author
+  // name, which cannot tell ours from one that arrived with the document.
+  const ownRevisionIds: string[] = [];
+  const revisionId = () => {
+    const id = nextId++;
+    ownRevisionIds.push(String(id));
+    return id;
+  };
   const date = new Date().toISOString();
 
   const ops: EditOp[] = [];
   // Two different situations, kept separate rather than lumped into one bucket:
   // a clause that genuinely doesn't exist in the contract vs. one that does but
-  // couldn't be pinpointed precisely enough for in-place markup.
+  // couldn't be pinpointed precisely enough for in-place markup. Each carries
+  // the reason it was refused, which is what the associate sees before download
+  // and what §1.6.5's weekly review groups by.
   const missingClauses: MemoFinding[] = [];
   const notLocated: MemoFinding[] = [];
+  const unapplied: UnappliedFinding[] = [];
+
+  const refuse = (finding: MemoFinding, reason: UnappliedReason) => {
+    if (reason === "missing_clause") missingClauses.push(finding);
+    else notLocated.push(finding);
+    unapplied.push({
+      clause_type: finding.clause_type,
+      severity: finding.severity,
+      quoted_text: finding.quoted_text,
+      reason,
+    });
+  };
 
   for (const finding of findings) {
     if (finding.is_missing_clause || !finding.quoted_text) {
-      missingClauses.push(finding);
+      refuse(finding, "missing_clause");
       continue;
     }
 
@@ -177,7 +195,7 @@ export async function generateTrackedChangesDocx({
     const overlapping = match ? runs.filter((r) => r.plainStart < match.end && r.plainEnd > match.start) : [];
 
     if (!match || overlapping.length === 0) {
-      notLocated.push(finding);
+      refuse(finding, "not_located");
       continue;
     }
 
@@ -185,7 +203,7 @@ export async function generateTrackedChangesDocx({
     const last = overlapping[overlapping.length - 1];
     const conflicts = ops.some((op) => op.start < last.runEnd && op.end > first.runStart);
     if (conflicts) {
-      notLocated.push(finding);
+      refuse(finding, "overlaps_another_change");
       continue;
     }
 
@@ -238,7 +256,7 @@ export async function generateTrackedChangesDocx({
     const CROSSES_BOUNDARY =
       /<\/?w:(?:p|tc|tr|tbl|ins|del|moveFrom|moveTo|sdt|sdtContent|hyperlink|fldChar)[ />]/;
     if (CROSSES_BOUNDARY.test(spannedXml)) {
-      notLocated.push(finding);
+      refuse(finding, "crosses_boundary");
       continue;
     }
 
@@ -283,5 +301,5 @@ export async function generateTrackedChangesDocx({
   zip.file("word/document.xml", newDocumentXml);
   const docxBytes = await zip.generateAsync({ type: "uint8array" });
 
-  return { docxBytes, matchedCount: ops.length, unmatchedCount: missingClauses.length + notLocated.length };
+  return { docxBytes, appliedCount: ops.length, unapplied, ownRevisionIds };
 }

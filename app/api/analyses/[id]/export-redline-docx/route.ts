@@ -73,7 +73,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     action: "redline_docx_exported",
     entityType: "analysis",
     entityId: id,
-    metadata: { matched: result.matchedCount, unmatched: result.unmatchedCount },
+    metadata: { matched: result.appliedCount, unmatched: result.unapplied.length },
   });
 
   const outFilename = analysis.filename.replace(/\.docx$/i, "") + "-redline.docx";
