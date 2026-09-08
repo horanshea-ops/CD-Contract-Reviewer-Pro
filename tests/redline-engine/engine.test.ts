@@ -148,7 +148,7 @@ describe("what it still refuses, and says so", () => {
         findingId: "finding-2",
         spanResolution: "unresolved",
         applicability: "applicable",
-        detail: "The clause is not in the contract.",
+        detail: "Not in the contract — added to the appendix as a tracked insertion.",
       },
     ]);
   });
@@ -176,5 +176,81 @@ describe("the whole fixture corpus", () => {
       const { report } = await redline(bytes, [finding({ quoted_text: quote, language: "REPLACEMENT LANGUAGE" })]);
       expect(report.checks.filter((c) => !c.passed), file).toEqual([]);
     }
+  });
+});
+
+describe("clauses the contract does not have (§1.5.8)", () => {
+  const MISSING = finding({
+    id: "missing-1",
+    clause_type: "resale_credit",
+    is_missing_clause: true,
+    language: "Hotel shall credit resold rooms against the Group's attrition obligation.",
+  });
+
+  it("appends them as tracked insertions the property can reject", async () => {
+    const { result, report, xml } = await redline(await buildDocx(para(run(CLAUSE))), [MISSING]);
+
+    expect(result.appliedCount).toBe(1);
+    expect(result.unapplied).toEqual([]);
+    expect(xml).toContain("Hotel shall credit resold rooms");
+    expect(report.outcome).toBe("clean");
+  });
+
+  it("marks the paragraph mark, so rejecting leaves nothing behind", async () => {
+    // Stage 0's defect 3. Without the marker on the paragraph mark the words go
+    // and a blank paragraph stays in the property's contract. §1.6 checks the
+    // paragraph count after a reject, which is what catches it.
+    const { report } = await redline(await buildDocx(para(run(CLAUSE))), [MISSING]);
+
+    expect(report.checks.find((c) => c.name === "paragraph_count_preserved")?.passed).toBe(true);
+    expect(report.checks.filter((c) => !c.passed)).toEqual([]);
+  });
+
+  it("says nothing internal in the document", async () => {
+    // The old engine labelled each item with its severity, which tells the
+    // property how much CD cares before the negotiation starts, and appended a
+    // second list of its own failures. Neither belongs in a file we send.
+    const { xml } = await redline(await buildDocx(para(run(CLAUSE))), [MISSING]);
+
+    expect(xml).not.toContain("HIGH");
+    expect(xml).not.toContain("COULD NOT BE LOCATED");
+    expect(xml).not.toContain("RESALE CREDIT");
+    expect(xml).toContain("Additional Provisions");
+  });
+
+  it("groups several additions under one heading", async () => {
+    const { result, xml } = await redline(await buildDocx(para(run(CLAUSE))), [
+      MISSING,
+      finding({ id: "missing-2", is_missing_clause: true, language: "Group may cancel without penalty on force majeure." }),
+    ]);
+
+    expect(result.appliedCount).toBe(2);
+    expect((xml.match(/Additional Provisions/g) ?? []).length).toBe(1);
+  });
+
+  it("keeps sectPr last in the body, where the page setup has to live", async () => {
+    const { xml } = await redline(await buildDocx(para(run(CLAUSE))), [MISSING]);
+    expect(xml.indexOf("<w:sectPr")).toBeGreaterThan(xml.indexOf("Additional Provisions"));
+  });
+});
+
+describe("§1.5.12 — track changes stays off in settings", () => {
+  it("does not enable it, and does not touch settings.xml at all", async () => {
+    const originalBytes = new Uint8Array(
+      await readFile(path.join("tests", "fixtures", "15-links-footnotes-comments.docx"))
+    );
+    const before = await JSZip.loadAsync(originalBytes);
+    const settingsBefore = await before.file("word/settings.xml")?.async("string");
+
+    const result = await generateRedline({
+      originalDocxBytes: originalBytes,
+      findings: [finding({ quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" })],
+      author: AUTHOR,
+    });
+    const after = await JSZip.loadAsync(result.docxBytes);
+    const settingsAfter = await after.file("word/settings.xml")?.async("string");
+
+    expect(settingsAfter).toBe(settingsBefore);
+    expect(settingsAfter ?? "").not.toContain("w:trackChanges");
   });
 });

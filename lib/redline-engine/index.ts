@@ -3,6 +3,7 @@ import type { RedlineEngineResult, UnappliedFinding, UnappliedReason } from "../
 import { assessApplicability } from "./applicability";
 import { RevisionIds } from "./ids";
 import { locateQuote } from "./locate";
+import { appendClauses } from "./paragraphs";
 import { replaceSpan } from "./revise";
 import { runsForSpan } from "./runs";
 import { serializePart } from "./serialize";
@@ -103,9 +104,24 @@ export async function generateRedline({
   let walked: WalkResult[] | null = pristine;
   const walk = () => (walked ??= freshWalk());
 
+  // Clauses the contract does not have, appended together at the end (§1.5.8)
+  // rather than one appendix per finding.
+  const toAppend: string[] = [];
+
   for (const finding of findings) {
     if (finding.is_missing_clause || !finding.quoted_text) {
-      refuse(finding, "missing_clause", "unresolved", "applicable", "The clause is not in the contract.");
+      if (finding.language.trim()) {
+        toAppend.push(finding.language.trim());
+        appliedCount++;
+        resolutions.push({
+          findingId: finding.id,
+          spanResolution: "unresolved",
+          applicability: "applicable",
+          detail: "Not in the contract — added to the appendix as a tracked insertion.",
+        });
+      } else {
+        refuse(finding, "missing_clause", "unresolved", "applicable", "The finding proposes no language to add.");
+      }
       continue;
     }
 
@@ -178,6 +194,11 @@ export async function generateRedline({
       applicability: "applicable",
       detail: verdict.detail,
     });
+  }
+
+  if (toAppend.length) {
+    appendClauses({ part: pkg.document, clauses: toAppend, author, date, ids });
+    editedParts.add(pkg.document);
   }
 
   for (const part of editedParts) pkg.zip.file(part.path, serializePart(part));
