@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/audit";
 import { getActionedFindings } from "@/lib/get-actioned-findings";
 import { generateMarkupPdf } from "@/lib/redline-pdf";
 import { getPositionedLines } from "@/lib/get-positioned-lines";
+import { recordExport } from "@/lib/export-log";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -28,7 +29,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: analysis } = await admin
     .from("analyses")
-    .select("id, associate_id, filename, storage_path, source_format, status")
+    .select("id, associate_id, filename, storage_path, original_storage_path, source_format, status")
     .eq("id", id)
     .maybeSingle();
 
@@ -66,6 +67,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const findings = await getActionedFindings(admin, id);
   const markupBytes = await generateMarkupPdf({ pdfBytes, lines, findings });
+
+  // Drawn on a PDF rather than injected into a Word document, so §1.6.1 and
+  // §1.6.2 have nothing to check and the row is always clean (§1.6.5).
+  await recordExport(admin, {
+    analysisId: id,
+    associateId: associate.id,
+    format: "pdf",
+    outcome: "clean",
+    findingsApplied: findings.length,
+    findingsUnapplied: 0,
+    analysisPaths: analysis,
+  });
 
   await logAudit({
     actorId: associate.id,

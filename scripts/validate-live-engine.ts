@@ -146,7 +146,7 @@ async function validate(
     checks.push({ name: `${label} preserved`, pass: a >= b, severity: "serious", detail: a >= b ? "" : `${b} -> ${a}` });
   }
 
-  checks.push({ name: `applied ${out.matchedCount}, unapplied ${out.unmatchedCount}`, pass: true, severity: "minor" });
+  checks.push({ name: `applied ${out.appliedCount}, unapplied ${out.unapplied.length}`, pass: true, severity: "minor" });
   if (extra) checks.push(...extra({ beforeXml, afterXml }));
   results.push({ fixture: file, checks });
 }
