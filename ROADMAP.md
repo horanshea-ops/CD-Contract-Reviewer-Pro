@@ -34,6 +34,35 @@ HTML preview. This file remains the living progress log.
       and winds the document back past what they sent.
       Five byte-stable synthetic fixtures landed with it (§1.11 nos. 1-4, 6).
 
+- [x] **Stage 0 — validated the live redline engine (2026-09-07).** `lib/
+      tracked-changes-docx.ts` ships in the app today and had only ever been
+      run against clean hand-made files. Randomised testing found it producing
+      **XML Word cannot open in 16% of realistic redlines** — it spliced across
+      `</w:ins>` and `</w:sdtContent>` boundaries — concentrated on documents
+      that already carry the counterparty's changes, i.e. every round after the
+      first. Also: the "COULD NOT BE LOCATED FOR MARKUP" appendix heading was
+      plain text, so it survived a reject-all and stayed in the contract
+      permanently. Both fixed; 1000 randomised documents and 15 pinned seeds
+      now pass. See `docs/live-engine-validation.md`.
+
+- [x] **§1.4 Extraction and the source map (2026-09-07).** The accuracy fix.
+      `mammoth.extractRawText` discarded every heading, table and list before
+      `text-to-pdf` re-flowed the remains, so the model read cancellation
+      schedules and attrition scales — the largest dollar exposure in the
+      contract — as prose. `lib/docx/` now produces structure-aware text plus a
+      character-to-run map, three views (a move treated as a move, not a delete
+      plus an insert), header and footer parts, and flags for content controls,
+      field results, tables, hyperlinks and existing insertions so §1.5.3 can
+      refuse what it must. The intake health gate decides at upload, not export,
+      whether a document can be edited.
+      **Verified live**: uploading a table-heavy contract, the model quoted
+      "Days Prior to Arrival | Damages (% of Room Revenue) | 365 or more | 25%"
+      — it read the schedule as a grid. 20 tests including 100x determinism and
+      map coverage across all 15 fixtures.
+      *Open, for §1.5*: findings about a table quote across cell boundaries, and
+      §1.5.3 blocks those spans — so table clauses may analyse well but not be
+      redlinable in place. Worth deciding how to handle before §1.5 ends.
+
 ## Build order progress (build brief §11)
 
 **Now, on personal accounts, no CD data:**
