@@ -6,6 +6,7 @@ export interface CurrentAssociate {
   email: string;
   name: string;
   is_admin: boolean;
+  signature_block: string | null;
 }
 
 /**
@@ -26,11 +27,17 @@ export async function getCurrentAssociate(): Promise<CurrentAssociate | null> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("associates")
-    .select("id, email, name, is_admin, status")
+    .select("id, email, name, is_admin, status, signature_block")
     .eq("email", user.email)
     .maybeSingle();
 
   if (!data || data.status !== "active") return null;
 
-  return { id: data.id, email: data.email, name: data.name, is_admin: data.is_admin };
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.name,
+    is_admin: data.is_admin,
+    signature_block: data.signature_block,
+  };
 }

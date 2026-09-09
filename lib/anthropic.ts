@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { StandardEntry } from "./standards/types";
+import type { EmailFinding } from "./email-drafting/input-assembly";
 
 /**
  * THE single module for outbound calls to the model. Non-negotiable #5 in the
@@ -223,6 +224,134 @@ export async function analyzeContract({
     return await attempt();
   } catch (err) {
     console.error("analyzeContract: first attempt failed, retrying once —", err);
+    return await attempt();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// §1.8.2/§1.8.4 — client email drafting. Same module as analyzeContract per
+// the single-outbound-call-site rule at the top of this file.
+// ---------------------------------------------------------------------------
+
+const CLIENT_EMAIL_TOOL_NAME = "record_client_email";
+
+const CLIENT_EMAIL_TOOL_SCHEMA = {
+  name: CLIENT_EMAIL_TOOL_NAME,
+  description:
+    "Record a drafted email to CD's client summarizing the changes CD is proposing to their contract, based on the associate's review. The property has not agreed to these yet.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      subject: { type: "string" },
+      body: { type: "string", description: "Plain text email body, no HTML, no markdown formatting." },
+    },
+    required: ["subject", "body"],
+  },
+};
+
+/**
+ * Static — the rules don't vary per call, so this needs no arguments and is
+ * directly testable by checking it contains each required instruction.
+ * Exported for exactly that test (§1.8.2's own "explicit prompt constraint,
+ * and test it").
+ */
+export function buildClientEmailPrompt(): string {
+  return `You are drafting an email from a ConferenceDirect (CD) associate to their client, summarizing the changes CD is proposing to the client's hotel/venue contract after reviewing it.
+
+The negotiation is not complete. The property has not agreed to any of this yet — the client may be receiving a redlined copy, not a final agreement. Describe these as proposed changes, or changes CD is requesting, never as negotiated, agreed, or final. Do not imply the property has accepted anything.
+
+Audience: the client (not the property). This is a business update, not a legal document.
+
+Write in plain business language — describe what changed and why it matters in practical terms, not by clause number or legal terminology. Group findings by theme (financial exposure, scheduling/flexibility, operational terms), not in document order. For each theme, state the practical impact for the client if the property agrees to the change. Where a finding has a quantified dollar exposure, include the figure and its basis.
+
+Target one screen of text. Several findings under one theme should read as a short thematic summary, not a bulleted list of every individual finding.
+
+End with a brief closing line (e.g. "Let me know if you have any questions.") but do not write a sign-off or the associate's name — a signature is appended separately after this text.
+
+Prohibited, without exception:
+- Any statement of legal effect (what a clause "means" legally, or its enforceability).
+- Any assurance that the client is "protected" or "covered."
+- Any characterization of what a clause legally requires or prevents.
+
+This is a negotiating aid, not legal advice, and the email must never read as legal advice.`;
+}
+
+export interface ClientEmailResult {
+  subject: string;
+  body: string;
+  model_id: string;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface GenerateClientEmailArgs {
+  findings: EmailFinding[];
+  associateName: string;
+  contractLabel: string;
+  model?: string;
+}
+
+export async function generateClientEmail({
+  findings,
+  associateName,
+  contractLabel,
+  model,
+}: GenerateClientEmailArgs): Promise<ClientEmailResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
+  }
+
+  const client = new Anthropic({ apiKey });
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
+  const findingsBlock = findings
+    .map((f, i) => {
+      const exposure =
+        f.exposure_amount != null ? `\nExposure: $${f.exposure_amount.toLocaleString()} (${f.exposure_basis})` : "";
+      return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
+    })
+    .join("\n\n");
+
+  const userText = `Contract: ${contractLabel}\nAssociate: ${associateName}\n\nProposed changes to summarize (not yet agreed to by the property):\n\n${findingsBlock}`;
+
+  async function attempt(): Promise<ClientEmailResult> {
+    const response = await client.messages.create({
+      model: modelId,
+      max_tokens: 4000,
+      system: buildClientEmailPrompt(),
+      tools: [CLIENT_EMAIL_TOOL_SCHEMA],
+      tool_choice: { type: "tool", name: CLIENT_EMAIL_TOOL_NAME },
+      messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
+    });
+
+    const toolUseBlock = response.content.find(
+      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
+    );
+    if (!toolUseBlock) {
+      throw new Error("Model did not return a structured email draft (no tool_use block in response).");
+    }
+
+    const parsed = toolUseBlock.input as { subject?: string; body?: string };
+    if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
+      throw new Error(
+        `Model returned malformed JSON (missing subject or body). stop_reason=${response.stop_reason}`
+      );
+    }
+
+    return {
+      subject: parsed.subject,
+      body: parsed.body,
+      model_id: modelId,
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+    };
+  }
+
+  try {
+    return await attempt();
+  } catch (err) {
+    console.error("generateClientEmail: first attempt failed, retrying once —", err);
     return await attempt();
   }
 }
