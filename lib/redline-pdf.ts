@@ -5,10 +5,12 @@ import { findMatchingLineIndices } from "./locate-text";
 
 /**
  * Draws a marked-up version of an already-rendered contract PDF: a cover
- * page summarizing every change in table form, a strikethrough over each
- * accepted/edited finding's quoted text, a small numbered marker in the
- * left margin, and a numbered appendix at the end with the full requested
- * language for each.
+ * page summarizing every change in table form, plus a strikethrough over
+ * each accepted/edited finding's quoted text and a small numbered marker
+ * in the left margin. The cover page is the single source of the change
+ * list — earlier versions of this file repeated the same clause/language
+ * pairs in a separate appendix, which just meant two lists to keep in
+ * sync for no reader benefit.
  *
  * This file's output can end up in front of the property or a client, so
  * it carries the changes and nothing else — no severity, no rationale, no
@@ -129,7 +131,7 @@ export async function generateMarkupPdf({
   drawCoverWrapped("Proposed Changes", boldFont, 16, 20);
   coverY -= 4;
   drawCoverWrapped(
-    "Numbered markers in the margins below correspond to the items in this table, detailed further at the end of this document.",
+    "Numbered markers in the margins below correspond to the items in this table.",
     font,
     9,
     12,
@@ -155,72 +157,6 @@ export async function generateMarkupPdf({
       thickness: 0.5,
       color: rgb(0.85, 0.85, 0.85),
     });
-  }
-
-  // Appendix: full detail per numbered item.
-  let page = pdfDoc.addPage(PAGE_SIZE);
-  let y = PAGE_SIZE[1] - MARGIN;
-
-  function newPage() {
-    page = pdfDoc.addPage(PAGE_SIZE);
-    y = PAGE_SIZE[1] - MARGIN;
-  }
-  function ensureSpace(h: number) {
-    if (y - h < MARGIN + 20) newPage();
-  }
-  function drawWrapped(text: string, useFont: PDFFont, size: number, lineHeight: number, color: RGB = rgb(0, 0, 0)) {
-    const wrapped = wrapText(text, useFont, size, MAX_WIDTH);
-    ensureSpace(wrapped.length * lineHeight);
-    for (const line of wrapped) {
-      page.drawText(line, { x: MARGIN, y, size, font: useFont, color });
-      y -= lineHeight;
-    }
-  }
-
-  drawWrapped("Redline Notes", boldFont, 16, 20);
-  y -= 4;
-  drawWrapped(
-    "Numbered markers in the margin above correspond to the items below. This is a negotiating aid, not legal advice.",
-    font,
-    9,
-    12,
-    rgb(0.45, 0.45, 0.45)
-  );
-  y -= 10;
-
-  const missing = numbered.filter((n) => n.finding.is_missing_clause);
-  const located = numbered.filter((n) => !n.finding.is_missing_clause);
-
-  for (const { finding, number, matched } of located) {
-    ensureSpace(50);
-    y -= 6;
-    drawWrapped(`[${number}] ${finding.clause_type.replace(/_/g, " ")}`.toUpperCase(), boldFont, 11, 15, MARK_COLOR);
-    if (!matched) {
-      drawWrapped(
-        "(Could not locate this exact passage in the document to mark it — shown here only.)",
-        font,
-        9,
-        12,
-        rgb(0.55, 0.55, 0.55)
-      );
-    }
-    drawWrapped("Requested language:", boldFont, 10, 14);
-    drawWrapped(finding.language, font, 10, 14);
-    y -= 10;
-  }
-
-  if (missing.length > 0) {
-    ensureSpace(40);
-    y -= 10;
-    drawWrapped("REQUESTED ADDITIONS (clauses not present in the original)", boldFont, 12, 16);
-    y -= 4;
-    for (const { finding, number } of missing) {
-      ensureSpace(50);
-      drawWrapped(`[${number}] ${finding.clause_type.replace(/_/g, " ")}`.toUpperCase(), boldFont, 11, 15, MARK_COLOR);
-      drawWrapped("Requested language:", boldFont, 10, 14);
-      drawWrapped(finding.language, font, 10, 14);
-      y -= 10;
-    }
   }
 
   return pdfDoc.save();

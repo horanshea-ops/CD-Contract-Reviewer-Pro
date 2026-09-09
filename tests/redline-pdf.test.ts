@@ -92,4 +92,16 @@ describe("generateMarkupPdf", () => {
 
     expect(text).toContain("not located in document");
   });
+
+  it("lists each proposed change exactly once — no separate appendix repeating the cover table", async () => {
+    const { pdfBytes, lines } = await textToPdf("Sample Contract", BODY);
+    const findings = [finding()];
+
+    const markup = await generateMarkupPdf({ pdfBytes, lines, findings });
+    const text = await fullText(markup);
+
+    expect(text).not.toContain("Redline Notes");
+    const occurrences = text.split("fifty percent (50%) of anticipated revenue").length - 1;
+    expect(occurrences).toBe(1);
+  });
 });
