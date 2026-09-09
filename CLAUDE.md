@@ -13,9 +13,11 @@ At the start of every work item, before writing any code:
 Override the table **upward, never downward**. Running Opus 5 on a section
 assigned Sonnet 5 is fine; the reverse is not.
 
-Never begin work on §1.4, §1.5, §1.6, §2.0, §2.1 or §2.3 — or on anything touching
-authentication, row-level security, key handling, or financial calculation — while
-running Sonnet. Those require Opus 5.
+Never begin work on §1.4, §1.5, §1.6, §2.0.1, §2.0.2, §2.0.3, §2.1.1, §2.1.2 or §2.3
+— or on anything touching authentication, row-level security, key handling, or
+financial calculation — while running Sonnet. Those require Opus 5. The one carve-out
+is §2.0.3's UI string replacements, which the plan assigns Sonnet 5 explicitly; its
+prompt and taxonomy work does not qualify.
 
 If you have attempted the same failing test three times on a §1.4 or §1.5 task at
 xhigh effort, stop and say so rather than trying a fourth approach. Repeated failure

@@ -106,7 +106,7 @@ At the start of every work item, before writing any code:
 3. State which model you are currently running.
 4. If they do not match, STOP. Tell me to switch, and wait. Do not proceed.
 
-Never begin work on §1.4, §1.5, §1.6, §2.0, §2.1 or §2.3 — or on anything touching
+Never begin work on §1.4, §1.5, §1.6, §2.0.1, §2.0.2, §2.0.3, §2.1.1, §2.1.2 or §2.3 — or on anything touching
 authentication, row-level security, key handling, or financial calculation — while
 running Sonnet. Those require Opus 5.
 
@@ -691,7 +691,8 @@ N+1 diffs what we sent against what came back.
 **Step 1.9.5 — Minimal round display.** Thread view with rounds, dates, finding counts. Not
 a diff yet — just the timeline, so the structure is visible and gets used.
 
-**12–18 hours** for hooks. Full diff engine is a further **40–70** (see §2.1).
+**12–18 hours** for hooks. Full diff engine is a further **40–70** — §2.1.1's mechanics
+(25–40, ungated) plus §2.1.2's reconciliation (15–30, gated).
 
 ## 1.10 Phase 7 — AI-use provision pre-check
 
@@ -805,10 +806,54 @@ outcome for adoption.
 
 # PART 2 — FEATURE ROADMAP
 
-**Gated.** Nothing here starts until the accuracy gate clears. Every feature compounds the
-value of a tool that works and compounds the damage of one that doesn't.
+**Gated, with four exceptions.** Nothing in Tier 1 or below starts until the accuracy gate
+clears, except §2.0.1, §2.0.2, §2.0.3 and §2.1.1, each marked ungated where it appears.
+Every gated feature compounds the value of a tool that works and compounds the damage of one
+that doesn't.
 
-## 2.0 The shared foundation: structured term extraction
+**§2.0 is not gated** (decided 2026-09-09). The gate conflates three questions, and only
+the third needs a senior associate:
+
+1. Can the standards be changed? Yes, today — the admin screen edits them and migration
+   `003` fingerprints the exact entries behind every analysis.
+2. Does the machinery correctly apply whatever standards it is given? Testable now, and
+   largely tested — §1.4/§1.5/§1.6 verify document mechanics that never read a position.
+3. Are CD's positions right? Unknown. Only a senior associate can say.
+
+So the gate is a **claims-and-deployment gate, not a code gate**. What it must stop is
+presenting this as "how ConferenceDirect negotiates" and putting it in front of real deals.
+It need not stop building machinery whose correctness does not depend on the positions being
+right. The concrete gap the gate closes is visible in the code — all 25
+`walk_away_condition` values in `lib/standards/v1.ts` are empty strings, and
+`position`/`severity_default` have never been checked against a real deal outcome.
+
+## 2.0 Ungated foundations
+
+Three items, none of which depends on the accuracy gate. Build these while the senior
+associate review is unavailable.
+
+### 2.0.1 Eval harness
+
+*(Opus 5, high)*
+
+Build order item 2 from the build brief, deferred at the user's request and now the highest-
+leverage work available. The day a senior associate reviews 25–30 contracts and produces an
+answer key, there is currently nothing to run it against — so the scarcest resource in the
+project would wait on engineering.
+
+Build the scoring machinery now against a **synthetic** answer key over the §1.11 fixtures,
+whose ground truth is known by construction. CD's real key then arrives as a data swap, not
+a build.
+
+Opus because a scoring bug is silent by nature. A harness that mis-matches findings reports
+an accuracy number that looks fine and is wrong, and there is no downstream symptom to catch
+it — the same reason §1.11's assertion suite design was assigned Opus.
+
+**20–30 hours.**
+
+### 2.0.2 Structured term extraction
+
+*(Opus 5, xhigh)*
 
 **Read this before scoping anything else in Part 2.**
 
@@ -840,9 +885,46 @@ CREATE TABLE contract_terms (
 parallel ad-hoc extractions that disagree with each other, and the disagreement will surface
 in a client-facing document.
 
-**Term extraction layer: 30–45 hours.** Plus its own answer key — a senior associate
-verifying extracted values against 15–20 contracts, because a wrong ADR silently corrupts
-every downstream number.
+**Term extraction layer: 30–45 hours.** Plus its own answer key, verifying extracted values
+against 15–20 contracts, because a wrong ADR silently corrupts every downstream number.
+
+**That answer key does not need a senior associate** (decided 2026-09-09). Confirming that a
+contract reading 90% was extracted as `0.90` is reading comprehension, not negotiating
+expertise — anyone literate can check it, and the §1.11 fixtures have known ground truth by
+construction. This is what makes §2.0.2 ungated. The four dependent features stay gated.
+
+### 2.0.3 Client-portability seams
+
+*(Opus 5, high — UI strings: Sonnet 5, high)*
+
+Raised by the user 2026-09-09: if CD does not buy the tool, retooling for another company in
+the same space should be cheap. Three layers, and only the third is client-specific:
+
+| Layer | Example | Scope |
+|---|---|---|
+| Document mechanics | extract, locate, redline, validate, export | client- and industry-agnostic |
+| Clause taxonomy | attrition, cancellation, force majeure | industry-specific |
+| Negotiating positions | `position`, `fallback_language`, `walk_away_condition` | client-specific |
+
+Layer 3 already lives in the `standards` table with provenance and versioning, and
+`clause_type` is unconstrained `text` in the database, so the schema is portable today. Two
+seams are not:
+
+- **`ClauseType` is a compile-time union of 25 hotel clause types** (`lib/standards/
+  types.ts`), fusing the taxonomy into the build. Fine for another hotel-side client; wrong
+  for another vertical.
+- **"ConferenceDirect" is hardcoded in four prompt sites** in `lib/anthropic.ts` — the
+  analysis tool description, the analysis system prompt, and both email prompts. §1.8.3 added
+  the fourth. This cost grows with every new prompt site, so parameterising the org name is
+  cheap now and steadily less so later.
+
+Opus for the prompt and taxonomy work, because changing the analysis system prompt silently
+changes the output of every review. The UI string replacements are ordinary Sonnet work.
+
+Acceptance test for the split: **the pipeline runs end to end against a dummy standards set
+and still produces structurally valid output.** If it cannot, layers 1 and 3 are entangled.
+
+**15–25 hours.**
 
 ---
 
@@ -850,20 +932,38 @@ every downstream number.
 
 ### 2.1 Multi-round diff engine
 
-Prerequisite for §2.3 and §2.4. Hooks already exist from §1.9.
+Prerequisite for §2.3 and §2.4. Hooks already exist from §1.9. Split in two, because only
+the second half depends on the findings being right.
 
-Two diff paths, because properties return documents both ways:
+#### 2.1.1 Diff mechanics — **not gated**
+
+*(Opus 5, xhigh)*
+
+Comparing what we sent against what came back is document work, and its correctness does not
+depend on CD's positions. Two diff paths, because properties return documents both ways:
 
 1. **Counterparty used track changes** — their edits are labelled by author; read directly
 2. **Counterparty returned a clean document** — very common; diff the current-view text
    against the version we sent, map changed regions back to clauses
 
-Then reconcile each prior finding into `finding_outcomes`: accepted, partially accepted,
+Same reasoning as §1.4/§1.5 for the model assignment — a mis-mapped region silently
+attributes a change to the wrong clause.
+
+**25–40 hours.**
+
+#### 2.1.2 Reconciliation into findings — **gated**
+
+*(Opus 5, xhigh)*
+
+Reconcile each prior finding into `finding_outcomes`: accepted, partially accepted,
 countered, rejected, unchanged. Plus a separate bucket for issues newly introduced in text
 that was not there before — the case associates fear, where the property concedes on
 attrition and quietly tightens cancellation.
 
-**40–70 hours.**
+Gated, because "the property rejected this finding" is only meaningful once the finding
+itself is known to be right.
+
+**15–30 hours.**
 
 ### 2.2 Deadline extraction and calendar export
 
@@ -965,7 +1065,7 @@ arithmetic in a client-facing document.
 **Prohibited in all variants:** statements of legal effect, assurances of protection,
 characterisation of what clauses legally mean. Same constraint as §1.8.2, same tests.
 
-Depends on §2.0, §2.1, §2.3. **25–40 hours.**
+Depends on §2.0.2, §2.1, §2.3. **25–40 hours.**
 
 ### 2.5 Pre-signature verification
 
@@ -1025,7 +1125,7 @@ making it a client-retention feature. **25–40 hours.**
 
 ### 2.10 What-if calculator
 "What do we owe at 70% pickup", "what does cancelling at 120 days cost". Associates do this
-in spreadsheets today. Depends on §2.0 and shares §2.3's calculators. **15–20 hours.**
+in spreadsheets today. Depends on §2.0.2 and shares §2.3's calculators. **15–20 hours.**
 
 ### 2.11 On-demand clause language
 Pull CD's preferred language for any clause type even when nothing was flagged. Small
@@ -1066,8 +1166,11 @@ and it is how a focused tool becomes a mediocre platform.
 
 | Item | Model / effort | Hours |
 |---|---|---|
-| §2.0 Term extraction layer **(prerequisite)** | **Opus 5 · xhigh** | 30–45 |
-| §2.1 Multi-round diff engine | **Opus 5 · xhigh** | 40–70 |
+| §2.0.1 Eval harness **(ungated)** | **Opus 5 · high** | 20–30 |
+| §2.0.2 Term extraction layer **(ungated, prerequisite)** | **Opus 5 · xhigh** | 30–45 |
+| §2.0.3 Client-portability seams **(ungated)** | **Opus 5 · high** | 15–25 |
+| §2.1.1 Diff mechanics **(ungated)** | **Opus 5 · xhigh** | 25–40 |
+| §2.1.2 Reconciliation into findings | **Opus 5 · xhigh** | 15–30 |
 | §2.2 Deadline extraction | Sonnet 5 · high | 20–30 |
 | §2.3 Negotiated value quantification | **Opus 5 · xhigh** (UI: Sonnet 5) | 40–65 |
 | §2.4 Executive summaries | Opus 5 · high (UI: Sonnet 5) | 25–40 |
@@ -1075,7 +1178,10 @@ and it is how a focused tool becomes a mediocre platform.
 | §2.6 Learn tab | Sonnet 5 · high | 30–45 |
 | §2.7–2.9 Aggregate features | Sonnet 5 · high (§2.8: Opus 5) | 80–130 |
 | §2.10–2.12 Smaller additions | Sonnet 5 · high | 38–57 |
-| **Total** | | **318–507** |
+| **Total** | | **353–562** |
+
+Of that, **§2.0.1, §2.0.2, §2.0.3 and §2.1.1 — 90–140 hours — are ungated** and can start
+before any senior-associate review.
 
 This is a multi-year roadmap. Sequence it against evidence from the pilot; do not commit to
 it wholesale.

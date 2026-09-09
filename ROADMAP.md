@@ -331,7 +331,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
      now, and largely tested — §1.4/§1.5/§1.6 verify document mechanics that never
      read a negotiating position.
   3. *Are CD's positions right?* Unknown, and only a senior associate can say.
-  **Only (3) needs CD.** The gate is a claims-and-deployment gate, not a code gate:
+  **Only (3) needs CD.** The gate is a claims-and-deployment gate, not a code gate
+  — now stated in `MASTER_PLAN.md`'s Part 2 preamble:
   what it must stop is telling anyone "this is how ConferenceDirect negotiates" and
   putting the tool in front of real deals. It need not stop building machinery whose
   correctness does not depend on the positions being right. The build brief's gate
@@ -341,30 +342,34 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
   `position`/`severity_default` have never been checked against a real deal outcome.
   That is what the answer key buys. It is not more clause types.
 
-- **Work that does not need CD (noted 2026-09-09, not started).** In rough leverage
-  order:
-  1. **The eval harness** (build order item 2, deferred at request). Highest
+- **Work that does not need CD — now §2.0.1/§2.0.2/§2.0.3/§2.1.1 (noted 2026-09-09,
+  not started).** Numbered into `MASTER_PLAN.md` on 2026-09-09 and marked ungated there;
+  90-140 hours in total. In leverage order:
+  1. **The eval harness — §2.0.1, Opus 5 · high** (build order item 2, deferred at
+     request). Highest
      leverage of anything here. Building it now against a *synthetic* answer key
      means the day CD's real key arrives it is a data swap, not a build — otherwise
      the scarcest resource in the project waits on engineering.
-  2. **§2.0 term extraction.** Its own answer key is described as needing a senior
+  2. **Term extraction — §2.0.2, Opus 5 · xhigh.** Its own answer key was described as
+     needing a senior
      associate, but verifying that a contract saying 90% was extracted as `0.90` is
      reading comprehension, not negotiating expertise — anyone literate can check
      it, and the 15 synthetic fixtures have known ground truth by construction.
-     §2.0 is infrastructure whose correctness is independently checkable, so
+     §2.0.2 is infrastructure whose correctness is independently checkable, so
      building it does not compound the damage the gate exists to prevent. The four
      dependent features (deadlines, what-if, savings, exec summaries) stay gated.
-     **This is a deviation from "nothing in Part 2 starts until the gate clears"
-     and needs an explicit decision before anyone acts on it.**
-  3. **§2.1's diff mechanics.** Diffing what we sent against what came back is
-     document work; only the reconciliation into `finding_outcomes` depends on
-     findings being right.
+     **This was a deviation from "nothing in Part 2 starts until the gate clears";
+     the user accepted it on 2026-09-09 and `MASTER_PLAN.md` now states it directly.**
+  3. **Diff mechanics — §2.1.1, Opus 5 · xhigh.** Diffing what we sent against what came
+     back is document work. The reconciliation into `finding_outcomes` is now §2.1.2 and
+     stays gated, because "the property rejected this finding" only means something once
+     the finding is known to be right.
   4. **Vercel deploy** — still local-only, needed regardless. Note Pro ($20/mo);
      Hobby's 60s function limit is under the 300s analysis budget.
   5. **The §1.5 table-quote follow-up** below — narrow, but tables carry the money.
 
-- **Portability: retooling for a different client (noted 2026-09-09, nothing acted
-  on).** Raised by the user — if CD does not buy, how cheaply can this serve another
+- **Portability: retooling for a different client — now §2.0.3 (noted 2026-09-09,
+  nothing acted on).** Raised by the user — if CD does not buy, how cheaply can this serve another
   company in the same space? Most of the answer is already good. Three layers, and
   today only the third is client-specific:
   | Layer | Example | Scope |
