@@ -276,6 +276,29 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
   page breaks. That never mattered — the file sent back to the hotel is the
   tracked-changes DOCX, byte-identical outside changed spans.
 
+- **Clean "as revised" contract page for the PDF markup — not started, worth
+  exploring.** Idea raised by the user during §1.7 work, 2026-09-08: append a
+  third section to the marked-up PDF, after the cover-page change table and
+  the annotated redline — a divider page reading "Proposed Amended Contract,"
+  followed by a clean render of the contract with every finding's proposed
+  language already applied in place, no strikethroughs or margin marks. A
+  client or the property opening the file would then see three things in
+  order: what changed, the redline itself for context, and what a signed
+  version would actually read like.
+  This builds on what §1.7 already has. For DOCX/DOC-sourced text, the PDF is
+  drawn by CD's own renderer (`lib/text-to-pdf.ts`) rather than parsed from a
+  foreign file, so splicing each finding's `quoted_text` for its `language`
+  and re-flowing through that same renderer is a plain text substitution —
+  much simpler than the DOM surgery `lib/redline-engine/` needs for real
+  Word tracked changes. Real open questions, not yet resolved: whether this
+  lives inside `generateMarkupPdf`'s single output or as a separate opt-in
+  export; what a finding whose quote couldn't be located should do in the
+  clean version (omit it silently, or flag the omission somewhere); and
+  whether it's worth building for the export-fallback case (§1.6.4) at all,
+  since a `.docx` that failed export validation might have quirks in its
+  extracted text that a clean rewrite would just reproduce. Scope this as
+  its own small plan-mode pass, same as the cover-page work, before starting.
+
 - **Contract revision chains — not started, worth exploring.** Today each
   upload is an independent analysis with no relationship to any other. Real
   negotiations aren't single-shot: an associate sends requested revisions to

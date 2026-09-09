@@ -9,7 +9,9 @@ import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
 import { Button } from "@/components/ui/button";
 import { RedlineExportButton } from "@/components/redline-export-button";
+import { MarkupExportButton } from "@/components/markup-export-button";
 import { startDownload } from "@/lib/download";
+import { getMarkupReason } from "@/lib/pdf-markup-reason";
 
 interface AnalysisResponse {
   id: string;
@@ -24,6 +26,7 @@ interface AnalysisResponse {
   findings: Finding[];
   error_message?: string;
   intake_route: "docx_native" | "pdf" | null;
+  intake_health: { reason: string | null } | null;
   had_existing_revisions: boolean | null;
   existing_revision_authors: string[] | null;
   existing_revision_count: number | null;
@@ -199,14 +202,12 @@ export default function AnalysisPage() {
           <Button size="sm" onClick={() => startDownload(`/api/analyses/${data.id}/export`)} className="shrink-0">
             Export memo ({includedCount})
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => startDownload(`/api/analyses/${data.id}/export-markup`)}
-            className="shrink-0"
-          >
-            Export marked-up PDF
-          </Button>
+          <MarkupExportButton
+            analysisId={data.id}
+            sourceFormat={data.source_format}
+            intakeRoute={data.intake_route}
+            intakeHealthReason={data.intake_health?.reason ?? null}
+          />
           {/*
             A DOCX routed to the PDF path at intake (§1.4.9) has no editable
             document behind it, so offering tracked changes here would
@@ -223,6 +224,7 @@ export default function AnalysisPage() {
         <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
           {data.source_format !== "pdf" && data.intake_route !== "docx_native" && (
             <div className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs px-4 py-2 shrink-0">
+              {getMarkupReason({ sourceFormat: data.source_format, intakeHealthReason: data.intake_health?.reason ?? null })}{" "}
               Converted from {data.source_format.toUpperCase()} for review — text only, original formatting
               (tables, letterhead, styling) isn&apos;t preserved here.
             </div>
