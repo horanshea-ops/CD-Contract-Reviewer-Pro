@@ -10,8 +10,16 @@ import type { HighlightRect } from "@/lib/locate-text";
 import { Button } from "@/components/ui/button";
 import { RedlineExportButton } from "@/components/redline-export-button";
 import { MarkupExportButton } from "@/components/markup-export-button";
+import { AiClauseReview } from "@/components/ai-clause-review";
 import { startDownload } from "@/lib/download";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
+
+interface AiUseMatch {
+  term: string;
+  excerpt: string;
+  matchStart: number;
+  matchLength: number;
+}
 
 interface AnalysisResponse {
   id: string;
@@ -30,6 +38,8 @@ interface AnalysisResponse {
   had_existing_revisions: boolean | null;
   existing_revision_authors: string[] | null;
   existing_revision_count: number | null;
+  ai_clause_scan_result: { matches: AiUseMatch[] } | null;
+  ai_clause_acknowledged_at: string | null;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -137,6 +147,24 @@ export default function AnalysisPage() {
       <div className="h-full flex items-center justify-center">
         <p className="text-sm text-[var(--text-secondary)]">Loading...</p>
       </div>
+    );
+  }
+
+  if (data.status === "processing" && data.ai_clause_scan_result?.matches?.length && !data.ai_clause_acknowledged_at) {
+    return (
+      <AiClauseReview
+        analysisId={data.id}
+        matches={data.ai_clause_scan_result.matches}
+        onDecided={({ decision, error }) =>
+          setData((prev) =>
+            prev
+              ? decision === "abort"
+                ? { ...prev, status: "failed", error }
+                : { ...prev, ai_clause_acknowledged_at: new Date().toISOString() }
+              : prev
+          )
+        }
+      />
     );
   }
 
