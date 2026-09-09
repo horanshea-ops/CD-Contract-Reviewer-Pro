@@ -320,8 +320,44 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
-- **"No change needed" language reaches the redline and memo exports (found
-  2026-09-09, not fixed).** §1.7.7 hit this and guards its own output, but the
+- **Export and email button consolidation — §1.12, not started (raised by the user
+  2026-09-09).** The analysis header now carries six controls: Export memo, Draft
+  client email, Export marked-up PDF, Export tracked-changes DOCX, Export proposed
+  contract, Draft property email. Each was added on its own and the row is
+  crowded and hard to read.
+  Target, decided by the user:
+  - **One Export button.** Opens a picker where the associate ticks one or more of
+    memo, marked-up PDF, tracked-changes DOCX, proposed contract, each with a
+    one-line description of what it is and who it is for. Existing preflight
+    behaviour has to survive — the tracked-changes and proposed-contract paths
+    both return a verdict before the file, and a refusal must still block that
+    file while letting the others through.
+  - **One Email button.** The associate picks client or property.
+  **The user has overruled the standing objection to a single email control**
+  (2026-09-09): §1.8.3's design kept the two audiences physically apart because
+  one mis-set toggle sends CD's exposure figures to the counterparty. The user's
+  call is that this is the associate's to manage. The server-side allowlist in
+  `lib/email-drafting/property-assembly.ts` is unaffected and still guarantees a
+  property draft can never contain severity, exposure or rationale — what changes
+  is only which draft the associate asks for. The UI must therefore make the
+  chosen audience unmistakable at every step, including the generated draft and
+  the `.eml` filename.
+
+- **Reject "no change needed" language at analysis time — not started.** The
+  2026-09-09 fix holds these findings back from every export and both emails
+  (`lib/proposed-language.ts`), which stops the damage but treats the symptom. The
+  model should not return commentary in `proposed_language` at all. Wants a prompt
+  constraint plus validation of the tool output in `lib/anthropic.ts`, and a
+  decision on what the pipeline does when it sees one — drop the finding, or keep
+  it with the language cleared so the associate still sees the clause was reviewed.
+
+- **~~"No change needed" language reaches the redline and memo exports~~ — FIXED
+  2026-09-09.** One shared predicate in `lib/proposed-language.ts` now holds these
+  findings back from `getActionedFindings` (redline, memo, markup PDF, clean
+  contract) and from both email assembly paths. `getActionedFindings` returns the
+  held-back items rather than dropping them quietly, and every export route records
+  the count in its audit metadata. Verified live against the real CD standard
+  contract. Original note: §1.7.7 hit this and guards its own output, but the
   problem is upstream and shared. The model occasionally returns
   `proposed_language` that is commentary rather than clause text — "No change
   needed — retain as drafted." — and an associate can accept that finding. Every

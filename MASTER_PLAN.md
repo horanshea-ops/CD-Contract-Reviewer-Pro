@@ -72,6 +72,8 @@ Spend capability there.
 | 1.10 | AI-use pre-check | Sonnet 5 | high | Regex and a gate |
 | 1.11 | Test fixture generation | Sonnet 5 | high | Content creation |
 | 1.11 | Assertion suite design | Opus 5 | high | The tests are what let you iterate blind |
+| 1.12 | Export picker UI | Sonnet 5 | high | UI over routes that already exist |
+| 1.12 | Email audience selector | **Opus 5** | high | Sending the client draft to the property is unrecoverable, and nothing downstream catches it |
 | — | Auth, RLS, key handling | **Opus 5** | high | Silent failure, serious consequence |
 | 2.0 | Term extraction layer | **Opus 5** | **xhigh** | Every downstream number depends on it |
 | 2.1 | Multi-round diff engine | **Opus 5** | **xhigh** | Reconciliation logic is subtle and wrong answers look plausible |
@@ -765,7 +767,32 @@ spans.
 Manual render verification across those five environments is not automatable and is not
 optional.
 
-## 1.12 Part 1 build order
+## 1.12 Export and email UI consolidation
+
+*(Export picker: Sonnet 5, high. Email audience selector: Opus 5, high.)*
+
+Added 2026-09-09. The analysis header carries six controls, each added on its own
+as its feature landed. Collapse them into two.
+
+**One Export button** opening a picker over memo, marked-up PDF, tracked-changes
+DOCX and proposed contract, each with a one-line description. Multi-select. The
+tracked-changes and proposed-contract paths both run a preflight that can refuse,
+and that has to survive — a refusal blocks its own file and lets the others
+through, rather than failing the whole batch. Ordinary UI work over routes that
+already exist, so Sonnet.
+
+**One Email button** where the associate picks client or property. Opus, because
+the consequence is asymmetric. The server-side allowlist means a property draft
+still cannot contain severity, exposure or rationale, so the risk is not a leak
+through the wrong endpoint — it is an associate sending the client draft, which
+carries CD's exposure figures and reasoning, to the property. Nothing downstream
+catches that, so the audience has to be unmistakable in the panel, in the draft,
+and in the `.eml` filename.
+
+The user overruled §1.8.3's separation of the two audiences on 2026-09-09, on the
+grounds that it is the associate's to manage.
+
+## 1.13 Part 1 build order
 
 | # | Work | Model / effort | Branch | Hours | Blocking |
 |---|---|---|---|---|---|
@@ -792,7 +819,7 @@ outcome for adoption.
 
 **New recurring cost:** conversion worker, $5–15/month.
 
-## 1.13 Open questions before starting
+## 1.14 Open questions before starting
 
 1. **Which library** — resolved by §1.3, but decide before Phase 1 so the map interface
    matches.
