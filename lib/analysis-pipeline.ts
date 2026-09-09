@@ -208,6 +208,12 @@ export async function processAnalysis(analysisId: string) {
         library_version: result.standards_library_version,
         standards_source: standards.source,
         standards_hash: standards.hash,
+        // §1.9.3 — the accepted-view text of this round, for the future diff
+        // engine (§2.1). Only meaningful when the model actually read the
+        // real DOCX text (`document.kind === "text"`) rather than a PDF — a
+        // docx_native document that fell back to the PDF after a failed
+        // extraction has no accepted-view text worth storing here.
+        accepted_view_text: document.kind === "text" ? scanText : null,
         token_usage: {
           input_tokens: result.input_tokens,
           output_tokens: result.output_tokens,

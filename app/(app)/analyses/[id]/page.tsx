@@ -40,6 +40,9 @@ interface AnalysisResponse {
   existing_revision_count: number | null;
   ai_clause_scan_result: { matches: AiUseMatch[] } | null;
   ai_clause_acknowledged_at: string | null;
+  thread_id: string | null;
+  round_number: number | null;
+  propertyName: string | null;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -220,6 +223,14 @@ export default function AnalysisPage() {
             ← Back
           </Link>
           <h1 className="text-sm font-semibold text-[var(--text-primary)]">{data.filename}</h1>
+          {data.thread_id && (
+            <Link
+              href={`/threads/${data.thread_id}`}
+              className="block text-xs text-[var(--cd-navy)] hover:underline mt-0.5"
+            >
+              Round {data.round_number} of {data.propertyName ?? "this negotiation"}
+            </Link>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <p className="text-xs text-[var(--text-muted)]">

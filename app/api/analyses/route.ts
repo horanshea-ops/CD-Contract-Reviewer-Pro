@@ -8,6 +8,7 @@ import { processAnalysis } from "@/lib/analysis-pipeline";
 import { detectSourceFormat, convertToPdf } from "@/lib/document-conversion";
 import { extractDocx } from "@/lib/docx";
 import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
+import { nextRoundLinkage } from "@/lib/negotiation-threads";
 
 export const maxDuration = 300;
 
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get("file");
   const clientName = (formData.get("clientName") as string | null)?.trim();
+  const negotiationMode = formData.get("negotiationMode") as string | null;
+  const propertyName = (formData.get("propertyName") as string | null)?.trim();
+  const continuingThreadId = (formData.get("threadId") as string | null)?.trim();
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
@@ -47,6 +51,22 @@ export async function POST(request: Request) {
       { error: `File is too large (${Math.round(file.size / 1024 / 1024)}MB). The limit is 32MB.` },
       { status: 400 }
     );
+  }
+
+  // §1.9.1 — explicit thread linkage, decided before any file processing so a
+  // bad choice here fails fast rather than after a DOCX extraction/PDF
+  // conversion that would just be thrown away.
+  if (negotiationMode !== "new" && negotiationMode !== "continuing") {
+    return NextResponse.json(
+      { error: "Choose whether this is a new negotiation or continues one already open." },
+      { status: 400 }
+    );
+  }
+  if (negotiationMode === "new" && !propertyName) {
+    return NextResponse.json({ error: "Property name is required for a new negotiation." }, { status: 400 });
+  }
+  if (negotiationMode === "continuing" && !continuingThreadId) {
+    return NextResponse.json({ error: "Choose which negotiation this continues." }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -72,6 +92,45 @@ export async function POST(request: Request) {
       }
       clientId = newClient.id;
     }
+  }
+
+  let threadId: string;
+  let roundNumber: number;
+  let parentAnalysisId: string | null;
+
+  if (negotiationMode === "new") {
+    const { data: newThread, error: threadError } = await admin
+      .from("negotiation_threads")
+      .insert({ associate_id: associate.id, client_id: clientId, property_name: propertyName, status: "open" })
+      .select("id")
+      .single();
+    if (threadError) {
+      return NextResponse.json({ error: `Could not start the negotiation: ${threadError.message}` }, { status: 500 });
+    }
+    threadId = newThread.id;
+    roundNumber = 1;
+    parentAnalysisId = null;
+  } else {
+    const { data: thread } = await admin
+      .from("negotiation_threads")
+      .select("id, status")
+      .eq("id", continuingThreadId as string)
+      .eq("associate_id", associate.id)
+      .maybeSingle();
+    if (!thread) {
+      return NextResponse.json({ error: "That negotiation was not found." }, { status: 404 });
+    }
+    if (thread.status !== "open") {
+      return NextResponse.json({ error: "That negotiation is no longer open." }, { status: 400 });
+    }
+    const { data: existingRounds } = await admin
+      .from("analyses")
+      .select("id, round_number")
+      .eq("thread_id", thread.id);
+    const linkage = nextRoundLinkage(thread.id, existingRounds ?? []);
+    threadId = linkage.threadId;
+    roundNumber = linkage.roundNumber;
+    parentAnalysisId = linkage.parentAnalysisId;
   }
 
   const analysisId = randomUUID();
@@ -170,6 +229,9 @@ export async function POST(request: Request) {
     had_existing_revisions: existingRevisions?.present ?? null,
     existing_revision_authors: existingRevisions?.authors ?? null,
     existing_revision_count: existingRevisions?.count ?? null,
+    thread_id: threadId,
+    round_number: roundNumber,
+    parent_analysis_id: parentAnalysisId,
     status: "queued",
   });
 
@@ -193,6 +255,8 @@ export async function POST(request: Request) {
       // the dataset that tells us which constructs break the engine (§1.6.5).
       intake_route: intakeRoute,
       intake_downgrade_reason: intakeHealth?.reason ?? null,
+      thread_id: threadId,
+      round_number: roundNumber,
     },
   });
 
