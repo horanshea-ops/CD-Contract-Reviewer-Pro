@@ -226,9 +226,11 @@ describe("buildCleanContractText", () => {
       ...base,
       unplaced: [{ clause_type: "cancellation", language: "fifty percent (50%)", reason: "ambiguous" }],
     });
-    expect(out).toContain("Proposed Changes Not Placed Automatically");
+    expect(out).toContain("Further Proposed Changes");
     expect(out).toContain("fifty percent (50%)");
-    expect(out).toMatch(/body above is unchanged/i);
+    expect(out).toMatch(/wording above is unchanged/i);
+    // Why an item could not be placed is the associate's business, not the property's.
+    expect(out).not.toMatch(/could not be identified|automatically/i);
   });
 });
 
@@ -296,7 +298,7 @@ describe("generateCleanContractPdf", () => {
     const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
     expect(text).toContain("Additional Proposed Clauses");
     expect(text).toContain("Hotel shall provide comparable lodging.");
-    expect(text).toContain("Proposed Changes Not Placed Automatically");
+    expect(text).toContain("Further Proposed Changes");
     expect(text).toContain("Replacement wording.");
   });
 
@@ -1448,7 +1450,7 @@ describe("proposed language that is not a replacement clause", () => {
       finding({ clause_type: "rate_parity", quoted_text: body, language: "No change needed — retain as drafted." }),
     ]);
     const text = buildCleanContractText(result);
-    expect(text).toContain("Proposed Changes Not Placed Automatically");
+    expect(text).toContain("Further Proposed Changes");
     expect(text).toContain("Rate parity");
     expect(text).toContain(body);
   });

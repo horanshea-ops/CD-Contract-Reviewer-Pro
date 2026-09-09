@@ -69,7 +69,7 @@ const ASSERTS_NO_CHANGE =
   /^\s*(no\s+(change|revision|edit|amendment)s?\b|none\s+needed\b|not\s+applicable\b|n\/a\b|retain\s+as\s+(drafted|written)\b|acceptable\s+as\s+(drafted|written)\b)/i;
 
 const ADDITIONS_HEADING = "Additional Proposed Clauses";
-const UNPLACED_HEADING = "Proposed Changes Not Placed Automatically";
+const UNPLACED_HEADING = "Further Proposed Changes";
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 
@@ -402,7 +402,11 @@ export function buildCleanContractText(result: SubstitutionResult): string {
 
   if (result.unplaced.length) {
     out += `\n\n${UNPLACED_HEADING}\n\n`;
-    out += "The wording below is proposed for the clauses named, but the text it replaces could not be identified automatically. The body above is unchanged for these items.\n\n";
+    // Worded for the property, who may read this document. Why an item landed
+    // here is a matter for the associate, and the preflight dialog says so
+    // before the download; the reasons differ per item and would read as a
+    // report on our own tooling if printed in a contract.
+    out += "The following changes are also proposed. The wording above is unchanged for these items.\n\n";
     out += result.unplaced.map((u) => `${titleCase(u.clause_type)}\n${u.language}`).join("\n\n");
   }
 
