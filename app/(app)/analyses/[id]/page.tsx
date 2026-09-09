@@ -10,6 +10,7 @@ import type { HighlightRect } from "@/lib/locate-text";
 import { Button } from "@/components/ui/button";
 import { RedlineExportButton } from "@/components/redline-export-button";
 import { MarkupExportButton } from "@/components/markup-export-button";
+import { ClientEmailPanel } from "@/components/client-email-panel";
 import { AiClauseReview } from "@/components/ai-clause-review";
 import { startDownload } from "@/lib/download";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
@@ -241,6 +242,7 @@ export default function AnalysisPage() {
           <Button size="sm" onClick={() => startDownload(`/api/analyses/${data.id}/export`)} className="shrink-0">
             Export memo ({includedCount})
           </Button>
+          <ClientEmailPanel analysisId={data.id} />
           <MarkupExportButton
             analysisId={data.id}
             sourceFormat={data.source_format}
