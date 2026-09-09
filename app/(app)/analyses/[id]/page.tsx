@@ -207,7 +207,15 @@ export default function AnalysisPage() {
           >
             Export marked-up PDF
           </Button>
-          {data.source_format === "docx" && <RedlineExportButton analysisId={data.id} />}
+          {/*
+            A DOCX routed to the PDF path at intake (§1.4.9) has no editable
+            document behind it, so offering tracked changes here would
+            contradict what the associate was told at upload. `intake_route` is
+            null on analyses predating that check, which keep the button.
+          */}
+          {data.source_format === "docx" && data.intake_route !== "pdf" && (
+            <RedlineExportButton analysisId={data.id} />
+          )}
         </div>
       </div>
 
