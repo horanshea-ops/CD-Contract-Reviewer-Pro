@@ -320,6 +320,22 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+- **"No change needed" language reaches the redline and memo exports (found
+  2026-09-09, not fixed).** §1.7.7 hit this and guards its own output, but the
+  problem is upstream and shared. The model occasionally returns
+  `proposed_language` that is commentary rather than clause text — "No change
+  needed — retain as drafted." — and an associate can accept that finding. Every
+  export path then treats it as replacement wording. The tracked-changes DOCX
+  would insert it as a revision into the contract sent to the property, and the
+  memo prints it as proposed language. Two of 335 findings in the dev database
+  are like this, both on real analyses. Severity does not mark them out.
+  Options, none chosen: reject such language at analysis time so it never reaches
+  a finding; flag it in the review UI so an associate sees what they are
+  accepting; or lift §1.7.7's guard into `lib/get-actioned-findings.ts`, which all
+  three export paths already share. The last is the smallest change and the
+  widest fix.
+
+
 - **What the gate actually blocks (noted 2026-09-09, nothing acted on).** Raised by
   the user: senior-associate review is far off, standards are editable at any time,
   and the real CD standard contract already gets roughly 70% of the way there — so
@@ -417,8 +433,53 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
   page breaks. That never mattered — the file sent back to the hotel is the
   tracked-changes DOCX, byte-identical outside changed spans.
 
-- **Clean "as revised" contract page for the PDF markup — not started, worth
-  exploring.** Idea raised by the user during §1.7 work, 2026-09-08: append a
+- [x] **§1.7.7 Clean "as revised" contract export (2026-09-09).** The user's idea
+      from 2026-09-08, numbered and built. A separate export rendering the contract
+      as it would read if the property agreed to every accepted change — no
+      strikethroughs, no markers. Delivered as its own button rather than appended
+      to the marked-up PDF, so that output stays byte-identical and a 40-page
+      contract does not become 85 pages for someone who only wanted the changes.
+      Text is reconstructed from the same positioned lines the marked-up PDF uses,
+      and spans are located with §1.5's `locateQuote`, so the two exports cannot
+      disagree about where a finding sits and an ambiguous quote is refused rather
+      than applied to whichever clause came first. `locateQuote` only ever read a
+      part's name and text, so its parameter widened to a structural shape;
+      `WalkResult` still satisfies it and §1.5 is untouched. New clauses are
+      appended under their own heading; anything that could not be placed is listed
+      after them with its language, and the body keeps its original wording.
+      **A content-conservation gate** reads the rendered PDF back and compares it
+      against the text it was built from, on letters and digits only, since
+      extraction merges adjacent lines and the renderer substitutes glyphs it
+      cannot encode. Two independent splice implementations must also agree, which
+      is the §1.4/§1.5 offset-bug check. A failure refuses the download and says
+      why. Quality bar agreed with the user: content, not layout — spacing may
+      differ, nothing may be missing.
+      **The gate found four pre-existing defects in shared code**, two of them
+      silently corrupting the existing DOCX conversion path. `lib/text-to-pdf.ts`
+      checked for page space once per paragraph, so every line of a paragraph
+      taller than a page was drawn off-canvas and lost; and a token wider than the
+      text column was drawn past the right page edge. Both have been losing text in
+      DOCX and DOC conversion since before this section. Also fixed here: footnote
+      markers sorting ahead of their line, a sparse page destroying paragraph
+      detection, and running headers surviving whenever the page number changed.
+      **Found live, against the real CD standard contract**: one accepted finding's
+      proposed language was "No change needed — retain as drafted.", and applying
+      it replaced a live rate-parity clause with that sentence — a finished-looking
+      contract, bound for the property. Such language is now listed rather than
+      applied. Severity cannot spot these; 2 of 335 findings in the dev database
+      look like commentary and they are "low" and "note", while other "note"
+      findings carry real clause text. **This affects the redline and memo exports
+      too and is not fixed there — see the open item below.**
+      Findings cross into the document through a narrowed type carrying only
+      clause, section, quote, language and the missing-clause flag; severity,
+      `finding_text` and `cd_standard` cannot reach it, the same rule §1.8.3
+      applies to the property email.
+      Verified against six real analyses across both source formats, including a
+      504-line genuine PDF and the 290-line CD standard contract, all passing the
+      content check with no excluded field in any output. 113 tests for the
+      section, 420 across the suite.
+
+- **Superseded by §1.7.7 above.** Original note, 2026-09-08: Idea raised by the user during §1.7 work, 2026-09-08: append a
   third section to the marked-up PDF, after the cover-page change table and
   the annotated redline — a divider page reading "Proposed Amended Contract,"
   followed by a clean render of the contract with every finding's proposed
