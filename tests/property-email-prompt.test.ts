@@ -53,3 +53,12 @@ describe("buildPropertyEmailPrompt", () => {
     expect(prompt).toMatch(/appended separately/i);
   });
 });
+
+describe("buildPropertyEmailPrompt placeholder handling", () => {
+  const prompt = buildPropertyEmailPrompt();
+
+  it("forbids bracketed placeholders and invented detail", () => {
+    expect(prompt).toMatch(/do not leave bracketed placeholders/i);
+    expect(prompt).toMatch(/do not invent a detail to fill a gap/i);
+  });
+});

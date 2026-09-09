@@ -408,6 +408,8 @@ Do not characterise the legal effect of any clause, and do not describe anything
 
 Keep it short. A few sentences plus the list. Do not restate the contract language at length.
 
+Write only from what you were given. Do not leave bracketed placeholders such as [Group Name] or [Dates] for the sender to fill in, and do not invent a detail to fill a gap — if you were not given something, leave it out and write around it.
+
 End with a brief line offering to discuss, but do not write a sign-off or the associate's name — a signature is appended separately after this text.`;
 }
 
