@@ -54,6 +54,20 @@ export interface CleanContractResult {
   conservation: ConservationReport;
 }
 
+/**
+ * Proposed language that asserts no change is needed, rather than supplying
+ * replacement text. The model writes this occasionally — 2 findings in 335 in
+ * the dev database — and severity does not mark it out, since the two examples
+ * were "low" and "note" while other "note" findings carry real clause text.
+ *
+ * Substituting it would put "No change needed — retain as drafted." into the
+ * contract in place of a real clause, and send that to the property. Matching
+ * the assertion itself is narrow and fails safe: a false positive lists the
+ * change instead of applying it.
+ */
+const ASSERTS_NO_CHANGE =
+  /^\s*(no\s+(change|revision|edit|amendment)s?\b|none\s+needed\b|not\s+applicable\b|n\/a\b|retain\s+as\s+(drafted|written)\b|acceptable\s+as\s+(drafted|written)\b)/i;
+
 const ADDITIONS_HEADING = "Additional Proposed Clauses";
 const UNPLACED_HEADING = "Proposed Changes Not Placed Automatically";
 
@@ -321,6 +335,18 @@ export function applyProposedChanges(text: string, findings: CleanContractFindin
       additions.push(finding);
       continue;
     }
+
+    // Commentary, not a replacement clause. Applying it would delete real
+    // contract wording and put a note in its place.
+    if (ASSERTS_NO_CHANGE.test(finding.language)) {
+      unplaced.push({
+        clause_type: finding.clause_type,
+        language: finding.language,
+        reason: "The proposed language states that no change is needed, so the original wording is kept.",
+      });
+      continue;
+    }
+
     const result = locateQuote(parts, finding.quoted_text, finding.location_section);
     if (isLocated(result)) {
       placements.push({ finding, start: result.start, end: result.end });

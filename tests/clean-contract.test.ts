@@ -1392,3 +1392,64 @@ describe("degenerate inputs", () => {
     expect(reconstructContractText([line("   ", TOP), line("", TOP - PITCH)])).toBe("");
   });
 });
+
+/**
+ * Findings whose proposed language is commentary rather than clause text.
+ * Found against the real ConferenceDirect standard contract, where accepting
+ * one such finding replaced a live rate-parity clause with the sentence
+ * "No change needed — retain as drafted."
+ */
+describe("proposed language that is not a replacement clause", () => {
+  const body = "Hotel guarantees not to sell guestrooms at a lower rate than the Group rate.";
+
+  it("keeps the original wording when the language says no change is needed", () => {
+    const result = applyProposedChanges(body, [
+      finding({ clause_type: "rate_parity", quoted_text: body, language: "No change needed — retain as drafted." }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced).toHaveLength(1);
+    expect(result.unplaced[0].reason).toMatch(/no change is needed/i);
+    expect(result.text).toBe(body);
+  });
+
+  it.each([
+    "No change recommended; clause matches CD standard as written.",
+    "No changes required.",
+    "No revision needed.",
+    "None needed.",
+    "Not applicable.",
+    "N/A",
+    "Retain as drafted.",
+    "Acceptable as written.",
+  ])("treats %j as commentary rather than clause text", (language) => {
+    const result = applyProposedChanges(body, [finding({ quoted_text: body, language })]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.text).toBe(body);
+  });
+
+  it("still applies clause text that merely mentions the word change", () => {
+    const result = applyProposedChanges(body, [
+      finding({ quoted_text: body, language: "Any change to the Group rate requires written consent of both parties." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("requires written consent");
+  });
+
+  it("still applies a clause beginning with the word no", () => {
+    const result = applyProposedChanges(body, [
+      finding({ quoted_text: body, language: "No guestroom shall be sold below the Group rate during the Event." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("No guestroom shall be sold");
+  });
+
+  it("lists the commentary in the closing section so the associate still sees it", () => {
+    const result = applyProposedChanges(body, [
+      finding({ clause_type: "rate_parity", quoted_text: body, language: "No change needed — retain as drafted." }),
+    ]);
+    const text = buildCleanContractText(result);
+    expect(text).toContain("Proposed Changes Not Placed Automatically");
+    expect(text).toContain("Rate parity");
+    expect(text).toContain(body);
+  });
+});
