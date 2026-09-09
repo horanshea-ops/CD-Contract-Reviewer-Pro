@@ -5,6 +5,8 @@ import { logAudit } from "@/lib/audit";
 
 /**
  * §1.8.5/§1.8.6 — records an associate's inline edit to a drafted email.
+ * Serves both audiences; the audit action follows the draft's own audience so
+ * property edits aren't filed under the client label.
  * Never sends anything; this is a plain content update.
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +25,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const admin = createAdminClient();
 
-  const { data: draft } = await admin.from("email_drafts").select("id, associate_id").eq("id", id).maybeSingle();
+  const { data: draft } = await admin
+    .from("email_drafts")
+    .select("id, associate_id, audience")
+    .eq("id", id)
+    .maybeSingle();
   if (!draft) {
     return NextResponse.json({ error: "Draft not found." }, { status: 404 });
   }
@@ -46,7 +52,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   await logAudit({
     actorId: associate.id,
-    action: "client_email_edited",
+    action: `${draft.audience}_email_edited`,
     entityType: "email_draft",
     entityId: id,
     metadata: {},

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { RedlineExportButton } from "@/components/redline-export-button";
 import { MarkupExportButton } from "@/components/markup-export-button";
 import { ClientEmailPanel } from "@/components/client-email-panel";
+import { PropertyEmailPanel } from "@/components/property-email-panel";
 import { AiClauseReview } from "@/components/ai-clause-review";
 import { startDownload } from "@/lib/download";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
@@ -258,6 +259,11 @@ export default function AnalysisPage() {
           {data.source_format === "docx" && data.intake_route !== "pdf" && (
             <RedlineExportButton analysisId={data.id} />
           )}
+          {/*
+            Not gated on source_format — the marked-up PDF is a property-facing
+            deliverable too, so the cover email applies whichever export goes out.
+          */}
+          <PropertyEmailPanel analysisId={data.id} />
         </div>
       </div>
 
