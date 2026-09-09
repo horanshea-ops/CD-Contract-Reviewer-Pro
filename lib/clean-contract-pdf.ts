@@ -2,6 +2,7 @@ import type { RenderedLine } from "./text-to-pdf";
 import { textToPdf } from "./text-to-pdf";
 import { extractPdfLines } from "./extract-pdf-lines";
 import { locateQuote } from "./redline-engine/locate";
+import { normalizeText } from "./docx/normalize";
 import { isLocated } from "./redline-engine/types";
 
 /**
@@ -167,7 +168,32 @@ function dropRunningFurniture(lines: RenderedLine[]): RenderedLine[] {
   );
   if (furniture.size === 0) return lines;
 
-  return lines.filter((l) => !(atEdge(l) && furniture.has(key(l))));
+  // A table continuing across pages repeats its header row at the top of each
+  // one, which looks exactly like a running head. The two are told apart by
+  // whether the digits move: "Page 1 of 40" varies and is certainly furniture,
+  // while an unchanging line could be either. So an unchanging line keeps its
+  // first occurrence, which is the right answer for a table header and merely
+  // untidy for a document title. Losing a table header is content loss, and
+  // that is the error worth avoiding.
+  const varies = new Map<string, boolean>();
+  const firstText = new Map<string, string>();
+  for (const l of lines) {
+    const k = key(l);
+    if (!furniture.has(k) || !atEdge(l)) continue;
+    const seenText = firstText.get(k);
+    if (seenText === undefined) firstText.set(k, norm(l.text));
+    else if (seenText !== norm(l.text)) varies.set(k, true);
+  }
+
+  const kept = new Set<string>();
+  return lines.filter((l) => {
+    const k = key(l);
+    if (!atEdge(l) || !furniture.has(k)) return true;
+    if (varies.get(k)) return false;
+    if (kept.has(k)) return false;
+    kept.add(k);
+    return true;
+  });
 }
 
 /** A gap wider than the running line pitch by this factor starts a new paragraph. */
@@ -235,7 +261,19 @@ export function reconstructContractText(rawLines: RenderedLine[]): string {
     const newParagraph = !samePage || gap > pitch * PARAGRAPH_GAP_FACTOR;
     out += (newParagraph ? "\n\n" : " ") + groups[i].text;
   }
-  return out;
+
+  // lib/docx/normalize.ts states the rule: text and quote must normalise the
+  // same way or a quoted phrase will not be found in the text it came from.
+  // §1.5 gets text that §1.4 already normalised character by character while
+  // building its source map. Reconstructed text has had no such pass, so it
+  // gets one here — otherwise a contract written in Word, where curly quotes
+  // and non-breaking hyphens are everywhere, silently fails to match.
+  //
+  // Normalising the whole string is safe here because this render is a new
+  // document rather than an edit to an existing one, so no offset map has to
+  // survive. Straight quotes for curly is a typographic change, which the
+  // agreed bar allows; the removed characters are invisible to a reader.
+  return normalizeText(out);
 }
 
 interface Placement {

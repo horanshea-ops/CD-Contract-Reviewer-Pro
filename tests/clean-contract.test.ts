@@ -76,7 +76,7 @@ describe("reconstructContractText", () => {
     expect(text).toBe("The Group shall pay seventy-five percent of anticipated revenue.");
   });
 
-  it("drops a running footer that repeats at the same height across pages", () => {
+  it("collapses a running header and footer to a single occurrence", () => {
     const lines = [0, 1, 2, 3].flatMap((page) => [
       line("HARBORVIEW GRAND - GROUP AGREEMENT", TOP, page),
       line(`Body text unique to page ${page}.`, TOP - PITCH, page),
@@ -85,8 +85,11 @@ describe("reconstructContractText", () => {
       line("CONFIDENTIAL - HARBORVIEW GRAND", 40, page),
     ]);
     const text = reconstructContractText(lines);
-    expect(text).not.toMatch(/CONFIDENTIAL/);
-    expect(text).not.toMatch(/GROUP AGREEMENT/);
+    // Kept once rather than removed outright — an unchanging repeated line at a
+    // page edge might be a table header continued across pages, and dropping
+    // one of those would lose content.
+    expect(text.match(/CONFIDENTIAL/g)).toHaveLength(1);
+    expect(text.match(/GROUP AGREEMENT/g)).toHaveLength(1);
     expect(text).toContain("Body text unique to page 0.");
     expect(text).toContain("Body text unique to page 3.");
   });
@@ -510,7 +513,8 @@ describe("tables and awkward layout", () => {
       line("FOOTER", 40, page),
     ]);
     const text = reconstructContractText(lines);
-    expect(text).not.toMatch(/HEADER|FOOTER/);
+    expect(text.match(/HEADER/g)).toHaveLength(1);
+    expect(text.match(/FOOTER/g)).toHaveLength(1);
     expect(text.match(/Payment is due on receipt/g)).toHaveLength(4);
   });
 
@@ -619,5 +623,225 @@ describe("tables and awkward layout", () => {
     expect(text).toContain("$30,000");
     expect(text).toContain("22%");
     expect(text).toContain("F&B");
+  });
+});
+
+/**
+ * Second pass over table and formatting behaviour, covering what real Word and
+ * Acrobat output throws at this that the first pass did not reach.
+ */
+describe("Word and Acrobat artefacts", () => {
+  function row(cells: { text: string; x: number }[], y: number, page = 0): RenderedLine[] {
+    return cells.map((c) => line(c.text, y, page, c.x));
+  }
+
+  it("keeps a table header that repeats at the top of each continuation page, once", () => {
+    const lines = [0, 1, 2, 3].flatMap((page) => [
+      line("Days Prior | Damages", TOP, page),
+      line(`${365 - page * 90} or more | ${25 + page * 10}%`, TOP - PITCH, page),
+      line(`Continuation row b on page ${page} of the schedule.`, TOP - PITCH * 2, page),
+      line(`Continuation row c on page ${page} of the schedule.`, TOP - PITCH * 3, page),
+      line(`Page ${page + 1} of 4`, 40, page, 480),
+    ]);
+    const text = reconstructContractText(lines);
+    expect(text.match(/Days Prior \| Damages/g)).toHaveLength(1);
+    expect(text).not.toMatch(/Page \d of 4/);
+    expect(text).toContain("365 or more | 25%");
+    expect(text).toContain("95 or more | 55%");
+  });
+
+  it("matches a straight-quoted quote against curly quotes in the contract", () => {
+    const doc = [line("The “Group” shall pay seventy‑five percent (75%).", TOP)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({ quoted_text: 'The "Group" shall pay seventy-five percent (75%).', language: 'The "Group" shall pay fifty percent (50%).' }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("fifty percent (50%)");
+  });
+
+  it("matches across a non-breaking space and a non-breaking hyphen", () => {
+    const doc = [line("The rate is $259.00 for seventy‑five rooms.", TOP)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({
+        quoted_text: "The rate is $259.00 for seventy-five rooms.",
+        language: "The rate is $229.00 for seventy-five rooms.",
+      }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("$229.00");
+  });
+
+  /**
+   * lib/docx/normalize.ts folds hyphen-like characters but leaves en and em
+   * dashes alone, since they carry meaning a hyphen does not. A quote differing
+   * by one such character still matches on the fuzzy tier, which is set at 0.95
+   * similarity — so ordinary dash rewriting by the model is absorbed.
+   */
+  it("absorbs a single en dash difference on the fuzzy tier", () => {
+    const doc = [line("Rooms 100–200 are held at the group rate.", TOP)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({ quoted_text: "Rooms 100-200 are held at the group rate.", language: "REPLACED." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toBe("REPLACED.");
+  });
+
+  /**
+   * Enough typographic differences at once do fall below that threshold, and
+   * the change is then listed rather than applied to approximately the right
+   * text. Listing is the safe direction, and this records where the line sits.
+   */
+  it("lists a quote that drifts too far to match confidently", () => {
+    const doc = [line("Rooms 100–200 — rate $259.00 per night, plus tax.", TOP)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({ quoted_text: "Suites 100-200 -- rate $259.00 nightly, plus tax and fees.", language: "REPLACED." }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced).toHaveLength(1);
+    expect(result.text).toContain("Rooms 100–200");
+  });
+
+  it("matches text carrying a soft hyphen or zero-width space", () => {
+    const doc = [line("The attri­tion thresh​old is 90%.", TOP)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({ clause_type: "attrition", quoted_text: "The attrition threshold is 90%.", language: "The attrition threshold is 80%." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toBe("The attrition threshold is 80%.");
+  });
+
+  it("substitutes a quote that spans a paragraph break", () => {
+    const doc = [line("The Group shall be liable", TOP), line("for the full amount due.", TOP - PITCH - 20)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({ quoted_text: "The Group shall be liable for the full amount due.", language: "The Group shall be liable for its documented losses." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("its documented losses");
+  });
+
+  it("substitutes a quote that spans a page break", () => {
+    const doc = [line("The Group shall be liable", TOP, 0), line("for the full amount due.", TOP, 1)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({ quoted_text: "The Group shall be liable for the full amount due.", language: "The Group shall be liable for its documented losses." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("its documented losses");
+  });
+
+  it("matches across a tab between words", () => {
+    const doc = [line("Attrition\tthreshold\t90%", TOP)];
+    const result = applyProposedChanges(reconstructContractText(doc), [
+      finding({ clause_type: "attrition", quoted_text: "Attrition threshold 90%", language: "Attrition threshold 80%" }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toBe("Attrition threshold 80%");
+  });
+
+  it("keeps a right-aligned numeric column with the row it belongs to", () => {
+    const text = reconstructContractText([
+      ...row([{ text: "365 or more", x: 56 }, { text: "25%", x: 520 }], TOP),
+      ...row([{ text: "180 to 364", x: 56 }, { text: "100%", x: 512 }], TOP - PITCH),
+    ]);
+    expect(text).toBe("365 or more 25% 180 to 364 100%");
+  });
+
+  it("does not invent a cell when a row has an empty one", () => {
+    const text = reconstructContractText([
+      ...row([{ text: "Deposit", x: 56 }, { text: "Due at signing", x: 300 }], TOP),
+      ...row([{ text: "Final payment", x: 56 }], TOP - PITCH),
+      ...row([{ text: "Cancellation", x: 56 }, { text: "Per schedule", x: 300 }], TOP - PITCH * 2),
+    ]);
+    expect(text).toBe("Deposit Due at signing Final payment Cancellation Per schedule");
+  });
+
+  it("joins a list marker delivered as its own item to the text it labels", () => {
+    const text = reconstructContractText([
+      line("1.", TOP, 0, 56),
+      line("The Group shall provide notice.", TOP, 0, 80),
+      line("2.", TOP - PITCH, 0, 56),
+      line("The Hotel shall confirm receipt.", TOP - PITCH, 0, 80),
+    ]);
+    expect(text).toBe("1. The Group shall provide notice. 2. The Hotel shall confirm receipt.");
+  });
+
+  it("refuses a quote matching two identical table rows", () => {
+    const text = reconstructContractText([
+      ...row([{ text: "Deposit due", x: 56 }, { text: "50%", x: 300 }], TOP),
+      ...row([{ text: "Interim payment", x: 56 }, { text: "25%", x: 300 }], TOP - PITCH),
+      ...row([{ text: "Deposit due", x: 56 }, { text: "50%", x: 300 }], TOP - PITCH * 2),
+    ]);
+    const result = applyProposedChanges(text, [
+      finding({ quoted_text: "Deposit due 50%", language: "Deposit due 25%" }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced[0].reason).toMatch(/appears 2 times/i);
+  });
+
+  it("picks the right one of two identical rows when a section reference separates them", () => {
+    const text = "4. Deposit Terms\n\nDeposit due 50%\n\n9. Interim Terms\n\nDeposit due 50%";
+    const result = applyProposedChanges(text, [
+      finding({ quoted_text: "Deposit due 50%", language: "Deposit due 25%", location_section: "Section 9" }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toBe("4. Deposit Terms\n\nDeposit due 50%\n\n9. Interim Terms\n\nDeposit due 25%");
+  });
+
+  /**
+   * §1.5's section anchors read a clause number that opens the line, or a
+   * heading carrying the extractor's hash marks. A contract writing "Section 9."
+   * in prose gives neither, so the ambiguity stands and the change is listed
+   * rather than applied. Refusing is the safe direction; recorded because the
+   * anchor patterns live in §1.5 and widening them belongs there.
+   */
+  it("leaves an ambiguous row alone when the section is written in prose", () => {
+    const text =
+      "Section 4. Deposit Terms\n\nDeposit due 50%\n\nSection 9. Interim Terms\n\nDeposit due 50%";
+    const result = applyProposedChanges(text, [
+      finding({ quoted_text: "Deposit due 50%", language: "Deposit due 25%", location_section: "Section 9" }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.text).toBe(text);
+  });
+
+  it("renders a multi-page table contract cleanly and passes the gate", async () => {
+    const lines = [0, 1, 2].flatMap((page) => [
+      line("Days Prior | Damages", TOP, page),
+      line(`${365 - page * 90} or more | ${25 + page * 10}%`, TOP - PITCH, page),
+      line(`Continuation row b on page ${page} of the schedule.`, TOP - PITCH * 2, page),
+      line(`Continuation row c on page ${page} of the schedule.`, TOP - PITCH * 3, page),
+      line(`Page ${page + 1} of 3`, 40, page, 480),
+    ]);
+    const result = await generateCleanContractPdf({
+      lines,
+      findings: [finding({ quoted_text: "365 or more | 25%", language: "365 or more | 10%" })],
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.conservation.problems).toEqual([]);
+    expect(result.appliedCount).toBe(1);
+
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("365 or more | 10%");
+    expect(text).toContain("275 or more | 35%");
+    expect(text).toContain("185 or more | 45%");
+    expect(text).not.toMatch(/Page \d of 3/);
+  });
+
+  it("renders curly quotes and dashes through to a clean PDF without losing content", async () => {
+    const doc = [
+      line("The “Group” shall pay seventy‑five percent (75%) — no exceptions.", TOP),
+      line("Rooms 100–200 are held at $259.00.", TOP - PITCH),
+    ];
+    const result = await generateCleanContractPdf({
+      lines: doc,
+      findings: [finding({ quoted_text: 'seventy-five percent (75%)', language: "fifty percent (50%)" })],
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.conservation.problems).toEqual([]);
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("fifty percent (50%)");
+    expect(text).toContain("Rooms 100–200");
+    expect(text).toContain("$259.00");
   });
 });
