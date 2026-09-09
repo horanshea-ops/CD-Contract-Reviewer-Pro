@@ -845,3 +845,188 @@ describe("Word and Acrobat artefacts", () => {
     expect(text).toContain("$259.00");
   });
 });
+
+/**
+ * Harder situations: many changes in one contract, replacements that interact
+ * with the text they replace, malformed findings, and characters the renderer
+ * cannot draw.
+ */
+describe("complicated substitutions", () => {
+  const contract = [
+    line("1. Attrition. The threshold is ninety percent (90%) measured nightly.", TOP),
+    line("2. Cancellation. Damages are seventy-five percent (75%) of revenue.", TOP - PITCH),
+    line("3. Cutoff. Reservations close forty-five (45) days prior.", TOP - PITCH * 2),
+    line("4. Deposit. A deposit of thirty percent (30%) is due at signing.", TOP - PITCH * 3),
+    line("5. Service. A service charge of twenty-two percent (22%) applies.", TOP - PITCH * 4),
+  ];
+
+  it("applies five changes across one contract, each in the right clause", () => {
+    const text = reconstructContractText(contract);
+    const result = applyProposedChanges(text, [
+      finding({ clause_type: "attrition", quoted_text: "ninety percent (90%)", language: "eighty percent (80%)" }),
+      finding({ clause_type: "cancellation", quoted_text: "seventy-five percent (75%)", language: "fifty percent (50%)" }),
+      finding({ clause_type: "cutoff_date", quoted_text: "forty-five (45) days", language: "twenty-one (21) days" }),
+      finding({ clause_type: "damage_deposit", quoted_text: "thirty percent (30%)", language: "ten percent (10%)" }),
+      finding({ clause_type: "gratuity_service_charge", quoted_text: "twenty-two percent (22%)", language: "twenty percent (20%)" }),
+    ]);
+
+    expect(result.applied).toHaveLength(5);
+    expect(result.unplaced).toHaveLength(0);
+    expect(result.text).toBe(
+      "1. Attrition. The threshold is eighty percent (80%) measured nightly. " +
+        "2. Cancellation. Damages are fifty percent (50%) of revenue. " +
+        "3. Cutoff. Reservations close twenty-one (21) days prior. " +
+        "4. Deposit. A deposit of ten percent (10%) is due at signing. " +
+        "5. Service. A service charge of twenty percent (20%) applies."
+    );
+  });
+
+  it("applies two changes whose spans touch end to start", () => {
+    const result = applyProposedChanges("ABCDEF", [
+      finding({ clause_type: "attrition", quoted_text: "ABC", language: "xxx" }),
+      finding({ clause_type: "cancellation", quoted_text: "DEF", language: "yyy" }),
+    ]);
+    expect(result.applied).toHaveLength(2);
+    expect(result.text).toBe("xxxyyy");
+  });
+
+  it("substitutes once when the replacement contains the text it replaces", () => {
+    const result = applyProposedChanges("The fee is 50% of revenue.", [
+      finding({ quoted_text: "50% of revenue", language: "50% of net revenue, less resold rooms" }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toBe("The fee is 50% of net revenue, less resold rooms.");
+  });
+
+  it("treats an empty replacement as a deletion rather than skipping it", () => {
+    const result = applyProposedChanges("Keep this. Delete this sentence. Keep that.", [
+      finding({ quoted_text: "Delete this sentence. ", language: "" }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toBe("Keep this. Keep that.");
+  });
+
+  it("lists a finding that quotes nothing but is not marked as a new clause", () => {
+    const result = applyProposedChanges("Some contract text.", [
+      finding({ quoted_text: null, language: "Replacement" }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced).toHaveLength(1);
+    expect(result.unplaced[0].reason).toMatch(/quotes no wording/i);
+    expect(result.text).toBe("Some contract text.");
+  });
+
+  it("applies the first of two findings quoting the same text and lists the second", () => {
+    const result = applyProposedChanges("The fee is 50% of revenue.", [
+      finding({ quoted_text: "50%", language: "25%" }),
+      finding({ clause_type: "attrition", quoted_text: "50%", language: "30%" }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.unplaced).toHaveLength(1);
+    expect(result.unplaced[0].reason).toMatch(/overlaps/i);
+    expect(result.text).toBe("The fee is 25% of revenue.");
+  });
+
+  it("refuses a value that is a prefix of other values in the same contract", () => {
+    const text = reconstructContractText([
+      line("Rate V1 applies to the block.", TOP),
+      line("Rate V10 applies to suites.", TOP - PITCH),
+      line("Rate V11 applies to staff rooms.", TOP - PITCH * 2),
+    ]);
+    const result = applyProposedChanges(text, [finding({ quoted_text: "V1", language: "V2" })]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced[0].reason).toMatch(/appears 3 times/i);
+  });
+
+  it("handles a dollar amount in the replacement without treating it as a pattern", () => {
+    const result = applyProposedChanges("The minimum is $45,000 for the Event.", [
+      finding({ clause_type: "fb_minimum", quoted_text: "$45,000", language: "$30,000 (or $25,000 if rooms fall short)" }),
+    ]);
+    expect(result.text).toBe("The minimum is $30,000 (or $25,000 if rooms fall short) for the Event.");
+  });
+
+  it("puts pages back in order when they arrive reversed", () => {
+    const text = reconstructContractText([
+      line("Page two content here.", TOP, 1),
+      line("Page one content here.", TOP, 0),
+    ]);
+    expect(text).toBe("Page one content here.\n\nPage two content here.");
+  });
+
+  it("returns the contract unchanged when nothing was accepted", async () => {
+    const result = await generateCleanContractPdf({
+      lines: contract,
+      findings: [],
+      title: "Proposed Amended Contract",
+    });
+    expect(result.appliedCount).toBe(0);
+    expect(result.additions).toHaveLength(0);
+    expect(result.unplaced).toHaveLength(0);
+    expect(result.conservation.problems).toEqual([]);
+
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("ninety percent (90%)");
+    expect(text).toContain("twenty-two percent (22%)");
+  });
+
+  it("reports characters the PDF font cannot draw instead of dropping them quietly", async () => {
+    const result = await generateCleanContractPdf({
+      lines: [line("The α-block is held at the group rate.", TOP)],
+      findings: [],
+      title: "Proposed Amended Contract",
+    });
+    expect(result.conservation.ok).toBe(false);
+    expect(result.conservation.problems.join(" ")).toMatch(/cannot render/i);
+  });
+
+  it("accepts currency and fraction symbols the font can draw", async () => {
+    const result = await generateCleanContractPdf({
+      lines: [line("Rate €259 or £220, ½ day at 20° ambient — per night.", TOP)],
+      findings: [],
+      title: "Proposed Amended Contract",
+    });
+    expect(result.conservation.problems).toEqual([]);
+  });
+
+  it("renders a long replacement clause across a page boundary with the gate clean", async () => {
+    const long = Array.from({ length: 8 }, (_, i) => `Sub-clause ${i + 1} of the replacement text, stating an obligation in full.`).join(" ");
+    const result = await generateCleanContractPdf({
+      lines: contract,
+      findings: [finding({ clause_type: "attrition", quoted_text: "ninety percent (90%) measured nightly", language: long })],
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.conservation.problems).toEqual([]);
+    expect(result.appliedCount).toBe(1);
+
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("Sub-clause 1 of the replacement text");
+    expect(text).toContain("Sub-clause 8 of the replacement text");
+    expect(text).not.toContain("ninety percent (90%)");
+  });
+
+  it("carries a full run of changes, an addition and an unplaced item through one render", async () => {
+    const result = await generateCleanContractPdf({
+      lines: contract,
+      findings: [
+        finding({ clause_type: "attrition", quoted_text: "ninety percent (90%)", language: "eighty percent (80%)" }),
+        finding({ clause_type: "cancellation", quoted_text: "seventy-five percent (75%)", language: "fifty percent (50%)" }),
+        finding({ clause_type: "walk_relocation", is_missing_clause: true, quoted_text: null, language: "Hotel shall provide comparable lodging at its expense." }),
+        finding({ clause_type: "rebates", quoted_text: "a rebate clause that is not in this contract", language: "One complimentary room per forty rooms." }),
+      ],
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.appliedCount).toBe(2);
+    expect(result.additions).toHaveLength(1);
+    expect(result.unplaced).toHaveLength(1);
+    expect(result.conservation.problems).toEqual([]);
+
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("eighty percent (80%)");
+    expect(text).toContain("fifty percent (50%)");
+    expect(text).toContain("Hotel shall provide comparable lodging");
+    expect(text).toContain("One complimentary room per forty rooms.");
+    expect(text).toContain("Cutoff. Reservations close forty-five (45) days prior.");
+  });
+});

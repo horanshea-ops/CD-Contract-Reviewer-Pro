@@ -72,6 +72,15 @@ function alnum(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+/**
+ * A letter or digit the renderer's font cannot encode. lib/text-to-pdf.ts drops
+ * those rather than crashing, and the check below compares letters and digits
+ * only, so such a character is stripped from both sides and the loss goes
+ * unseen. Symbols are excluded deliberately — an en dash sits above this range
+ * and encodes fine.
+ */
+const UNENCODABLE_LETTER = /[^\x00-\xFF]/u;
+
 /** Page numbers are drawn by the renderer, not part of the document's content. */
 const PAGE_NUMBER = /^page\s+\d+\s+of\s+\d+$/i;
 
@@ -343,7 +352,14 @@ export function applyProposedChanges(text: string, findings: CleanContractFindin
 
   let out = text;
   for (const p of [...kept].reverse()) {
-    out = out.slice(0, p.start) + p.finding.language + out.slice(p.end);
+    const start = p.start;
+    let end = p.end;
+
+    // Deleting a clause leaves the spaces that sat either side of it. The
+    // locator trims a model-supplied quote, so the span never covers them.
+    if (p.finding.language === "" && out[start - 1] === " " && out[end] === " ") end += 1;
+
+    out = out.slice(0, start) + p.finding.language + out.slice(end);
   }
 
   return { text: out, applied: kept.map((p) => p.finding), unplaced, additions };
@@ -438,7 +454,21 @@ export async function checkContentConservation({
     }
   }
 
-  // 3. Round trip: read the rendered PDF back and confirm nothing was lost at
+  // 3. Characters the font cannot encode are dropped at render time, and the
+  //    comparison below would not see it because it ignores anything that is
+  //    not a letter or digit.
+  const unencodable = [...intendedText].filter(
+    (ch) => UNENCODABLE_LETTER.test(ch) && /\p{L}|\p{N}/u.test(ch)
+  );
+  if (unencodable.length) {
+    const sample = [...new Set(unencodable)].slice(0, 5).join(" ");
+    problems.push(
+      `The document contains ${unencodable.length} character(s) the PDF font cannot render, which would be ` +
+        `dropped silently: ${sample}`
+    );
+  }
+
+  // 4. Round trip: read the rendered PDF back and confirm nothing was lost at
   //    render time — an unencodable glyph dropped, or a page truncated.
   try {
     const roundTripped = await extractPdfLines(pdfBytes.slice());
