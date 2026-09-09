@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Field, FieldInput } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { ORG_NAME } from "@/lib/org";
 
 const REDIRECT_ERRORS: Record<string, string> = {
   not_authorized:
@@ -74,7 +75,7 @@ export default function LoginPage() {
             Every finding is a candidate for review, never a clearance.
           </h2>
           <p className="text-[var(--cd-blue-light)] text-sm max-w-sm">
-            A negotiating aid for ConferenceDirect associates — measured against how CD actually
+            A negotiating aid for {ORG_NAME} associates — measured against how CD actually
             negotiates, not generic industry defaults.
           </p>
         </div>
@@ -91,7 +92,7 @@ export default function LoginPage() {
 
           <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Sign in</h1>
           <p className="text-sm text-[var(--text-secondary)] mb-6">
-            Use your ConferenceDirect email. We&apos;ll send you a login link — no password needed.
+            Use your {ORG_NAME} email. We&apos;ll send you a login link — no password needed.
           </p>
 
           <Suspense fallback={null}>
