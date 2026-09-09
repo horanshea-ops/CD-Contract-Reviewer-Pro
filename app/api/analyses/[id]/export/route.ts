@@ -31,7 +31,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Analysis isn't complete yet." }, { status: 400 });
   }
 
-  const memoFindings = await getActionedFindings(admin, id);
+  const { findings: memoFindings, nonSubstantive } = await getActionedFindings(admin, id);
 
   const pdfBytes = await generateRevisionsMemo({
     contractFilename: analysis.filename,
@@ -58,7 +58,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     action: "memo_exported",
     entityType: "analysis",
     entityId: id,
-    metadata: { findings_included: memoFindings.length },
+    metadata: { findings_included: memoFindings.length, non_substantive: nonSubstantive.length },
   });
 
   return new NextResponse(Buffer.from(pdfBytes), {

@@ -1,5 +1,6 @@
 import type { createAdminClient } from "./supabase/admin";
 import type { RevisionFinding } from "./redline-engine/types";
+import { assertsNoChange } from "./proposed-language";
 
 const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2, note: 3 };
 
@@ -14,10 +15,29 @@ const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2, not
  * to tell two copies of the same wording apart, and the id to write back how
  * each one resolved; the memo and PDF exports ignore both.
  */
+/** A finding accepted despite proposing no change. Excluded from every export. */
+export interface NonSubstantiveFinding {
+  clause_type: string;
+  language: string;
+}
+
+export interface ActionedFindings {
+  findings: RevisionFinding[];
+  nonSubstantive: NonSubstantiveFinding[];
+}
+
+/**
+ * Accepted and edited findings, in the shape the exports need, with anything
+ * proposing no change held back — see lib/proposed-language.ts. Every export
+ * lists changes, so a finding that is not one belongs in none of them.
+ *
+ * The held-back items are returned rather than dropped quietly, so a route can
+ * record that they existed.
+ */
 export async function getActionedFindings(
   admin: ReturnType<typeof createAdminClient>,
   analysisId: string
-): Promise<RevisionFinding[]> {
+): Promise<ActionedFindings> {
   const { data: findingRowsRaw } = await admin
     .from("findings")
     .select("id, clause_type, severity, is_missing_clause, quoted_text, location_section, finding_text, cd_standard, proposed_language")
@@ -41,7 +61,7 @@ export async function getActionedFindings(
     }
   }
 
-  return findingRows
+  const actioned = findingRows
     .map((f) => ({ f, action: latestActionByFinding.get(f.id) }))
     .filter((x): x is { f: FindingRow; action: { action: string; edited_language: string | null } } =>
       x.action != null && (x.action.action === "accept" || x.action.action === "edit")
@@ -58,4 +78,13 @@ export async function getActionedFindings(
       finding_text: f.finding_text,
       cd_standard: f.cd_standard,
     }));
+
+  const nonSubstantive = actioned
+    .filter((f) => assertsNoChange(f.language))
+    .map((f) => ({ clause_type: f.clause_type, language: f.language }));
+
+  return {
+    findings: actioned.filter((f) => !assertsNoChange(f.language)),
+    nonSubstantive,
+  };
 }

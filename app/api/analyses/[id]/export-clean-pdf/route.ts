@@ -70,7 +70,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // The allowlist boundary. getActionedFindings carries severity, finding_text
   // and cd_standard; this document can reach the property, so only contract
   // text crosses into it. Same rule as §1.8.3's property email.
-  const findings: CleanContractFinding[] = (await getActionedFindings(admin, id)).map((f) => ({
+  const { findings: actioned, nonSubstantive } = await getActionedFindings(admin, id);
+  const findings: CleanContractFinding[] = actioned.map((f) => ({
     clause_type: f.clause_type,
     location_section: f.location_section,
     quoted_text: f.quoted_text,
@@ -148,6 +149,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       applied: result.appliedCount,
       additions: result.additions.length,
       unplaced: result.unplaced.length,
+      non_substantive: nonSubstantive.length,
       outcome,
       source_format: analysis.source_format,
     },
