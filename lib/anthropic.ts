@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
+import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 
 /**
  * THE single module for outbound calls to the model. Non-negotiable #5 in the
@@ -352,6 +353,149 @@ export async function generateClientEmail({
     return await attempt();
   } catch (err) {
     console.error("generateClientEmail: first attempt failed, retrying once —", err);
+    return await attempt();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// §1.8.3 — property email drafting. Same module as analyzeContract per the
+// single-outbound-call-site rule at the top of this file.
+//
+// The allowlist is enforced upstream, in lib/email-drafting/property-assembly.ts
+// and in buildPropertyEmailPayload below, not by the prompt. The prompt still
+// sets tone and forbids inventing reasoning, but nothing here relies on the
+// model to withhold anything — CD's severity, exposure and rationale are never
+// constructed as inputs to this call in the first place.
+// ---------------------------------------------------------------------------
+
+const PROPERTY_EMAIL_TOOL_NAME = "record_property_email";
+
+const PROPERTY_EMAIL_TOOL_SCHEMA = {
+  name: PROPERTY_EMAIL_TOOL_NAME,
+  description:
+    "Record a short, courteous email transmitting a marked-up contract to the property, listing the items addressed in neutral terms.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      subject: { type: "string" },
+      body: { type: "string", description: "Plain text email body, no HTML, no markdown formatting." },
+    },
+    required: ["subject", "body"],
+  },
+};
+
+/**
+ * Static — the rules don't vary per call, so this needs no arguments and is
+ * directly testable by checking it contains each required instruction.
+ */
+export function buildPropertyEmailPrompt(): string {
+  return `You are drafting a short cover email from a ConferenceDirect (CD) associate to a hotel or venue, transmitting a marked-up copy of the venue's own contract draft.
+
+Audience: the property, which is the counterparty in this negotiation. The tone is courteous, professional and matter-of-fact. These are people the associate works with repeatedly.
+
+Structure, in this order and nothing more:
+1. A brief opening thanking them for the draft and noting that a marked-up copy is attached.
+2. A short list of the items addressed, described neutrally.
+3. An offer to discuss any of it.
+
+Describe each item in neutral, factual terms — what changed, never why. "Adjusted the attrition threshold and added resale credit language" is the target. Name the subject of each change and, where it is short and concrete, the substance of the new language.
+
+Do not state or speculate about reasoning. Never explain why a change was requested, what concerned CD, how important an item is, or how firm CD's position is. Do not write phrases like "to protect our client", "this is important to us", "we would need", or "our budget requires". You have not been given CD's reasoning and must not invent it — anything you write beyond a neutral description of the change would be a guess presented to the counterparty as CD's position.
+
+Treat every item as equal in weight. Do not rank, prioritise, flag anything as significant or minor, or signal which items matter more.
+
+Do not characterise the legal effect of any clause, and do not describe anything as agreed, final or accepted — these are requested changes and the property has not responded to them.
+
+Keep it short. A few sentences plus the list. Do not restate the contract language at length.
+
+Write only from what you were given. Do not leave bracketed placeholders such as [Group Name] or [Dates] for the sender to fill in, and do not invent a detail to fill a gap — if you were not given something, leave it out and write around it.
+
+End with a brief line offering to discuss, but do not write a sign-off or the associate's name — a signature is appended separately after this text.`;
+}
+
+/**
+ * The exact user message sent to the model, built by naming each allowed field.
+ * Exported and pure so a test can assert on the real payload — that a finding
+ * row carrying severity, exposure and rationale produces a payload with none of
+ * it, which is what §1.8.3's "filter, not a prompt instruction" means.
+ *
+ * Never spread an item here.
+ */
+export function buildPropertyEmailPayload(items: PropertyEmailItem[], propertyLabel: string): string {
+  const itemsBlock = items
+    .map((item, i) => {
+      const kind = item.is_missing_clause ? "added — not present in the current draft" : "revised";
+      return `[${i + 1}] ${item.clause_type.replace(/_/g, " ")} (${kind})\nLanguage now proposed: ${item.proposed_language}`;
+    })
+    .join("\n\n");
+
+  return `Agreement: ${propertyLabel}\n\nItems addressed in the attached markup:\n\n${itemsBlock}`;
+}
+
+export interface PropertyEmailResult {
+  subject: string;
+  body: string;
+  model_id: string;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface GeneratePropertyEmailArgs {
+  items: PropertyEmailItem[];
+  propertyLabel: string;
+  model?: string;
+}
+
+export async function generatePropertyEmail({
+  items,
+  propertyLabel,
+  model,
+}: GeneratePropertyEmailArgs): Promise<PropertyEmailResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
+  }
+
+  const client = new Anthropic({ apiKey });
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
+  const userText = buildPropertyEmailPayload(items, propertyLabel);
+
+  async function attempt(): Promise<PropertyEmailResult> {
+    const response = await client.messages.create({
+      model: modelId,
+      max_tokens: 2000,
+      system: buildPropertyEmailPrompt(),
+      tools: [PROPERTY_EMAIL_TOOL_SCHEMA],
+      tool_choice: { type: "tool", name: PROPERTY_EMAIL_TOOL_NAME },
+      messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
+    });
+
+    const toolUseBlock = response.content.find(
+      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
+    );
+    if (!toolUseBlock) {
+      throw new Error("Model did not return a structured email draft (no tool_use block in response).");
+    }
+
+    const parsed = toolUseBlock.input as { subject?: string; body?: string };
+    if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
+      throw new Error(`Model returned malformed JSON (missing subject or body). stop_reason=${response.stop_reason}`);
+    }
+
+    return {
+      subject: parsed.subject,
+      body: parsed.body,
+      model_id: modelId,
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+    };
+  }
+
+  try {
+    return await attempt();
+  } catch (err) {
+    console.error("generatePropertyEmail: first attempt failed, retrying once —", err);
     return await attempt();
   }
 }
