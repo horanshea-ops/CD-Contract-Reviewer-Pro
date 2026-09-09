@@ -1030,3 +1030,205 @@ describe("complicated substitutions", () => {
     expect(text).toContain("Cutoff. Reservations close forty-five (45) days prior.");
   });
 });
+
+/**
+ * Scale, ordering and the seams between reconstruction and rendering.
+ */
+describe("long contracts and boundary conditions", () => {
+  function row(cells: { text: string; x: number }[], y: number, page = 0): RenderedLine[] {
+    return cells.map((c) => line(c.text, y, page, c.x));
+  }
+
+  /** Seven source pages of dense text, which flows to more rendered pages than it came from. */
+  const bigContract = Array.from({ length: 300 }, (_, i) =>
+    line(
+      `Clause ${i}. Obligation number ${i} is stated here in full sentence form.`,
+      TOP - (i % 45) * PITCH,
+      Math.floor(i / 45)
+    )
+  );
+
+  it("renders a long contract without losing any of it", async () => {
+    const result = await generateCleanContractPdf({
+      lines: bigContract,
+      findings: [finding({ quoted_text: "Obligation number 150", language: "Obligation number one hundred and fifty" })],
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.conservation.problems).toEqual([]);
+    expect(result.appliedCount).toBe(1);
+
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("Clause 0.");
+    expect(text).toContain("Clause 299.");
+    expect(text).toContain("Obligation number one hundred and fifty");
+  });
+
+  /**
+   * A paragraph taller than a page used to be drawn past the bottom margin at
+   * negative coordinates, off the canvas, and silently lost.
+   */
+  it("flows a single paragraph longer than one page across pages", async () => {
+    const { textToPdf } = await import("@/lib/text-to-pdf");
+    const sentences = Array.from({ length: 200 }, (_, i) => `Sentence ${i} of one very long paragraph.`);
+    const body = sentences.join(" ");
+    const { pdfBytes } = await textToPdf("Proposed Amended Contract", body);
+
+    const text = (await extractPdfLines(pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("Sentence 0 of one very long paragraph.");
+    expect(text).toContain("Sentence 199 of one very long paragraph.");
+  });
+
+  it("gives the same result whatever order the findings arrive in", () => {
+    const text = reconstructContractText([
+      line("1. Attrition is 90% nightly.", TOP),
+      line("2. Damages are 75% of revenue.", TOP - PITCH),
+      line("3. Cutoff is 45 days prior.", TOP - PITCH * 2),
+      line("4. Deposit is 30% at signing.", TOP - PITCH * 3),
+    ]);
+    const fs = [
+      finding({ clause_type: "attrition", quoted_text: "90%", language: "80%" }),
+      finding({ quoted_text: "75%", language: "50%" }),
+      finding({ clause_type: "cutoff_date", quoted_text: "45 days", language: "21 days" }),
+      finding({ clause_type: "damage_deposit", quoted_text: "30%", language: "10%" }),
+    ];
+
+    const forward = applyProposedChanges(text, fs).text;
+    const reversed = applyProposedChanges(text, [...fs].reverse()).text;
+    const shuffled = applyProposedChanges(text, [fs[2], fs[0], fs[3], fs[1]]).text;
+
+    expect(reversed).toBe(forward);
+    expect(shuffled).toBe(forward);
+    expect(forward).toContain("80%");
+    expect(forward).toContain("21 days");
+  });
+
+  it("produces identical text on repeated runs", () => {
+    const first = reconstructContractText(bigContract);
+    const second = reconstructContractText(bigContract);
+    expect(second).toBe(first);
+  });
+
+  it("matches a quote whose halves sat either side of a removed footer", () => {
+    const lines = [0, 1, 2].flatMap((page) => [
+      line(`Line one of body text on page ${page}.`, TOP, page),
+      line(`Line two of body text on page ${page}.`, TOP - PITCH, page),
+      line(`Line three of body text on page ${page}.`, TOP - PITCH * 2, page),
+      line(page === 0 ? "The Group shall be liable" : `Continuing text on page ${page}.`, TOP - PITCH * 3, page),
+      line(`Page ${page + 1} of 3`, 40, page, 480),
+    ]);
+    const text = reconstructContractText(lines);
+    expect(text).not.toMatch(/Page \d of 3/);
+    expect(text).toContain("The Group shall be liable");
+  });
+
+  it("cannot place a quote that named text removed as page furniture", () => {
+    const lines = [0, 1, 2].flatMap((page) => [
+      line(`Clause ${page * 2 + 1}. An obligation is stated here.`, TOP, page),
+      line(`Clause ${page * 2 + 2}. Another obligation follows.`, TOP - PITCH, page),
+      line("Payment is due on receipt.", TOP - PITCH * 2, page),
+      line("Notice shall be in writing.", TOP - PITCH * 3, page),
+      line(`Page ${page + 1} of 3`, 40, page, 480),
+    ]);
+    const result = applyProposedChanges(reconstructContractText(lines), [
+      finding({ quoted_text: "Page 2 of 3", language: "Page two" }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced).toHaveLength(1);
+  });
+
+  it("keeps a table cell that wraps onto a second line with its row", () => {
+    const text = reconstructContractText([
+      ...row([{ text: "Cancellation", x: 56 }, { text: "Damages are calculated as a", x: 200 }], TOP),
+      line("percentage of room revenue.", TOP - PITCH, 0, 200),
+      ...row([{ text: "Attrition", x: 56 }, { text: "Measured cumulatively.", x: 200 }], TOP - PITCH * 2),
+    ]);
+    expect(text).toBe(
+      "Cancellation Damages are calculated as a percentage of room revenue. Attrition Measured cumulatively."
+    );
+  });
+
+  it("treats cells nudged off each other's baseline as one row", () => {
+    expect(reconstructContractText([line("Left", TOP, 0, 56), line("Right", TOP - 3, 0, 300)])).toBe("Left Right");
+  });
+
+  it("reads a table followed immediately by prose", () => {
+    const text = reconstructContractText([
+      ...row([{ text: "365 or more", x: 56 }, { text: "25%", x: 300 }], TOP),
+      ...row([{ text: "180 to 364", x: 56 }, { text: "50%", x: 300 }], TOP - PITCH),
+      line("The schedule above governs all cancellations.", TOP - PITCH * 2 - 20),
+    ]);
+    expect(text).toBe(
+      "365 or more 25% 180 to 364 50%\n\nThe schedule above governs all cancellations."
+    );
+  });
+
+  it("renders a contract that is nothing but a table", async () => {
+    const table = [
+      ...row([{ text: "Item", x: 56 }, { text: "Amount", x: 300 }], TOP),
+      ...row([{ text: "Deposit", x: 56 }, { text: "30%", x: 300 }], TOP - PITCH),
+      ...row([{ text: "Attrition", x: 56 }, { text: "90%", x: 300 }], TOP - PITCH * 2),
+    ];
+    const result = await generateCleanContractPdf({
+      lines: table,
+      findings: [finding({ clause_type: "attrition", quoted_text: "Attrition 90%", language: "Attrition 80%" })],
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.conservation.problems).toEqual([]);
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("Attrition 80%");
+    expect(text).toContain("Deposit 30%");
+  });
+
+  it("stays clean when a new clause repeats wording already in the body", async () => {
+    const doc = [line("Notice shall be given in writing to the Hotel.", TOP)];
+    const result = await generateCleanContractPdf({
+      lines: doc,
+      findings: [
+        finding({
+          clause_type: "walk_relocation",
+          is_missing_clause: true,
+          quoted_text: null,
+          language: "Notice shall be given in writing to the Hotel.",
+        }),
+      ],
+      title: "Proposed Amended Contract",
+    });
+    expect(result.conservation.problems).toEqual([]);
+    expect(result.additions).toHaveLength(1);
+  });
+
+  it("stays clean when an unplaced change repeats wording already in the body", async () => {
+    const doc = [line("Notice shall be given in writing to the Hotel.", TOP)];
+    const result = await generateCleanContractPdf({
+      lines: doc,
+      findings: [
+        finding({ quoted_text: "wording that appears nowhere", language: "Notice shall be given in writing to the Hotel." }),
+      ],
+      title: "Proposed Amended Contract",
+    });
+    expect(result.conservation.problems).toEqual([]);
+    expect(result.unplaced).toHaveLength(1);
+  });
+
+  it("handles a page holding a single line", () => {
+    const text = reconstructContractText([
+      line("Only line on the first page.", TOP, 0),
+      line("First line on the second page.", TOP, 1),
+      line("Second line on the second page.", TOP - PITCH, 1),
+    ]);
+    expect(text).toBe(
+      "Only line on the first page.\n\nFirst line on the second page. Second line on the second page."
+    );
+  });
+
+  it("keeps a ragged table whose columns shift between rows", () => {
+    const text = reconstructContractText([
+      ...row([{ text: "Deposit", x: 56 }, { text: "30%", x: 300 }], TOP),
+      ...row([{ text: "Attrition", x: 60 }, { text: "90%", x: 312 }], TOP - PITCH),
+      ...row([{ text: "Cancellation", x: 52 }, { text: "75%", x: 296 }], TOP - PITCH * 2),
+    ]);
+    expect(text).toBe("Deposit 30% Attrition 90% Cancellation 75%");
+  });
+});

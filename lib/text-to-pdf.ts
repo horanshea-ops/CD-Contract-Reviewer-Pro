@@ -139,8 +139,16 @@ export async function textToPdf(title: string, bodyText: string): Promise<TextTo
       continue;
     }
     const lines = wrapText(paragraph, font, FONT_SIZE, MAX_WIDTH);
-    ensureSpace(lines.length * LINE_HEIGHT);
+
+    // Keep a paragraph whole when it can fit a page at all. One that cannot has
+    // to flow across pages, and each line is checked as it is drawn — without
+    // that, the lines past the first page's bottom margin were drawn at
+    // negative coordinates, off the canvas, and silently lost.
+    const paragraphHeight = lines.length * LINE_HEIGHT;
+    if (paragraphHeight <= PAGE_SIZE[1] - MARGIN * 2) ensureSpace(paragraphHeight);
+
     for (const line of lines) {
+      ensureSpace(LINE_HEIGHT);
       page.drawText(line, { x: MARGIN, y, size: FONT_SIZE, font, color: rgb(0, 0, 0) });
       renderedLines.push({
         text: line,
