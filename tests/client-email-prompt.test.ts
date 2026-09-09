@@ -8,6 +8,12 @@ describe("buildClientEmailPrompt", () => {
     expect(prompt).toMatch(/plain business language/i);
   });
 
+  it("instructs describing changes as proposed, not negotiated or agreed", () => {
+    expect(prompt).toMatch(/proposed changes/i);
+    expect(prompt).toMatch(/never as negotiated, agreed, or final/i);
+    expect(prompt).toMatch(/property has not agreed/i);
+  });
+
   it("instructs grouping by theme rather than document order", () => {
     expect(prompt).toMatch(/group findings by theme/i);
     expect(prompt).toMatch(/not in document order/i);

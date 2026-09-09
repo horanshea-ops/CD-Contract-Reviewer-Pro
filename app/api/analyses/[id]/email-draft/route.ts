@@ -38,25 +38,29 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   }
 
   const findings = await getEmailFindings(admin, id);
-  if (findings.length === 0) {
-    return NextResponse.json(
-      { error: "No accepted findings yet — accept or edit at least one finding before drafting an email." },
-      { status: 400 }
-    );
-  }
-
   const signatureBlock = associate.signature_block || `Best,\n${associate.name}`;
 
-  let draft;
-  try {
-    draft = await generateClientEmail({
-      findings,
-      associateName: associate.name,
-      contractLabel: analysis.filename,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not draft the email.";
-    return NextResponse.json({ error: message }, { status: 500 });
+  // No accepted or edited findings — nothing proposed, so there's nothing for
+  // the model to summarize. A fixed message is more reliable than asking the
+  // model to handle this as an edge case, and skips an unnecessary API call.
+  let draft: { subject: string; body: string; model_id: string | null };
+  if (findings.length === 0) {
+    draft = {
+      subject: `Contract Review — ${analysis.filename}`,
+      body: "Hi,\n\nI've reviewed your hotel contract and don't have any proposed changes to suggest at this time.\n\nLet me know if you have any questions.",
+      model_id: null,
+    };
+  } else {
+    try {
+      draft = await generateClientEmail({
+        findings,
+        associateName: associate.name,
+        contractLabel: analysis.filename,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not draft the email.";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   }
 
   const { data: inserted, error: insertError } = await admin

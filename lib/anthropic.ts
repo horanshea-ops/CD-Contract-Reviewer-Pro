@@ -237,7 +237,8 @@ const CLIENT_EMAIL_TOOL_NAME = "record_client_email";
 
 const CLIENT_EMAIL_TOOL_SCHEMA = {
   name: CLIENT_EMAIL_TOOL_NAME,
-  description: "Record a drafted email to CD's client summarizing the negotiated changes to their contract.",
+  description:
+    "Record a drafted email to CD's client summarizing the changes CD is proposing to their contract, based on the associate's review. The property has not agreed to these yet.",
   input_schema: {
     type: "object" as const,
     properties: {
@@ -255,7 +256,9 @@ const CLIENT_EMAIL_TOOL_SCHEMA = {
  * and test it").
  */
 export function buildClientEmailPrompt(): string {
-  return `You are drafting an email from a ConferenceDirect (CD) associate to their client, summarizing the changes negotiated into the client's hotel/venue contract.
+  return `You are drafting an email from a ConferenceDirect (CD) associate to their client, summarizing the changes CD is proposing to the client's hotel/venue contract after reviewing it.
+
+The negotiation is not complete. The property has not agreed to any of this yet — the client may be receiving a redlined copy, not a final agreement. Describe these as proposed changes, or changes CD is requesting, never as negotiated, agreed, or final. Do not imply the property has accepted anything.
 
 Audience: the client (not the property). This is a business update, not a legal document.
 
@@ -306,11 +309,11 @@ export async function generateClientEmail({
     .map((f, i) => {
       const exposure =
         f.exposure_amount != null ? `\nExposure: $${f.exposure_amount.toLocaleString()} (${f.exposure_basis})` : "";
-      return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nNegotiated language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
+      return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
     })
     .join("\n\n");
 
-  const userText = `Contract: ${contractLabel}\nAssociate: ${associateName}\n\nAccepted changes to summarize:\n\n${findingsBlock}`;
+  const userText = `Contract: ${contractLabel}\nAssociate: ${associateName}\n\nProposed changes to summarize (not yet agreed to by the property):\n\n${findingsBlock}`;
 
   async function attempt(): Promise<ClientEmailResult> {
     const response = await client.messages.create({
