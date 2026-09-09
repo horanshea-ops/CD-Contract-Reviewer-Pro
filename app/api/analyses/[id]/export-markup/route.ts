@@ -65,7 +65,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  const findings = await getActionedFindings(admin, id);
+  const { findings, nonSubstantive } = await getActionedFindings(admin, id);
   const markupBytes = await generateMarkupPdf({ pdfBytes, lines, findings });
 
   // Drawn on a PDF rather than injected into a Word document, so §1.6.1 and
@@ -85,7 +85,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     action: "markup_exported",
     entityType: "analysis",
     entityId: id,
-    metadata: { findings_included: findings.length, source_format: analysis.source_format },
+    metadata: {
+      findings_included: findings.length,
+      non_substantive: nonSubstantive.length,
+      source_format: analysis.source_format,
+    },
   });
 
   return new NextResponse(Buffer.from(markupBytes), {

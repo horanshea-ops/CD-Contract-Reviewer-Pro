@@ -83,7 +83,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     );
   }
 
-  const findings = await getActionedFindings(admin, id);
+  const { findings, nonSubstantive } = await getActionedFindings(admin, id);
   const originalBytes = new Uint8Array(await originalBlob.arrayBuffer());
 
   let engineResult;
@@ -133,6 +133,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     entityType: "analysis",
     entityId: id,
     metadata: {
+      non_substantive: nonSubstantive.length,
       outcome: report.outcome,
       matched: report.appliedCount,
       unmatched: report.unapplied.length,

@@ -1,4 +1,5 @@
 import type { createAdminClient } from "../supabase/admin";
+import { assertsNoChange } from "../proposed-language";
 
 /**
  * §1.8.1 — input assembly for a client email: accepted/edited findings
@@ -70,7 +71,10 @@ export function assembleEmailFindings(findingRows: FindingRow[], actionRows: Act
       finding_text: f.finding_text,
       exposure_amount: f.exposure_amount,
       exposure_basis: f.exposure_basis,
-    }));
+    }))
+    // A finding proposing no change is not a change to tell the client about.
+    // Shared with every export path — see lib/proposed-language.ts.
+    .filter((f) => !assertsNoChange(f.language));
 }
 
 export async function getEmailFindings(

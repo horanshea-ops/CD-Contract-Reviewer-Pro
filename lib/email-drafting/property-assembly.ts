@@ -1,4 +1,5 @@
 import type { createAdminClient } from "../supabase/admin";
+import { assertsNoChange } from "../proposed-language";
 
 /**
  * §1.8.3 — input assembly for a property-facing email. The plan's own
@@ -75,7 +76,9 @@ export function assemblePropertyEmailItems(
       is_missing_clause: f.is_missing_clause,
       proposed_language:
         action.action === "edit" && action.edited_language ? action.edited_language : f.proposed_language,
-    }));
+    }))
+    // A finding proposing no change is not an item the property was sent.
+    .filter((item) => !assertsNoChange(item.proposed_language));
 }
 
 /**
