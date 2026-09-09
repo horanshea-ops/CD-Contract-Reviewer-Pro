@@ -93,14 +93,28 @@ function sortToReadingOrder(lines: RenderedLine[]): RenderedLine[] {
   });
 }
 
-/** Baselines within this many points are the same visual line. */
-const BASELINE_EPSILON = 2;
+/**
+ * Baselines this close are the same visual line. Wide enough that a footnote
+ * marker or superscript joins the line it belongs to rather than sorting ahead
+ * of it, and well under a normal line pitch so separate lines stay separate.
+ */
+const BASELINE_EPSILON = 5;
 
 /** Repeating furniture must appear on at least this share of pages. */
 const FURNITURE_PAGE_SHARE = 0.6;
 
 /** Below this page count, "repeats on most pages" means nothing. */
 const FURNITURE_MIN_PAGES = 3;
+
+/** Below this many lines on a page, first and last mean nothing. */
+const FURNITURE_MIN_LINES_PER_PAGE = 4;
+
+/**
+ * Longer than this and it is a sentence, not a running head. Masking digits is
+ * what makes "Page 1 of 40" and "Page 2 of 40" the same footer, and this stops
+ * that from also matching body lines that differ only by a clause number.
+ */
+const FURNITURE_MAX_CHARS = 60;
 
 /**
  * Drops running headers and footers. Body text does not repeat verbatim at the
@@ -114,23 +128,46 @@ function dropRunningFurniture(lines: RenderedLine[]): RenderedLine[] {
   const pageCount = new Set(lines.map((l) => l.pageIndex)).size;
   if (pageCount < FURNITURE_MIN_PAGES) return lines;
 
-  // Key on text plus rounded height so the same words at the same height on
-  // many pages group together; body text that happens to recur will not also
-  // share a y.
+  // Key on the text with digits masked, plus a rounded height. "Page 1 of 40"
+  // and "Page 2 of 40" are the same footer and have to group together, while
+  // body text that happens to recur will not also share a y.
+  const key = (l: RenderedLine) => `${norm(l.text).replace(/\d+/g, "#")}@${Math.round(l.y / 4)}`;
+
+  // Repetition alone is not enough. Masking digits makes "Page 1 of 40" and
+  // "Page 2 of 40" match, but it would also match body lines differing only by
+  // a number, so a candidate must also be the first or last line on its page.
+  // That is what a running header or footer is, and it needs no threshold on a
+  // page height the line data does not carry.
+  const edges = new Map<number, { top: number; bottom: number; count: number }>();
+  for (const l of lines) {
+    const e = edges.get(l.pageIndex);
+    if (!e) edges.set(l.pageIndex, { top: l.y, bottom: l.y, count: 1 });
+    else {
+      e.top = Math.max(e.top, l.y);
+      e.bottom = Math.min(e.bottom, l.y);
+      e.count += 1;
+    }
+  }
+
+  const atEdge = (l: RenderedLine) => {
+    const e = edges.get(l.pageIndex);
+    if (!e || e.count < FURNITURE_MIN_LINES_PER_PAGE) return false;
+    return l.y >= e.top - BASELINE_EPSILON || l.y <= e.bottom + BASELINE_EPSILON;
+  };
+
   const seen = new Map<string, Set<number>>();
   for (const l of lines) {
-    const key = `${norm(l.text)}@${Math.round(l.y / 4)}`;
-    if (!norm(l.text)) continue;
-    if (!seen.has(key)) seen.set(key, new Set());
-    seen.get(key)!.add(l.pageIndex);
+    if (!norm(l.text) || norm(l.text).length > FURNITURE_MAX_CHARS || !atEdge(l)) continue;
+    if (!seen.has(key(l))) seen.set(key(l), new Set());
+    seen.get(key(l))!.add(l.pageIndex);
   }
 
   const furniture = new Set(
-    [...seen.entries()].filter(([, pages]) => pages.size >= pageCount * FURNITURE_PAGE_SHARE).map(([key]) => key)
+    [...seen.entries()].filter(([, pages]) => pages.size >= pageCount * FURNITURE_PAGE_SHARE).map(([k]) => k)
   );
   if (furniture.size === 0) return lines;
 
-  return lines.filter((l) => !furniture.has(`${norm(l.text)}@${Math.round(l.y / 4)}`));
+  return lines.filter((l) => !(atEdge(l) && furniture.has(key(l))));
 }
 
 /** A gap wider than the running line pitch by this factor starts a new paragraph. */
@@ -146,7 +183,7 @@ const PARAGRAPH_GAP_FACTOR = 1.4;
  * whatever it was typeset at.
  */
 export function reconstructContractText(rawLines: RenderedLine[]): string {
-  const lines = dropRunningFurniture(sortToReadingOrder(rawLines));
+  const lines = dropRunningFurniture(sortToReadingOrder(rawLines.filter((l) => l.text.trim())));
   if (lines.length === 0) return "";
 
   // Group into visual lines.
@@ -169,12 +206,20 @@ export function reconstructContractText(rawLines: RenderedLine[]): string {
   // The most common gap is the line pitch in any normally set document. The
   // median would drift upward in a contract of mostly single-line paragraphs
   // and stop detecting breaks at all.
+  //
+  // Only gaps that could plausibly be a line pitch are counted. A page holding
+  // two lines far apart otherwise makes that whole distance look like the
+  // document's normal spacing, and every paragraph break disappears.
+  const heights = lines.map((l) => l.height).sort((a, b) => a - b);
+  const medianHeight = heights[Math.floor(heights.length / 2)] || 14;
+  const plausible = gaps.filter((g) => g <= medianHeight * 3);
+
   const gapCounts = new Map<number, number>();
-  for (const g of gaps) {
+  for (const g of plausible) {
     const k = Math.round(g);
     gapCounts.set(k, (gapCounts.get(k) ?? 0) + 1);
   }
-  let pitch = Infinity;
+  let pitch = medianHeight;
   let best = 0;
   for (const [gap, count] of gapCounts) {
     if (count > best || (count === best && gap < pitch)) {
