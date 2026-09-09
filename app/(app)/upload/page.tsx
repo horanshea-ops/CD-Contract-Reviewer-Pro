@@ -1,20 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Field, FieldInput } from "@/components/ui/field";
+import { Field, FieldInput, FieldSelect } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
+
+interface OpenThread {
+  id: string;
+  propertyName: string;
+  clientName: string | null;
+  roundCount: number;
+}
 
 export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [clientName, setClientName] = useState("");
+  const [negotiationMode, setNegotiationMode] = useState<"new" | "continuing">("new");
+  const [propertyName, setPropertyName] = useState("");
+  const [threads, setThreads] = useState<OpenThread[]>([]);
+  const [threadId, setThreadId] = useState("");
   const [status, setStatus] = useState<"idle" | "uploading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [dragActive, setDragActive] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/threads")
+      .then((res) => res.json())
+      .then((body) => setThreads(body.threads ?? []))
+      .catch(() => setThreads([]));
+  }, []);
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -26,6 +44,16 @@ export default function UploadPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
+    if (negotiationMode === "new" && !propertyName.trim()) {
+      setStatus("error");
+      setErrorMessage("Property name is required for a new negotiation.");
+      return;
+    }
+    if (negotiationMode === "continuing" && !threadId) {
+      setStatus("error");
+      setErrorMessage("Choose which negotiation this continues.");
+      return;
+    }
 
     setStatus("uploading");
     setErrorMessage("");
@@ -33,6 +61,12 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append("file", file);
     if (clientName.trim()) formData.append("clientName", clientName.trim());
+    formData.append("negotiationMode", negotiationMode);
+    if (negotiationMode === "new") {
+      formData.append("propertyName", propertyName.trim());
+    } else {
+      formData.append("threadId", threadId);
+    }
 
     try {
       const res = await fetch("/api/analyses", { method: "POST", body: formData });
@@ -110,7 +144,60 @@ export default function UploadPage() {
             />
           </Field>
 
-          <Button type="submit" fullWidth disabled={!file} loading={status === "uploading"} loadingText="Uploading...">
+          <Field label="Negotiation">
+            <div className="flex gap-2 mb-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={negotiationMode === "new" ? "primary" : "secondary"}
+                onClick={() => setNegotiationMode("new")}
+              >
+                New negotiation
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={negotiationMode === "continuing" ? "primary" : "secondary"}
+                onClick={() => setNegotiationMode("continuing")}
+              >
+                Continuing one
+              </Button>
+            </div>
+
+            {negotiationMode === "new" ? (
+              <FieldInput
+                type="text"
+                value={propertyName}
+                onChange={(e) => setPropertyName(e.target.value)}
+                placeholder="e.g. Hilton Downtown Denver"
+                required
+              />
+            ) : threads.length > 0 ? (
+              <FieldSelect value={threadId} onChange={(e) => setThreadId(e.target.value)} required>
+                <option value="" disabled>
+                  Choose a negotiation…
+                </option>
+                {threads.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.propertyName}
+                    {t.clientName ? ` — ${t.clientName}` : ""} (round {t.roundCount} so far)
+                  </option>
+                ))}
+              </FieldSelect>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)]">
+                No open negotiations yet — start one with &quot;New negotiation&quot; above.
+              </p>
+            )}
+          </Field>
+
+          <Button
+            type="submit"
+            fullWidth
+            disabled={!file}
+            loading={status === "uploading"}
+            loadingText="Uploading..."
+          >
             Start review
           </Button>
 

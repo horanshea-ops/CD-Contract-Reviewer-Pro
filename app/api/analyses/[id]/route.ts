@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: analysis, error } = await admin
     .from("analyses")
     .select(
-      "id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at"
+      "id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at, thread_id, round_number, negotiation_threads(property_name)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -73,5 +73,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .createSignedUrl(analysis.storage_path, SIGNED_URL_TTL_SECONDS);
   documentUrl = signed?.signedUrl ?? null;
 
-  return NextResponse.json({ ...analysis, findings, documentUrl });
+  const { negotiation_threads, ...analysisFields } = analysis;
+  const propertyName = (negotiation_threads as unknown as { property_name: string } | null)?.property_name ?? null;
+
+  return NextResponse.json({ ...analysisFields, propertyName, findings, documentUrl });
 }
