@@ -1232,3 +1232,163 @@ describe("long contracts and boundary conditions", () => {
     expect(text).toBe("Deposit 30% Attrition 90% Cancellation 75%");
   });
 });
+
+/**
+ * The last of the awkward inputs: tokens the renderer cannot wrap, quotes that
+ * cover everything or overlap each other, and matching at scale.
+ */
+describe("degenerate inputs", () => {
+  it("breaks a token too wide to fit rather than drawing it off the page", async () => {
+    const token = "X".repeat(400);
+    const result = await generateCleanContractPdf({
+      lines: [line(`Reference ${token} ends here.`, TOP)],
+      findings: [],
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.conservation.problems).toEqual([]);
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join("");
+    expect(text.replace(/\s/g, "")).toContain(token);
+    expect(text).toContain("ends here.");
+  });
+
+  it("renders a long unbroken reference number without losing digits", async () => {
+    const account = "4".repeat(180);
+    const result = await generateCleanContractPdf({
+      lines: [line(`Account ${account} is the billing reference.`, TOP)],
+      findings: [],
+      title: "Proposed Amended Contract",
+    });
+    expect(result.conservation.problems).toEqual([]);
+  });
+
+  it("replaces the whole document when the quote covers all of it", () => {
+    const text = reconstructContractText([line("The whole contract in one line.", TOP)]);
+    const result = applyProposedChanges(text, [finding({ quoted_text: text, language: "Entirely replaced." })]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toBe("Entirely replaced.");
+  });
+
+  it("matches across a carriage return inside a line's text", () => {
+    const text = reconstructContractText([line("First part.\r\nSecond part.", TOP)]);
+    const result = applyProposedChanges(text, [
+      finding({ quoted_text: "First part. Second part.", language: "Replaced." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+  });
+
+  it("applies only the first of three overlapping findings and lists the rest", () => {
+    const result = applyProposedChanges("The fee is 50% of gross revenue.", [
+      finding({ quoted_text: "50% of gross revenue", language: "A" }),
+      finding({ clause_type: "attrition", quoted_text: "of gross", language: "B" }),
+      finding({ clause_type: "rebates", quoted_text: "gross revenue", language: "C" }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.unplaced).toHaveLength(2);
+    expect(result.text).toBe("The fee is A.");
+  });
+
+  it("refuses a quote matching two identical sentences in a row", () => {
+    const text = reconstructContractText([
+      line("Notice is required.", TOP),
+      line("Notice is required.", TOP - PITCH),
+    ]);
+    const result = applyProposedChanges(text, [
+      finding({ quoted_text: "Notice is required.", language: "Notice is waived." }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced).toHaveLength(1);
+    expect(result.text).toBe("Notice is required. Notice is required.");
+  });
+
+  it("locates an exact quote in a contract of three hundred clauses", () => {
+    const big = Array.from({ length: 300 }, (_, i) =>
+      line(`Clause ${i}. Obligation number ${i} is stated here in full sentence form.`, TOP - (i % 45) * PITCH, Math.floor(i / 45))
+    );
+    const result = applyProposedChanges(reconstructContractText(big), [
+      finding({ quoted_text: "Clause 150. Obligation number 150 is stated here in full sentence form.", language: "Clause 150. Replaced." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("Clause 150. Replaced.");
+    expect(result.text).toContain("Clause 149.");
+    expect(result.text).toContain("Clause 151.");
+  });
+
+  it("matches a quote the model reworded slightly", () => {
+    const text = reconstructContractText([
+      line("Attrition. The threshold is ninety percent measured cumulatively across the block.", TOP),
+      line("Cancellation. Damages are seventy-five percent of anticipated room revenue.", TOP - PITCH),
+    ]);
+    const result = applyProposedChanges(text, [
+      finding({ clause_type: "attrition", quoted_text: "Attrition. The threshold is ninety per cent measured cumulatively across the block.", language: "Attrition. The threshold is eighty percent." }),
+    ]);
+    expect(result.applied).toHaveLength(1);
+    expect(result.text).toContain("eighty percent");
+  });
+
+  /**
+   * Matching declines rather than guessing when a reworded quote sits in a
+   * contract of near-identical clauses. Listing the change is the safe
+   * direction, and the thresholds behind it belong to §1.5.
+   */
+  it("lists a reworded quote it cannot separate from near-identical neighbours", () => {
+    const big = Array.from({ length: 300 }, (_, i) =>
+      line(`Clause ${i}. Obligation number ${i} is stated here in full sentence form.`, TOP - (i % 45) * PITCH, Math.floor(i / 45))
+    );
+    const result = applyProposedChanges(reconstructContractText(big), [
+      finding({ quoted_text: "Clause 150. Obligation numbered 150 is stated here in full sentence form.", language: "Replaced." }),
+    ]);
+    expect(result.applied).toHaveLength(0);
+    expect(result.unplaced).toHaveLength(1);
+  });
+
+  it("renders twelve new clauses without tripping the gate", async () => {
+    const additions = Array.from({ length: 12 }, (_, i) =>
+      finding({ clause_type: `clause_${i}`, is_missing_clause: true, quoted_text: null, language: `New clause ${i} stating an obligation in full.` })
+    );
+    const result = await generateCleanContractPdf({
+      lines: [line("Body text of the agreement.", TOP)],
+      findings: additions,
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.additions).toHaveLength(12);
+    expect(result.conservation.problems).toEqual([]);
+
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("New clause 0 stating an obligation in full.");
+    expect(text).toContain("New clause 11 stating an obligation in full.");
+  });
+
+  it("renders twelve unplaced changes without tripping the gate", async () => {
+    const unplaceable = Array.from({ length: 12 }, (_, i) =>
+      finding({ clause_type: `clause_${i}`, quoted_text: `wording ${i} that is nowhere in this contract`, language: `Proposed wording ${i}.` })
+    );
+    const result = await generateCleanContractPdf({
+      lines: [line("Body text of the agreement.", TOP)],
+      findings: unplaceable,
+      title: "Proposed Amended Contract",
+    });
+
+    expect(result.unplaced).toHaveLength(12);
+    expect(result.conservation.problems).toEqual([]);
+
+    const text = (await extractPdfLines(result.pdfBytes.slice())).map((l) => l.text).join(" ");
+    expect(text).toContain("Proposed wording 0.");
+    expect(text).toContain("Proposed wording 11.");
+    expect(text).toContain("Body text of the agreement.");
+  });
+
+  it("handles a document whose every line shares one baseline", () => {
+    const text = reconstructContractText([
+      line("First fragment.", TOP, 0, 56),
+      line("Second fragment.", TOP, 0, 200),
+      line("Third fragment.", TOP, 0, 360),
+    ]);
+    expect(text).toBe("First fragment. Second fragment. Third fragment.");
+  });
+
+  it("returns nothing for a document of only blank lines", () => {
+    expect(reconstructContractText([line("   ", TOP), line("", TOP - PITCH)])).toBe("");
+  });
+});
