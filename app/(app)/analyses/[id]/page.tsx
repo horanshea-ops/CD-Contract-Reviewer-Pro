@@ -8,8 +8,7 @@ import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
 import { ExportPicker } from "@/components/export-picker";
-import { ClientEmailPanel } from "@/components/client-email-panel";
-import { PropertyEmailPanel } from "@/components/property-email-panel";
+import { EmailPicker } from "@/components/email-picker";
 import { AiClauseReview } from "@/components/ai-clause-review";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
 
@@ -244,12 +243,7 @@ export default function AnalysisPage() {
             intakeRoute={data.intake_route}
             intakeHealthReason={data.intake_health?.reason ?? null}
           />
-          <ClientEmailPanel analysisId={data.id} />
-          {/*
-            Not gated on source_format — the marked-up PDF is a property-facing
-            deliverable too, so the cover email applies whichever export goes out.
-          */}
-          <PropertyEmailPanel analysisId={data.id} />
+          <EmailPicker analysisId={data.id} />
         </div>
       </div>
 
