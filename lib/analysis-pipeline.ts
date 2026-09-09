@@ -5,6 +5,7 @@ import { loadStandardsLibrary } from "./standards/load";
 import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
 import { findMatchingLineIndices } from "./locate-text";
+import { scanForAiUseTerms, scanForAdjacentTerms } from "./ai-use-scan";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -19,7 +20,7 @@ export async function processAnalysis(analysisId: string) {
 
   const { data: analysis, error: fetchError } = await admin
     .from("analyses")
-    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path")
+    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path, ai_clause_acknowledged_at")
     .eq("id", analysisId)
     .single();
 
@@ -64,6 +65,7 @@ export async function processAnalysis(analysisId: string) {
     // persisting the map, since a stale one against a re-uploaded file places
     // edits in the wrong part of the document.
     let document: AnalyzableDocument = { kind: "pdf", pdfBase64 };
+    let scanText: string | null = null;
     if (analysis.intake_route === "docx_native" && analysis.original_storage_path) {
       try {
         const { data: originalBlob, error: originalErr } = await admin.storage
@@ -71,7 +73,8 @@ export async function processAnalysis(analysisId: string) {
           .download(analysis.original_storage_path);
         if (originalErr || !originalBlob) throw new Error(originalErr?.message ?? "original file unavailable");
         const extracted = await extractDocx(new Uint8Array(await originalBlob.arrayBuffer()));
-        document = { kind: "text", text: contractText(extracted) };
+        scanText = contractText(extracted);
+        document = { kind: "text", text: scanText };
       } catch (extractErr) {
         // Falling back to the PDF loses table structure but still produces an
         // analysis, which beats failing the run outright. Recorded, not silent.
@@ -79,6 +82,59 @@ export async function processAnalysis(analysisId: string) {
           `processAnalysis: ${analysisId} could not extract the original DOCX, analysing the converted PDF instead —`,
           extractErr
         );
+      }
+    }
+
+    // §1.10.1 — local text to scan before any network call. docx_native
+    // already has it above (the exact text the model will read). Every other
+    // route — genuine PDF, .doc, or a .docx that failed intake and fell back
+    // to the PDF just above — gets it from the same positioned-line data the
+    // markup-PDF export already relies on (lib/get-positioned-lines.ts),
+    // which is local (unpdf's own PDF parsing) either way, not a network call.
+    if (scanText === null) {
+      const lines = await getPositionedLines({
+        admin,
+        associateId: analysis.associate_id,
+        analysisId,
+        sourceFormat: analysis.source_format,
+        pdfBytes: new Uint8Array(arrayBuffer),
+      });
+      scanText = lines.map((l) => l.text).join("\n");
+    }
+
+    // §1.10 — the AI-use provision pre-check. Skipped only when an associate
+    // has already ruled on this analysis (a resumed run after "proceed"):
+    // the compliance record was written by that decision, not by re-scanning.
+    if (!analysis.ai_clause_acknowledged_at) {
+      const aiMatches = scanForAiUseTerms(scanText);
+      const adjacentMatches = scanForAdjacentTerms(scanText);
+
+      await admin
+        .from("analyses")
+        .update({
+          ai_clause_scan_result: {
+            scanned_at: new Date().toISOString(),
+            matches: aiMatches,
+            adjacent_matches: adjacentMatches,
+            decision: null,
+          },
+        })
+        .eq("id", analysisId);
+
+      if (aiMatches.length > 0) {
+        await logAudit({
+          actorId: analysis.associate_id,
+          action: "ai_clause_scan_blocked",
+          entityType: "analysis",
+          entityId: analysisId,
+          metadata: { matched_terms: aiMatches.map((m) => m.term) },
+        });
+        // Gated, not failed and not complete. Status stays "processing" until
+        // an associate decides via app/api/analyses/[id]/ai-clause-decision —
+        // "proceed" re-invokes processAnalysis, which lands back here and
+        // takes this branch's else path since ai_clause_acknowledged_at is
+        // now set.
+        return;
       }
     }
 
