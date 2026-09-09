@@ -82,12 +82,42 @@ function sanitizeForFont(text: string, font: PDFFont): string {
   return result;
 }
 
+/**
+ * Splits a single token too wide to fit any line. Wrapping on spaces alone
+ * leaves such a token drawn past the right edge of the page, where it is
+ * invisible and its text is lost.
+ */
+function breakLongToken(word: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const pieces: string[] = [];
+  let piece = "";
+  for (const ch of word) {
+    if (piece && font.widthOfTextAtSize(piece + ch, size) > maxWidth) {
+      pieces.push(piece);
+      piece = ch;
+    } else {
+      piece += ch;
+    }
+  }
+  if (piece) pieces.push(piece);
+  return pieces;
+}
+
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [""];
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
+    if (font.widthOfTextAtSize(word, size) > maxWidth) {
+      if (current) {
+        lines.push(current);
+        current = "";
+      }
+      const pieces = breakLongToken(word, font, size, maxWidth);
+      lines.push(...pieces.slice(0, -1));
+      current = pieces[pieces.length - 1] ?? "";
+      continue;
+    }
     const trial = current ? `${current} ${word}` : word;
     if (font.widthOfTextAtSize(trial, size) > maxWidth) {
       if (current) lines.push(current);
@@ -139,8 +169,16 @@ export async function textToPdf(title: string, bodyText: string): Promise<TextTo
       continue;
     }
     const lines = wrapText(paragraph, font, FONT_SIZE, MAX_WIDTH);
-    ensureSpace(lines.length * LINE_HEIGHT);
+
+    // Keep a paragraph whole when it can fit a page at all. One that cannot has
+    // to flow across pages, and each line is checked as it is drawn — without
+    // that, the lines past the first page's bottom margin were drawn at
+    // negative coordinates, off the canvas, and silently lost.
+    const paragraphHeight = lines.length * LINE_HEIGHT;
+    if (paragraphHeight <= PAGE_SIZE[1] - MARGIN * 2) ensureSpace(paragraphHeight);
+
     for (const line of lines) {
+      ensureSpace(LINE_HEIGHT);
       page.drawText(line, { x: MARGIN, y, size: FONT_SIZE, font, color: rgb(0, 0, 0) });
       renderedLines.push({
         text: line,

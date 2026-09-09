@@ -19,12 +19,21 @@ export interface RecordExportInput {
   fallbackReason?: string | null;
   findingsApplied?: number | null;
   findingsUnapplied?: number | null;
-  unappliedDetail?: UnappliedFinding[] | null;
+  /**
+   * What could not be applied, for the weekly review. Shapes differ by export —
+   * the redline records a severity and the quoted text, while §1.7.7's clean
+   * contract carries neither, since that document can reach the property and
+   * only contract text may cross into it.
+   */
+  unappliedDetail?: UnappliedDetail[] | null;
   /** Where the generated file was stored, if it was stored at all. */
   storagePath?: string | null;
   /** The analysis's own paths, so the guard below has something to compare against. */
   analysisPaths: { storage_path: string | null; original_storage_path: string | null };
 }
+
+/** A change that did not make it into an export, in whichever shape that export knows. */
+export type UnappliedDetail = UnappliedFinding | { clause_type: string; reason: string };
 
 export class OriginalOverwriteError extends Error {}
 
