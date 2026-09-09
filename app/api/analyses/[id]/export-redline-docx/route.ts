@@ -38,7 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { data: analysis } = await admin
     .from("analyses")
-    .select("id, associate_id, filename, storage_path, original_storage_path, source_format, status")
+    .select("id, associate_id, filename, storage_path, original_storage_path, source_format, intake_route, status")
     .eq("id", id)
     .maybeSingle();
 
@@ -54,6 +54,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (analysis.source_format !== "docx" || !analysis.original_storage_path) {
     return NextResponse.json(
       { error: "Tracked-changes export is only available for contracts uploaded as DOCX." },
+      { status: 400 }
+    );
+  }
+
+  // §1.4.9 decided at upload that this document could not be safely edited, and
+  // the associate was told so before they reviewed anything. Honour that here
+  // rather than editing it anyway and leaning on §1.6 to catch the damage.
+  if (analysis.intake_route === "pdf") {
+    return NextResponse.json(
+      {
+        error:
+          "This document could not be read cleanly enough to edit, so it takes the PDF path. " +
+          "Use the marked-up PDF export instead.",
+        markupPdfUrl: `/api/analyses/${id}/export-markup`,
+      },
       { status: 400 }
     );
   }
