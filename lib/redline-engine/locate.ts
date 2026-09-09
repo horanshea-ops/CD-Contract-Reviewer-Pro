@@ -1,5 +1,14 @@
 import { normalizeText } from "../docx/normalize";
-import type { WalkResult } from "../docx";
+/**
+ * Only the part's name and its text are read here — never the run elements —
+ * so the parameter is this structural shape rather than WalkResult. A
+ * WalkResult[] still satisfies it, and §1.7.7 can locate against plain
+ * reconstructed text without a DOCX behind it.
+ */
+export interface LocatablePart {
+  part: string;
+  text: string;
+}
 import type { LocateResult, LocatedSpan } from "./types";
 
 /**
@@ -260,7 +269,7 @@ function decide(
 }
 
 export function locateQuote(
-  parts: WalkResult[],
+  parts: LocatablePart[],
   quotedText: string | null,
   locationSection: string | null
 ): LocateResult {
