@@ -5,9 +5,14 @@ per the build brief's phasing. See the build brief §11 for the authoritative bu
 order — the checklist below just tracks progress against it.
 
 **As of 2026-09-07, `MASTER_PLAN.md` governs the current work package** (Part 1,
-the DOCX revision pipeline). `CLAUDE.md` records the four agreed deviations from
+the DOCX revision pipeline). `CLAUDE.md` records the agreed deviations from
 it — chiefly that §1.7's LibreOffice worker is dropped in favour of a new §1.4a
 HTML preview. This file remains the living progress log.
+
+**Part 1 is complete as of 2026-09-09** (§1.11's corpus aside, which grew
+alongside the rest). Part 2 is gated — see "What the gate actually blocks" under
+Open items, which separates the claims the gate must stop from the development it
+need not.
 
 - [x] **Phase 0 — groundwork (2026-09-07).** Vitest + `npm test`, `npm run
       typecheck`, GitHub Actions CI, and `supabase/migrations/`. Also fixed
@@ -210,6 +215,69 @@ HTML preview. This file remains the living progress log.
       them, so this is a narrow case — but tables are where the money is, and matching
       against a pipe-stripped projection would close it.
 
+- [x] **§1.7 PDF path, §1.10 AI-use pre-check, §1.9 multi-round hooks
+      (2026-09-08).** Logged together; each is self-contained and shipped without
+      incident. §1.7 is the intake-routing and export-fallback plumbing over
+      `lib/redline-pdf.ts` — its LibreOffice worker stays dropped per CLAUDE.md
+      deviation 1. §1.10 added `lib/ai-use-scan.ts`, a deterministic regex pass
+      that runs before any network call and halts on an AI-use provision rather
+      than auto-deciding, surfaced by `components/ai-clause-review.tsx`. §1.9
+      added migration `004` plus `lib/negotiation-threads.ts`, so `thread_id`,
+      `round_number` and `parent_analysis_id` populate from the first pilot
+      contract — schema and linkage only, no diffing.
+
+- [x] **§1.8 Email drafting — both audiences (2026-09-09).** Two emails from one
+      review, deliberately different, from accepted findings only.
+      The **client email** (§1.8.1/.2/.4/.5/.6/.7) carries CD's reasoning: plain
+      business language grouped by theme, quantified exposure with its basis, and
+      an explicit prompt ban on statements of legal effect. `lib/email-drafting/
+      input-assembly.ts` filters to accept/edit and prefers the associate's edited
+      language. Zero findings short-circuits to a fixed "reviewed, no proposed
+      changes" message with no model call — added after live testing showed the
+      call was wasted on a fully deterministic case. Per-associate signature block
+      (migration `005`) is appended by the UI, never written by the model, so
+      editing it does not require regenerating the email.
+      **§1.8.3, the property email, is the opposite problem** and was built to the
+      plan's own instruction: "a hard field allowlist on the payload, not a prompt
+      instruction. A prompt can be talked out of it; a filter cannot." Exposure
+      amounts, severity, `finding_text` (why CD flagged it) and `cd_standard` (CD's
+      internal and fallback position) are all negotiating leverage and must not
+      reach the counterparty. Enforced at three independent layers: a narrowed
+      SELECT that never fetches those columns, a `PropertyEmailItem` type holding
+      only `clause_type`/`is_missing_clause`/`proposed_language`, and a payload
+      builder that names each field rather than spreading. `lib/email-drafting/
+      property-assembly.ts` **duplicates** the client assembly rather than sharing
+      a base type — one file now answers "what can reach the property?", and
+      widening it cannot be a one-line change. The item type names its language
+      field `proposed_language` where the client's `EmailFinding` uses `language`,
+      so passing client findings into the property generator is a compile error.
+      `proposed_language` is included because it is the redline text the property
+      reads anyway; `quoted_text` is deliberately omitted, since handing the model
+      the before/after pair invites adversarial framing.
+      The contract label comes from the thread's `property_name`, falling back to
+      "the agreement" — never the filename, which can carry CD's internal
+      shorthand about the deal. With nothing accepted the route returns 400 rather
+      than drafting a note describing an attachment that does not exist.
+      **Both audiences are generate/edit/copy/download only. No send affordance
+      anywhere**, verified in the DOM.
+      **Verified live** against two real analyses (11 and 2 accepted findings). No
+      excluded field reached either persisted draft. The first leak detector's
+      residual hits were false positives — a rationale inevitably shares wording
+      with the clause it discusses — and the discriminating terms settle it: the
+      email says "without **liability**" (the proposed clause) not "without
+      **penalty**" (CD's standard), "each party's own **negligence**" not "acts or
+      **omissions**", and "**70%**" (the proposed term) not "**80%**" (the
+      property's current term, named only in the excluded rationale). Exposure
+      figures and severity vocabulary were absent outright.
+      The allowlist tests assert on the **constructed payload**, not the type, and
+      each layer was mutation-tested separately — the first payload-builder
+      mutation passed because assembly had already stripped the fields upstream,
+      so a second test feeds polluted items straight into the builder. Live testing
+      also caught the model filling the empty label with a bracketed placeholder
+      (`[Group Name/Event Dates...]`); the prompt now forbids placeholders and
+      invented detail. 307 tests, lint and typecheck clean. Test drafts and seeded
+      rows cleaned up; audit entries left intact as a compliance record.
+
 ## Build order progress (build brief §11)
 
 **Now, on personal accounts, no CD data:**
@@ -251,6 +319,74 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 (tracked-changes DOCX) is done — see 4b above and the open items below.
 
 ## Open items
+
+- **What the gate actually blocks (noted 2026-09-09, nothing acted on).** Raised by
+  the user: senior-associate review is far off, standards are editable at any time,
+  and the real CD standard contract already gets roughly 70% of the way there — so
+  why does the gate stop so much? Three claims are being conflated, and separating
+  them frees most of the work.
+  1. *Can we change the standards?* Yes, already. The admin screen edits them, and
+     migration `003` fingerprints the exact entries behind every analysis.
+  2. *Does the machinery correctly apply whatever standards it is given?* Testable
+     now, and largely tested — §1.4/§1.5/§1.6 verify document mechanics that never
+     read a negotiating position.
+  3. *Are CD's positions right?* Unknown, and only a senior associate can say.
+  **Only (3) needs CD.** The gate is a claims-and-deployment gate, not a code gate:
+  what it must stop is telling anyone "this is how ConferenceDirect negotiates" and
+  putting the tool in front of real deals. It need not stop building machinery whose
+  correctness does not depend on the positions being right. The build brief's gate
+  language does not draw that line, which is why it reads as blocking everything.
+  **The concrete missing 30% is visible in the code:** all 25
+  `walk_away_condition` values in `lib/standards/v1.ts` are empty strings, and
+  `position`/`severity_default` have never been checked against a real deal outcome.
+  That is what the answer key buys. It is not more clause types.
+
+- **Work that does not need CD (noted 2026-09-09, not started).** In rough leverage
+  order:
+  1. **The eval harness** (build order item 2, deferred at request). Highest
+     leverage of anything here. Building it now against a *synthetic* answer key
+     means the day CD's real key arrives it is a data swap, not a build — otherwise
+     the scarcest resource in the project waits on engineering.
+  2. **§2.0 term extraction.** Its own answer key is described as needing a senior
+     associate, but verifying that a contract saying 90% was extracted as `0.90` is
+     reading comprehension, not negotiating expertise — anyone literate can check
+     it, and the 15 synthetic fixtures have known ground truth by construction.
+     §2.0 is infrastructure whose correctness is independently checkable, so
+     building it does not compound the damage the gate exists to prevent. The four
+     dependent features (deadlines, what-if, savings, exec summaries) stay gated.
+     **This is a deviation from "nothing in Part 2 starts until the gate clears"
+     and needs an explicit decision before anyone acts on it.**
+  3. **§2.1's diff mechanics.** Diffing what we sent against what came back is
+     document work; only the reconciliation into `finding_outcomes` depends on
+     findings being right.
+  4. **Vercel deploy** — still local-only, needed regardless. Note Pro ($20/mo);
+     Hobby's 60s function limit is under the 300s analysis budget.
+  5. **The §1.5 table-quote follow-up** below — narrow, but tables carry the money.
+
+- **Portability: retooling for a different client (noted 2026-09-09, nothing acted
+  on).** Raised by the user — if CD does not buy, how cheaply can this serve another
+  company in the same space? Most of the answer is already good. Three layers, and
+  today only the third is client-specific:
+  | Layer | Example | Scope |
+  |---|---|---|
+  | Document mechanics | extract, locate, redline, validate, export | client- and industry-agnostic |
+  | Clause taxonomy | attrition, cancellation, force majeure exist in any hotel contract | industry-specific |
+  | Negotiating positions | `position`, `fallback_language`, `walk_away_condition`, `severity_default` | client-specific |
+  Layer 3 already lives in the `standards` table with provenance and versioning, and
+  `clause_type` is unconstrained `text` in the database — so the schema is portable
+  today. Two seams are not yet clean:
+  - **`ClauseType` is a compile-time union of 25 hotel clause types**
+    (`lib/standards/types.ts`), fusing layer 2 into the build. Fine for another
+    hotel-side client; wrong for another vertical.
+  - **"ConferenceDirect" is hardcoded in four prompt sites** in `lib/anthropic.ts`
+    (analysis tool description, analysis system prompt, both email prompts) plus UI
+    copy. The cost of this grows with every new prompt site — there were three
+    before §1.8.3 added the fourth. Parameterising the org name is cheap now and
+    gets steadily less so.
+  A useful acceptance test for the split, whenever it is done: **the pipeline should
+  run end to end against a dummy standards set and still produce structurally valid
+  output.** If it cannot, layers 1 and 3 are still entangled.
+
 
 - **DOCX-to-preview pipeline — DONE, 2026-09-08.** Was scoped and folded in as
   `MASTER_PLAN.md` §1.4a on 2026-09-07; built, verified, and merged the next
