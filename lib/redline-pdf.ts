@@ -4,10 +4,17 @@ import type { MemoFinding } from "./export-memo";
 import { findMatchingLineIndices } from "./locate-text";
 
 /**
- * Draws a marked-up version of an already-rendered contract PDF: a
- * strikethrough over each accepted/edited finding's quoted text, a small
- * numbered marker in the left margin, and a numbered appendix at the end
- * with the full requested language and rationale for each.
+ * Draws a marked-up version of an already-rendered contract PDF: a cover
+ * page summarizing every change in table form, a strikethrough over each
+ * accepted/edited finding's quoted text, a small numbered marker in the
+ * left margin, and a numbered appendix at the end with the full requested
+ * language for each.
+ *
+ * This file's output can end up in front of the property or a client, so
+ * it carries the changes and nothing else — no severity, no rationale, no
+ * explanation of why a PDF was produced instead of a Word file. That
+ * explanation is the app's job, shown to the associate before download
+ * (see lib/pdf-markup-reason.ts), never baked into the file itself.
  *
  * Locating quoted text uses the exact line-position data recorded when the
  * PDF was generated from DOCX/DOC text (see lib/text-to-pdf.ts) — an exact
@@ -21,13 +28,7 @@ const MARGIN = 56;
 const PAGE_SIZE: [number, number] = [612, 792];
 const MAX_WIDTH = PAGE_SIZE[0] - MARGIN * 2;
 const MARKER_X = 18;
-
-const SEVERITY_COLOR: Record<MemoFinding["severity"], RGB> = {
-  high: rgb(0.7, 0.15, 0.12),
-  medium: rgb(0.63, 0.36, 0),
-  low: rgb(0.35, 0.39, 0.45),
-  note: rgb(0.54, 0.58, 0.64),
-};
+const MARK_COLOR = rgb(0.63, 0.11, 0.11);
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const lines: string[] = [];
@@ -72,7 +73,6 @@ export async function generateMarkupPdf({
       const lineIndices = findMatchingLineIndices(lines, finding.quoted_text);
       if (lineIndices) {
         matched = true;
-        const color = SEVERITY_COLOR[finding.severity];
 
         for (const li of lineIndices) {
           const line = lines[li];
@@ -82,7 +82,7 @@ export async function generateMarkupPdf({
             start: { x: line.x, y: strikeY },
             end: { x: line.x + line.width, y: strikeY },
             thickness: 1,
-            color,
+            color: MARK_COLOR,
           });
         }
 
@@ -92,13 +92,70 @@ export async function generateMarkupPdf({
           y: firstLine.y,
           size: 8,
           font: boldFont,
-          color,
+          color: MARK_COLOR,
         });
       }
     }
 
     numbered.push({ finding, number, matched });
   });
+
+  // Cover page(s): a plain-text table of every change, inserted before the
+  // annotated body so nothing about reading the changes depends on the
+  // strikethrough/margin markers rendering correctly in the recipient's
+  // viewer. Purely a function of `findings` — never of why this is a PDF.
+  let coverPageIndex = 0;
+  let coverPage = pdfDoc.insertPage(coverPageIndex, PAGE_SIZE);
+  coverPageIndex += 1;
+  let coverY = PAGE_SIZE[1] - MARGIN;
+
+  function newCoverPage() {
+    coverPage = pdfDoc.insertPage(coverPageIndex, PAGE_SIZE);
+    coverPageIndex += 1;
+    coverY = PAGE_SIZE[1] - MARGIN;
+  }
+  function ensureCoverSpace(h: number) {
+    if (coverY - h < MARGIN + 20) newCoverPage();
+  }
+  function drawCoverWrapped(text: string, useFont: PDFFont, size: number, lineHeight: number, color: RGB = rgb(0, 0, 0)) {
+    const wrapped = wrapText(text, useFont, size, MAX_WIDTH);
+    ensureCoverSpace(wrapped.length * lineHeight);
+    for (const line of wrapped) {
+      coverPage.drawText(line, { x: MARGIN, y: coverY, size, font: useFont, color });
+      coverY -= lineHeight;
+    }
+  }
+
+  drawCoverWrapped("Proposed Changes", boldFont, 16, 20);
+  coverY -= 4;
+  drawCoverWrapped(
+    "Numbered markers in the margins below correspond to the items in this table, detailed further at the end of this document.",
+    font,
+    9,
+    12,
+    rgb(0.45, 0.45, 0.45)
+  );
+  coverY -= 10;
+
+  for (const { finding, number, matched } of numbered) {
+    ensureCoverSpace(40);
+    coverY -= 4;
+    const label = finding.is_missing_clause
+      ? "requested addition"
+      : matched
+        ? "page reference in margin"
+        : "not located in document";
+    drawCoverWrapped(`[${number}] ${finding.clause_type.replace(/_/g, " ")} (${label})`, boldFont, 10, 14);
+    drawCoverWrapped(finding.language, font, 10, 13);
+    coverY -= 6;
+    ensureCoverSpace(1);
+    coverPage.drawLine({
+      start: { x: MARGIN, y: coverY + 2 },
+      end: { x: MARGIN + MAX_WIDTH, y: coverY + 2 },
+      thickness: 0.5,
+      color: rgb(0.85, 0.85, 0.85),
+    });
+  }
 
   // Appendix: full detail per numbered item.
   let page = pdfDoc.addPage(PAGE_SIZE);
@@ -137,8 +194,7 @@ export async function generateMarkupPdf({
   for (const { finding, number, matched } of located) {
     ensureSpace(50);
     y -= 6;
-    const heading = `[${number}] ${finding.severity.toUpperCase()} — ${finding.clause_type.replace(/_/g, " ")}`;
-    drawWrapped(heading.toUpperCase(), boldFont, 11, 15, SEVERITY_COLOR[finding.severity]);
+    drawWrapped(`[${number}] ${finding.clause_type.replace(/_/g, " ")}`.toUpperCase(), boldFont, 11, 15, MARK_COLOR);
     if (!matched) {
       drawWrapped(
         "(Could not locate this exact passage in the document to mark it — shown here only.)",
@@ -150,8 +206,6 @@ export async function generateMarkupPdf({
     }
     drawWrapped("Requested language:", boldFont, 10, 14);
     drawWrapped(finding.language, font, 10, 14);
-    drawWrapped("Rationale:", boldFont, 10, 14);
-    drawWrapped(finding.finding_text, font, 10, 14, rgb(0.25, 0.25, 0.25));
     y -= 10;
   }
 
@@ -162,12 +216,9 @@ export async function generateMarkupPdf({
     y -= 4;
     for (const { finding, number } of missing) {
       ensureSpace(50);
-      const heading = `[${number}] ${finding.severity.toUpperCase()} — ${finding.clause_type.replace(/_/g, " ")}`;
-      drawWrapped(heading.toUpperCase(), boldFont, 11, 15, SEVERITY_COLOR[finding.severity]);
+      drawWrapped(`[${number}] ${finding.clause_type.replace(/_/g, " ")}`.toUpperCase(), boldFont, 11, 15, MARK_COLOR);
       drawWrapped("Requested language:", boldFont, 10, 14);
       drawWrapped(finding.language, font, 10, 14);
-      drawWrapped("Rationale:", boldFont, 10, 14);
-      drawWrapped(finding.finding_text, font, 10, 14, rgb(0.25, 0.25, 0.25));
       y -= 10;
     }
   }
