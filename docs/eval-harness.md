@@ -186,13 +186,21 @@ Full report with the audit trail in `eval-baseline-2026-09-10.txt`.
 
 | | |
 |---|---|
-| Recall | 96.7% (87/90) |
-| Weighted recall | 97.1% |
-| Precision | 48.9% |
-| Clause type correct | 100% (87/87) |
+| Recall | 100% (90/90) |
+| Weighted recall | 100% |
+| Precision | 50.6% |
+| Clause type correct | 100% (90/90) |
 | Presence correct | 98.9% |
-| Severity exact | 49.4%, within one band 95.4% |
-| Quoted text | 75 exact, 0 unlocatable |
+| Severity exact | 48.9%, within one band 95.6% |
+| Quoted text | 78 exact, 0 unlocatable |
+
+The first pass at these numbers reported recall 96.7% with three misses. All three
+were harness bugs, found by reading the audit trail: the model had filed a correct
+finding for each, and the scorer refused the pairing because the finding quoted a
+sentence of the clause that sat outside the span its anchors covered. One ended at
+character 15758 where its clause's anchors began at 15759. The clause region is now
+the section rather than the anchor hull, and re-scoring the same captured run —
+free, no API — gives 100%.
 
 **The judgment is good and the output shape is not.** The review found 87 of 90
 real problems, named every clause type correctly, and never fabricated a quote.
@@ -218,6 +226,4 @@ Severity is the other soft spot. Half the calls are exact and 95% are within one
 band, but the model over-calls more than it under-calls (29 against 15), and 23
 of the key's `medium` items came back `high`.
 
-**Three genuine misses**, all `medium`, all present-but-adverse clauses rather
-than missing ones — `named_storm` in eval-01, `fb_minimum` in eval-10,
-`mandatory_fees` in eval-15.
+**No misses.** The review found all 90.

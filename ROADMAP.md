@@ -324,8 +324,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ### Raised by the first eval run (2026-09-10)
 
-The §2.0.1 harness measured the pipeline for the first time: recall 96.7%,
-precision 48.9%, on 7 generated contracts and 90 key items. Full report and audit
+The §2.0.1 harness measured the pipeline for the first time: recall 100%,
+precision 50.6%, on 7 generated contracts and 90 key items. Full report and audit
 trail in `docs/eval-baseline-2026-09-10.txt`. Four things came out of it that need
 changing, and one that needs watching.
 
@@ -363,11 +363,21 @@ changing, and one that needs watching.
       `severity_default` and the model should depart from it only on the specific
       facts, saying why.
 
-- [ ] **3. Three genuine misses, all `medium`, all present-but-adverse rather than
-      missing clauses** — `named_storm` in eval-01, `fb_minimum` in eval-10,
-      `mandatory_fees` in eval-15. Small enough to read individually. Worth checking
-      whether the clause positions in `lib/standards/v1.ts` are vague at those three
-      points before assuming the model is at fault.
+- [x] **3. The three "misses" were harness bugs, not misses. Fixed 2026-09-10.**
+      Reading them individually showed the model had filed a correct finding for
+      each — the 24-hour storm window, the 24-month menu lock at a 100% shortfall
+      rate, the unilateral right to add fees after signature. The scorer refused
+      each pairing because the finding quoted a sentence of the clause outside the
+      span its anchors covered; one ended at character 15758 where its clause's
+      anchors began at 15759.
+
+      A clause's region is now the section it occupies rather than the hull of its
+      anchors. Re-scoring the same captured run — free, no API — moved recall from
+      96.7% to **100%**, and precision from 48.9% to 50.6%.
+
+      Worth noting how it surfaced: the number looked plausible either way. It was
+      reading the audit trail against the contracts that found it, which is the
+      reason the trail is part of the report rather than a debugging aid.
 
 - [ ] **4. Downstream consumers assume every finding is actionable.** Even once the
       prompt is fixed, nothing between the model and the redline/memo/email checks

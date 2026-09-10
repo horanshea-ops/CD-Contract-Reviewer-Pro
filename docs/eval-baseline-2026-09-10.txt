@@ -8,7 +8,7 @@ EVAL REPORT — synthetic key synthetic-v1
 Run           baseline-2026-09-10  (2026-09-10T19:31:37.414Z)
 Model         claude-sonnet-5
 Standards     v1-industry-default
-Scored        2026-09-10T19:33:02.749Z
+Scored        2026-09-10T20:05:56.862Z
 
 This key is synthetic. It measures whether the pipeline applies the standards
 it is handed, not whether CD's positions are right. Only a senior associate's
@@ -17,58 +17,55 @@ review answers the second question.
 DETECTION
 ------------------------------------------------------------------------------
 Key items               90
-Matched                 87
-Missed                   3   nothing pointed at these
+Matched                 90
+Missed                   0   nothing pointed at these
 Conflated                0   a matched finding already covered the wording
-Duplicates               3   the same issue reported twice
-Spurious                88   flagged, and the key says there was nothing there
+Duplicates               4   the same issue reported twice
+Spurious                84   flagged, and the key says there was nothing there
 Unscored                 0   the key does not claim to be exhaustive here
 
-Recall               96.7%
-Precision            48.9%   duplicates and spurious count against it; unscored does not
-F1                   64.9%
-Weighted recall      97.1%   high-severity misses cost eight times a note
+Recall               100.0%
+Precision            50.6%   duplicates and spurious count against it; unscored does not
+F1                   67.2%
+Weighted recall      100.0%   high-severity misses cost eight times a note
 
 RECALL BY SEVERITY
 ------------------------------------------------------------------------------
 Band      Items   Found   Recall
 high      21      21      100.0%
-medium    57      54      94.7%
+medium    57      57      100.0%
 low       12      12      100.0%
 
 ATTRIBUTES, ON MATCHED PAIRS ONLY
 ------------------------------------------------------------------------------
-Clause type correct  100.0% (87/87)
-Presence correct     98.9% (86/87)
-Severity exact       49.4% (43/87)
-Severity within one  95.4% (83/87)
-  over-called        29
+Clause type correct  100.0% (90/90)
+Presence correct     98.9% (89/90)
+Severity exact       48.9% (44/90)
+Severity within one  95.6% (86/90)
+  over-called        31
   under-called       15
-Language             54.4% (31/57 pairs where the key asserts something checkable)
+Language             55.9% (33/59 pairs where the key asserts something checkable)
 
 Quoted text
-  exact               75
+  exact               78
   none                12
 
 Exposure
   correct             13
-  omitted              1
+  omitted              2
   out_of_tolerance     1
-  not_applicable      72
+  not_applicable      74
 
 Severity called, by the severity the key expects
   key \ model   high     medium   low      note     
   high          14       5        1        1        
-  medium        23       24       6        1        
+  medium        25       25       6        1        
   low           1        5        5        1        
 
 BY CLAUSE TYPE
 ------------------------------------------------------------------------------
 Clause                        Items  Found  Recall   Spurious  Named right
-fb_minimum                    3      2      66.7%    5         100.0%
-mandatory_fees                3      2      66.7%    5         100.0%
-named_storm                   4      3      75.0%    4         100.0%
-attrition                     6      6      100.0%   2         100.0%
+attrition                     6      6      100.0%   1         100.0%
 cutoff_date                   5      5      100.0%   2         100.0%
 labor_disputes                5      5      100.0%   2         100.0%
 master_account_billing        5      5      100.0%   2         100.0%
@@ -77,6 +74,7 @@ cancellation                  4      4      100.0%   3         100.0%
 construction_renovation       4      4      100.0%   3         100.0%
 gratuity_service_charge       4      4      100.0%   3         100.0%
 insurance_indemnification     4      4      100.0%   3         100.0%
+named_storm                   4      4      100.0%   3         100.0%
 rate_parity                   4      4      100.0%   3         100.0%
 resale_mitigation_duty        4      4      100.0%   3         100.0%
 walk_relocation               4      4      100.0%   3         100.0%
@@ -84,7 +82,9 @@ assignment_subcontracting     3      3      100.0%   4         100.0%
 attendee_data_handling        3      3      100.0%   4         100.0%
 damage_deposit                3      3      100.0%   4         100.0%
 exclusivity_vendors           3      3      100.0%   4         100.0%
+fb_minimum                    3      3      100.0%   4         100.0%
 force_majeure                 3      3      100.0%   3         100.0%
+mandatory_fees                3      3      100.0%   4         100.0%
 rebates                       3      3      100.0%   4         100.0%
 review_audit_dates            3      3      100.0%   4         100.0%
 ada_compliance                2      2      100.0%   5         100.0%
@@ -94,19 +94,19 @@ termination_rights            2      2      100.0%   5         100.0%
 BY CONTRACT
 ------------------------------------------------------------------------------
 Contract                  Items  Found  Recall   Extra  Not checked
-eval-01-harborview.docx   25     24     96.0%    1      0
+eval-01-harborview.docx   25     25     100.0%   0      0
 eval-03-bayfront.docx     2      2      100.0%   23     0
 eval-05-riverwalk.docx    14     14     100.0%   11     0
 eval-07-monarch.docx      9      9      100.0%   16     0
-eval-10-crossroads.docx   24     23     95.8%    2      0
+eval-10-crossroads.docx   24     24     100.0%   1      0
 eval-12-granite-bay.docx  5      5      100.0%   21     0
-eval-15-vantage.docx      11     10     90.9%    17     0
+eval-15-vantage.docx      11     11     100.0%   16     0
 
 ------------------------------------------------------------------------------
 AUDIT — eval-01-harborview.docx
 ------------------------------------------------------------------------------
 
-Matched (24)
+Matched (25)
   eval-01-harborview:attrition  <- finding #2  [span, overlap 61.7%]
       key   : Attrition is measured on a night-by-night basis, with shortfalls calculated by comparin…
       model : Group shall be liable for attrition damages at the rate of one hundred percent (100%) o…
@@ -175,6 +175,10 @@ Matched (24)
       key   : The Hotel shall use commercially reasonable efforts to provide written notice to the Gr…
       model : the Group acknowledges that the Hotel may be subject to bankruptcy, foreclosure, receiv…
       wrong : nothing
+  eval-01-harborview:named_storm  <- finding #17  [span, overlap 0.0%]
+      key   : Should the National Weather Service issue a hurricane watch or named tropical storm war…
+      model : Should Group invoke the named storm cancellation right, Group shall forfeit the deposit…
+      wrong : nothing
   eval-01-harborview:attendee_data_handling  <- finding #18  [span, overlap 81.7%]
       key   : Group acknowledges that the Hotel may utilize such attendee data for the Hotel's own ma…
       model : Group acknowledges that the Hotel may utilize such attendee data for the Hotel's own ma…
@@ -204,13 +208,9 @@ Matched (24)
       model : the Hotel shall have no obligation to attempt to resell such released inventory or func…
       wrong : severity over_called (high)
 
-Missed (1)
-  eval-01-harborview:named_storm  [medium, present]  not noticed
-      key   : Should the National Weather Service issue a hurricane watch or named tropical storm war…
+Missed (0)
 
-Unmatched findings (1)
-  #17  spurious  [named_storm, medium]
-      model : Should Group invoke the named storm cancellation right, Group shall forfeit the deposit…
+Unmatched findings (0)
 
 ------------------------------------------------------------------------------
 AUDIT — eval-03-bayfront.docx
@@ -447,7 +447,7 @@ Unmatched findings (16)
 AUDIT — eval-10-crossroads.docx
 ------------------------------------------------------------------------------
 
-Matched (23)
+Matched (24)
   eval-10-crossroads:attrition  <- finding #2  [span, overlap 100.0%]
       key   : Attrition is measured on a night-by-night basis, and Group's block commitment is calcul…
       model : The Hotel's calculation of attrition damages shall be final and binding on Group, and G…
@@ -460,6 +460,10 @@ Matched (23)
       key   : Neither party shall be deemed in breach of this Agreement if performance becomes physic…
       model : Notwithstanding the foregoing, neither government-imposed travel restrictions nor gover…
       wrong : language
+  eval-10-crossroads:fb_minimum  <- finding #0  [span, overlap 0.0%]
+      key   : The Hotel shall provide to the Group a menu and pricing proposal that shall remain bind…
+      model : If the Group's actual food and beverage charges, when totaled for the entire Event Peri…
+      wrong : severity over_called (high)
   eval-10-crossroads:cutoff_date  <- finding #5  [span, overlap 100.0%]
       key   : All room reservations on behalf of Group must be requested and confirmed by the Hotel n…
       model : All room reservations on behalf of Group must be requested and confirmed by the Hotel n…
@@ -541,13 +545,9 @@ Matched (23)
       model : Upon release of rooms or function space by Group, the Hotel shall have no obligation to…
       wrong : severity over_called (high)
 
-Missed (1)
-  eval-10-crossroads:fb_minimum  [medium, present]  not noticed
-      key   : The Hotel shall provide to the Group a menu and pricing proposal that shall remain bind…
+Missed (0)
 
-Unmatched findings (2)
-  #0  spurious  [fb_minimum, high]
-      model : If the Group's actual food and beverage charges, when totaled for the entire Event Peri…
+Unmatched findings (1)
   #19  spurious  [ada_compliance, medium]
       model : The Hotel shall provide baseline auxiliary aids that are considered standard for its op…
 
@@ -627,7 +627,7 @@ Unmatched findings (21)
 AUDIT — eval-15-vantage.docx
 ------------------------------------------------------------------------------
 
-Matched (10)
+Matched (11)
   eval-15-vantage:attrition  <- finding #0  [span, overlap 100.0%]
       key   : Attrition is measured on a night-by-night basis and applies to the total room nights co…
       model : Attrition is measured on a night-by-night basis and applies to the total room nights co…
@@ -648,6 +648,10 @@ Matched (10)
       key   : the Hotel shall relocate the affected guest to a hotel of comparable quality and locati…
       model : the relocated guest shall return to the Vantage Point Hotel and Convention Center in a …
       wrong : severity under_called (medium)
+  eval-15-vantage:mandatory_fees  <- finding #8  [span, overlap 0.0%]
+      key   : Any charge or surcharge not specifically disclosed in writing to Group prior to the exe…
+      model : Hotel may, at its sole discretion and without prior notice to Group, introduce addition…
+      wrong : severity over_called (high)
   eval-15-vantage:master_account_billing  <- finding #12  [span, overlap 100.0%]
       key   : Group shall have thirty (30) days from the date of invoice to dispute any charge by wri…
       model : the Hotel shall assess a finance charge of 1.5% per month, or the maximum rate permitte…
@@ -669,12 +673,10 @@ Matched (10)
       model : The Hotel's resale efforts, including any attempts to place canceled rooms or space, it…
       wrong : severity over_called (high)
 
-Missed (1)
-  eval-15-vantage:mandatory_fees  [medium, present]  not noticed
-      key   : Any charge or surcharge not specifically disclosed in writing to Group prior to the exe…
+Missed (0)
 
-Unmatched findings (17)
-  #1  spurious  [attrition, low]
+Unmatched findings (16)
+  #1  duplicate  [attrition, low]  duplicates eval-15-vantage:attrition
       model : Group's failure to request occupancy records within thirty (30) days following the Even…
   #2  duplicate  [cancellation, high]  duplicates eval-15-vantage:cancellation
       model : If notice is provided fewer than sixty (60) days before the Event start date, damages s…
@@ -682,8 +684,6 @@ Unmatched findings (17)
       model : Should the Group's actual food and beverage charges fall short of the Minimum F&B Commi…
   #5  spurious  [exclusivity_vendors, low]
       model : The Hotel shall not assess any charge, surcharge, or fee in connection with the Group's…
-  #8  spurious  [mandatory_fees, high]
-      model : Hotel may, at its sole discretion and without prior notice to Group, introduce addition…
   #9  spurious  [rebates, low]
       model : Group shall receive complimentary room credit accruing at the ratio of one (1) complime…
   #10  spurious  [assignment_subcontracting, low]
