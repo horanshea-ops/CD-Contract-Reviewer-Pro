@@ -169,3 +169,46 @@ swap:
   its own arithmetic.
 - **Header and footer terms are keyed for one clause type.** `cutoff_date` is restated in
   the footer of contracts whose style carries terms there. Other clauses are body-only.
+
+## First baseline, 2026-09-10
+
+`claude-sonnet-5`, standards `v1-industry-default`, 7 contracts, 90 key items.
+Full report with the audit trail in `eval-baseline-2026-09-10.txt`.
+
+| | |
+|---|---|
+| Recall | 96.7% (87/90) |
+| Weighted recall | 97.1% |
+| Precision | 48.9% |
+| Clause type correct | 100% (87/87) |
+| Presence correct | 98.9% |
+| Severity exact | 49.4%, within one band 95.4% |
+| Quoted text | 75 exact, 0 unlocatable |
+
+**The judgment is good and the output shape is not.** The review found 87 of 90
+real problems, named every clause type correctly, and never fabricated a quote.
+It also filed 88 spurious findings.
+
+Reading them shows why. On `eval-03-bayfront`, which has two real problems, it
+filed 25 findings — and the extra 23 say things like:
+
+> `finding_text`: "Governing law/venue is Group's home state, no punitive damages,
+> each party bears own fees — fully matches CD's standard. Compliant."
+> `proposed_language`: "No change recommended; clause aligns with CD standard."
+
+So the model is using `findings` as a record of every clause it examined, and
+`clauses_checked` for the same thing. Its conclusion about the clause is right;
+it is recorded in the wrong field. That matters because everything downstream —
+the redline engine, the memo, the property email — reads `findings` as a list of
+things to act on, so a "no change recommended" entry becomes a proposed change.
+
+Fixing it is a prompt change and belongs with the other prompt work, not here.
+The harness now measures whether a fix worked: re-capture and compare precision.
+
+Severity is the other soft spot. Half the calls are exact and 95% are within one
+band, but the model over-calls more than it under-calls (29 against 15), and 23
+of the key's `medium` items came back `high`.
+
+**Three genuine misses**, all `medium`, all present-but-adverse clauses rather
+than missing ones — `named_storm` in eval-01, `fb_minimum` in eval-10,
+`mandatory_fees` in eval-15.
