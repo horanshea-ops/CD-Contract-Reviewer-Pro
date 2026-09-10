@@ -647,7 +647,11 @@ export async function draftEvalClauses({
     throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
   }
 
-  const client = new Anthropic({ apiKey });
+  // Four minutes, against an SDK default of ten. A drafting batch that is going
+  // to succeed returns in well under a minute, so a stalled connection is worth
+  // abandoning early — three stalls at the default cost half an hour before the
+  // first retry got anywhere.
+  const client = new Anthropic({ apiKey, timeout: 240_000 });
   // Haiku by default. Drafting with a different model than the one being
   // graded keeps the corpus from being unusually easy for the grader to read.
   const modelId = model || process.env.EVAL_DRAFT_MODEL || "claude-haiku-4-5";
@@ -776,7 +780,7 @@ export async function readBackEvalTerms({
     throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
   }
 
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey, timeout: 240_000 });
   const modelId = model || process.env.EVAL_READBACK_MODEL || "claude-sonnet-5";
 
   const questionBlock = questions

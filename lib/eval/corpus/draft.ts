@@ -99,7 +99,9 @@ async function withRetry<T>(what: string, attempt: () => Promise<T>): Promise<T>
       last = err;
       const message = err instanceof Error ? err.message : String(err);
       console.warn(`  ${what} failed (attempt ${tries}/3): ${message}`);
-      if (tries < 3) await new Promise((resolve) => setTimeout(resolve, 2000 * tries));
+      // Backs off far enough to clear a rate limit. Retrying two seconds after
+      // being throttled just gets throttled again.
+      if (tries < 3) await new Promise((resolve) => setTimeout(resolve, 15_000 * tries));
     }
   }
   throw last;
