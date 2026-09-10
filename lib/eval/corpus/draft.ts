@@ -41,6 +41,13 @@ export interface ResolvedAnchor {
 
 export interface DraftDeps {
   draftClauses: typeof draftEvalClauses;
+  /**
+   * Reads the finished contract back and checks it means what the spec says.
+   *
+   * Not optional. A model writes the prose, so it can drift from the spec it
+   * was given, and the boolean terms have no literal handle to check against —
+   * only meaning, which has to be read.
+   */
   readBack: typeof readBackEvalTerms;
 }
 

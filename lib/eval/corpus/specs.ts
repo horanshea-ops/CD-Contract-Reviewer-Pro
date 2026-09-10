@@ -1,7 +1,7 @@
 import type { ClauseTerms, EvalContractSpec, SpecClause } from "./spec";
 
 /**
- * The fifteen eval contracts, as specs (MASTER_PLAN.md §2.0.1).
+ * The eval contracts, as specs (MASTER_PLAN.md §2.0.1).
  *
  * Invented hotels, invented groups, invented numbers. No CD client contract
  * reaches this file or the corpus it generates, per §1.11's standing rule.
@@ -102,7 +102,7 @@ function from(base: Record<string, ClauseTerms>, patch: Patch): Record<string, S
   return out;
 }
 
-export const EVAL_SPECS: EvalContractSpec[] = [
+const ALL_SPECS: EvalContractSpec[] = [
   {
     id: "eval-01-harborview",
     hotel: "Harborview Grand Hotel",
@@ -443,4 +443,32 @@ export const EVAL_SPECS: EvalContractSpec[] = [
   },
 ];
 
-export const SPEC_BY_ID = new Map(EVAL_SPECS.map((s) => [s.id, s]));
+/**
+ * The seven contracts the corpus is actually built from.
+ *
+ * Chosen for spread rather than by order — one aggressive draft, one almost
+ * clean, one thin document that omits half its clauses, one where every
+ * deviation is marginal, one that repeats the same percentage across four
+ * clauses, one carrying a term in its footer, and one long mixed draft. Each
+ * exercises a different way the review can go wrong.
+ *
+ * The other eight specs are kept rather than deleted. Widening the corpus later
+ * is then a matter of moving an id into this list and rebuilding, and the work
+ * of deciding what each contract is for does not have to be redone.
+ */
+const ACTIVE_SPEC_IDS = new Set([
+  "eval-01-harborview",
+  "eval-03-bayfront",
+  "eval-05-riverwalk",
+  "eval-07-monarch",
+  "eval-10-crossroads",
+  "eval-12-granite-bay",
+  "eval-15-vantage",
+]);
+
+export const EVAL_SPECS: EvalContractSpec[] = ALL_SPECS.filter((s) => ACTIVE_SPEC_IDS.has(s.id));
+
+/** Written, reviewed, and held back from the corpus. Not dead code — see above. */
+export const RESERVE_SPECS: EvalContractSpec[] = ALL_SPECS.filter((s) => !ACTIVE_SPEC_IDS.has(s.id));
+
+export const SPEC_BY_ID = new Map(ALL_SPECS.map((s) => [s.id, s]));

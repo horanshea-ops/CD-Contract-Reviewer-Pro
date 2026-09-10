@@ -243,9 +243,9 @@ describe("layOutContract", () => {
 });
 
 describe("buildContract", () => {
-  // eval-14 is small enough to keep the test quick and still covers absent
-  // clauses, prose anchors and the full extract-and-locate round trip.
-  const spec = EVAL_SPECS.find((s) => s.id === "eval-14-parkside")!;
+  // eval-12 covers prose anchors, a term carried in the footer, and the full
+  // extract-and-locate round trip, without being the largest contract.
+  const spec = EVAL_SPECS.find((s) => s.id === "eval-12-granite-bay")!;
 
   it("builds a document whose every anchor resolves to one exact place", async () => {
     const result = await buildContract(spec, {

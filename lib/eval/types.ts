@@ -309,6 +309,11 @@ export interface AttributeRates {
   severity_within_one: number;
   severity_over_called: number;
   severity_under_called: number;
+  /**
+   * Pairs whose key asserted something checkable about the replacement wording.
+   * Its own denominator, because most clauses assert nothing — see ./language.
+   */
+  language_graded: number;
   language_passed: number;
   quote: Record<QuoteVerdict, number>;
   exposure: Record<ExposureVerdict, number>;

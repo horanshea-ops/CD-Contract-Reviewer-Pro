@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { STANDARDS_LIBRARY } from "@/lib/standards/v1";
 import { CD_POSITIONS, POSITION_BY_CLAUSE, clauseFields } from "@/lib/eval/corpus/positions";
 import { deriveKeyItems, checkPasses } from "@/lib/eval/corpus/derive-key";
-import { EVAL_SPECS } from "@/lib/eval/corpus/specs";
+import { EVAL_SPECS, RESERVE_SPECS } from "@/lib/eval/corpus/specs";
 import type { EvalContractSpec, TermCheck } from "@/lib/eval/corpus/spec";
 
 /**
@@ -155,11 +155,11 @@ describe("deriveKeyItems", () => {
   });
 
   it("marks a disclosed resort fee as the one exposure the contract computes", () => {
-    const spec = EVAL_SPECS.find((s) => s.id === "eval-13-northstar")!;
+    const spec = EVAL_SPECS.find((s) => s.id === "eval-01-harborview")!;
     const fees = deriveKeyItems(spec, library).find((i) => i.clause_type === "mandatory_fees")!;
 
     expect(fees.exposure.mode).toBe("required");
-    expect(fees.exposure.amount).toBe(42 * 400 * 4);
+    expect(fees.exposure.amount).toBe(35 * 340 * 4);
   });
 
   it("takes no exposure position where no single-step figure exists", () => {
@@ -199,9 +199,11 @@ describe("deriveKeyItems", () => {
 describe("the corpus as a whole", () => {
   const derived = EVAL_SPECS.map((spec) => ({ spec, items: deriveKeyItems(spec, library) }));
 
-  it("has fifteen contracts with unique ids", () => {
-    expect(EVAL_SPECS).toHaveLength(15);
-    expect(new Set(EVAL_SPECS.map((s) => s.id)).size).toBe(15);
+  it("has seven contracts with unique ids, and holds the rest in reserve", () => {
+    expect(EVAL_SPECS).toHaveLength(7);
+    expect(new Set(EVAL_SPECS.map((s) => s.id)).size).toBe(7);
+    expect(RESERVE_SPECS.length).toBeGreaterThan(0);
+    expect(RESERVE_SPECS.some((r) => EVAL_SPECS.some((a) => a.id === r.id))).toBe(false);
   });
 
   it("gives every key item a unique id", () => {
@@ -211,7 +213,7 @@ describe("the corpus as a whole", () => {
 
   it("keys enough items for a per-clause breakdown to mean anything", () => {
     const total = derived.reduce((n, d) => n + d.items.length, 0);
-    expect(total).toBeGreaterThanOrEqual(120);
+    expect(total).toBeGreaterThanOrEqual(80);
   });
 
   it("exercises every clause type at least once as a finding", () => {
@@ -235,7 +237,7 @@ describe("the corpus as a whole", () => {
   it("covers both key item kinds and every severity band", () => {
     const items = derived.flatMap((d) => d.items);
     expect(items.some((i) => i.kind === "present")).toBe(true);
-    expect(items.filter((i) => i.kind === "absent").length).toBeGreaterThanOrEqual(15);
+    expect(items.filter((i) => i.kind === "absent").length).toBeGreaterThanOrEqual(10);
     for (const severity of ["high", "medium", "low"] as const) {
       expect(items.some((i) => i.severity === severity), `no ${severity} items`).toBe(true);
     }
