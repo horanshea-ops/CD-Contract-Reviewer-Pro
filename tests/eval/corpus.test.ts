@@ -206,12 +206,21 @@ describe("readBackQuestions", () => {
     expect(readBackQuestions(compliant).filter((q) => q.expected === "a").length).toBeGreaterThan(30);
   });
 
-  it("asks whether an absent clause is really absent", () => {
+  it("asks nothing about an absent clause, because absence is structural", () => {
+    // Layout emits no section for an absent clause and no directive is built
+    // for one, so nothing in the document states its terms. Asking anyway
+    // rejected good contracts: eval-05 has no resale-mitigation clause, and its
+    // cancellation clause still says the Hotel keeps resale revenue, so "does
+    // this agreement address resale?" is honestly yes while "is there a
+    // resale-mitigation duty?" is honestly no.
     const spec = EVAL_SPECS.find((s) => s.id === "eval-05-riverwalk")!;
-    const question = readBackQuestions(spec).find((q) => q.id === "named_storm#present")!;
-    expect(question.expected).toBe("no");
-    expect(question.options).toEqual(["yes", "no"]);
-    expect(question.question).toContain("named storm");
+    const questions = readBackQuestions(spec);
+
+    expect(questions.some((q) => q.id.includes("#present"))).toBe(false);
+    for (const absent of ["named_storm", "rate_parity", "resale_mitigation_duty"]) {
+      expect(questions.some((q) => q.id.startsWith(`${absent}.`)), `asked about ${absent}`).toBe(false);
+    }
+    expect(questions.some((q) => q.id.startsWith("attrition."))).toBe(true);
   });
 
   it("never offers unstated as a correct answer", () => {

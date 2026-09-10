@@ -223,15 +223,22 @@ export function readBackQuestions(spec: EvalContractSpec): Array<TermQuestion & 
     const position = POSITION_BY_CLAUSE.get(clauseType);
     if (!position) continue;
 
-    if (clause === "absent") {
-      questions.push({
-        id: `${clauseType}#present`,
-        question: `Does this agreement contain any provision addressing ${SECTION_TITLE[clauseType].toLowerCase()}?`,
-        options: ["yes", "no"],
-        expected: "no",
-      });
-      continue;
-    }
+    // Absent clauses are not asked about.
+    //
+    // Absence is structural, not a matter of wording: layOutContract emits a
+    // section only for a clause the spec did not mark absent, and no directive
+    // is ever built for one, so nothing in the document states its terms. There
+    // is no drafter judgement to second-guess.
+    //
+    // Asking anyway produced false rejections, because contracts mention topics
+    // in passing. eval-05 has no resale-mitigation clause, and its cancellation
+    // clause still says the Hotel keeps resale revenue — so "does this agreement
+    // address resale?" is honestly yes, while "is there a resale-mitigation
+    // duty?" is honestly no. The key means the second; the question asked the
+    // first. A model that finds the topic inside another clause and calls it
+    // present rather than missing is graded on that by the scorer, as a
+    // presence error on a real pair.
+    if (clause === "absent") continue;
 
     for (const check of position.checks) {
       const key = `${clauseType}.${check.field}`;
