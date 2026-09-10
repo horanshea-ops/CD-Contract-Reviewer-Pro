@@ -8,6 +8,7 @@ import {
   buildContract,
   checkDraftBatch,
   readBackQuestions,
+  normalizeClauseTypes,
   CorpusIntegrityError,
   type DraftDeps,
 } from "@/lib/eval/corpus/draft";
@@ -280,5 +281,33 @@ describe("buildContract", () => {
     await expect(
       buildContract(spec, { draftClauses: compliantDrafter(), readBack: contrarian })
     ).rejects.toThrow(/the contract reads as "unstated"/);
+  });
+});
+
+describe("normalizeClauseTypes", () => {
+  const requests: ClauseDraftRequest[] = [
+    { clause_type: "fb_minimum", section_title: "Food and Beverage Minimum", fields: [] },
+    { clause_type: "cutoff_date", section_title: "Reservation Cutoff Date", fields: [] },
+  ];
+
+  it("relabels a clause returned under its section title", () => {
+    const drafted = [{ clause_type: "Food and Beverage Minimum", paragraphs: ["x"], anchors: [] }];
+    expect(normalizeClauseTypes(requests, drafted)[0].clause_type).toBe("fb_minimum");
+  });
+
+  it("leaves a correct identifier alone and matches the title case-insensitively", () => {
+    const drafted = [
+      { clause_type: "cutoff_date", paragraphs: ["x"], anchors: [] },
+      { clause_type: "  food and beverage minimum ", paragraphs: ["x"], anchors: [] },
+    ];
+    expect(normalizeClauseTypes(requests, drafted).map((c) => c.clause_type)).toEqual([
+      "cutoff_date",
+      "fb_minimum",
+    ]);
+  });
+
+  it("leaves a label matching neither, so the batch check still rejects it", () => {
+    const drafted = [{ clause_type: "Something Else", paragraphs: ["x"], anchors: [] }];
+    expect(normalizeClauseTypes(requests, drafted)[0].clause_type).toBe("Something Else");
   });
 });

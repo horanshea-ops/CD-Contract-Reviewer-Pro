@@ -561,7 +561,11 @@ const DRAFT_TOOL_SCHEMA = {
         items: {
           type: "object",
           properties: {
-            clause_type: { type: "string" },
+            clause_type: {
+              type: "string",
+              description:
+                "The clause identifier exactly as the request gave it — fb_minimum, walk_relocation, and so on. Never the section title.",
+            },
             paragraphs: {
               type: "array",
               items: { type: "string" },
@@ -592,11 +596,11 @@ const DRAFT_TOOL_SCHEMA = {
 };
 
 const VOICE_GUIDE: Record<DraftEvalClausesArgs["voice"], string> = {
-  terse: "Write plainly and briefly. One paragraph per clause, three to five sentences.",
+  terse: "Write plainly and without ornament. Two paragraphs per clause, 130 to 190 words in total.",
   verbose:
-    "Write in the dense, qualified style of hotel counsel. Two to three paragraphs per clause, with subordinate clauses and defined terms.",
+    "Write in the dense, qualified style of hotel counsel, with subordinate clauses and defined terms. Three to four paragraphs per clause, 260 to 360 words in total.",
   brand_boilerplate:
-    "Write as a large brand's standard form: two paragraphs per clause, formal, heavy on capitalised defined terms such as Hotel, Group and Agreement.",
+    "Write as a large brand's standard form: formal, heavy on capitalised defined terms such as Hotel, Group and Agreement. Two to three paragraphs per clause, 200 to 290 words in total.",
 };
 
 /**
@@ -618,7 +622,14 @@ Rules, all of which matter:
 - Do not state any term the directives do not mention. In particular, never invent a percentage, a dollar amount, or a deadline that was not given to you.
 - Return, for each term, the single sentence from your own prose that states it — copied character for character, including its final punctuation. This is checked mechanically, and a sentence that is not a verbatim substring of your paragraphs is rejected.
 - Write contract prose only. No headings, no section numbers, no bullet points, no markdown.
-- Write out numbers the way hotel contracts do, with the digits in parentheses, exactly as the directives show them.`;
+- Write out numbers the way hotel contracts do, with the digits in parentheses, exactly as the directives show them.
+- Return each clause under the identifier the request gave it — "fb_minimum", not "Food and Beverage Minimum". The quoted section title is only there to tell you what the clause is about.
+
+Two things separate a real clause from a list of terms, and both are required.
+
+First, write the machinery around the terms. A real clause says how notice is given and to whom, who calculates a figure and from what records, when an amount falls due, what happens if a party disagrees, and how the clause reads against the rest of the agreement. The required terms are the skeleton. A clause that states them and stops is not finished.
+
+Second, where a directive begins "Say, in your own words", what follows is a NOTE ABOUT MEANING, not text to paste. It is written in plain English so you cannot mistake what the term does. Rewrite it as contract language — different sentence shape, contract vocabulary, the defined terms this agreement uses. Reproducing the note as written is a failure, and is checked.`;
 }
 
 export async function draftEvalClauses({
@@ -651,14 +662,19 @@ export async function draftEvalClauses({
 
   const userText = `Hotel: ${hotel}, ${city}, ${state}\nGroup: ${group}\nEvent dates: ${dates}\n\nDraft the following clauses.\n\n${clauseBlock}`;
 
-  const response = await client.messages.create({
-    model: modelId,
-    max_tokens: 16000,
-    system: buildEvalDraftPrompt(voice),
-    tools: [DRAFT_TOOL_SCHEMA],
-    tool_choice: { type: "tool", name: DRAFT_TOOL_NAME },
-    messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
-  });
+  // Streamed. A verbose batch runs to several thousand output tokens, and the
+  // same call non-streaming hit the SDK's request timeout rather than returning
+  // slowly — the failure looks like an API outage and is not one.
+  const response = await client.messages
+    .stream({
+      model: modelId,
+      max_tokens: 16000,
+      system: buildEvalDraftPrompt(voice),
+      tools: [DRAFT_TOOL_SCHEMA],
+      tool_choice: { type: "tool", name: DRAFT_TOOL_NAME },
+      messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
+    })
+    .finalMessage();
 
   const toolUseBlock = response.content.find(
     (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
@@ -767,19 +783,21 @@ export async function readBackEvalTerms({
     .map((q) => `[${q.id}] ${q.question}\n    Options: ${q.options.join(" | ")}`)
     .join("\n");
 
-  const response = await client.messages.create({
-    model: modelId,
-    max_tokens: 16000,
-    system: buildEvalReadBackPrompt(),
-    tools: [READBACK_TOOL_SCHEMA],
-    tool_choice: { type: "tool", name: READBACK_TOOL_NAME },
-    messages: [
-      {
-        role: "user",
-        content: [{ type: "text", text: `CONTRACT:\n\n${contractText}\n\nQUESTIONS:\n\n${questionBlock}` }],
-      },
-    ],
-  });
+  const response = await client.messages
+    .stream({
+      model: modelId,
+      max_tokens: 16000,
+      system: buildEvalReadBackPrompt(),
+      tools: [READBACK_TOOL_SCHEMA],
+      tool_choice: { type: "tool", name: READBACK_TOOL_NAME },
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: `CONTRACT:\n\n${contractText}\n\nQUESTIONS:\n\n${questionBlock}` }],
+        },
+      ],
+    })
+    .finalMessage();
 
   const toolUseBlock = response.content.find(
     (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"

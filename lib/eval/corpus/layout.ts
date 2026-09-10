@@ -115,18 +115,23 @@ export const isTableOnly = (clauseType: string, field: string) =>
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/** Bands below the top tier, scaled off it so the schedule reads as a real one. */
+/**
+ * The damages schedule, scaled off the top tier.
+ *
+ * Each band is a share of the innermost one rather than a fixed percentage.
+ * Clamping instead — min(band, topTier) — flattened the last three rows to the
+ * same figure whenever the top tier was low, so a contract whose spec says its
+ * damages slide carried a table showing they do not.
+ */
 function cancellationRows(topTierPct: number): string[][] {
   const bands: Array<[string, number]> = [
     ["365 days or more prior to arrival", 0.25],
     ["364 through 181 days prior to arrival", 0.5],
     ["180 through 91 days prior to arrival", 0.75],
     ["90 through 31 days prior to arrival", 0.9],
+    ["30 days or fewer prior to arrival", 1],
   ];
-  return [
-    ...bands.map(([label, share]) => [label, pct(Math.min(share, topTierPct))]),
-    ["30 days or fewer prior to arrival", pct(topTierPct)],
-  ];
+  return bands.map(([label, share]) => [label, pct(share * topTierPct)]);
 }
 
 function roomBlockRows(spec: EvalContractSpec): string[][] {

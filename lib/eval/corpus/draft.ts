@@ -7,7 +7,7 @@ import type { draftEvalClauses, readBackEvalTerms } from "../../anthropic";
 import type { AnchorSpan } from "../types";
 import type { ClauseTerms, EvalContractSpec } from "./spec";
 import { POSITION_BY_CLAUSE } from "./positions";
-import { buildDirectives, requiredWording, BOOLEAN_MEANING, ENUM_WORDING } from "./directives";
+import { buildDirectives, requiredWording, meaningNote, BOOLEAN_MEANING, ENUM_WORDING } from "./directives";
 import { clausesToDraft, layOutContract, SECTION_TITLE, type DraftedClause } from "./layout";
 import { buildContractDocx } from "./docx-builder";
 
@@ -72,12 +72,39 @@ const terms = (spec: EvalContractSpec, clauseType: string): ClauseTerms => {
   return clause;
 };
 
+/** Case, punctuation and spacing set aside, for comparing a sentence to a note. */
+const flatten = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
 function draftRequests(spec: EvalContractSpec, clauseTypes: string[]): ClauseDraftRequest[] {
   return clauseTypes.map((clauseType) => ({
     clause_type: clauseType,
     section_title: SECTION_TITLE[clauseType],
     fields: buildDirectives(clauseType, terms(spec, clauseType)),
   }));
+}
+
+/**
+ * Relabels a clause the model returned under its section title.
+ *
+ * The request names each clause twice, once by identifier and once by the
+ * section title in quotes, and the model sometimes answers with the title.
+ * Nothing about the prose is wrong when that happens, so rejecting the batch
+ * would spend three more drafting calls to fix a label. Titles are unique
+ * across the corpus, so mapping one back is unambiguous — and a label that
+ * matches neither still falls through to "not returned".
+ */
+export function normalizeClauseTypes(
+  requests: ClauseDraftRequest[],
+  drafted: DraftedClauseResult[]
+): DraftedClauseResult[] {
+  const byTitle = new Map(requests.map((r) => [r.section_title.toLowerCase(), r.clause_type]));
+  const known = new Set(requests.map((r) => r.clause_type));
+
+  return drafted.map((clause) => {
+    if (known.has(clause.clause_type)) return clause;
+    const fromTitle = byTitle.get(clause.clause_type.trim().toLowerCase());
+    return fromTitle ? { ...clause, clause_type: fromTitle } : clause;
+  });
 }
 
 /**
@@ -119,10 +146,19 @@ export function checkDraftBatch(
         failures.push(`${request.clause_type}.${field.field}: anchor sentence is not a verbatim substring of the prose`);
         continue;
       }
-      const wording = requiredWording(request.clause_type, field.field, terms(spec, request.clause_type));
+      const clauseTerms = terms(spec, request.clause_type);
+
+      const wording = requiredWording(request.clause_type, field.field, clauseTerms);
       if (wording && !sentence.includes(wording)) {
         failures.push(
           `${request.clause_type}.${field.field}: anchor sentence omits the dictated wording "${wording}"`
+        );
+      }
+
+      const note = meaningNote(request.clause_type, field.field, clauseTerms);
+      if (note && flatten(sentence) === flatten(note)) {
+        failures.push(
+          `${request.clause_type}.${field.field}: anchor sentence copies the plain-English note instead of rewriting it as contract language`
         );
       }
     }
@@ -215,22 +251,39 @@ function resolveAnchors(
     });
   }
 
-  // Two anchors over the same characters make the pairing between key items and
-  // findings ambiguous in a way the scorer cannot resolve and would not report.
-  for (let i = 0; i < anchors.length; i++) {
-    for (let j = i + 1; j < anchors.length; j++) {
-      const a = anchors[i];
-      const b = anchors[j];
+  // Overlap only matters ACROSS clauses. Every anchor of one clause attaches to
+  // that clause's single key item, so one sentence stating two of its terms —
+  // "liable for seventy percent (70%) of the rate below ninety percent (90%)
+  // pickup" — is ordinary contract prose and points at the same issue either
+  // way. A span shared by two DIFFERENT clauses is the real problem: a finding
+  // quoting it cannot be attributed, and the scorer would pick one silently.
+  const deduped: ResolvedAnchor[] = [];
+  for (const anchor of anchors) {
+    const already = deduped.some(
+      (k) =>
+        k.clause_type === anchor.clause_type &&
+        k.span.part === anchor.span.part &&
+        k.span.start === anchor.span.start &&
+        k.span.end === anchor.span.end
+    );
+    if (!already) deduped.push(anchor);
+  }
+
+  for (let i = 0; i < deduped.length; i++) {
+    for (let j = i + 1; j < deduped.length; j++) {
+      const a = deduped[i];
+      const b = deduped[j];
+      if (a.clause_type === b.clause_type) continue;
       if (a.span.part !== b.span.part) continue;
       if (a.span.start < b.span.end && b.span.start < a.span.end) {
         failures.push(
-          `${a.clause_type}.${a.field} and ${b.clause_type}.${b.field}: anchors overlap in ${a.span.part}`
+          `${a.clause_type}.${a.field} and ${b.clause_type}.${b.field}: anchors overlap in ${a.span.part}, so a finding quoting that wording could belong to either clause`
         );
       }
     }
   }
 
-  return { anchors, failures };
+  return { anchors: deduped, failures };
 }
 
 export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Promise<BuildContractResult> {
@@ -262,9 +315,10 @@ export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Pr
       tokens.input += result.input_tokens;
       tokens.output += result.output_tokens;
 
-      lastFailures = checkDraftBatch(spec, requests, result.clauses);
+      const clauses = normalizeClauseTypes(requests, result.clauses);
+      lastFailures = checkDraftBatch(spec, requests, clauses);
       if (lastFailures.length === 0) {
-        for (const clause of result.clauses) {
+        for (const clause of clauses) {
           drafted.set(clause.clause_type, {
             clause_type: clause.clause_type,
             paragraphs: clause.paragraphs,

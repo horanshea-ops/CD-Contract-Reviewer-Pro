@@ -18,7 +18,8 @@
     "standards:seed": "tsx scripts/seed-standards.ts",
     "standards:status": "tsx scripts/standards-status.ts",
     "associate:seed-test": "tsx scripts/seed-test-associate.ts",
-    "dev:login-link": "tsx scripts/dev-login-link.ts"
+    "dev:login-link": "tsx scripts/dev-login-link.ts",
+    "eval:build-corpus": "tsx scripts/eval-build-corpus.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",

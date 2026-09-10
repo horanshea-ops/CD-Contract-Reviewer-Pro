@@ -379,4 +379,21 @@ export function requiredWording(clauseType: string, field: string, terms: Clause
   return null;
 }
 
+/**
+ * The plain-English note a field was described with, where it was described
+ * rather than dictated. The gate checks the drafted sentence is not this note
+ * with a full stop on the end — a corpus that repeats its own instructions is a
+ * template, and reading the fifteenth copy of one tests nothing.
+ */
+export function meaningNote(clauseType: string, field: string, terms: ClauseTerms): string | null {
+  const key = `${clauseType}.${field}`;
+  const value = terms[field];
+
+  const meaning = BOOLEAN_MEANING[key];
+  if (meaning) return value === true ? meaning.true : meaning.false;
+
+  if (value === 0 && ZERO_DURATION_MEANING[key]) return ZERO_DURATION_MEANING[key];
+  return null;
+}
+
 export { BOOLEAN_MEANING, ENUM_WORDING };

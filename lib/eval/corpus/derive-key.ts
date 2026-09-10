@@ -1,5 +1,5 @@
 import type { Severity, StandardEntry } from "../../standards/types";
-import type { ExposureExpectation, KeyItemKind, LanguageAssertion } from "../types";
+import type { AnchorSpan, ExposureExpectation, KeyItem, KeyItemKind, LanguageAssertion } from "../types";
 import type { EvalContractSpec, TermCheck, TermValue } from "./spec";
 import { CD_POSITIONS, POSITION_BY_CLAUSE, clauseFields } from "./positions";
 
@@ -232,3 +232,45 @@ export function deriveKeyItems(spec: EvalContractSpec, standards: StandardEntry[
 
 /** Clause types this contract's key expects to have been considered — all of them. */
 export const expectedCoverage = (): string[] => CD_POSITIONS.map((p) => p.clause_type);
+
+/**
+ * Attaches anchors to derived items, producing the finished key for one contract.
+ *
+ * A key item's anchors are EVERY anchor in its clause, not only the one for the
+ * field that failed. One key item stands for one deviating clause, so a finding
+ * quoting any sentence of that clause has found it — including the sentence
+ * stating a term that was fine, and including the schedule table row that
+ * carries a figure the prose never states. Anchoring only the failing field
+ * would score those correct findings as a miss and a false positive at once.
+ *
+ * A clause with no key item keeps its anchors attached to nothing, so a finding
+ * quoting a compliant clause matches nothing and is reported as spurious. That
+ * is the intended reading.
+ */
+export function resolveKeyItems(
+  pending: PendingKeyItem[],
+  anchors: Array<{ clause_type: string; text: string; span: AnchorSpan }>
+): KeyItem[] {
+  return pending.map((item) => {
+    const mine = item.kind === "absent" ? [] : anchors.filter((a) => a.clause_type === item.clause_type);
+
+    if (item.kind === "present" && mine.length === 0) {
+      throw new Error(
+        `Key item ${item.id} is a present-clause finding with no anchor. The clause was drafted but nothing located.`
+      );
+    }
+
+    return {
+      id: item.id,
+      contract: item.contract,
+      kind: item.kind,
+      clause_type: item.clause_type,
+      severity: item.severity,
+      anchors: mine.map((a) => a.span),
+      anchor_texts: mine.map((a) => a.text),
+      expected_language: item.expected_language,
+      exposure: item.exposure,
+      rationale: item.rationale,
+    };
+  });
+}
