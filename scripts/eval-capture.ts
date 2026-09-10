@@ -26,6 +26,28 @@ const CORPUS_DIR = path.join("data", "sample-contracts", "eval");
 const KEY_PATH = path.join("data", "eval", "synthetic-key-v1.json");
 const RUNS_DIR = path.join("data", "eval", "runs");
 
+/**
+ * Retries a failure that says nothing about the contract.
+ *
+ * DNS on this machine intermittently fails to resolve api.anthropic.com, and a
+ * capture that gives up on the first one loses the whole run. A contract that
+ * genuinely cannot be analysed still ends up recorded as failed, which is what
+ * the scorer wants — its key items count as missed.
+ */
+async function withRetry<T>(attempt: () => Promise<T>): Promise<T> {
+  let last: unknown;
+  for (let tries = 1; tries <= 4; tries++) {
+    try {
+      return await attempt();
+    } catch (err) {
+      last = err;
+      console.log(`\n  attempt ${tries}/4 failed: ${err instanceof Error ? err.message : String(err)}`);
+      if (tries < 4) await new Promise((resolve) => setTimeout(resolve, 10_000 * tries));
+    }
+  }
+  throw last;
+}
+
 async function main() {
   const labelAt = process.argv.indexOf("--label");
   const label = labelAt === -1 ? new Date().toISOString().slice(0, 10) : process.argv[labelAt + 1];
@@ -33,8 +55,21 @@ async function main() {
   const modelAt = process.argv.indexOf("--model");
   const model = modelAt === -1 ? undefined : process.argv[modelAt + 1];
 
+  const resume = process.argv.includes("--resume");
   const key: AnswerKey = JSON.parse(await readFile(KEY_PATH, "utf8"));
   const standards = await loadStandardsLibrary();
+
+  // Analyses an earlier attempt at this label already got. A dropped connection
+  // should not mean paying to re-analyse the contracts that went through.
+  const already = new Map<string, RunDocument>();
+  if (resume) {
+    try {
+      const prior: RunRecord = JSON.parse(await readFile(path.join(RUNS_DIR, `${label}.json`), "utf8"));
+      for (const d of prior.documents) if (d.analysis) already.set(d.contract, d);
+    } catch {
+      // No prior run under this label, so there is nothing to reuse.
+    }
+  }
 
   if (standards.version !== key.standards_version) {
     console.warn(
@@ -54,16 +89,26 @@ async function main() {
     process.stdout.write(`${entry.contract} ... `);
     const started = Date.now();
 
+    const reused = already.get(entry.contract);
+    if (reused) {
+      documents.push(reused);
+      console.log(`reused — ${reused.analysis!.findings.length} findings`);
+      continue;
+    }
+
     try {
       const bytes = await readFile(path.join(CORPUS_DIR, entry.contract));
       const extracted = await extractDocx(new Uint8Array(bytes));
+      const text = extracted.parts.map((p) => p.text).join("\n\n");
 
-      const analysis = await analyzeContract({
-        document: { kind: "text", text: extracted.parts.map((p) => p.text).join("\n\n") },
-        standards: standards.entries,
-        standardsVersion: standards.version,
-        model,
-      });
+      const analysis = await withRetry(() =>
+        analyzeContract({
+          document: { kind: "text", text },
+          standards: standards.entries,
+          standardsVersion: standards.version,
+          model,
+        })
+      );
 
       const elapsed = Date.now() - started;
       documents.push({ contract: entry.contract, analysis, error: null, elapsed_ms: elapsed });
