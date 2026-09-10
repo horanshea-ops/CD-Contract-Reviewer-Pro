@@ -87,8 +87,11 @@ const BOOLEAN_MEANING: Record<string, { true: string; false: string }> = {
     false: "Charges not disclosed before signature remain payable by Group.",
   },
   "rebates.formula_based": {
-    true: "Complimentary rooms accrue on a stated formula tied to actual pickup.",
-    false: "Complimentary rooms are awarded at the Hotel's sole discretion.",
+    // Both polarities have to sit alongside the ratio the clause also states.
+    // "Awarded at the Hotel's discretion" alone contradicted a stated ratio,
+    // and the read-back reader was right to call that a formula.
+    true: "The complimentary room ratio stated above accrues automatically, and Group is entitled to those rooms.",
+    false: "The complimentary room ratio stated above is a guideline only, and any complimentary rooms are awarded at the Hotel's sole discretion.",
   },
   "rebates.forfeited_on_attrition": {
     true: "Complimentary room credit is forfeited entirely if Group falls short of its block.",
@@ -203,8 +206,11 @@ const BOOLEAN_MEANING: Record<string, { true: string; false: string }> = {
     false: "The Hotel determines how any gratuity is allocated, and it may be retained by the Hotel.",
   },
   "gratuity_service_charge.service_charge_disclosed": {
-    true: "The service charge is disclosed as the Hotel's own revenue and not as a tip.",
-    false: "The service charge is presented without saying whether it reaches the staff.",
+    // About what the clause says the charge IS, not whether its size is stated.
+    // The percentage is always stated, so a meaning turning on disclosure of
+    // the figure read as satisfied whichever polarity the spec chose.
+    true: "The agreement states that the service charge is the Hotel's own revenue and is not a tip to staff.",
+    false: "The agreement does not say whether the service charge is the Hotel's revenue or whether any of it reaches the staff.",
   },
   "resale_mitigation_duty.affirmative_duty": {
     true: "The Hotel must actively try to resell released rooms and function space.",

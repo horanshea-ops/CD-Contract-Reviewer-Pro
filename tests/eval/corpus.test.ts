@@ -193,21 +193,24 @@ describe("readBackQuestions", () => {
     const spec = EVAL_SPECS.find((s) => s.id === "eval-01-harborview")!;
     const questions = readBackQuestions(spec);
 
-    expect(questions.find((q) => q.id === "attrition.audit_rights")!.expected).toBe("no");
+    // Booleans are asked as a choice between two written statements: "a" is
+    // what the clause says when the term is true, "b" when it is false.
+    expect(questions.find((q) => q.id === "attrition.audit_rights")!.expected).toBe("b");
     expect(questions.find((q) => q.id === "attrition.basis")!.expected).toBe("night_by_night");
     // eval-01 denies Group almost everything, but one adverse term is adverse
-    // when true — comp rooms ARE forfeited on attrition — so "yes" appears.
-    expect(questions.find((q) => q.id === "rebates.forfeited_on_attrition")!.expected).toBe("yes");
-    expect(questions.filter((q) => q.expected === "no").length).toBeGreaterThan(30);
+    // when true — comp rooms ARE forfeited on attrition — so "a" appears.
+    expect(questions.find((q) => q.id === "rebates.forfeited_on_attrition")!.expected).toBe("a");
+    expect(questions.filter((q) => q.expected === "b").length).toBeGreaterThan(30);
 
     const compliant = EVAL_SPECS.find((s) => s.id === "eval-03-bayfront")!;
-    expect(readBackQuestions(compliant).filter((q) => q.expected === "yes").length).toBeGreaterThan(30);
+    expect(readBackQuestions(compliant).filter((q) => q.expected === "a").length).toBeGreaterThan(30);
   });
 
   it("asks whether an absent clause is really absent", () => {
     const spec = EVAL_SPECS.find((s) => s.id === "eval-05-riverwalk")!;
     const question = readBackQuestions(spec).find((q) => q.id === "named_storm#present")!;
     expect(question.expected).toBe("no");
+    expect(question.options).toEqual(["yes", "no"]);
     expect(question.question).toContain("named storm");
   });
 

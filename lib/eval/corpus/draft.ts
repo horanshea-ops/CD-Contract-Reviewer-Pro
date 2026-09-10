@@ -227,11 +227,16 @@ export function readBackQuestions(spec: EvalContractSpec): Array<TermQuestion & 
         if (!meaning) continue;
         questions.push({
           id: key,
-          question: `True or false, according to this agreement: ${meaning.true}`,
+          // A choice between two concrete statements, not a verdict on one.
+          // "True or false: deposits are refunded" asks the reader to judge a
+          // proposition, and a clause that is silent on the exact wording of
+          // the proposition gets judged on what contracts usually say. Offering
+          // both polarities asks only which one is written down.
+          question: `Which of these does the agreement provide? (a) ${meaning.true} (b) ${meaning.false}`,
           // A drafted clause states every field, so "unstated" is always a
           // failure here rather than a third valid answer.
-          options: ["yes", "no", "unstated"],
-          expected: clause[check.field] === true ? "yes" : "no",
+          options: ["a", "b", "unstated"],
+          expected: clause[check.field] === true ? "a" : "b",
         });
         continue;
       }
