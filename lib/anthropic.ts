@@ -620,6 +620,7 @@ Rules, all of which matter:
 - Where a directive puts wording in double quotes, reproduce that wording exactly, character for character, inside your prose. Do not paraphrase it, requote it, or change its punctuation.
 - State each term in exactly ONE sentence. Do not restate a figure elsewhere in the clause.
 - Do not state any term the directives do not mention. In particular, never invent a percentage, a dollar amount, or a deadline that was not given to you.
+- Return one anchor for EVERY term listed under a clause, using that term's identifier. A clause listing five terms gets five anchors. Leaving one out fails the clause.
 - Return, for each term, the single sentence from your own prose that states it — copied character for character, including its final punctuation. This is checked mechanically, and a sentence that is not a verbatim substring of your paragraphs is rejected.
 - Write contract prose only. No headings, no section numbers, no bullet points, no markdown.
 - Write out numbers the way hotel contracts do, with the digits in parentheses, exactly as the directives show them.
@@ -660,10 +661,12 @@ export async function draftEvalClauses({
   // graded keeps the corpus from being unusually easy for the grader to read.
   const modelId = model || process.env.EVAL_DRAFT_MODEL || "claude-haiku-4-5";
 
+  // The count is stated because the model drops an anchor now and then when
+  // several clauses share a call, and a missing anchor costs a whole redraft.
   const clauseBlock = clauses
     .map(
       (clause) =>
-        `CLAUSE ${clause.clause_type} — "${clause.section_title}"\n` +
+        `CLAUSE ${clause.clause_type} — "${clause.section_title}" — ${clause.fields.length} terms, so return exactly ${clause.fields.length} anchors\n` +
         clause.fields.map((f) => `  - ${f.field} (${f.label}): ${f.directive}`).join("\n")
     )
     .join("\n\n");

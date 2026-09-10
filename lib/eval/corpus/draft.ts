@@ -78,7 +78,9 @@ export interface BuildContractResult {
 export class CorpusIntegrityError extends Error {
   constructor(
     readonly contract: string,
-    readonly failures: string[]
+    readonly failures: string[],
+    /** What the earlier attempts failed on, so a rejection shows how it got here. */
+    readonly retries: string[] = []
   ) {
     super(`Corpus integrity gate failed for ${contract}:\n  - ${failures.join("\n  - ")}`);
     this.name = "CorpusIntegrityError";
@@ -419,7 +421,7 @@ async function draftInto(
       pending = stillPending;
     }
 
-    if (pending.length) throw new CorpusIntegrityError(spec.id, lastFailures);
+    if (pending.length) throw new CorpusIntegrityError(spec.id, lastFailures, retries);
   }
 }
 

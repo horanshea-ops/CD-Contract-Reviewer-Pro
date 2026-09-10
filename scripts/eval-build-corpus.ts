@@ -111,6 +111,10 @@ async function main() {
       if (err instanceof CorpusIntegrityError) {
         console.log(`REJECTED`);
         for (const failure of err.failures) console.log(`     ${failure}`);
+        // Printed on failure too. They were only shown on success, so a
+        // rejection said what finally went wrong and nothing about the four
+        // attempts that led there.
+        for (const retry of err.retries) console.log(`     retried: ${retry}`);
         // A contract that cannot be verified must not reach the corpus, and a
         // partial corpus keyed as exhaustive would score every missing
         // contract's findings as false positives.
