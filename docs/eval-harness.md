@@ -25,11 +25,20 @@ npm run eval:score -- --run 2026-09-09
 npm run eval:score -- --run 2026-09-09 --audit
 ```
 
-| Step | Cost | Deterministic |
+| Step | Cost (measured 2026-09-10) | Deterministic |
 |---|---|---|
-| `eval:build-corpus` | ~$2, one time | Yes, given the same drafts |
-| `eval:capture` | ~$1.50 per run | No — this is the thing being measured |
+| `eval:build-corpus` | ~$0.35, one time | Yes, given the same drafts |
+| `eval:capture` | ~$0.95 per run | No — this is the thing being measured |
 | `eval:score` | free, no network | Yes |
+
+Capture cost is dominated by output, not input: 79k output tokens against 76k input.
+That is a consequence of the model filing a finding per clause examined rather than per
+problem found — see the baseline below. Fixing that cuts the bill as well as the noise.
+
+Both commands take `--resume`. A build reuses any contract whose drafted clauses are
+already on disk; a capture reuses any contract already analysed under that label. Both
+exist because DNS on the build machine intermittently fails to resolve `api.anthropic.com`,
+and a dropped connection should cost seconds rather than a whole run.
 
 `eval:build-corpus --only <spec-id>` builds one contract without touching the key. Use it
 to look at prose before paying for the rest.
