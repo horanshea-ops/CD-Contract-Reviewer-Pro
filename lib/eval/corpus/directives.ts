@@ -114,8 +114,11 @@ const BOOLEAN_MEANING: Record<string, { true: string; false: string }> = {
     false: "The Hotel provides pickup information only on request and at its convenience.",
   },
   "review_audit_dates.block_audit_right": {
-    true: "Group may audit the room block at no cost, and miscoded rooms are credited to Group's pickup.",
-    false: "The Hotel's pickup figures are final and Group has no right to audit the block.",
+    // One proposition, not two joined by "and". A compound meaning gets drafted
+    // across two sentences, and the anchor the drafter returns then spans both
+    // and is not a substring of either — three wasted calls per contract.
+    true: "Group may audit the room block at no cost to itself.",
+    false: "Group has no right to audit the room block.",
   },
   "insurance_indemnification.mutual": {
     true: "Each party indemnifies the other on the same terms.",
@@ -166,7 +169,7 @@ const BOOLEAN_MEANING: Record<string, { true: string; false: string }> = {
     false: "The Hotel gives no warranty of accessibility, and compliance is Group's responsibility.",
   },
   "ada_compliance.auxiliary_aids_split": {
-    true: "Group funds auxiliary aids in its own event space and the Hotel funds them in guest rooms and public areas.",
+    true: "The cost of auxiliary aids is divided between Group and the Hotel.",
     false: "Group funds all auxiliary aids, wherever in the Hotel they are required.",
   },
   "governing_law_venue.punitive_damages_barred": {
