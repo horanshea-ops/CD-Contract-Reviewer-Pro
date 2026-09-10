@@ -1,0 +1,545 @@
+[
+  {
+    "clause_type": "attrition",
+    "paragraphs": [
+      "If Group fails to occupy at least seventy-five percent (75%) of the room block reserved for the Event, Hotel shall assess attrition damages against Group in accordance with the provisions of this clause. Attrition is measured on a cumulative basis across the entire room block, and Hotel shall calculate the shortfall by comparing actual room nights occupied to the total room nights in the block across all dates of the Event. The attrition liability rate shall be seventy-five percent (75%) of the average daily room rate applicable to the block, multiplied by the number of unoccupied room nights representing the shortfall below the threshold.",
+      "Notwithstanding the foregoing, Group shall receive full credit toward its attrition block commitment for any night on which the Hotel reaches ninety-five percent (95%) occupancy or higher across all revenue-generating rooms. Hotel shall provide written notice to Group within thirty (30) days following the Event detailing the occupancy for each night, the number of room nights occupied by Group, and the calculation of any attrition damages due. Such notice shall include sufficient detail to permit Group to verify the Hotel's calculations.",
+      "Group may audit the Hotel's occupancy records, including daily room status reports and front desk logs, to verify how attrition damages were calculated. Group shall submit any audit request in writing within fourteen (14) days of receiving Hotel's notice of attrition damages. Hotel shall make such records available for Group's inspection within five (5) business days and shall cooperate with any third-party auditor retained by Group at Group's expense. Should Group dispute the calculation of occupancy, the parties shall resolve the dispute through the procedures set forth in the Dispute Resolution section of this Agreement."
+    ],
+    "anchors": [
+      {
+        "field": "basis",
+        "sentence": "Attrition is measured on a cumulative basis across the entire room block, and Hotel shall calculate the shortfall by comparing actual room nights occupied to the total room nights in the block across all dates of the Event."
+      },
+      {
+        "field": "threshold",
+        "sentence": "If Group fails to occupy at least seventy-five percent (75%) of the room block reserved for the Event, Hotel shall assess attrition damages against Group in accordance with the provisions of this clause."
+      },
+      {
+        "field": "liability_rate",
+        "sentence": "The attrition liability rate shall be seventy-five percent (75%) of the average daily room rate applicable to the block, multiplied by the number of unoccupied room nights representing the shortfall below the threshold."
+      },
+      {
+        "field": "high_occupancy_credit",
+        "sentence": "Group shall receive full credit toward its attrition block commitment for any night on which the Hotel reaches ninety-five percent (95%) occupancy or higher across all revenue-generating rooms."
+      },
+      {
+        "field": "audit_rights",
+        "sentence": "Group may audit the Hotel's occupancy records, including daily room status reports and front desk logs, to verify how attrition damages were calculated."
+      }
+    ]
+  },
+  {
+    "clause_type": "cutoff_date",
+    "paragraphs": [
+      "Group shall provide the Hotel with a final rooming list containing all guest names, room type preferences, and arrival and departure dates no later than thirty-two (32) days prior to the Event's opening day. Reservations received after this cutoff date shall be held on a space-available basis only and are not guaranteed to be accommodated within the negotiated room block. Hotel shall notify Group in writing if Hotel cannot accommodate any reservation requested after the cutoff within the block's allocated room inventory.",
+      "Notwithstanding the reservation deadline, Group may request additional reservations or modifications after the cutoff, and such requests shall continue to be offered at the group rate, subject to availability, provided that Hotel makes no representation that rooms shall remain available at that rate once the cutoff has passed. Pricing and room type availability following the cutoff shall be determined solely by Hotel's yield management practices and current market conditions. Hotel shall exercise commercially reasonable efforts to honor Group's requests at the negotiated rate, but Group acknowledges that Hotel's primary obligation after the cutoff is to maximize occupancy and revenue across all guest segments."
+    ],
+    "anchors": [
+      {
+        "field": "days_prior",
+        "sentence": "Group shall provide the Hotel with a final rooming list containing all guest names, room type preferences, and arrival and departure dates no later than thirty-two (32) days prior to the Event's opening day."
+      },
+      {
+        "field": "post_cutoff_group_rate",
+        "sentence": "Group may request additional reservations or modifications after the cutoff, and such requests shall continue to be offered at the group rate, subject to availability, provided that Hotel makes no representation that rooms shall remain available at that rate once the cutoff has passed."
+      }
+    ]
+  },
+  {
+    "clause_type": "cancellation",
+    "paragraphs": [
+      "Should Group cancel the Event, Group shall pay liquidated damages to the Hotel, which the parties acknowledge are not penalties but a reasonable pre-estimate of harm, calculated as a percentage of lost room profit based on the average daily room rate for the negotiated block, the number of room nights in the block, and the number of days' notice given prior to the Event's opening day. Damages shall vary by how far before arrival the cancellation notice is given, with damages assessed on a sliding scale that declines as the cancellation notice moves closer to the Event date. Group shall provide written cancellation notice to the Hotel's Director of Sales at the address specified in this Agreement, and the effective date of cancellation shall be the date on which the Hotel receives such notice.",
+      "The Hotel shall credit against Group's liquidated damages payment all revenue earned by the Hotel from reselling any rooms released from the block to other guests or groups. Such resale credit shall be calculated by subtracting the resale revenue from the room profit component of the damages otherwise due. Additionally, should Group execute a definitive agreement with the Hotel to book another event at the Hotel at any time within twelve (12) months of the cancellation, the revenue the Hotel generates from Group's rebooking shall be credited against the damages paid, up to the full amount of damages owed for the cancelled Event.",
+      "Group shall remain liable for all cancellation damages unless the cancellation occurs more than twelve (12) months prior to the Event's opening day, in which case Group shall have no liability and the block shall be released with no further obligation. Cancellations occurring within the liability-free cancellation window of twelve (12) months shall be subject to the sliding scale set forth in Schedule A attached hereto. Hotel shall calculate the final damages due within thirty (30) days of receiving Group's cancellation notice and shall provide Group with a written accounting that itemizes the damages calculation, resale credits applied, and any remaining amount due."
+    ],
+    "anchors": [
+      {
+        "field": "damages_basis",
+        "sentence": "Should Group cancel the Event, Group shall pay liquidated damages to the Hotel, which the parties acknowledge are not penalties but a reasonable pre-estimate of harm, calculated as a percentage of lost room profit based on the average daily room rate for the negotiated block, the number of room nights in the block, and the number of days' notice given prior to the Event's opening day."
+      },
+      {
+        "field": "sliding_scale",
+        "sentence": "Damages shall vary by how far before arrival the cancellation notice is given, with damages assessed on a sliding scale that declines as the cancellation notice moves closer to the Event date."
+      },
+      {
+        "field": "resale_credit",
+        "sentence": "The Hotel shall credit against Group's liquidated damages payment all revenue earned by the Hotel from reselling any rooms released from the block to other guests or groups."
+      },
+      {
+        "field": "rebook_credit",
+        "sentence": "Additionally, should Group execute a definitive agreement with the Hotel to book another event at the Hotel at any time within twelve (12) months of the cancellation, the revenue the Hotel generates from Group's rebooking shall be credited against the damages paid, up to the full amount of damages owed for the cancelled Event."
+      },
+      {
+        "field": "liability_free_months",
+        "sentence": "Group shall remain liable for all cancellation damages unless the cancellation occurs more than twelve (12) months prior to the Event's opening day, in which case Group shall have no liability and the block shall be released with no further obligation."
+      }
+    ]
+  },
+  {
+    "clause_type": "resale_mitigation_duty",
+    "paragraphs": [
+      "Upon any release of guest rooms or function space by Group, the Hotel shall undertake active and good faith efforts to resell such released accommodations and facilities at prevailing market rates for The Monarch on Fifth during the Group's event dates of November 9-12, 2027. The Hotel's resale efforts shall be conducted in accordance with the Hotel's standard commercial practices and shall include, to the extent reasonable, marketing to transient guests, corporate clients, and other group prospects.",
+      "All proceeds derived from the resale of released inventory shall be credited directly against the amounts owing by Group under this Agreement, and such credits shall be applied to any outstanding balance on the invoice date specified herein. The Hotel shall track and segregate all resale revenues attributable to inventory released by Group in order to ensure accurate accounting and timely application of such credits.",
+      "The Hotel shall make available to Group, upon reasonable written request and no more frequently than once per calendar month, a detailed statement of all resale activity for released inventory, including the dates of resale, rates charged, and gross revenue received for each resold room-night or function space engagement. Group shall have the right to inspect and verify the Hotel's resale records relating to released inventory during normal business hours."
+    ],
+    "anchors": [
+      {
+        "field": "affirmative_duty",
+        "sentence": "Upon any release of guest rooms or function space by Group, the Hotel shall undertake active and good faith efforts to resell such released accommodations and facilities at prevailing market rates for The Monarch on Fifth during the Group's event dates of November 9-12, 2027."
+      },
+      {
+        "field": "proceeds_credited",
+        "sentence": "All proceeds derived from the resale of released inventory shall be credited directly against the amounts owing by Group under this Agreement, and such credits shall be applied to any outstanding balance on the invoice date specified herein."
+      },
+      {
+        "field": "records_available",
+        "sentence": "The Hotel shall make available to Group, upon reasonable written request and no more frequently than once per calendar month, a detailed statement of all resale activity for released inventory, including the dates of resale, rates charged, and gross revenue received for each resold room-night or function space engagement."
+      }
+    ]
+  },
+  {
+    "clause_type": "force_majeure",
+    "paragraphs": [
+      "Notwithstanding any other provision of this Agreement, neither party shall be held in breach or default where delays or defaults in performance result from acts or events beyond the reasonable control of that party, including but not limited to circumstances that render performance illegal, impossible or commercially impracticable. Such force majeure events shall include, without limitation, acts of God, war, terrorism, civil unrest, labor strikes, and governmental actions that are neither foreseeable nor within the control of the affected party.",
+      "Force majeure events covered by this clause shall expressly include government-imposed travel restrictions, travel advisories, or other governmental directives that prohibit, restrict, or materially discourage travel to or from New York or the New York metropolitan area during the dates of the Group's event. Such governmental measures, whether issued by federal, state, or local authorities, shall qualify as force majeure regardless of whether they are mandatory or advisory in nature.",
+      "Epidemics and pandemics, whether declared by the World Health Organization, United States government agencies, or state or local public health authorities, shall constitute force majeure events under this Agreement. The occurrence of any epidemic or pandemic that materially impacts the ability of Group members to gather safely or to travel to the Hotel shall relieve the affected party of its obligations hereunder.",
+      "Conditions that render it unsafe or imprudent for the Group's attendees to travel to New York or to gather in person at the Hotel, whether arising from public health directives, governmental restrictions, or other circumstances beyond the parties' reasonable control, shall constitute a force majeure event relieving the affected party's performance obligations. Upon the occurrence of any such condition, the Hotel and Group shall cooperate in good faith to determine whether the event can proceed in modified form.",
+      "In the event this Agreement is terminated as a result of a force majeure event, all deposits paid by Group to the Hotel shall be refunded promptly without deduction, provided that Group has complied with all notice and cooperation obligations set forth in this clause. The Hotel shall return all deposit funds within thirty (30) days of the force majeure event or the termination of this Agreement, whichever is earlier."
+    ],
+    "anchors": [
+      {
+        "field": "standard",
+        "sentence": "Notwithstanding any other provision of this Agreement, neither party shall be held in breach or default where delays or defaults in performance result from acts or events beyond the reasonable control of that party, including but not limited to circumstances that render performance illegal, impossible or commercially impracticable."
+      },
+      {
+        "field": "covers_government_restrictions",
+        "sentence": "Force majeure events covered by this clause shall expressly include government-imposed travel restrictions, travel advisories, or other governmental directives that prohibit, restrict, or materially discourage travel to or from New York or the New York metropolitan area during the dates of the Group's event."
+      },
+      {
+        "field": "covers_epidemic",
+        "sentence": "Epidemics and pandemics, whether declared by the World Health Organization, United States government agencies, or state or local public health authorities, shall constitute force majeure events under this Agreement."
+      },
+      {
+        "field": "covers_unsafe_travel",
+        "sentence": "Conditions that render it unsafe or imprudent for the Group's attendees to travel to New York or to gather in person at the Hotel, whether arising from public health directives, governmental restrictions, or other circumstances beyond the parties' reasonable control, shall constitute a force majeure event relieving the affected party's performance obligations."
+      },
+      {
+        "field": "deposit_refund",
+        "sentence": "In the event this Agreement is terminated as a result of a force majeure event, all deposits paid by Group to the Hotel shall be refunded promptly without deduction, provided that Group has complied with all notice and cooperation obligations set forth in this clause."
+      }
+    ]
+  },
+  {
+    "clause_type": "named_storm",
+    "paragraphs": [
+      "In the event that a named storm, as defined by the National Weather Service or as declared by competent meteorological authorities, is forecast to impact New York City or the surrounding region during the period of November 9-12, 2027, either party may invoke cancellation rights under this clause. A named storm cancellation window of sixty (60) hours prior to the first event date shall apply, during which either party may cancel this Agreement without penalty if the named storm warning or advisory remains in effect for the scheduled dates or if governmental authorities issue mandatory evacuation orders or travel restrictions applicable to the Hotel or the area surrounding it.",
+      "Cancellation under this named storm provision requires written notice delivered by email or telephone to the other party's designated representative as specified in the notice provisions of this Agreement. If a named storm event does not materialize or if the forecast is materially downgraded such that a named storm warning is withdrawn prior to the expiration of the sixty (60) hour window, neither party shall have the right to cancel, and the Group shall remain obligated to perform all obligations under this Agreement."
+    ],
+    "anchors": [
+      {
+        "field": "cancellation_window_hours",
+        "sentence": "A named storm cancellation window of sixty (60) hours prior to the first event date shall apply, during which either party may cancel this Agreement without penalty if the named storm warning or advisory remains in effect for the scheduled dates or if governmental authorities issue mandatory evacuation orders or travel restrictions applicable to the Hotel or the area surrounding it."
+      }
+    ]
+  },
+  {
+    "clause_type": "termination_rights",
+    "paragraphs": [
+      "The Hotel may terminate this Agreement for cause upon written notice to Group if Group materially breaches any material provision hereof and, having received written notice specifying the breach in detail, fails to cure such breach within five (5) business days, or if Group becomes insolvent or the subject of bankruptcy or receivership proceedings. Upon such termination for cause, Group shall incur no further liability to the Hotel beyond payment of charges accrued through the effective date of termination, and the Hotel shall refund promptly to Group all deposits previously made, less any charges for room nights occupied, catering actually provided, or other services actually rendered prior to the termination date.",
+      "Termination for cause pursuant to this clause shall operate independently of and shall not trigger the cancellation damages, liquidated damages, or other remedies set forth in the cancellation clause of this Agreement. The parties acknowledge that termination for cause addresses Hotel's right to exit the relationship due to Group's material default, whereas cancellation damages address Group's elective decision to cancel the Event, and these remedies shall not be cumulative. Upon termination for cause, Group's sole obligation shall be payment for services rendered and accommodation actually occupied through the termination date, together with the prompt return of deposits, with no additional claims, penalties, or damages assessable against Group under any other provision of this Agreement."
+    ],
+    "anchors": [
+      {
+        "field": "for_cause_no_liability",
+        "sentence": "Upon such termination for cause, Group shall incur no further liability to the Hotel beyond payment of charges accrued through the effective date of termination, and the Hotel shall refund promptly to Group all deposits previously made, less any charges for room nights occupied, catering actually provided, or other services actually rendered prior to the termination date."
+      },
+      {
+        "field": "separate_from_cancellation_scale",
+        "sentence": "Termination for cause pursuant to this clause shall operate independently of and shall not trigger the cancellation damages, liquidated damages, or other remedies set forth in the cancellation clause of this Agreement."
+      }
+    ]
+  },
+  {
+    "clause_type": "fb_minimum",
+    "paragraphs": [
+      "Group commits to a Food and Beverage Minimum applicable to all catering, dining, and beverage service provided by the Hotel during the Event, calculated on an aggregate basis across all meal periods, functions, and service venues included in the Event. The Hotel shall provide Group with a menu and pricing proposal at least fourteen (14) months prior to the Event date, and all menu selections and per-person pricing shall be locked and shall not be subject to increase or modification after that date. Should Group's actual Food and Beverage expenditures fall short of the Minimum Commitment as calculated from the Hotel's catering records, Group shall be invoiced for the difference between the actual charges and the Minimum Commitment as a shortfall charge on the final bill.",
+      "The Food and Beverage Minimum shall be calculated on the basis of the Hotel's posted prices for the selected menu items, including all beverages, service items, delivery charges, and incidentals, exclusive of tax and service charge. If the final catering invoice reflects charges equal to or exceeding the stated Minimum Commitment, no shortfall charge shall apply. If actual charges are less than the Minimum, Group shall pay a shortfall amount equal to forty percent (40%) of the difference between the Minimum and actual charges; provided that the Hotel reserves the right to negotiate or waive the shortfall in its sole discretion. All calculations shall be prepared by the Hotel's Director of Catering and provided to Group with supporting documentation upon request."
+    ],
+    "anchors": [
+      {
+        "field": "menu_price_lock_months",
+        "sentence": "The Hotel shall provide Group with a menu and pricing proposal at least fourteen (14) months prior to the Event date, and all menu selections and per-person pricing shall be locked and shall not be subject to increase or modification after that date."
+      },
+      {
+        "field": "shortfall_rate",
+        "sentence": "If actual charges are less than the Minimum, Group shall pay a shortfall amount equal to forty percent (40%) of the difference between the Minimum and actual charges; provided that the Hotel reserves the right to negotiate or waive the shortfall in its sole discretion."
+      }
+    ]
+  },
+  {
+    "clause_type": "gratuity_service_charge",
+    "paragraphs": [
+      "Charges for food, beverage, and related services rendered to Group shall be subject to both a gratuity and a service charge, each calculated and applied separately according to the terms hereinafter set forth. The gratuity and the service charge are distinct line items, each serving a different function and applied to different components of the billing, as more particularly described below.",
+      "All gratuity collected by the Hotel on behalf of Group shall be distributed in full to the staff members who performed services for the Event, including servers, bartenders, housekeeping, and other personnel directly engaged in the delivery of services to Group. The Hotel shall remit all gratuity amounts to the applicable employees within five (5) business days of the applicable bill settlement date.",
+      "The service charge, calculated as twenty-two percent (22%) of the subtotal of food and beverage charges before tax, constitutes the Hotel's own revenue and compensation for administrative services, overhead, and operational costs associated with the Event. The service charge is not a gratuity, tip, or compensation to service staff, and Group acknowledges that the Hotel retains the entire service charge amount for its own account.",
+      "Gratuity and service charge shall both be added to Group's invoice and shall be payable in accordance with the payment terms set forth in the Master Bill. Any dispute regarding the calculation or application of gratuity or service charge must be raised in writing within ten (10) days of invoice receipt, or the amounts shall be deemed accepted."
+    ],
+    "anchors": [
+      {
+        "field": "separately_defined",
+        "sentence": "The gratuity and the service charge are distinct line items, each serving a different function and applied to different components of the billing, as more particularly described below."
+      },
+      {
+        "field": "gratuity_to_staff",
+        "sentence": "All gratuity collected by the Hotel on behalf of Group shall be distributed in full to the staff members who performed services for the Event, including servers, bartenders, housekeeping, and other personnel directly engaged in the delivery of services to Group."
+      },
+      {
+        "field": "service_charge_disclosed",
+        "sentence": "The service charge is not a gratuity, tip, or compensation to service staff, and Group acknowledges that the Hotel retains the entire service charge amount for its own account."
+      },
+      {
+        "field": "service_charge_pct",
+        "sentence": "The service charge, calculated as twenty-two percent (22%) of the subtotal of food and beverage charges before tax, constitutes the Hotel's own revenue and compensation for administrative services, overhead, and operational costs associated with the Event."
+      }
+    ]
+  },
+  {
+    "clause_type": "mandatory_fees",
+    "paragraphs": [
+      "The Hotel shall disclose in writing to Group, prior to execution of this Agreement, each mandatory fee and surcharge that the Hotel intends to impose on Group's room charges, conference facilities, food and beverage services, and other Hotel services rendered during the Event. Such disclosure shall enumerate all applicable charges, including but not limited to administrative fees, facility surcharges, energy recovery charges, and any other mandatory levies, together with the basis for calculating each charge, whether per room per night, per attendee, per function, or otherwise.",
+      "Any charge, fee, or surcharge not included in the written disclosure provided prior to signature shall be automatically waived and shall not be assessed against Group, and Group shall have no obligation to pay any such undisclosed charge. The Hotel waives collection of any fee or surcharge that was not expressly detailed in the pre-signature disclosure, and Group may dispute any invoice line item that does not correspond to a fee disclosed before this Agreement was executed.",
+      "Notwithstanding the foregoing, the Hotel charges no resort fee to Group for room accommodations during the Event, and no per-room resort fee, destination fee, facility charge, or similar daily room surcharge shall be applied to any guest room occupied by Group members. This provision applies to all room nights from November 9 through November 12, 2027, and extends to any room-related charges that might be characterized as a resort fee under any naming convention."
+    ],
+    "anchors": [
+      {
+        "field": "disclosed_before_signature",
+        "sentence": "The Hotel shall disclose in writing to Group, prior to execution of this Agreement, each mandatory fee and surcharge that the Hotel intends to impose on Group's room charges, conference facilities, food and beverage services, and other Hotel services rendered during the Event."
+      },
+      {
+        "field": "undisclosed_waived",
+        "sentence": "Any charge, fee, or surcharge not included in the written disclosure provided prior to signature shall be automatically waived and shall not be assessed against Group, and Group shall have no obligation to pay any such undisclosed charge."
+      },
+      {
+        "field": "resort_fee_usd",
+        "sentence": "The Hotel charges no resort fee to Group for room accommodations during the Event, and no per-room resort fee, destination fee, facility charge, or similar daily room surcharge shall be applied to any guest room occupied by Group members."
+      }
+    ]
+  },
+  {
+    "clause_type": "rebates",
+    "paragraphs": [
+      "Group shall receive complimentary room accommodations at the Hotel based on the occupancy of paid rooms during the Event. The complimentary room ratio is forty-five (45), meaning that for every forty-five (45) paid room nights generated by Group, the Hotel shall provide one (1) complimentary room night at no charge to Group. The complimentary rooms shall be allocated to Group for occupancy by Institute of Certified Actuarial Analysts representatives, officers, or staff members designated by Group, and such complimentary rooms shall carry the same standard guest room status and amenities as any paid room within the same room category.",
+      "The complimentary room entitlement accrues automatically by operation of this Agreement as paid room nights are recorded and accumulated during the Event, without requirement for Group to submit a claim, request, or formal calculation. Group is entitled to the full number of complimentary rooms earned by the actual paid room nights occupied, computed by dividing the total paid room nights by forty-five (45) and rounding down to the nearest whole room night. The Hotel shall provide Group with a detailed occupied-room reconciliation within thirty (30) days following the final Event date, on which reconciliation the complimentary room calculation shall be based.",
+      "Complimentary room credits that have been accrued and earned under this Section prior to the close of the Event shall not be forfeited, cancelled, or reduced as a result of any shortfall between Group's original room block and the room nights actually occupied or paid. Whether Group's final pickup falls short of the original block commitment by any margin, all complimentary room credits earned through actual occupancy shall remain available for Group's use or credit, and the attrition liability, if any, shall be calculated and applied independently of the complimentary room benefit."
+    ],
+    "anchors": [
+      {
+        "field": "comp_room_ratio",
+        "sentence": "The complimentary room ratio is forty-five (45), meaning that for every forty-five (45) paid room nights generated by Group, the Hotel shall provide one (1) complimentary room night at no charge to Group."
+      },
+      {
+        "field": "formula_based",
+        "sentence": "The complimentary room entitlement accrues automatically by operation of this Agreement as paid room nights are recorded and accumulated during the Event, without requirement for Group to submit a claim, request, or formal calculation."
+      },
+      {
+        "field": "forfeited_on_attrition",
+        "sentence": "Complimentary room credits that have been accrued and earned under this Section prior to the close of the Event shall not be forfeited, cancelled, or reduced as a result of any shortfall between Group's original room block and the room nights actually occupied or paid."
+      }
+    ]
+  },
+  {
+    "clause_type": "rate_parity",
+    "paragraphs": [
+      "The Hotel agrees that during the Event dates of November 9 through November 12, 2027, the Hotel shall not advertise, offer, book, or sell any room accommodations to the general public, any individual guest, any tour operator, any travel agent, any online travel agency, any corporate account, or any other third party at a nightly rate lower than the rate extended to the Institute of Certified Actuarial Analysts under this Agreement. This rate parity undertaking is absolute and without exception, and shall apply to all distribution channels, website properties, reservation systems, and promotional channels through which the Hotel distributes room availability.",
+      "Should the Hotel discover, or should Group bring to the Hotel's attention through written notice, that a lower nightly rate has been offered or made available to any person or entity during the Event period, the Hotel shall retroactively adjust Group's negotiated nightly rate to equal or fall below the lower public rate, effective for all room reservations made on or before the date the lower rate was first offered, as well as for all room reservations made thereafter through the end of the Event. The Hotel shall recalculate Group's total room revenue due, credit Group for the difference, and remit such credit to Group or its designated billing contact within thirty (30) days of confirming the rate discrepancy.",
+      "The commission payable to Group's travel agent or booking agent, and any pickup credit or other room revenue rebate accrued by Group under separate provisions of this Agreement, shall be calculated on the basis of Group's room revenue as originally stated and shall not be recalculated, reduced, or adjusted downward as a result of any retroactive rate adjustment made pursuant to the rate parity clause. Commission and pickup credits shall be computed on Group's original contracted rate, and any reduction in Group's billed room revenue shall not proportionally reduce the commission or credit owed to Group."
+    ],
+    "anchors": [
+      {
+        "field": "guaranteed",
+        "sentence": "The Hotel shall not advertise, offer, book, or sell any room accommodations to the general public, any individual guest, any tour operator, any travel agent, any online travel agency, any corporate account, or any other third party at a nightly rate lower than the rate extended to the Institute of Certified Actuarial Analysts under this Agreement."
+      },
+      {
+        "field": "retroactive_adjustment",
+        "sentence": "Should the Hotel discover, or should Group bring to the Hotel's attention through written notice, that a lower nightly rate has been offered or made available to any person or entity during the Event period, the Hotel shall retroactively adjust Group's negotiated nightly rate to equal or fall below the lower public rate, effective for all room reservations made on or before the date the lower rate was first offered, as well as for all room reservations made thereafter through the end of the Event."
+      },
+      {
+        "field": "commission_preserved",
+        "sentence": "The commission payable to Group's travel agent or booking agent, and any pickup credit or other room revenue rebate accrued by Group under separate provisions of this Agreement, shall be calculated on the basis of Group's room revenue as originally stated and shall not be recalculated, reduced, or adjusted downward as a result of any retroactive rate adjustment made pursuant to the rate parity clause."
+      }
+    ]
+  },
+  {
+    "clause_type": "master_account_billing",
+    "paragraphs": [
+      "All charges incurred by the Institute of Certified Actuarial Analysts in connection with its event at The Monarch on Fifth during November 9–12, 2027, including room accommodations, food and beverage, and ancillary services, shall be consolidated on a single master account and billed to the Group upon completion of the event, unless otherwise agreed in writing by The Monarch's Chief Financial Officer. The Group shall remit payment within thirty (30) days of invoice. Any invoice dispute must be submitted in writing to The Monarch's Accounting Department within twelve (12) days of invoice receipt; disputes submitted after such period shall be deemed waived.",
+      "The Monarch shall assess a monthly finance charge of 1.3% on any portion of an undisputed invoice balance remaining unpaid thirty (30) days after the invoice due date. This finance charge shall accrue monthly on the outstanding balance until paid in full and shall be in addition to all other remedies available to The Monarch under this Agreement or applicable law. The Group waives any defense based on the rate or application of such finance charge and acknowledges that this charge represents a reasonable pre-estimate of harm.",
+      "Where the Group has not received credit approval from The Monarch prior to execution of this Agreement, the Group shall submit prepayment equal to seventy-five percent (75%) of The Monarch's estimated charges for room, food and beverage, and other reasonably anticipated services, as calculated by The Monarch in its sole discretion. Such prepayment shall be held in an account designated by The Monarch and applied against final charges upon event completion. Any balance remaining after application of prepayment to final charges shall be due within thirty (30) days of invoice; any credit balance shall be refunded within forty-five (45) days of invoice."
+    ],
+    "anchors": [
+      {
+        "field": "dispute_window_days",
+        "sentence": "Any invoice dispute must be submitted in writing to The Monarch's Accounting Department within twelve (12) days of invoice receipt; disputes submitted after such period shall be deemed waived."
+      },
+      {
+        "field": "finance_charge_monthly_pct",
+        "sentence": "The Monarch shall assess a monthly finance charge of 1.3% on any portion of an undisputed invoice balance remaining unpaid thirty (30) days after the invoice due date."
+      },
+      {
+        "field": "prepayment_defined",
+        "sentence": "Where the Group has not received credit approval from The Monarch prior to execution of this Agreement, the Group shall submit prepayment equal to seventy-five percent (75%) of The Monarch's estimated charges for room, food and beverage, and other reasonably anticipated services, as calculated by The Monarch in its sole discretion."
+      }
+    ]
+  },
+  {
+    "clause_type": "damage_deposit",
+    "paragraphs": [
+      "The Hotel charges no deposit for this booking or for the rooms, facilities, or services to be provided to Group during the event. Group shall remain liable for all damage to Hotel property caused by Group members, guests, or invitees attending Group's event, whether such damage occurs in guest rooms, event spaces, common areas, or elsewhere on the Hotel's premises, and such liability shall not be limited by any deposit or other security arrangement.",
+      "In the event of documented damage to Hotel property, the Hotel shall calculate the cost of repair or replacement based on the Hotel's actual expenses and market rates for such work. The Hotel shall provide Group with itemized documentation of all damage, including photographs, repair invoices, and labor costs, within thirty (30) days following the Group's departure from the Hotel. Group shall have the right to inspect the damage and dispute the repair estimate in writing within ten (10) business days of receiving the damage documentation, and any undisputed amounts shall be invoiced to Group's master account within the invoice period.",
+      "Any security deposit or other funds held by the Hotel shall be applied solely to the repair or replacement of documented damage to Hotel property and to nothing else, and shall not be applied to room charges, food and beverage charges, incidental fees, or any other obligation of Group under this Agreement. Should the cost of documented damage exceed any deposited amounts, Group shall remit payment for the excess within thirty (30) days of the final damage invoice. Following such payment or within thirty (30) days of Group's departure should no damage occur, any remaining deposit shall be refunded to the billing contact on Group's master account."
+    ],
+    "anchors": [
+      {
+        "field": "refund_window_days",
+        "sentence": "Following such payment or within thirty (30) days of Group's departure should no damage occur, any remaining deposit shall be refunded to the billing contact on Group's master account."
+      },
+      {
+        "field": "offsets_other_charges",
+        "sentence": "Any security deposit or other funds held by the Hotel shall be applied solely to the repair or replacement of documented damage to Hotel property and to nothing else, and shall not be applied to room charges, food and beverage charges, incidental fees, or any other obligation of Group under this Agreement."
+      },
+      {
+        "field": "deposit_usd",
+        "sentence": "The Hotel charges no deposit for this booking or for the rooms, facilities, or services to be provided to Group during the event."
+      }
+    ]
+  },
+  {
+    "clause_type": "walk_relocation",
+    "paragraphs": [
+      "In the event that the Hotel is unable to honor all guaranteed reservations due to overbooking or operational circumstance, the Hotel shall relocate any affected guest to comparable or better accommodations at a Hotel property or an alternative establishment at the Hotel's sole cost and expense. The relocated guest shall be placed in a room of equal or superior category and amenity to the original reservation, and the Hotel shall select the alternative property in its reasonable discretion, prioritizing location, quality, and the guest's individual needs where known or communicated by Group.",
+      "The Hotel shall arrange and pay for round-trip ground transportation between the alternative hotel and The Monarch on Fifth for the relocated guest, including all transfer logistics for the duration of the relocation. Such transportation shall be provided at no cost to the relocated guest and shall be arranged by the Hotel's concierge or designated transportation vendor. In the event the relocated guest incurs any transportation expenses directly, the Hotel shall reimburse such documented expenses in full upon receipt of receipts and evidence of the expenses.",
+      "Upon the guest's return to The Monarch on Fifth on the final night of the reservation, the Hotel shall upgrade the guest to a premium room category above the original reservation at no additional charge and shall provide a welcome amenity of appropriate value to acknowledge the inconvenience. The Hotel may, at its discretion, provide such amenity as room credit, dining credit, beverage service, or other appropriate offering.",
+      "Any night spent at the alternative accommodation shall be credited to Group's room pickup and shall count toward all occupancy and pickup thresholds stated in this Agreement, and shall be credited to all commissions or rebates calculated on the basis of room pickup, occupancy, or other similar metrics. In all other respects, Group shall not be entitled to credit, rebate, or reduction of charges for the relocated night, and all food and beverage minimums, event space charges, and other Hotel obligations shall be calculated without reduction."
+    ],
+    "anchors": [
+      {
+        "field": "comparable_accommodation",
+        "sentence": "The Hotel shall relocate any affected guest to comparable or better accommodations at a Hotel property or an alternative establishment at the Hotel's sole cost and expense."
+      },
+      {
+        "field": "transportation",
+        "sentence": "The Hotel shall arrange and pay for round-trip ground transportation between the alternative hotel and The Monarch on Fifth for the relocated guest, including all transfer logistics for the duration of the relocation."
+      },
+      {
+        "field": "return_upgrade",
+        "sentence": "Upon the guest's return to The Monarch on Fifth on the final night of the reservation, the Hotel shall upgrade the guest to a premium room category above the original reservation at no additional charge and shall provide a welcome amenity of appropriate value to acknowledge the inconvenience."
+      },
+      {
+        "field": "counts_toward_pickup",
+        "sentence": "Any night spent at the alternative accommodation shall be credited to Group's room pickup and shall count toward all occupancy and pickup thresholds stated in this Agreement, and shall be credited to all commissions or rebates calculated on the basis of room pickup, occupancy, or other similar metrics."
+      }
+    ]
+  },
+  {
+    "clause_type": "construction_renovation",
+    "paragraphs": [
+      "The Hotel represents and warrants that as of the date of this Agreement, it has no renovation, construction, or capital project scheduled or reasonably anticipated that would materially affect the rooms, meeting space, or facilities reserved for the Group's use during the Event dates of November 9-12, 2027.",
+      "Should the Hotel undertake any renovation, construction, or capital project affecting the reserved rooms or space that is not disclosed as of the Effective Date, the Hotel shall provide the Group with written notice of such project no later than thirty (30) days prior to the commencement of work that would reasonably interfere with the Group's use of those rooms or facilities.",
+      "If any renovation, construction, or capital project undertaken by the Hotel will materially interfere with the Group's ability to conduct its Event as contemplated by this Agreement, the Group may terminate this Agreement without penalty, liability, or further obligation, provided that the Group furnishes written notice of termination to the Hotel within ten (10) business days of receiving notice of the interfering project.",
+      "This warranty and the Hotel's obligations hereunder are conditioned upon the Group's provision of prompt written notice to the Hotel should the Group become aware of any planned renovation or construction affecting the reserved space. The Hotel's failure to disclose a project shall not relieve the Group of its payment obligations except as expressly permitted by the termination right stated above."
+    ],
+    "anchors": [
+      {
+        "field": "no_current_plans_warranty",
+        "sentence": "The Hotel represents and warrants that as of the date of this Agreement, it has no renovation, construction, or capital project scheduled or reasonably anticipated that would materially affect the rooms, meeting space, or facilities reserved for the Group's use during the Event dates of November 9-12, 2027."
+      },
+      {
+        "field": "notice_days",
+        "sentence": "the Hotel shall provide the Group with written notice of such project no later than thirty (30) days prior to the commencement of work that would reasonably interfere with the Group's use of those rooms or facilities."
+      },
+      {
+        "field": "termination_if_interferes",
+        "sentence": "If any renovation, construction, or capital project undertaken by the Hotel will materially interfere with the Group's ability to conduct its Event as contemplated by this Agreement, the Group may terminate this Agreement without penalty, liability, or further obligation, provided that the Group furnishes written notice of termination to the Hotel within ten (10) business days of receiving notice of the interfering project."
+      }
+    ]
+  },
+  {
+    "clause_type": "brand_ownership_change",
+    "paragraphs": [
+      "The Hotel shall notify the Group in writing of any change in the Hotel's brand affiliation, management company, or ownership within thirty-five (35) days following execution of this Agreement or, if such change occurs after that period, as promptly as commercially practicable and in no event later than the date any such change becomes effective. For purposes of this clause, a change in brand, management, or ownership includes any transaction in which a new entity assumes operational control, brand affiliation, or title to the Hotel property.",
+      "Upon receipt of notice of a change in brand, management, or ownership, the Group shall have the right to terminate this Agreement without penalty or liability within twenty-five (25) days of such notice, provided that the Group's election to terminate is exercised by written notice delivered to the Hotel. The Group's termination right shall be conditioned upon the Group demonstrating, in good faith, that the change materially affects the Hotel's ability to perform its obligations under this Agreement or materially alters the character or service standards of the property.",
+      "The Hotel's obligations to provide notice and the Group's right to terminate shall apply equally to any bankruptcy, insolvency proceeding, or foreclosure action affecting the Hotel or the Hotel property, such that a bankruptcy filing or foreclosure sale shall be treated as a change in ownership or control triggering the same notice requirements and termination rights set forth above."
+    ],
+    "anchors": [
+      {
+        "field": "notice_days",
+        "sentence": "The Hotel shall notify the Group in writing of any change in the Hotel's brand affiliation, management company, or ownership within thirty-five (35) days following execution of this Agreement or, if such change occurs after that period, as promptly as commercially practicable and in no event later than the date any such change becomes effective."
+      },
+      {
+        "field": "termination_window_days",
+        "sentence": "Upon receipt of notice of a change in brand, management, or ownership, the Group shall have the right to terminate this Agreement without penalty or liability within twenty-five (25) days of such notice, provided that the Group's election to terminate is exercised by written notice delivered to the Hotel."
+      },
+      {
+        "field": "covers_bankruptcy",
+        "sentence": "The Hotel's obligations to provide notice and the Group's right to terminate shall apply equally to any bankruptcy, insolvency proceeding, or foreclosure action affecting the Hotel or the Hotel property, such that a bankruptcy filing or foreclosure sale shall be treated as a change in ownership or control triggering the same notice requirements and termination rights set forth above."
+      }
+    ]
+  },
+  {
+    "clause_type": "labor_disputes",
+    "paragraphs": [
+      "The Hotel shall provide written notice to the Group of any expiration, non-renewal, or material breach in any collective bargaining agreement, union contract, or labor agreement covering employees at the Hotel no later than nine (9) months prior to the expiration date of such agreement. Such notice shall include the expiration date, the union or labor organization involved, and a brief description of any material issues known to the Hotel that may give rise to labor dispute or work stoppage.",
+      "In the event of any strike, work stoppage, labor dispute, or other labor-related action or threat thereof affecting the Hotel's operations or the Group's ability to hold its event on the scheduled Event dates, the Group shall have the right to cancel this Agreement without liability, penalty, or forfeiture of any payments or deposits within seventy-five (75) days of becoming aware of such labor dispute or action.",
+      "The Group's right to cancel this Agreement shall be exercised by written notice to the Hotel and shall be effective upon the Hotel's receipt thereof. Notwithstanding any other provision of this Agreement, the Group shall have no liability and shall be entitled to a full refund of all payments, including any deposits or pre-payments, if the Group cancels pursuant to this labor dispute provision, provided that such cancellation is made in good faith and within the seventy-five (75)-day window following notice or awareness of the labor action."
+    ],
+    "anchors": [
+      {
+        "field": "cba_expiry_notice_months",
+        "sentence": "The Hotel shall provide written notice to the Group of any expiration, non-renewal, or material breach in any collective bargaining agreement, union contract, or labor agreement covering employees at the Hotel no later than nine (9) months prior to the expiration date of such agreement."
+      },
+      {
+        "field": "cancel_window_days",
+        "sentence": "In the event of any strike, work stoppage, labor dispute, or other labor-related action or threat thereof affecting the Hotel's operations or the Group's ability to hold its event on the scheduled Event dates, the Group shall have the right to cancel this Agreement without liability, penalty, or forfeiture of any payments or deposits within seventy-five (75) days of becoming aware of such labor dispute or action."
+      },
+      {
+        "field": "cancel_no_liability",
+        "sentence": "Notwithstanding any other provision of this Agreement, the Group shall have no liability and shall be entitled to a full refund of all payments, including any deposits or pre-payments, if the Group cancels pursuant to this labor dispute provision, provided that such cancellation is made in good faith and within the seventy-five (75)-day window following notice or awareness of the labor action."
+      }
+    ]
+  },
+  {
+    "clause_type": "exclusivity_vendors",
+    "paragraphs": [
+      "The Group may retain and engage its own audio-visual, decorating, security, and transportation vendors to provide services during the Event. The Hotel shall permit the Group's independently selected vendors to operate at the property in accordance with the Hotel's standard vendor policies and applicable law, provided that such vendors maintain insurance coverage consistent with the requirements set forth in the Hotel's vendor agreement protocols and that the Group remains fully responsible for the conduct and performance of its chosen vendors.",
+      "Notwithstanding the Group's right to engage outside vendors, the Group shall remit to the Hotel an outside vendor surcharge in the amount of \"$0.00\". This surcharge shall be payable in full upon execution of this Agreement and represents the Hotel's sole additional compensation for the privilege of hosting outside vendors on the Hotel's premises during the Event."
+    ],
+    "anchors": [
+      {
+        "field": "outside_vendors_allowed",
+        "sentence": "The Group may retain and engage its own audio-visual, decorating, security, and transportation vendors to provide services during the Event."
+      },
+      {
+        "field": "opt_out_fee_usd",
+        "sentence": "Notwithstanding the Group's right to engage outside vendors, the Group shall remit to the Hotel an outside vendor surcharge in the amount of \"$0.00\"."
+      }
+    ]
+  },
+  {
+    "clause_type": "insurance_indemnification",
+    "paragraphs": [
+      "Each party shall indemnify, defend, and hold harmless the other party, its officers, directors, employees, and agents from and against any and all claims, damages, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or resulting from any breach of this Agreement by the indemnifying party, any injury to persons or damage to property caused by the indemnifying party, or any violation of law by the indemnifying party in connection with the Event.",
+      "The indemnification obligation of each party shall be limited to claims arising solely from that party's own negligence or willful misconduct. Neither party shall be obligated to indemnify the other party for claims arising from the other party's negligence, willful misconduct, or breach of this Agreement, nor shall either party's indemnity extend to comparative or contributory negligence situations except to the extent of that party's own proportionate fault.",
+      "The Group shall obtain and maintain comprehensive general liability insurance with a minimum limit of \"$2,500,000.00\" per occurrence, covering bodily injury, property damage, and contractual liability arising out of the Group's occupancy and use of the Hotel's premises. The Group shall provide the Hotel with a certificate of insurance evidencing such coverage at least thirty (30) days prior to the Event, naming the Hotel as an additional insured, and shall ensure that such insurance remains in effect throughout the Event and for any period during which claims might arise from the Event."
+    ],
+    "anchors": [
+      {
+        "field": "mutual",
+        "sentence": "Each party shall indemnify, defend, and hold harmless the other party, its officers, directors, employees, and agents from and against any and all claims, damages, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or resulting from any breach of this Agreement by the indemnifying party, any injury to persons or damage to property caused by the indemnifying party, or any violation of law by the indemnifying party in connection with the Event."
+      },
+      {
+        "field": "own_negligence_only",
+        "sentence": "The indemnification obligation of each party shall be limited to claims arising solely from that party's own negligence or willful misconduct."
+      },
+      {
+        "field": "group_liability_limit_usd",
+        "sentence": "The Group shall obtain and maintain comprehensive general liability insurance with a minimum limit of \"$2,500,000.00\" per occurrence, covering bodily injury, property damage, and contractual liability arising out of the Group's occupancy and use of the Hotel's premises."
+      }
+    ]
+  },
+  {
+    "clause_type": "ada_compliance",
+    "paragraphs": [
+      "The Hotel warrants and represents to the Group that the Hotel's guest rooms, public areas, and function space designated for use by the Group during the Event comply with all applicable requirements of the Americans with Disabilities Act of 1990, as amended, and all regulations promulgated thereunder, including but not limited to accessibility standards for entrances, restrooms, meeting facilities, and common areas. The Hotel shall maintain such compliance throughout the Event and shall promptly remedy any accessibility deficiency of which it receives notice.",
+      "In the event that the Group requires auxiliary aids or services to ensure the accessibility and full participation of Group members or attendees with disabilities, including but not limited to interpreters, assistive listening devices, materials in alternative formats, and mobility assistance, the cost of such auxiliary aids shall be divided between the Group and the Hotel. The Group shall provide the Hotel with written notice of any required auxiliary aids no later than sixty (60) days prior to the Event, and the parties shall negotiate in good faith to determine the appropriate allocation of costs for each specific auxiliary aid, with the Hotel bearing its proportionate share of expenses reasonably attributable to the Hotel's facilities or obligations under the Americans with Disabilities Act."
+    ],
+    "anchors": [
+      {
+        "field": "hotel_warranty",
+        "sentence": "The Hotel warrants and represents to the Group that the Hotel's guest rooms, public areas, and function space designated for use by the Group during the Event comply with all applicable requirements of the Americans with Disabilities Act of 1990, as amended, and all regulations promulgated thereunder, including but not limited to accessibility standards for entrances, restrooms, meeting facilities, and common areas."
+      },
+      {
+        "field": "auxiliary_aids_split",
+        "sentence": "In the event that the Group requires auxiliary aids or services to ensure the accessibility and full participation of Group members or attendees with disabilities, including but not limited to interpreters, assistive listening devices, materials in alternative formats, and mobility assistance, the cost of such auxiliary aids shall be divided between the Group and the Hotel."
+      }
+    ]
+  },
+  {
+    "clause_type": "attendee_data_handling",
+    "paragraphs": [
+      "The Hotel shall not use any attendee data, including names, contact information, demographic information, and attendance records, for the Hotel's own marketing purposes or for any promotional activity conducted by the Hotel or its affiliates. Group retains all rights to attendee information collected in connection with the event.",
+      "The Hotel shall not sell, share, transfer, or disclose any attendee data to third parties, whether for compensation or otherwise, except as required by law or court order. Any attendee information shall be held in confidence by the Hotel and used solely for purposes necessary to fulfill the Hotel's obligations under this Agreement, including room assignments, billing, and event logistics."
+    ],
+    "anchors": [
+      {
+        "field": "marketing_use_barred",
+        "sentence": "The Hotel shall not use any attendee data, including names, contact information, demographic information, and attendance records, for the Hotel's own marketing purposes or for any promotional activity conducted by the Hotel or its affiliates."
+      },
+      {
+        "field": "third_party_sale_barred",
+        "sentence": "The Hotel shall not sell, share, transfer, or disclose any attendee data to third parties, whether for compensation or otherwise, except as required by law or court order."
+      }
+    ]
+  },
+  {
+    "clause_type": "review_audit_dates",
+    "paragraphs": [
+      "Beginning eight (8) weeks prior to the Event and continuing weekly through the cutoff date established in this Agreement, the Hotel shall provide Group with a written pickup report setting forth the number of rooms booked under the room block, the number of rooms released, the number of rooms picked up by attendees, the rate breakdown by room type, and any changes to rooming arrangements or billing status.",
+      "Within thirty (30) days following the conclusion of the Event, the Hotel shall deliver to Group a comprehensive post-event report detailing final room pickup, actual revenue generated, all charges assessed against Group's folio, and reconciliation of any deposits, credits, or adjustments applied to Group's account.",
+      "Group shall have the right, at its own expense and upon reasonable notice to the Hotel, to engage an independent auditor to audit the room block records, billing records, and attendance records maintained by the Hotel in connection with this Agreement, and Group may conduct such audit at no cost to the Hotel beyond providing reasonable access to such records."
+    ],
+    "anchors": [
+      {
+        "field": "weekly_pickup_reports",
+        "sentence": "Beginning eight (8) weeks prior to the Event and continuing weekly through the cutoff date established in this Agreement, the Hotel shall provide Group with a written pickup report setting forth the number of rooms booked under the room block, the number of rooms released, the number of rooms picked up by attendees, the rate breakdown by room type, and any changes to rooming arrangements or billing status."
+      },
+      {
+        "field": "post_event_report_days",
+        "sentence": "Within thirty (30) days following the conclusion of the Event, the Hotel shall deliver to Group a comprehensive post-event report detailing final room pickup, actual revenue generated, all charges assessed against Group's folio, and reconciliation of any deposits, credits, or adjustments applied to Group's account."
+      },
+      {
+        "field": "block_audit_right",
+        "sentence": "Group shall have the right, at its own expense and upon reasonable notice to the Hotel, to engage an independent auditor to audit the room block records, billing records, and attendance records maintained by the Hotel in connection with this Agreement, and Group may conduct such audit at no cost to the Hotel beyond providing reasonable access to such records."
+      }
+    ]
+  },
+  {
+    "clause_type": "assignment_subcontracting",
+    "paragraphs": [
+      "Neither party may assign, transfer, delegate, or subcontract its rights or obligations under this Agreement without the prior written consent of the other party, except that Group may assign this Agreement to any successor entity or affiliated management organization that assumes all of Group's obligations hereunder without the Hotel's prior consent, provided that Group notifies the Hotel in writing of such assignment at least thirty (30) days prior to the effective date of assignment.",
+      "Any purported assignment in violation of this provision shall be void. The Hotel's consent to any assignment by Group (other than to a successor or affiliated management entity as permitted above) shall not be unreasonably withheld, conditioned, or delayed, and the Hotel shall respond to any assignment request within ten (10) business days of receipt of written notice from Group. Assignment shall not relieve the assigning party of its obligations under this Agreement unless expressly released in writing by the other party."
+    ],
+    "anchors": [
+      {
+        "field": "assignable_to_successor",
+        "sentence": "Group may assign this Agreement to any successor entity or affiliated management organization that assumes all of Group's obligations hereunder without the Hotel's prior consent, provided that Group notifies the Hotel in writing of such assignment at least thirty (30) days prior to the effective date of assignment."
+      },
+      {
+        "field": "consent_not_unreasonably_withheld",
+        "sentence": "The Hotel's consent to any assignment by Group (other than to a successor or affiliated management entity as permitted above) shall not be unreasonably withheld, conditioned, or delayed, and the Hotel shall respond to any assignment request within ten (10) business days of receipt of written notice from Group."
+      }
+    ]
+  },
+  {
+    "clause_type": "governing_law_venue",
+    "paragraphs": [
+      "This Agreement shall be governed by the laws of the state in which Group maintains its principal offices, without regard to its conflict of law principles. The parties irrevocably submit to the exclusive jurisdiction of the state and federal courts located in such state for the resolution of any dispute arising out of or relating to this Agreement or the parties' performance hereunder.",
+      "Notwithstanding any other provision of this Agreement, neither party shall be entitled to recover punitive, exemplary, or consequential damages in any action or proceeding relating to this Agreement, whether such action is based in contract, tort, negligence, or any other theory of liability. Any claim for damages shall be limited to direct damages actually incurred by the claimant.",
+      "Except as otherwise expressly provided in this Agreement, each party shall bear its own attorneys' fees, court costs, and other expenses incurred in connection with any proceeding or dispute resolution relating to this Agreement, regardless of the outcome or the forum in which the dispute is resolved. No party shall be entitled to recover such fees or costs from the other party absent a specific contractual provision to the contrary."
+    ],
+    "anchors": [
+      {
+        "field": "venue",
+        "sentence": "This Agreement shall be governed by the laws of the state in which Group maintains its principal offices, without regard to its conflict of law principles."
+      },
+      {
+        "field": "punitive_damages_barred",
+        "sentence": "Neither party shall be entitled to recover punitive, exemplary, or consequential damages in any action or proceeding relating to this Agreement, whether such action is based in contract, tort, negligence, or any other theory of liability."
+      },
+      {
+        "field": "each_party_own_fees",
+        "sentence": "Except as otherwise expressly provided in this Agreement, each party shall bear its own attorneys' fees, court costs, and other expenses incurred in connection with any proceeding or dispute resolution relating to this Agreement, regardless of the outcome or the forum in which the dispute is resolved."
+      }
+    ]
+  }
+]

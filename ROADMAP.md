@@ -283,8 +283,10 @@ need not.
 **Now, on personal accounts, no CD data:**
 
 - [x] 1. Analysis pipeline, headless — stage-1 library, structured outputs, inline PDF
-- [ ] 2. Eval harness against a synthetic answer key — **deferred at request**, revisit
-      once the library/UI are further along
+- [x] 2. Eval harness against a synthetic answer key — **built 2026-09-09** as §2.0.1.
+      Seven generated contracts, 90 key items, scored by document position rather than
+      by clause name. `npm run eval:capture` then `npm run eval:score -- --run <label>`.
+      See `docs/eval-harness.md`, including how CD's real key swaps in.
 - [x] 3. Scaffold — Next.js, Supabase schema, own auth layer, and GitHub repo
       ([horanshea-ops/CD-Contract-Reviewer-Pro](https://github.com/horanshea-ops/CD-Contract-Reviewer-Pro))
       all done; **Vercel deploy not started**, still local-only (`npm run dev`). Note
@@ -319,6 +321,67 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 (tracked-changes DOCX) is done — see 4b above and the open items below.
 
 ## Open items
+
+### Raised by the first eval run (2026-09-10)
+
+The §2.0.1 harness measured the pipeline for the first time: recall 96.7%,
+precision 48.9%, on 7 generated contracts and 90 key items. Full report and audit
+trail in `docs/eval-baseline-2026-09-10.txt`. Four things came out of it that need
+changing, and one that needs watching.
+
+- [ ] **1. The model files a finding for every clause it examines, not every problem
+      it finds. Highest priority of the four.** Half the output is noise: 88 spurious
+      findings against 90 real ones. On `eval-03-bayfront`, which has two real
+      problems, it filed 25 findings — the extra 23 reading
+      `finding_text: "...fully matches CD's standard. Compliant."` and
+      `proposed_language: "No change recommended; clause aligns with CD standard."`
+
+      Its judgement is right; the conclusion is written to the wrong field, and
+      `clauses_checked` already exists for exactly this. **This is not a judgement
+      problem and should not be treated as one.**
+
+      Why it matters beyond the number: `lib/get-actioned-findings.ts`,
+      `lib/export-memo.ts`, `lib/email-drafting/*` and the §1.5 redline engine all
+      read `findings` as things to act on, so a "no change recommended" entry becomes
+      a proposed change to a clause that was already fine — and the property email
+      path would transmit it. An associate seeing 25 flags on a clean contract also
+      stops trusting the tool, which is the failure mode no accuracy number captures.
+
+      Fix is in `buildSystemPrompt` and `FINDINGS_TOOL_SCHEMA`'s description in
+      `lib/anthropic.ts`: a finding means a deviation, a compliant clause belongs in
+      `clauses_checked` and nowhere else. **Opus work** — changing the analysis system
+      prompt changes the output of every review. Re-run `npm run eval:capture` and
+      compare precision to tell whether it worked; that is what the harness is for.
+
+      It is also most of the bill. Capture cost is dominated by output (79k output
+      against 76k input), so this cuts cost as well as noise.
+
+- [ ] **2. Severity is over-called.** Half the calls are exact and 95% land within one
+      band, but the model over-calls almost twice as often as it under-calls (29
+      against 15), and 23 of the key's `medium` items came back `high`. If everything
+      reads urgent, nothing does. Same prompt, same Opus rule: the library supplies
+      `severity_default` and the model should depart from it only on the specific
+      facts, saying why.
+
+- [ ] **3. Three genuine misses, all `medium`, all present-but-adverse rather than
+      missing clauses** — `named_storm` in eval-01, `fb_minimum` in eval-10,
+      `mandatory_fees` in eval-15. Small enough to read individually. Worth checking
+      whether the clause positions in `lib/standards/v1.ts` are vague at those three
+      points before assuming the model is at fault.
+
+- [ ] **4. Downstream consumers assume every finding is actionable.** Even once the
+      prompt is fixed, nothing between the model and the redline/memo/email checks
+      that a finding proposes an actual change. A defensive filter is cheap insurance
+      against a regression reaching a hotel. Decide whether to add one, or to rely on
+      the eval catching it.
+
+- **Watching: the harness itself is thin.** Seven contracts and 90 key items support
+  the per-clause and per-severity breakdowns, but not reading any single percentage as
+  a forecast. Eight more specs are written and held in `RESERVE_SPECS` — widening the
+  corpus is moving an id into the active list and re-running the build. Exposure is
+  graded on 15 of 87 pairs and proposed language on 57, both by design (see
+  `docs/eval-harness.md` § Known limits). None of this blocks acting on items 1-4.
+
 
 - **Export and email button consolidation — §1.12, not started (raised by the user
   2026-09-09).** The analysis header now carries six controls: Export memo, Draft
@@ -397,11 +460,27 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 - **Work that does not need CD — now §2.0.1/§2.0.2/§2.0.3/§2.1.1 (noted 2026-09-09,
   not started).** Numbered into `MASTER_PLAN.md` on 2026-09-09 and marked ungated there;
   90-140 hours in total. In leverage order:
-  1. **The eval harness — §2.0.1, Opus 5 · high** (build order item 2, deferred at
-     request). Highest
-     leverage of anything here. Building it now against a *synthetic* answer key
-     means the day CD's real key arrives it is a data swap, not a build — otherwise
-     the scarcest resource in the project waits on engineering.
+  1. **The eval harness — §2.0.1, Opus 5 · high. DONE 2026-09-09.** Built against a
+     synthetic answer key, so CD's real key arrives as a data swap rather than a build.
+     `lib/eval/` never imports the synthetic key and a test asserts it.
+
+     What it measures is narrower than "is the tool accurate": the key derives from
+     `lib/standards/v1.ts`, the same library the model reads, so a score says whether
+     the pipeline **applies the standards it is given**. Whether CD's positions are
+     right is still question 3, and still needs a senior associate.
+
+     Ground truth is by construction. Contracts are written *from* a spec that already
+     states every term, and a six-check gate refuses any draft whose prose drifted from
+     it — including a read-back by a second model, because an obligation granted or
+     denied has no literal handle to check. Findings are paired to key items by where
+     they point in the document, never by clause name: pairing on the name would make
+     "right issue, wrong name" score as a miss plus a false positive, and clause-name
+     accuracy would read as perfect on exactly the findings that got it wrong.
+
+     Corpus is seven contracts and 90 key items — enough for per-clause and
+     per-severity breakdowns, not enough to read one percentage as a forecast. Eight
+     more specs are written and held in `RESERVE_SPECS`. Recurring cost is about $1.50
+     per measurement run; scoring itself is free and offline.
   2. **Term extraction — §2.0.2, Opus 5 · xhigh.** Its own answer key was described as
      needing a senior
      associate, but verifying that a contract saying 90% was extracted as `0.90` is
