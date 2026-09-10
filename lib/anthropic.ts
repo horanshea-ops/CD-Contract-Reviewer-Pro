@@ -651,7 +651,11 @@ export async function draftEvalClauses({
   // to succeed returns in well under a minute, so a stalled connection is worth
   // abandoning early — three stalls at the default cost half an hour before the
   // first retry got anywhere.
-  const client = new Anthropic({ apiKey, timeout: 240_000 });
+  // maxRetries 0 because withRetry in lib/eval/corpus/draft.ts already retries.
+  // Leaving the SDK's default of 2 in place made one "attempt" up to three
+  // requests at four minutes each, so three attempts became nine requests and a
+  // slow patch turned into a twenty-minute stall before anything gave up.
+  const client = new Anthropic({ apiKey, timeout: 240_000, maxRetries: 0 });
   // Haiku by default. Drafting with a different model than the one being
   // graded keeps the corpus from being unusually easy for the grader to read.
   const modelId = model || process.env.EVAL_DRAFT_MODEL || "claude-haiku-4-5";
@@ -780,7 +784,7 @@ export async function readBackEvalTerms({
     throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
   }
 
-  const client = new Anthropic({ apiKey, timeout: 240_000 });
+  const client = new Anthropic({ apiKey, timeout: 240_000, maxRetries: 0 });
   const modelId = model || process.env.EVAL_READBACK_MODEL || "claude-sonnet-5";
 
   const questionBlock = questions
