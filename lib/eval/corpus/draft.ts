@@ -29,8 +29,20 @@ import { buildContractDocx } from "./docx-builder";
  * handle to check — only meaning, and meaning has to be read.
  */
 
-const BATCH_SIZE = 6;
+/**
+ * Three clauses per call, not six.
+ *
+ * Small requests to the API succeed reliably; the long streaming drafting calls
+ * were being cut mid-flight ("terminated", then connection errors), and a
+ * six-clause verbose batch holds a connection open for the better part of a
+ * minute. Halving the batch halves the exposure, and makes each retry cheaper
+ * when one does drop.
+ */
+const BATCH_SIZE = 3;
 const MAX_ATTEMPTS = 4;
+
+/** Attempts per call for a failure that says nothing about the draft itself. */
+const TRANSIENT_ATTEMPTS = 5;
 
 export interface ResolvedAnchor {
   clause_type: string;
@@ -92,16 +104,16 @@ const flatten = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(
  */
 async function withRetry<T>(what: string, attempt: () => Promise<T>): Promise<T> {
   let last: unknown;
-  for (let tries = 1; tries <= 3; tries++) {
+  for (let tries = 1; tries <= TRANSIENT_ATTEMPTS; tries++) {
     try {
       return await attempt();
     } catch (err) {
       last = err;
       const message = err instanceof Error ? err.message : String(err);
-      console.warn(`  ${what} failed (attempt ${tries}/3): ${message}`);
-      // Backs off far enough to clear a rate limit. Retrying two seconds after
-      // being throttled just gets throttled again.
-      if (tries < 3) await new Promise((resolve) => setTimeout(resolve, 15_000 * tries));
+      console.warn(`  ${what} failed (attempt ${tries}/${TRANSIENT_ATTEMPTS}): ${message}`);
+      // Backs off far enough to clear a rate limit or ride out a bad patch.
+      // Retrying two seconds after being throttled just gets throttled again.
+      if (tries < TRANSIENT_ATTEMPTS) await new Promise((resolve) => setTimeout(resolve, 10_000 * tries));
     }
   }
   throw last;
