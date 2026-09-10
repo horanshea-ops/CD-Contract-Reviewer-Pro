@@ -29,7 +29,7 @@ export interface AnchorSpan {
   end: number;
 }
 
-export type NumericUnit = "pct" | "usd" | "days" | "rooms";
+export type NumericUnit = "pct" | "usd" | "days" | "months" | "hours" | "rooms";
 export type Comparator = "lte" | "lt" | "eq" | "gte" | "gt";
 
 /**
@@ -45,12 +45,28 @@ export type LanguageAssertion =
   | { kind: "absent_phrase"; phrase: string }
   | { kind: "numeric_bound"; label: string; unit: NumericUnit; comparator: Comparator; value: number };
 
+/**
+ * What the key expects of exposure_amount.
+ *
+ * Three modes rather than a boolean, because "the contract does not support a
+ * figure" and "the key takes no view" are different claims, and only the first
+ * makes a number a prompt violation. Most clauses are "unspecified" — asserting
+ * a dollar figure the key cannot derive unambiguously would grade the key's
+ * arithmetic rather than the model's.
+ */
+export type ExposureMode =
+  /** The contract carries the figures, so a number within tolerance is expected. */
+  | "required"
+  /** The contract carries no figures here, so any number was invented. */
+  | "forbidden"
+  /** The key takes no position. Always grades not_applicable. */
+  | "unspecified";
+
 export interface ExposureExpectation {
-  /** Whether the contract carries enough figures to calculate a dollar exposure. */
-  calculable: boolean;
-  /** The figure, when one is calculable. */
+  mode: ExposureMode;
+  /** The figure, when mode is "required". */
   amount?: number;
-  /** Fractional tolerance on that figure, e.g. 0.05 for ±5%. */
+  /** Fractional tolerance on that figure, e.g. 0.25 for ±25%. */
   tolerance?: number;
 }
 
