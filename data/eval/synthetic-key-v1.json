@@ -1,0 +1,3590 @@
+{
+  "version": "synthetic-v1",
+  "source": "synthetic",
+  "standards_version": "v1-industry-default",
+  "generated_at": "2026-09-10T19:03:21.306Z",
+  "contracts": [
+    {
+      "contract": "eval-01-harborview.docx",
+      "exhaustive": true,
+      "items": [
+        {
+          "id": "eval-01-harborview:attrition",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "attrition",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 933,
+              "end": 1096
+            },
+            {
+              "part": "document",
+              "start": 1097,
+              "end": 1225
+            },
+            {
+              "part": "document",
+              "start": 1414,
+              "end": 1662
+            },
+            {
+              "part": "document",
+              "start": 1894,
+              "end": 2168
+            },
+            {
+              "part": "document",
+              "start": 2311,
+              "end": 2594
+            }
+          ],
+          "anchor_texts": [
+            "Attrition is measured on a night-by-night basis, with shortfalls calculated by comparing actual rooms occupied to the block size on each night of the event period.",
+            "Group shall be deemed in attrition if actual occupancy falls below the attrition threshold of ninety percent (90%) on any night.",
+            "Should Group's occupancy fall below ninety percent (90%) on any night during the event period, Group shall be liable for attrition damages at the rate of one hundred percent (100%) of the nightly room rate for each unoccupied room within the block.",
+            "Group shall receive no credit toward its block commitment for nights on which the Hotel sells out all available rooms in the Hotel, and occupancy on such nights shall be deemed to have satisfied the threshold regardless of the actual number of rooms occupied from the block.",
+            "The Hotel's occupancy records, registration cards, and room-by-room occupancy logs shall not be open to Group for audit, verification, or inspection, and Group waives any right to independently verify the Hotel's calculations or to contest the Hotel's occupancy records on any basis."
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "cumulative"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "night-by-night"
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition liability rate",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attrition measurement basis is \"night_by_night\", and CD's position allows only \"cumulative\"; attrition threshold is 0.9, and CD's position is at most 0.7 pct; attrition liability rate is 1, and CD's position is at most 0.7 pct; sold-out night credit is false, and CD's position is true; occupancy audit rights is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:cancellation",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "cancellation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 4146,
+              "end": 4519
+            },
+            {
+              "part": "document",
+              "start": 4995,
+              "end": 5410
+            },
+            {
+              "part": "document",
+              "start": 5626,
+              "end": 5933
+            },
+            {
+              "part": "document",
+              "start": 5935,
+              "end": 6252
+            },
+            {
+              "part": "document",
+              "start": 6253,
+              "end": 6626
+            },
+            {
+              "part": "document",
+              "start": 6901,
+              "end": 6942
+            }
+          ],
+          "anchor_texts": [
+            "Should Group cancel this agreement at any time after execution by the parties, Group shall be liable to the Hotel for liquidated damages calculated as a percentage of gross room revenue that would have been earned by the Hotel for all guest rooms for all nights within the event period of April 12-16, 2027, based upon the negotiated room rate and the full room block size.",
+            "The amount of liquidated damages shall vary by how far in advance of the event's arrival date the cancellation notice is provided to the Hotel, with notices given further from the arrival date subject to lower percentages and notices given closer to arrival subject to correspondingly higher percentages, reflecting the Hotel's diminished ability to resell the rooms and function space as the event date approaches.",
+            "Group shall not receive credit toward damages owed for any revenue the Hotel subsequently earns from reselling cancelled rooms or function space, as the Hotel's ability to generate such resale revenue is contingent on market conditions beyond the Hotel's control and shall be retained entirely by the Hotel.",
+            "Should Group elect to rebook with the Hotel at a later date following cancellation of this agreement, such rebooking shall constitute a new and separate commitment and shall earn Group no credit, offset, or other financial benefit against damages that accrued under this cancellation provision prior to the rebooking.",
+            "Liquidated damages under this clause apply to any cancellation of this agreement at any time after the parties execute this agreement, whether such cancellation occurs months before the event or days before arrival, and no period of time following execution shall be deemed a liability-free window during which cancellation would occur without incurring liquidated damages.",
+            "30 days or fewer prior to arrival  | 100%"
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "room profit"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "gross room revenue"
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "liability-free cancellation window",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true; liability-free cancellation window is 0, and CD's position is at least 12 months."
+        },
+        {
+          "id": "eval-01-harborview:force_majeure",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "force_majeure",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 9025,
+              "end": 9347
+            },
+            {
+              "part": "document",
+              "start": 9926,
+              "end": 10439
+            },
+            {
+              "part": "document",
+              "start": 10630,
+              "end": 10884
+            }
+          ],
+          "anchor_texts": [
+            "Neither party shall be liable to the other for failure to perform its obligations under this agreement when such failure results from causes beyond the reasonable control of the performing party, provided that the event rendered performance physically impossible and was not foreseeable at the time of agreement execution.",
+            "Notwithstanding any other provision of this agreement, the following shall not constitute force majeure: government-issued travel restrictions, travel advisories, or governmental directives limiting group gatherings or travel, regardless of the reason such restrictions or advisories are issued; epidemics, pandemics, or declarations of public health emergency, including any government responses thereto; or concerns among Group members regarding attendee safety, willingness to travel, or health considerations.",
+            "The invocation of force majeure by either party shall not relieve Group of its obligations to remit the deposit and initial payment to the Hotel, which shall be retained by the Hotel despite any termination of this agreement resulting from force majeure."
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "impracticable"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "impossible"
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; government travel restrictions is false, and CD's position is true; epidemic and pandemic coverage is false, and CD's position is true; unsafe or imprudent travel is false, and CD's position is true; deposit refund on force majeure is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:fb_minimum",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "fb_minimum",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 14298,
+              "end": 14437
+            },
+            {
+              "part": "document",
+              "start": 15070,
+              "end": 15204
+            }
+          ],
+          "anchor_texts": [
+            "The parties agree that the Hotel shall provide Group with menus and pricing no later than twenty-four (24) months prior to the Event dates.",
+            "The shortfall payment rate shall be one hundred percent (100%) of the difference between the minimum guarantee and actual consumption."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "menu price lock window",
+              "unit": "months",
+              "comparator": "lte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "food and beverage shortfall rate",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.35
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "menu price lock window is 24, and CD's position is at most 12 months; food and beverage shortfall rate is 1, and CD's position is at most 0.35 pct."
+        },
+        {
+          "id": "eval-01-harborview:cutoff_date",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "cutoff_date",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 2817,
+              "end": 3051
+            },
+            {
+              "part": "document",
+              "start": 3423,
+              "end": 3731
+            }
+          ],
+          "anchor_texts": [
+            "Reservations for rooms within the block committed for the National Association of Coastal Engineers event shall be accepted by the Hotel only when received on or before forty-five (45) days prior to the arrival date of April 12, 2027.",
+            "Any reservation request received after the cutoff date of forty-five (45) days prior to arrival shall be offered accommodations, if available, only at the Hotel's prevailing rack rate in effect at the time of booking, with no access to the negotiated group rate regardless of the reason for the late request."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "room block cutoff date",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room block cutoff date is 45, and CD's position is at most 30 days; group rate after cutoff is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:walk_relocation",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "walk_relocation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 24897,
+              "end": 25142
+            },
+            {
+              "part": "document",
+              "start": 25423,
+              "end": 25683
+            },
+            {
+              "part": "document",
+              "start": 25762,
+              "end": 26033
+            },
+            {
+              "part": "document",
+              "start": 26148,
+              "end": 26475
+            }
+          ],
+          "anchor_texts": [
+            "In the event the Hotel is unable to provide accommodations to any guest for whom a reservation has been guaranteed under this Agreement, the Hotel shall make a reasonable effort to secure alternative lodging at the guest's sole expense and cost.",
+            "All transportation to and from any alternative hotel, including airport transfers, shall be the guest's own responsibility and expense, and the Hotel shall have no obligation to arrange, provide, or reimburse for any transportation costs incurred by the guest.",
+            "Upon the Group's return to the Harborview Grand Hotel following any relocation, the relocated guest shall be assigned to a standard guest room without any upgrade, suite premium, room enhancement, or additional amenity as compensation for the inconvenience of relocation.",
+            "Each night during which a guest's guaranteed reservation was relocated to an alternative hotel shall not be credited toward the Group's room pickup, occupancy count, or commission calculation, and such nights shall be excluded entirely from all metrics used to measure the Group's performance under the terms of this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "comparable relocation accommodation is false, and CD's position is true; round-trip transportation on relocation is false, and CD's position is true; upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:mandatory_fees",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "mandatory_fees",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 17104,
+              "end": 17283
+            },
+            {
+              "part": "document",
+              "start": 17872,
+              "end": 18011
+            },
+            {
+              "part": "document",
+              "start": 18109,
+              "end": 18203
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel reserves the right to impose additional fees, surcharges, and service charges upon Group at any time, including without limitation after the execution of this Agreement.",
+            "Group waives any claim that undisclosed charges are unenforceable or that such charges constitute a material modification of the Agreement.",
+            "A resort fee of $35.00 per occupied room per night shall be charged to all rooms in the block."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "required",
+            "amount": 47600,
+            "tolerance": 0.25
+          },
+          "rationale": "written fee disclosure before signature is false, and CD's position is true; undisclosed charges waived is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:rebates",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "rebates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 18482,
+              "end": 18660
+            },
+            {
+              "part": "document",
+              "start": 19072,
+              "end": 19199
+            },
+            {
+              "part": "document",
+              "start": 19651,
+              "end": 19821
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall provide complimentary room nights to Group based on a ratio of one (1) complimentary room per seventy-five (75) paid room nights occupied during the Event Period.",
+            "The complimentary room ratio of seventy-five (75) stated above is a guideline only and does not create an entitlement in Group.",
+            "Should Group fail to meet its room block commitment during the Event Period, all complimentary room credits earned under this clause shall be forfeited in their entirety."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "complimentary room ratio",
+              "unit": "rooms",
+              "comparator": "lte",
+              "value": 40
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "complimentary room ratio is 75, and CD's position is at most 40 rooms; formula-based comp calculation is false, and CD's position is true; comp rooms forfeited on attrition is true, and CD's position is false."
+        },
+        {
+          "id": "eval-01-harborview:construction_renovation",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "construction_renovation",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 26512,
+              "end": 26817
+            },
+            {
+              "part": "document",
+              "start": 27036,
+              "end": 27343
+            },
+            {
+              "part": "document",
+              "start": 27456,
+              "end": 27966
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel makes no representation, warranty, or guarantee regarding the status, scope, timing, or impact of any construction, renovation, maintenance, or capital improvement work that may be planned, in progress, or completed during the dates of the Event or at any time during the term of this Agreement.",
+            "The Hotel reserves the right to commence, continue, or complete any construction, renovation, or maintenance work at any time without providing the Group with advance written notice, and without restriction as to timing, scope, noise level, dust, disruption to guest services, or impact on guest experience.",
+            "In the event that any construction, renovation, maintenance, or capital improvement work interferes with, disrupts, diminishes, or otherwise affects the Group's occupancy, the use and enjoyment of the Hotel's facilities, or the quality of service or accommodations provided to the Group's guests, such work shall not constitute grounds for the Group to terminate this Agreement, to claim damages or loss of value, to demand a rate reduction or credit, or to pursue any other remedy or relief against the Hotel."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "renovation notice period",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "no current renovation warranty is false, and CD's position is true; renovation notice period is 0, and CD's position is at least 30 days; termination for interfering renovation is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:master_account_billing",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "master_account_billing",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 22023,
+              "end": 22229
+            },
+            {
+              "part": "document",
+              "start": 22548,
+              "end": 22785
+            },
+            {
+              "part": "document",
+              "start": 22905,
+              "end": 23123
+            }
+          ],
+          "anchor_texts": [
+            "All invoiced charges to the master account shall be due in full upon presentation, and the Group waives any right to dispute or withhold payment of billed amounts after receipt of an invoice from the Hotel.",
+            "Should the Group fail to remit full payment of undisputed invoiced amounts by the date due, a monthly finance charge of 1.5% shall accrue on the unpaid balance, calculated from the due date until payment is received in full by the Hotel.",
+            "Where the Hotel has not approved credit for the Group, the Hotel may require prepayment in such amount as the Hotel determines to be appropriate before rooms are held, facilities are reserved, or services are rendered."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "invoice dispute window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 15
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "monthly finance charge",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.01
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "invoice dispute window is 0, and CD's position is at least 15 days; monthly finance charge is 0.015, and CD's position is at most 0.01 pct; defined prepayment percentage is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:review_audit_dates",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "review_audit_dates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 37984,
+              "end": 38263
+            },
+            {
+              "part": "document",
+              "start": 38656,
+              "end": 38936
+            },
+            {
+              "part": "document",
+              "start": 39153,
+              "end": 39415
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall provide pickup reports to Group showing room occupancy, rate structure, and charges incurred under the room block only upon Group's written request and at the Hotel's convenience, and no regular or periodic reporting shall be deemed a condition of this Agreement.",
+            "Within ninety (90) days following the conclusion of Group's event on April 16, 2027, the Hotel shall provide Group with a comprehensive post-event report detailing final room block results, attendee counts, revenue by rate category, and itemized charges for all services rendered.",
+            "Group shall have no right to audit, inspect, or verify the Hotel's room block records, reservation systems, or internal accounting related to Group's event, and Group waives any audit rights it might otherwise possess under applicable law or contract principles."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "post-event report deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "weekly pickup reports is false, and CD's position is true; post-event report deadline is 90, and CD's position is at most 30 days; room block audit right is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:insurance_indemnification",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "insurance_indemnification",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 33341,
+              "end": 33623
+            },
+            {
+              "part": "document",
+              "start": 32846,
+              "end": 33340
+            },
+            {
+              "part": "document",
+              "start": 34086,
+              "end": 34309
+            }
+          ],
+          "anchor_texts": [
+            "This indemnification obligation shall extend to claims arising from the Hotel's own negligence in its provision of services or maintenance of premises, provided that Group's indemnity shall not extend to claims arising solely from the Hotel's gross negligence or willful misconduct.",
+            "Group shall indemnify, defend with counsel reasonably acceptable to the Hotel, and hold harmless the Hotel, its owners, managers, employees, and agents from and against all claims, damages, liabilities, costs, and expenses, including reasonable attorneys' fees, arising out of or resulting from Group's performance of this Agreement, Group's occupancy and use of the Hotel facilities, Group's events and activities, or any act or omission by Group, its officers, employees, agents, or invitees.",
+            "Group shall maintain comprehensive general liability insurance covering all activities related to the event, with a minimum limit of not less than $5,000,000.00 per occurrence, with the Hotel named as an additional insured."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "group general liability requirement",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 2000000
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "mutual indemnification is false, and CD's position is true; indemnity limited to own negligence is false, and CD's position is true; group general liability requirement is 5000000, and CD's position is at most 2000000 usd."
+        },
+        {
+          "id": "eval-01-harborview:damage_deposit",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "damage_deposit",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 23322,
+              "end": 23723
+            },
+            {
+              "part": "document",
+              "start": 23845,
+              "end": 24248
+            },
+            {
+              "part": "document",
+              "start": 24403,
+              "end": 24672
+            }
+          ],
+          "anchor_texts": [
+            "The Group shall deposit with the Hotel the sum of $25,000.00 as security for the faithful performance of all obligations under this Agreement, including but not limited to the payment of room charges, the satisfaction of all food and beverage minimums, the performance of all other financial covenants, and the absence of damage to the Hotel's property caused by the Group's guests or representatives.",
+            "The Hotel may apply the security deposit, or such portion thereof as necessary, against any attrition charges, food and beverage shortfalls, damages to the Hotel's premises, incidental costs, outstanding room charges, service failures, cancellation penalties, or any other sum that the Group owes to the Hotel under this Agreement or arising from the Group's occupancy and use of the Hotel's facilities.",
+            "Any remaining balance of the security deposit shall be refunded to the Group within ninety (90) days following the last day of the Event, provided that all invoices have been paid in full, all obligations have been satisfied, and no claims for damages are then pending."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "damage deposit refund window",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "damage deposit refund window is 90, and CD's position is at most 30 days; deposit applied to unrelated charges is true, and CD's position is false."
+        },
+        {
+          "id": "eval-01-harborview:exclusivity_vendors",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "exclusivity_vendors",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 31354,
+              "end": 31765
+            },
+            {
+              "part": "document",
+              "start": 31766,
+              "end": 31895
+            }
+          ],
+          "anchor_texts": [
+            "Group shall engage for all services at the Hotel only vendors appointed exclusively by the Hotel or operating as part of the Hotel's in-house service divisions, and Group shall not retain, contract with, or permit on the Hotel's premises any outside vendor, supplier, decorator, caterer, audiovisual provider, florist, musician, photographer, or other service provider without the Hotel's prior written consent.",
+            "Group's use of any outside vendor in violation of this requirement shall incur a surcharge of $2,500.00 for each such engagement."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "outside vendor surcharge",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 0
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "outside vendor choice is false, and CD's position is true; outside vendor surcharge is 2500, and CD's position is at most 0 usd."
+        },
+        {
+          "id": "eval-01-harborview:termination_rights",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "termination_rights",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 13048,
+              "end": 13258
+            },
+            {
+              "part": "document",
+              "start": 13460,
+              "end": 13721
+            }
+          ],
+          "anchor_texts": [
+            "Termination for such cause does not relieve Group of liability for damages, including lost profit, diminution in value, and consequential loss incurred by the Hotel as a result of Group's election to terminate.",
+            "Notwithstanding the grounds upon which Group effects termination, whether for cause, convenience, or otherwise, any and all termination by Group shall be deemed and treated as a cancellation subject to the cancellation damages scale set forth in this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "termination for cause without liability is false, and CD's position is true; termination separate from cancellation damages is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:assignment_subcontracting",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "assignment_subcontracting",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 39668,
+              "end": 39943
+            },
+            {
+              "part": "document",
+              "start": 40190,
+              "end": 40378
+            }
+          ],
+          "anchor_texts": [
+            "This Agreement and all rights and obligations of Group under it shall not be assigned, delegated, or otherwise transferred by Group, whether by operation of law, merger, consolidation, restructuring, bankruptcy, or any other means, without the prior written consent of Hotel.",
+            "Hotel's consent to any proposed assignment is entirely within Hotel's sole discretion and may be withheld in Hotel's absolute discretion for any reason whatsoever, or for no reason at all."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "assignment to a successor entity is false, and CD's position is true; consent not unreasonably withheld is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:brand_ownership_change",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "brand_ownership_change",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 28152,
+              "end": 28589
+            },
+            {
+              "part": "document",
+              "start": 28719,
+              "end": 29013
+            },
+            {
+              "part": "document",
+              "start": 29186,
+              "end": 29484
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall use commercially reasonable efforts to provide written notice to the Group in the event of a change in the Hotel's brand affiliation, management company, ownership, or controlling interest; provided, however, that the Hotel shall provide such notice no later than ninety (90) days prior to the effective date of any such change, to the extent practicable and permitted by the Hotel's corporate counsel and applicable law.",
+            "Upon receipt of notice of a material change in brand, management, or ownership, the Group shall have the right to terminate this Agreement by providing written notice to the Hotel within ten (10) days of receipt of such notice, and such termination shall be effective upon receipt by the Hotel.",
+            "Notwithstanding any other provision of this Agreement, the Group acknowledges that the Hotel may be subject to bankruptcy, foreclosure, receivership, or other insolvency proceedings, and that such events shall not trigger any notice requirement, termination right, or remedy available to the Group."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "ownership change notice period",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "termination window after notice",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "ownership change notice period is 90, and CD's position is at most 30 days; termination window after notice is 10, and CD's position is at least 30 days; bankruptcy and foreclosure coverage is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:named_storm",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "named_storm",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 11330,
+              "end": 11859
+            }
+          ],
+          "anchor_texts": [
+            "Should the National Weather Service issue a hurricane watch or named tropical storm warning that affects the Baltimore, Maryland area during the seventy-two (72) hours preceding the event arrival date of April 12, 2027, or during the event period of April 12-16, 2027, Group shall have the right to cancel this agreement without incurring liquidated damages, provided that such cancellation notice is delivered to the Hotel in writing within twenty-four (24) hours of the issuance of such warning by the National Weather Service."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "named storm cancellation window",
+              "unit": "hours",
+              "comparator": "gte",
+              "value": 72
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "named storm cancellation window is 24, and CD's position is at least 72 hours."
+        },
+        {
+          "id": "eval-01-harborview:attendee_data_handling",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "attendee_data_handling",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 36518,
+              "end": 36829
+            },
+            {
+              "part": "document",
+              "start": 36952,
+              "end": 37285
+            }
+          ],
+          "anchor_texts": [
+            "Group acknowledges that the Hotel may utilize such attendee data for the Hotel's own marketing, promotional, and business development purposes, including but not limited to direct mail, email marketing, targeted advertising, and future event solicitation directed to attendees or their affiliated organizations.",
+            "Group authorizes the Hotel to share and disclose attendee data with the Hotel's corporate affiliates, brand partners, and third-party marketing service providers who assist the Hotel in analyzing market trends, identifying corporate event opportunities, and promoting the Hotel's services and facilities to potential group customers."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "attendee data used for hotel marketing is false, and CD's position is true; attendee data sold to third parties is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:ada_compliance",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "ada_compliance",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 34639,
+              "end": 34971
+            },
+            {
+              "part": "document",
+              "start": 35221,
+              "end": 35685
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel makes no representation, warranty, or covenant regarding the accessibility of its facilities under the Americans with Disabilities Act, as amended, or any state or local accessibility law, and Group assumes sole responsibility for assessing the suitability of the Hotel's premises for Group's attendees and event purposes.",
+            "Should Group require auxiliary aids, services, modifications, or accommodations to make any portion of the Hotel accessible or usable by Group's attendees, Group shall fund and arrange for all such auxiliary aids and accommodations, including but not limited to interpreters, readers, accessible transportation, specialized signage, or technology enhancements, regardless of where within the Hotel such aids or accommodations are required or how they are deployed."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "hotel ADA compliance warranty is false, and CD's position is true; auxiliary aids cost split is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:governing_law_venue",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "governing_law_venue",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 41284,
+              "end": 41667
+            },
+            {
+              "part": "document",
+              "start": 41841,
+              "end": 42186
+            },
+            {
+              "part": "document",
+              "start": 42337,
+              "end": 42735
+            }
+          ],
+          "anchor_texts": [
+            "This Agreement shall be governed by the laws of the state in which the Hotel is located, without regard to its conflict of law principles, and the parties irrevocably submit to the exclusive jurisdiction of the state and federal courts located in Maryland for the resolution of any dispute arising out of or relating to this Agreement, the event, or the performance or breach hereof.",
+            "In any action or proceeding brought by the Hotel to enforce its rights or to recover damages for breach of this Agreement, the Hotel shall be entitled to recover, in addition to all other remedies available at law or in equity and in addition to any actual damages awarded, an award of punitive damages to the extent permitted by applicable law.",
+            "In the event of any dispute, claim, or proceeding arising from or relating to this Agreement, including any action for breach, enforcement, or interpretation, the prevailing party shall be entitled to recover reasonable attorney's fees, court costs, and all other expenses of litigation, including expert fees and investigation costs, from the non-prevailing party as part of the judgment or award."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "governing law and venue is \"hotel_state\", and CD's position allows only \"group_state\"; punitive damages is false, and CD's position is true; attorney's fees is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:labor_disputes",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "labor_disputes",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 29700,
+              "end": 29956
+            },
+            {
+              "part": "document",
+              "start": 30271,
+              "end": 30619
+            },
+            {
+              "part": "document",
+              "start": 30763,
+              "end": 31105
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall not be obligated to provide the Group with advance written notice regarding the expiration date, renewal status, or proposed modification of any collective bargaining agreement, union contract, or labor accord to which the Hotel is a party.",
+            "In the event of a labor dispute, strike, work stoppage, lockout, labor action, or other labor-related event affecting the Hotel or its operations, no cancellation window or notice period is defined herein, and the Group shall have no right to cancel this Agreement based upon the occurrence or threatened occurrence of any such labor-related event.",
+            "The Group acknowledges and agrees that the occurrence of any labor dispute, strike, work stoppage, lockout, job action, or labor-related disruption at the Hotel shall not relieve, excuse, or reduce the Group's obligations under this Agreement, and shall not give rise to any claim for damages, abatement of charges, rate reduction, or credit."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "collective bargaining expiry notice",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "labor dispute cancellation window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 90
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "collective bargaining expiry notice is 0, and CD's position is at least 12 months; labor dispute cancellation window is 0, and CD's position is at least 90 days; labor dispute cancellation liability is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:rate_parity",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "rate_parity",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 20508,
+              "end": 20642
+            },
+            {
+              "part": "document",
+              "start": 20869,
+              "end": 21143
+            },
+            {
+              "part": "document",
+              "start": 21442,
+              "end": 21634
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel retains the absolute right to sell rooms to the general public at any rate, including rates below the rate offered to Group.",
+            "Should the Hotel identify that it has sold rooms to the general public at a rate lower than Group's negotiated rate, any rate adjustment applied to Group's block shall be effective only for future reservations made after the Hotel has identified and approved the lower rate.",
+            "Any rate adjustment determined by the Hotel to apply to Group's block shall be treated as a non-commissionable rate for purposes of Group's commission or rebate structure under this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "rate parity guarantee is false, and CD's position is true; retroactive rate adjustment is false, and CD's position is true; commission on adjusted rates is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:gratuity_service_charge",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "gratuity_service_charge",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 15627,
+              "end": 15858
+            },
+            {
+              "part": "document",
+              "start": 16165,
+              "end": 16302
+            },
+            {
+              "part": "document",
+              "start": 16458,
+              "end": 16612
+            },
+            {
+              "part": "document",
+              "start": 15859,
+              "end": 16022
+            }
+          ],
+          "anchor_texts": [
+            "A service charge and gratuity shall be added to all food and beverage, banquet, and room charges, and the terms 'gratuity' and 'service charge' shall be used interchangeably throughout this Agreement and are not separately defined.",
+            "The Hotel shall determine in its sole discretion the allocation and distribution of any gratuity and service charge collected from Group.",
+            "No representation is made regarding the destination of these funds, and Group waives any right to direct, approve, or inquire into the allocation thereof.",
+            "The combined gratuity and service charge shall be automatically applied at the rate of twenty-four percent (24%) of the subtotal of all covered charges before tax."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "gratuity and service charge defined separately is false, and CD's position is true; gratuity distributed to staff is false, and CD's position is true; service charge disclosed as hotel revenue is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:resale_mitigation_duty",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "resale_mitigation_duty",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 6984,
+              "end": 7380
+            },
+            {
+              "part": "document",
+              "start": 7854,
+              "end": 8207
+            },
+            {
+              "part": "document",
+              "start": 8419,
+              "end": 8747
+            }
+          ],
+          "anchor_texts": [
+            "Upon release of any room inventory or function space by Group, whether through attrition, cancellation, or other reduction of Group's commitment, the Hotel shall have no obligation to attempt to resell such released inventory or function space, nor shall the Hotel be required to undertake any specific actions, marketing efforts, or promotional activities directed toward filling released space.",
+            "Any revenue generated by the Hotel from the resale or release of rooms or function space originally committed to Group shall be retained in full by the Hotel as additional revenue beyond what Group owes under the terms of this agreement, including without limitation attrition charges, cancellation damages, or any other fees or charges assessed herein.",
+            "The Hotel's resale efforts, the terms at which resale accommodations are offered to other customers, the identity of parties to whom space is resold, the rate at which such space is resold, and the complete records related to all resale transactions shall not be open to Group for inspection, audit, or verification of any kind."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true."
+        }
+      ]
+    },
+    {
+      "contract": "eval-03-bayfront.docx",
+      "exhaustive": true,
+      "items": [
+        {
+          "id": "eval-03-bayfront:attrition",
+          "contract": "eval-03-bayfront.docx",
+          "kind": "present",
+          "clause_type": "attrition",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 542,
+              "end": 629
+            },
+            {
+              "part": "document",
+              "start": 718,
+              "end": 983
+            },
+            {
+              "part": "document",
+              "start": 985,
+              "end": 1200
+            },
+            {
+              "part": "document",
+              "start": 1201,
+              "end": 1380
+            }
+          ],
+          "anchor_texts": [
+            "Attrition is measured on a cumulative basis across the entire room block for the event.",
+            "Should Group fail to occupy at least seventy-five percent (75%) of committed rooms, Group shall pay the Hotel liquidated damages equal to the room rate applicable to the unoccupied rooms, multiplied by seventy percent (70%), for each night the threshold is not met.",
+            "For any night during the event when the Hotel reaches ninety-five percent (95%) occupancy or higher, Group receives full credit toward its block commitment for that night as if all committed rooms had been occupied.",
+            "Group may request the Hotel's occupancy records to verify how attrition damages were calculated, and the Hotel shall provide such records within ten (10) business days of request."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "attrition threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attrition threshold is 0.75, and CD's position is at most 0.7 pct."
+        },
+        {
+          "id": "eval-03-bayfront:cutoff_date",
+          "contract": "eval-03-bayfront.docx",
+          "kind": "present",
+          "clause_type": "cutoff_date",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 1526,
+              "end": 1641
+            },
+            {
+              "part": "document",
+              "start": 1766,
+              "end": 1996
+            }
+          ],
+          "anchor_texts": [
+            "All reservations for rooms within the group block must be made on or before thirty-five (35) days prior to arrival.",
+            "Reservations requested after the cutoff date remain eligible for the negotiated group rate based on availability at the time of request, provided that the Hotel is under no obligation to hold inventory after the cutoff has passed."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "room block cutoff date",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room block cutoff date is 35, and CD's position is at most 30 days."
+        }
+      ]
+    },
+    {
+      "contract": "eval-05-riverwalk.docx",
+      "exhaustive": true,
+      "items": [
+        {
+          "id": "eval-05-riverwalk:attrition",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "present",
+          "clause_type": "attrition",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 716,
+              "end": 943
+            },
+            {
+              "part": "document",
+              "start": 1178,
+              "end": 1434
+            },
+            {
+              "part": "document",
+              "start": 1436,
+              "end": 1736
+            },
+            {
+              "part": "document",
+              "start": 1737,
+              "end": 1977
+            }
+          ],
+          "anchor_texts": [
+            "Attrition is measured on a night-by-night basis, and the Group's block commitment is deemed satisfied only to the extent that occupied rooms meet or exceed ninety percent (90%) of the rooms reserved for each night of the Event.",
+            "Any rooms within the Group's block that remain unoccupied and were not released in accordance with this Agreement shall be charged at ninety percent (90%) of the nightly group rate, with such charges due within forty-five (45) days of the Event conclusion.",
+            "Notwithstanding the foregoing, if the Hotel achieves occupancy of ninety-five percent (95%) or higher on any night during the Event, the Group shall receive full credit toward its block commitment for rooms within the Group's allocation on that night, regardless of actual occupancy by Group members.",
+            "The Group may request documentation of the Hotel's occupancy records for each night of the Event to verify the calculation of any attrition liability, and the Hotel shall provide such records within twenty (20) business days of the request."
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "cumulative"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "night-by-night"
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition liability rate",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attrition measurement basis is \"night_by_night\", and CD's position allows only \"cumulative\"; attrition threshold is 0.9, and CD's position is at most 0.7 pct; attrition liability rate is 0.9, and CD's position is at most 0.7 pct."
+        },
+        {
+          "id": "eval-05-riverwalk:cancellation",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "present",
+          "clause_type": "cancellation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 3353,
+              "end": 3666
+            },
+            {
+              "part": "document",
+              "start": 3667,
+              "end": 3900
+            },
+            {
+              "part": "document",
+              "start": 4279,
+              "end": 4484
+            },
+            {
+              "part": "document",
+              "start": 4485,
+              "end": 4678
+            },
+            {
+              "part": "document",
+              "start": 4679,
+              "end": 4953
+            },
+            {
+              "part": "document",
+              "start": 5460,
+              "end": 5500
+            }
+          ],
+          "anchor_texts": [
+            "If the Group cancels this Agreement or reduces the room block in writing before the Event, the Group shall owe liquidated damages calculated as a percentage of gross room revenue that would have been earned on the cancelled or reduced rooms, based on the nightly group rates in effect at the time of cancellation.",
+            "The amount of liquidated damages shall vary depending on the notice provided by the Group prior to the scheduled arrival date, with the damages percentage declining as the cancellation notice is given further in advance of the Event.",
+            "Any revenue the Hotel generates by reselling rooms within the cancelled portion of the Group's block shall be retained by the Hotel with no credit applied against the Group's liquidated damages obligation.",
+            "If the Group subsequently rebooks rooms with the Hotel for a different date or event, such rebooking shall not reduce or eliminate any damages already owed by the Group for the cancelled Event.",
+            "The Group may cancel this Agreement without liability if written cancellation notice is provided more than twelve (12) months in advance of the scheduled Event arrival date, provided that such notice is received by the Hotel before the deadlines specified in this Agreement.",
+            "30 days or fewer prior to arrival  | 70%"
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "room profit"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "gross room revenue"
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true."
+        },
+        {
+          "id": "eval-05-riverwalk:walk_relocation",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "walk_relocation",
+          "severity": "high",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no walk relocation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:construction_renovation",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "construction_renovation",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "renovation notice period",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no construction renovation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:review_audit_dates",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "review_audit_dates",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "post-event report deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no review audit dates clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:assignment_subcontracting",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "assignment_subcontracting",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no assignment subcontracting clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:brand_ownership_change",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "brand_ownership_change",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "ownership change notice period",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "termination window after notice",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no brand ownership change clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:named_storm",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "named_storm",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "named storm cancellation window",
+              "unit": "hours",
+              "comparator": "gte",
+              "value": 72
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no named storm clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:attendee_data_handling",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "attendee_data_handling",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no attendee data handling clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:ada_compliance",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "ada_compliance",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no ada compliance clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:labor_disputes",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "labor_disputes",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "collective bargaining expiry notice",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "labor dispute cancellation window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 90
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no labor disputes clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:rate_parity",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "rate_parity",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no rate parity clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:gratuity_service_charge",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "gratuity_service_charge",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no gratuity service charge clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:resale_mitigation_duty",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "resale_mitigation_duty",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no resale mitigation duty clause. CD's standard calls for one."
+        }
+      ]
+    },
+    {
+      "contract": "eval-07-monarch.docx",
+      "exhaustive": true,
+      "items": [
+        {
+          "id": "eval-07-monarch:attrition",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "attrition",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 768,
+              "end": 991
+            },
+            {
+              "part": "document",
+              "start": 564,
+              "end": 767
+            },
+            {
+              "part": "document",
+              "start": 992,
+              "end": 1211
+            },
+            {
+              "part": "document",
+              "start": 1244,
+              "end": 1437
+            },
+            {
+              "part": "document",
+              "start": 1758,
+              "end": 1910
+            }
+          ],
+          "anchor_texts": [
+            "Attrition is measured on a cumulative basis across the entire room block, and Hotel shall calculate the shortfall by comparing actual room nights occupied to the total room nights in the block across all dates of the Event.",
+            "If Group fails to occupy at least seventy-five percent (75%) of the room block reserved for the Event, Hotel shall assess attrition damages against Group in accordance with the provisions of this clause.",
+            "The attrition liability rate shall be seventy-five percent (75%) of the average daily room rate applicable to the block, multiplied by the number of unoccupied room nights representing the shortfall below the threshold.",
+            "Group shall receive full credit toward its attrition block commitment for any night on which the Hotel reaches ninety-five percent (95%) occupancy or higher across all revenue-generating rooms.",
+            "Group may audit the Hotel's occupancy records, including daily room status reports and front desk logs, to verify how attrition damages were calculated."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "attrition threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition liability rate",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attrition threshold is 0.75, and CD's position is at most 0.7 pct; attrition liability rate is 0.75, and CD's position is at most 0.7 pct."
+        },
+        {
+          "id": "eval-07-monarch:fb_minimum",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "fb_minimum",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 13074,
+              "end": 13324
+            },
+            {
+              "part": "document",
+              "start": 13969,
+              "end": 14238
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall provide Group with a menu and pricing proposal at least fourteen (14) months prior to the Event date, and all menu selections and per-person pricing shall be locked and shall not be subject to increase or modification after that date.",
+            "If actual charges are less than the Minimum, Group shall pay a shortfall amount equal to forty percent (40%) of the difference between the Minimum and actual charges; provided that the Hotel reserves the right to negotiate or waive the shortfall in its sole discretion."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "menu price lock window",
+              "unit": "months",
+              "comparator": "lte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "food and beverage shortfall rate",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.35
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "menu price lock window is 14, and CD's position is at most 12 months; food and beverage shortfall rate is 0.4, and CD's position is at most 0.35 pct."
+        },
+        {
+          "id": "eval-07-monarch:cutoff_date",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "cutoff_date",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 2421,
+              "end": 2628
+            },
+            {
+              "part": "document",
+              "start": 2991,
+              "end": 3277
+            }
+          ],
+          "anchor_texts": [
+            "Group shall provide the Hotel with a final rooming list containing all guest names, room type preferences, and arrival and departure dates no later than thirty-two (32) days prior to the Event's opening day.",
+            "Group may request additional reservations or modifications after the cutoff, and such requests shall continue to be offered at the group rate, subject to availability, provided that Hotel makes no representation that rooms shall remain available at that rate once the cutoff has passed."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "room block cutoff date",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room block cutoff date is 32, and CD's position is at most 30 days."
+        },
+        {
+          "id": "eval-07-monarch:rebates",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "rebates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 17717,
+              "end": 17921
+            },
+            {
+              "part": "document",
+              "start": 18238,
+              "end": 18473
+            },
+            {
+              "part": "document",
+              "start": 18907,
+              "end": 19176
+            }
+          ],
+          "anchor_texts": [
+            "The complimentary room ratio is forty-five (45), meaning that for every forty-five (45) paid room nights generated by Group, the Hotel shall provide one (1) complimentary room night at no charge to Group.",
+            "The complimentary room entitlement accrues automatically by operation of this Agreement as paid room nights are recorded and accumulated during the Event, without requirement for Group to submit a claim, request, or formal calculation.",
+            "Complimentary room credits that have been accrued and earned under this Section prior to the close of the Event shall not be forfeited, cancelled, or reduced as a result of any shortfall between Group's original room block and the room nights actually occupied or paid."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "complimentary room ratio",
+              "unit": "rooms",
+              "comparator": "lte",
+              "value": 40
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "complimentary room ratio is 45, and CD's position is at most 40 rooms."
+        },
+        {
+          "id": "eval-07-monarch:master_account_billing",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "master_account_billing",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 22024,
+              "end": 22216
+            },
+            {
+              "part": "document",
+              "start": 22218,
+              "end": 22385
+            },
+            {
+              "part": "document",
+              "start": 22751,
+              "end": 23084
+            }
+          ],
+          "anchor_texts": [
+            "Any invoice dispute must be submitted in writing to The Monarch's Accounting Department within twelve (12) days of invoice receipt; disputes submitted after such period shall be deemed waived.",
+            "The Monarch shall assess a monthly finance charge of 1.3% on any portion of an undisputed invoice balance remaining unpaid thirty (30) days after the invoice due date.",
+            "Where the Group has not received credit approval from The Monarch prior to execution of this Agreement, the Group shall submit prepayment equal to seventy-five percent (75%) of The Monarch's estimated charges for room, food and beverage, and other reasonably anticipated services, as calculated by The Monarch in its sole discretion."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "invoice dispute window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 15
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "monthly finance charge",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.01
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "invoice dispute window is 12, and CD's position is at least 15 days; monthly finance charge is 0.0125, and CD's position is at most 0.01 pct."
+        },
+        {
+          "id": "eval-07-monarch:insurance_indemnification",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "insurance_indemnification",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 32964,
+              "end": 33446
+            },
+            {
+              "part": "document",
+              "start": 33448,
+              "end": 33590
+            },
+            {
+              "part": "document",
+              "start": 33914,
+              "end": 34184
+            }
+          ],
+          "anchor_texts": [
+            "Each party shall indemnify, defend, and hold harmless the other party, its officers, directors, employees, and agents from and against any and all claims, damages, liabilities, costs, and expenses (including reasonable attorneys' fees) arising out of or resulting from any breach of this Agreement by the indemnifying party, any injury to persons or damage to property caused by the indemnifying party, or any violation of law by the indemnifying party in connection with the Event.",
+            "The indemnification obligation of each party shall be limited to claims arising solely from that party's own negligence or willful misconduct.",
+            "The Group shall obtain and maintain comprehensive general liability insurance with a minimum limit of \"$2,500,000.00\" per occurrence, covering bodily injury, property damage, and contractual liability arising out of the Group's occupancy and use of the Hotel's premises."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "group general liability requirement",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 2000000
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "group general liability requirement is 2500000, and CD's position is at most 2000000 usd."
+        },
+        {
+          "id": "eval-07-monarch:brand_ownership_change",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "brand_ownership_change",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 28982,
+              "end": 29329
+            },
+            {
+              "part": "document",
+              "start": 29531,
+              "end": 29837
+            },
+            {
+              "part": "document",
+              "start": 30111,
+              "end": 30497
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall notify the Group in writing of any change in the Hotel's brand affiliation, management company, or ownership within thirty-five (35) days following execution of this Agreement or, if such change occurs after that period, as promptly as commercially practicable and in no event later than the date any such change becomes effective.",
+            "Upon receipt of notice of a change in brand, management, or ownership, the Group shall have the right to terminate this Agreement without penalty or liability within twenty-five (25) days of such notice, provided that the Group's election to terminate is exercised by written notice delivered to the Hotel.",
+            "The Hotel's obligations to provide notice and the Group's right to terminate shall apply equally to any bankruptcy, insolvency proceeding, or foreclosure action affecting the Hotel or the Hotel property, such that a bankruptcy filing or foreclosure sale shall be treated as a change in ownership or control triggering the same notice requirements and termination rights set forth above."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "ownership change notice period",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "termination window after notice",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "ownership change notice period is 35, and CD's position is at most 30 days; termination window after notice is 25, and CD's position is at least 30 days."
+        },
+        {
+          "id": "eval-07-monarch:named_storm",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "named_storm",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 10318,
+              "end": 10703
+            }
+          ],
+          "anchor_texts": [
+            "A named storm cancellation window of sixty (60) hours prior to the first event date shall apply, during which either party may cancel this Agreement without penalty if the named storm warning or advisory remains in effect for the scheduled dates or if governmental authorities issue mandatory evacuation orders or travel restrictions applicable to the Hotel or the area surrounding it."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "named storm cancellation window",
+              "unit": "hours",
+              "comparator": "gte",
+              "value": 72
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "named storm cancellation window is 60, and CD's position is at least 72 hours."
+        },
+        {
+          "id": "eval-07-monarch:labor_disputes",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "labor_disputes",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 30522,
+              "end": 30809
+            },
+            {
+              "part": "document",
+              "start": 31020,
+              "end": 31436
+            },
+            {
+              "part": "document",
+              "start": 31588,
+              "end": 31984
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall provide written notice to the Group of any expiration, non-renewal, or material breach in any collective bargaining agreement, union contract, or labor agreement covering employees at the Hotel no later than nine (9) months prior to the expiration date of such agreement.",
+            "In the event of any strike, work stoppage, labor dispute, or other labor-related action or threat thereof affecting the Hotel's operations or the Group's ability to hold its event on the scheduled Event dates, the Group shall have the right to cancel this Agreement without liability, penalty, or forfeiture of any payments or deposits within seventy-five (75) days of becoming aware of such labor dispute or action.",
+            "Notwithstanding any other provision of this Agreement, the Group shall have no liability and shall be entitled to a full refund of all payments, including any deposits or pre-payments, if the Group cancels pursuant to this labor dispute provision, provided that such cancellation is made in good faith and within the seventy-five (75)-day window following notice or awareness of the labor action."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "collective bargaining expiry notice",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "labor dispute cancellation window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 90
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "collective bargaining expiry notice is 9, and CD's position is at least 12 months; labor dispute cancellation window is 75, and CD's position is at least 90 days."
+        }
+      ]
+    },
+    {
+      "contract": "eval-10-crossroads.docx",
+      "exhaustive": true,
+      "items": [
+        {
+          "id": "eval-10-crossroads:attrition",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "attrition",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 566,
+              "end": 742
+            },
+            {
+              "part": "document",
+              "start": 955,
+              "end": 1152
+            },
+            {
+              "part": "document",
+              "start": 1154,
+              "end": 1296
+            },
+            {
+              "part": "document",
+              "start": 1415,
+              "end": 1645
+            },
+            {
+              "part": "document",
+              "start": 1834,
+              "end": 2111
+            }
+          ],
+          "anchor_texts": [
+            "Attrition is measured on a night-by-night basis, and Group's block commitment is calculated as the total number of room nights reserved under the block minus attrition, if any.",
+            "If Group's actual occupancy falls below the attrition threshold of eighty percent (80%) of the committed room nights for the Event, Group shall be liable for liquidated damages as set forth herein.",
+            "Group's liability for attrition shall be calculated at eighty percent (80%) of the nightly room rate for each unoccupied committed room night.",
+            "Group shall receive no credit toward its block commitment for any night on which the Hotel sells out all available rooms in the Hotel, regardless of whether Group's occupied rooms on such night fall below the threshold percentage.",
+            "The Hotel's calculation of attrition damages shall be final and binding on Group, and Group shall have no right to inspect, audit, or challenge the Hotel's occupancy records or the Hotel's determination of room nights sold, occupied, or available on any night during the Event."
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "cumulative"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "night-by-night"
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition liability rate",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attrition measurement basis is \"night_by_night\", and CD's position allows only \"cumulative\"; attrition threshold is 0.8, and CD's position is at most 0.7 pct; attrition liability rate is 0.8, and CD's position is at most 0.7 pct; sold-out night credit is false, and CD's position is true; occupancy audit rights is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:cancellation",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "cancellation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 3495,
+              "end": 3759
+            },
+            {
+              "part": "document",
+              "start": 3760,
+              "end": 3956
+            },
+            {
+              "part": "document",
+              "start": 4409,
+              "end": 4620
+            },
+            {
+              "part": "document",
+              "start": 4621,
+              "end": 4906
+            },
+            {
+              "part": "document",
+              "start": 5028,
+              "end": 5276
+            },
+            {
+              "part": "document",
+              "start": 5786,
+              "end": 5826
+            }
+          ],
+          "anchor_texts": [
+            "Should Group cancel this Agreement in whole or in part at any time following the date of signature, Group shall be liable to the Hotel for liquidated damages calculated as a percentage of gross room revenue that would have been earned on the cancelled room nights.",
+            "Liquidated damages shall be assessed on a sliding scale that varies according to the number of days remaining before Group's check-in date at the time cancellation notice is provided to the Hotel.",
+            "The Hotel shall retain any revenue earned by reselling cancelled rooms to other guests, and such resale revenue shall not be credited against Group's liquidated damages obligation in any manner or to any extent.",
+            "Group shall receive no credit whatsoever against damages already assessed if Group subsequently rebooks cancelled dates with the Hotel, whether at group rate or rack rate, and any such rebooking shall be treated as a new and separate reservation unrelated to Group's damages liability.",
+            "Group shall not be relieved of its liability for liquidated damages by any cancellation by Group occurring on or after the date of signature of this Agreement, and no liability-free cancellation window or period shall exist under any circumstances.",
+            "30 days or fewer prior to arrival  | 80%"
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "room profit"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "gross room revenue"
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "liability-free cancellation window",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true; liability-free cancellation window is 0, and CD's position is at least 12 months."
+        },
+        {
+          "id": "eval-10-crossroads:force_majeure",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "force_majeure",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 7385,
+              "end": 7682
+            },
+            {
+              "part": "document",
+              "start": 7683,
+              "end": 7956
+            },
+            {
+              "part": "document",
+              "start": 7958,
+              "end": 8179
+            },
+            {
+              "part": "document",
+              "start": 8180,
+              "end": 8437
+            },
+            {
+              "part": "document",
+              "start": 8680,
+              "end": 9065
+            }
+          ],
+          "anchor_texts": [
+            "Neither party shall be deemed in breach of this Agreement if performance becomes physically impossible due to an event beyond that party's reasonable control, including but not limited to acts of God, war, terrorism, civil unrest, labor strikes, or material failure of utilities or infrastructure.",
+            "Notwithstanding the foregoing, neither government-imposed travel restrictions nor government travel advisories of any kind, whether mandatory or advisory in character, shall be deemed a force majeure event excusing or limiting the obligations of Group under this Agreement.",
+            "Epidemics and pandemics, including but not limited to disease outbreaks declared as public health emergencies by federal, state, or local authorities, shall constitute a force majeure event for purposes of this Agreement.",
+            "Similarly, conditions that render it unsafe or imprudent for the Group's attendees to travel to the Hotel's location or to gather in person at the Hotel, as reasonably determined by Group in its sole discretion, shall be recognized as a force majeure event.",
+            "The Agreement shall be terminated or suspended as the parties shall mutually agree, provided that Group's deposits and prepayments made to the Hotel shall be retained by the Hotel in their entirety, and Group shall have no claim against the Hotel for the return of any funds, whether characterized as deposits, prepayments, or advances, notwithstanding the invocation of force majeure."
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "impracticable"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "impossible"
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; government travel restrictions is false, and CD's position is true; deposit refund on force majeure is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:fb_minimum",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "fb_minimum",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 12604,
+              "end": 12998
+            },
+            {
+              "part": "document",
+              "start": 13000,
+              "end": 13506
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall provide to the Group a menu and pricing proposal that shall remain binding as to pricing for a period of twenty-four (24) months from the date of this Agreement, and any adjustments to menu items, portion sizes, or pricing thereafter shall be subject to mutual written consent of both parties or shall be implemented only upon sixty (60) days' prior written notice to the Group.",
+            "The Group shall guarantee food and beverage revenue to the Hotel in an amount equal to eighty percent (80%) of the estimated food and beverage revenue calculated by multiplying the number of room nights occupied by the Group during the Event Period by the per-room-night food and beverage projection provided in Exhibit B, which projection shall be prepared by the Hotel based on historical comparable group events and shall be provided to the Group for acknowledgment prior to execution of this Agreement."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "menu price lock window",
+              "unit": "months",
+              "comparator": "lte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "food and beverage shortfall rate",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.35
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "menu price lock window is 24, and CD's position is at most 12 months; food and beverage shortfall rate is 0.8, and CD's position is at most 0.35 pct."
+        },
+        {
+          "id": "eval-10-crossroads:cutoff_date",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "cutoff_date",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 2338,
+              "end": 2509
+            },
+            {
+              "part": "document",
+              "start": 2890,
+              "end": 3196
+            }
+          ],
+          "anchor_texts": [
+            "All room reservations on behalf of Group must be requested and confirmed by the Hotel no later than forty-five (45) days prior to the Event check-in date of July 13, 2027.",
+            "Any reservation requested after the cutoff date shall be offered only at the Hotel's prevailing rack rate then in effect for the dates requested, and Group shall have no claim that such reservations constitute attrition avoidance or that they reduce any liability Group may have under the attrition clause."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "room block cutoff date",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room block cutoff date is 45, and CD's position is at most 30 days; group rate after cutoff is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:walk_relocation",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "walk_relocation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 23143,
+              "end": 23397
+            },
+            {
+              "part": "document",
+              "start": 23399,
+              "end": 23551
+            },
+            {
+              "part": "document",
+              "start": 23755,
+              "end": 24026
+            },
+            {
+              "part": "document",
+              "start": 24129,
+              "end": 24331
+            }
+          ],
+          "anchor_texts": [
+            "In the event of a walk, Hotel shall make a reasonable effort to find alternative lodging for the affected guest, provided that any such alternative accommodation shall be at the guest's own expense and shall be arranged by the guest rather than by Hotel.",
+            "The affected guest shall bear full responsibility for all transportation costs to and from any alternative hotel arranged pursuant to a walk relocation.",
+            "Upon the guest's return to Hotel following relocation, Hotel shall provide standard room accommodation with no room upgrade, no amenity credit, no complimentary services, and no compensation other than the refund or credit of the room rate for the night(s) of relocation.",
+            "For purposes of calculating Group's room pickup and Hotel's commission computation under this Agreement, a room night on which a guest was relocated shall not be counted as a room night stayed at Hotel."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "comparable relocation accommodation is false, and CD's position is true; round-trip transportation on relocation is false, and CD's position is true; upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:mandatory_fees",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "mandatory_fees",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 15740,
+              "end": 15926
+            },
+            {
+              "part": "document",
+              "start": 16168,
+              "end": 16315
+            },
+            {
+              "part": "document",
+              "start": 16458,
+              "end": 16569
+            }
+          ],
+          "anchor_texts": [
+            "Hotel reserves the right to assess additional fees, surcharges, and service charges against Group's account at any time following execution of this Agreement, in Hotel's sole discretion.",
+            "Group remains liable for all charges assessed by Hotel, whether or not such charges were disclosed in writing prior to execution of this Agreement.",
+            "Group shall pay a resort fee in the amount of $35.00 per occupied room per night for the duration of the Event."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "required",
+            "amount": 28875,
+            "tolerance": 0.25
+          },
+          "rationale": "written fee disclosure before signature is false, and CD's position is true; undisclosed charges waived is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:rebates",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "rebates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 16781,
+              "end": 17041
+            },
+            {
+              "part": "document",
+              "start": 17042,
+              "end": 17201
+            },
+            {
+              "part": "document",
+              "start": 17666,
+              "end": 17846
+            }
+          ],
+          "anchor_texts": [
+            "Hotel shall consider providing complimentary guestroom accommodations to Group at a ratio of one (1) complimentary room for every eighty (80) occupied rooms successfully billed during the Event, provided Group achieves full pickup of its contracted room block.",
+            "The complimentary room ratio stated herein is a guideline only and does not constitute a commitment or guarantee of any specific number of complimentary rooms.",
+            "Complimentary room credit is forfeited entirely in the event Group's actual room pickup falls short of its contracted block as set forth in the room block addendum attached hereto."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "complimentary room ratio",
+              "unit": "rooms",
+              "comparator": "lte",
+              "value": 40
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "complimentary room ratio is 80, and CD's position is at most 40 rooms; formula-based comp calculation is false, and CD's position is true; comp rooms forfeited on attrition is true, and CD's position is false."
+        },
+        {
+          "id": "eval-10-crossroads:construction_renovation",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "construction_renovation",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 24538,
+              "end": 24927
+            },
+            {
+              "part": "document",
+              "start": 24929,
+              "end": 25251
+            },
+            {
+              "part": "document",
+              "start": 25253,
+              "end": 25657
+            }
+          ],
+          "anchor_texts": [
+            "Hotel makes no representation or warranty regarding the scope, timing, or nature of any construction, renovation, alteration, or maintenance work that may be planned, scheduled, or undertaken at the Hotel during the Event dates or at any other time, and Group acknowledges that such work may or may not occur and that the Hotel's plans are subject to change at the Hotel's sole discretion.",
+            "Hotel shall have the right to commence renovation work at the Hotel at any time, including during the Event, without providing Group advance notice of any kind, and Group shall have no right to object to or restrict such work based on timing, noise, dust, disruption, or any other impact on Group's event or its attendees.",
+            "Renovation work, construction, maintenance activities, or any related disruption shall not constitute grounds for Group to terminate this Agreement or claim any damages, refund, credit, abatement, or other remedy, whether based on interference with event programming, reduction in hotel amenities, diminished guest experience, or any other theory, and Group waives any claim arising from such activities."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "renovation notice period",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "no current renovation warranty is false, and CD's position is true; renovation notice period is 0, and CD's position is at least 30 days; termination for interfering renovation is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:master_account_billing",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "master_account_billing",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 20171,
+              "end": 20286
+            },
+            {
+              "part": "document",
+              "start": 20642,
+              "end": 20861
+            },
+            {
+              "part": "document",
+              "start": 20997,
+              "end": 21142
+            }
+          ],
+          "anchor_texts": [
+            "All invoiced amounts shall be due and payable in full when due, with no period in which Group may dispute a charge.",
+            "If any amount owed by Group remains unpaid following the due date, Hotel shall have the right to charge a monthly finance charge of 1.5% on the outstanding balance, compounded monthly, until such amount is paid in full.",
+            "Where Hotel has not approved credit for Group under this Agreement, Hotel may require prepayment in whatever amount it determines prior to Event."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "invoice dispute window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 15
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "monthly finance charge",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.01
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "invoice dispute window is 0, and CD's position is at least 15 days; monthly finance charge is 0.015, and CD's position is at most 0.01 pct; defined prepayment percentage is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:review_audit_dates",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "review_audit_dates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 35299,
+              "end": 35576
+            },
+            {
+              "part": "document",
+              "start": 35578,
+              "end": 35942
+            },
+            {
+              "part": "document",
+              "start": 36099,
+              "end": 36388
+            }
+          ],
+          "anchor_texts": [
+            "Group may request pickup information from the Hotel at any time, provided that the Hotel shall furnish such reports at its sole discretion and convenience, and Group acknowledges that the provision of pickup information is a voluntary service not required under this Agreement.",
+            "Within ninety (90) days following the conclusion of the Event, the Hotel shall deliver to Group a final report setting forth the total room nights picked up against the block, the room rate charged per night, the number of group-negotiated room nights released or not picked up, and any charges assessed by the Hotel related to unmet minimum occupancy commitments.",
+            "Group shall have no right to audit, inspect, or independently verify the room block records maintained by the Hotel, nor shall Group have any right to engage a third-party auditor or representative to examine the Hotel's reservation systems, registration records, or billing documentation."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "post-event report deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "weekly pickup reports is false, and CD's position is true; post-event report deadline is 90, and CD's position is at most 30 days; room block audit right is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:insurance_indemnification",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "insurance_indemnification",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 30602,
+              "end": 30806
+            },
+            {
+              "part": "document",
+              "start": 30808,
+              "end": 31075
+            },
+            {
+              "part": "document",
+              "start": 31207,
+              "end": 31466
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall not be obligated to indemnify Group under any circumstances, and Group assumes all risk of loss or injury to Group, its guests, participants, or third parties in connection with the Event.",
+            "Group's indemnity obligations extend to and include claims arising from the Hotel's own negligence, ordinary or gross, provided that Group shall not be obligated to indemnify the Hotel for claims arising solely from the Hotel's gross negligence or willful misconduct.",
+            "Group shall obtain and maintain comprehensive general liability insurance with limits not less than $5,000,000.00 per occurrence and $10,000,000.00 in the aggregate, naming the Hotel as an additional insured, with a waiver of subrogation in the Hotel's favor."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "group general liability requirement",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 2000000
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "mutual indemnification is false, and CD's position is true; indemnity limited to own negligence is false, and CD's position is true; group general liability requirement is 5000000, and CD's position is at most 2000000 usd."
+        },
+        {
+          "id": "eval-10-crossroads:damage_deposit",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "damage_deposit",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 22346,
+              "end": 22505
+            },
+            {
+              "part": "document",
+              "start": 21957,
+              "end": 22213
+            },
+            {
+              "part": "document",
+              "start": 21498,
+              "end": 21637
+            }
+          ],
+          "anchor_texts": [
+            "Following the Event and reconciliation of all charges and damage claims, Hotel shall return any unused portion of the deposit to Group within ninety (90) days.",
+            "Hotel shall apply the deposit, in its sole discretion, against attrition charges, food and beverage shortfalls, damage to Hotel property, unpaid room charges, cancellation fees, or any other amounts owed by Group to Hotel under this Agreement or otherwise.",
+            "Group shall deposit with Hotel a security deposit in the amount of $25,000.00 within ten (10) business days of execution of this Agreement."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "damage deposit refund window",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "damage deposit refund window is 90, and CD's position is at most 30 days; deposit applied to unrelated charges is true, and CD's position is false."
+        },
+        {
+          "id": "eval-10-crossroads:exclusivity_vendors",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "exclusivity_vendors",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 28522,
+              "end": 28825
+            },
+            {
+              "part": "document",
+              "start": 28826,
+              "end": 29172
+            }
+          ],
+          "anchor_texts": [
+            "Group shall engage only the Hotel's in-house vendors or those exclusively appointed by the Hotel for catering, audiovisual equipment, floral arrangements, entertainment, and all other services provided in connection with the Event, except as expressly waived in writing by the Hotel's Director of Sales.",
+            "Group's use of outside vendors not approved in advance by the Hotel shall be subject to a surcharge of $2,500.00 per outside vendor service or vendor category, which surcharge shall be assessed in addition to any other charges imposed under this Agreement and shall be due and payable to the Hotel within thirty (30) days of the end of the Event."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "outside vendor surcharge",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 0
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "outside vendor choice is false, and CD's position is true; outside vendor surcharge is 2500, and CD's position is at most 0 usd."
+        },
+        {
+          "id": "eval-10-crossroads:termination_rights",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "termination_rights",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 10832,
+              "end": 11263
+            },
+            {
+              "part": "document",
+              "start": 11539,
+              "end": 11928
+            }
+          ],
+          "anchor_texts": [
+            "Notwithstanding the Group's right to terminate for cause under this provision, the Group shall remain liable for all damages, costs, and expenses arising from its breach, including but not limited to diminution in room revenue, loss of ancillary services revenue, and reasonable costs incurred in mitigation of such damages, and such liability shall not be diminished or discharged by the Group's exercise of any termination right.",
+            "Any termination of this Agreement by the Group, irrespective of the cause or justification asserted by the Group, shall be treated as a cancellation by the Group under the cancellation damages scale set forth in Article 8, and the Group shall pay to the Hotel the cancellation damages calculated in accordance with that scale based on the date on which the termination notice is delivered."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "termination for cause without liability is false, and CD's position is true; termination separate from cancellation damages is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:assignment_subcontracting",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "assignment_subcontracting",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 36702,
+              "end": 37053
+            },
+            {
+              "part": "document",
+              "start": 37333,
+              "end": 37561
+            }
+          ],
+          "anchor_texts": [
+            "Neither Group nor any officer, agent, or representative of Group shall assign, transfer, delegate, or otherwise convey any right, obligation, or interest under this Agreement to any other person, entity, or organization, whether by operation of law, merger, consolidation, acquisition, or voluntary act, without the prior written consent of the Hotel.",
+            "The Hotel's consent to any proposed assignment or transfer shall be entirely within the Hotel's sole and absolute discretion, and the Hotel may withhold consent to an assignment for any reason whatsoever or for no reason stated."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "assignment to a successor entity is false, and CD's position is true; consent not unreasonably withheld is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:brand_ownership_change",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "brand_ownership_change",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 25707,
+              "end": 26255
+            },
+            {
+              "part": "document",
+              "start": 26257,
+              "end": 26698
+            },
+            {
+              "part": "document",
+              "start": 26700,
+              "end": 27166
+            }
+          ],
+          "anchor_texts": [
+            "In the event of a change of ownership, management company, or brand affiliation with respect to the Hotel, Hotel shall notify Group of such change no later than ninety (90) days prior to the effective date of such change, provided that such notice obligation shall not apply to transactions consummated within the ordinary course of corporate reorganization, refinancing, securitization, or similar capital structure modifications that do not result in a change in the day-to-day management or brand identity of the Hotel's guest-facing operations.",
+            "Following receipt of such notice, Group shall have the right to terminate this Agreement without penalty if Group provides written notice of termination to Hotel within ten (10) days after receiving notice of the ownership or brand change, and such termination shall be effective upon the date specified by Group, provided that Group shall remain liable for payment of all room charges and event charges accrued through the termination date.",
+            "Notwithstanding the foregoing, neither bankruptcy, receivership, foreclosure, assignment for benefit of creditors, nor any other proceedings or event arising from the financial distress or insolvency of Hotel or its parent, affiliate, or operating company shall trigger any notice obligation or afford Group any right of termination, cancellation, or offset, and Group's obligations hereunder shall remain in full force and effect regardless of any such development."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "ownership change notice period",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "termination window after notice",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "ownership change notice period is 90, and CD's position is at most 30 days; termination window after notice is 10, and CD's position is at least 30 days; bankruptcy and foreclosure coverage is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:named_storm",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "named_storm",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 9085,
+              "end": 9773
+            }
+          ],
+          "anchor_texts": [
+            "If the National Weather Service issues a named storm warning for the geographic area in which the Hotel is located at any time during the period commencing twenty-four (24) hours before the start of the Event and continuing through the final day of the Event, and if such warning remains in effect as of twenty-four (24) hours prior to the scheduled arrival date of Group, then Group shall have the right, at its sole election and upon written notice to the Hotel delivered no later than twenty-four (24) hours before the Group's scheduled arrival, to cancel this Agreement without penalty, and the Hotel shall refund Group's deposits in full within thirty (30) days of such cancellation."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "named storm cancellation window",
+              "unit": "hours",
+              "comparator": "gte",
+              "value": 72
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "named storm cancellation window is 24, and CD's position is at least 72 hours."
+        },
+        {
+          "id": "eval-10-crossroads:attendee_data_handling",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "attendee_data_handling",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 34268,
+              "end": 34462
+            },
+            {
+              "part": "document",
+              "start": 34637,
+              "end": 34951
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel may use Attendee Information for its own marketing purposes, including but not limited to direct mail, email, and telephonic solicitation of the attendees who registered for the Event.",
+            "The Hotel may share Attendee Information with its affiliates and marketing partners engaged to assist the Hotel in its promotional activities, provided that the Hotel shall require any such recipient to maintain the confidentiality of Attendee Information and use it solely for the purposes for which it is shared."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "attendee data used for hotel marketing is false, and CD's position is true; attendee data sold to third parties is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:governing_law_venue",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "governing_law_venue",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 38336,
+              "end": 38594
+            },
+            {
+              "part": "document",
+              "start": 39220,
+              "end": 39474
+            },
+            {
+              "part": "document",
+              "start": 38862,
+              "end": 39219
+            }
+          ],
+          "anchor_texts": [
+            "This Agreement shall be governed by the laws of the state in which the Hotel is located, and the parties expressly exclude from application the United Nations Convention on Contracts for the International Sale of Goods and any principles of conflicts of law.",
+            "The Hotel shall be entitled to recover punitive damages, exemplary damages, and all consequential and incidental damages available under applicable law, in addition to actual damages, in any action arising out of the Group's breach or willful misconduct.",
+            "In any dispute between the parties concerning the performance or interpretation of this Agreement, the prevailing party shall be entitled to recover its reasonable attorney's fees, court costs, and all other expenses incurred in prosecution or defense of the claim, and such recovery shall be in addition to all other remedies available at law or in equity."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "governing law and venue is \"hotel_state\", and CD's position allows only \"group_state\"; punitive damages is false, and CD's position is true; attorney's fees is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:labor_disputes",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "labor_disputes",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 27191,
+              "end": 27567
+            },
+            {
+              "part": "document",
+              "start": 27569,
+              "end": 27957
+            },
+            {
+              "part": "document",
+              "start": 27959,
+              "end": 28497
+            }
+          ],
+          "anchor_texts": [
+            "Hotel shall have no obligation to provide Group with advance notice, periodic reports, or any information concerning the expiration dates, renewal status, or negotiation schedule of any collective bargaining agreement, labor agreement, or labor arrangement applicable to Hotel's employees or operations, and Group hereby waives any right to receive such notice or information.",
+            "Group acknowledges that the period, if any, within which a labor dispute, labor action, strike, work stoppage, labor slowdown, or related labor disturbance at the Hotel would entitle Group to cancel this Agreement shall be determined solely by Hotel and communicated, if at all, at Hotel's discretion, and no specific cancellation window or remedy period is established by this Agreement.",
+            "In the event of any labor dispute, labor action, labor disruption, strike, work stoppage, lockout, or labor disturbance affecting the Hotel or its operations during the Event or in the days immediately preceding the Event, such occurrence shall not relieve Group of any obligation under this Agreement, shall not entitle Group to damages or credits, and shall not furnish grounds for termination or cancellation, and Group shall remain fully liable for all room charges, food and beverage minimums, and other charges under this Agreement."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "collective bargaining expiry notice",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "labor dispute cancellation window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 90
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "collective bargaining expiry notice is 0, and CD's position is at least 12 months; labor dispute cancellation window is 0, and CD's position is at least 90 days; labor dispute cancellation liability is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:rate_parity",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "rate_parity",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 18062,
+              "end": 18419
+            },
+            {
+              "part": "document",
+              "start": 18564,
+              "end": 18849
+            },
+            {
+              "part": "document",
+              "start": 19069,
+              "end": 19417
+            }
+          ],
+          "anchor_texts": [
+            "Hotel expressly reserves the right to offer rooms to the general public, corporate accounts, and other groups at rates lower than, equal to, or higher than Group's negotiated rate for the Event, without restriction or obligation to adjust Group's rate or to honor any \"most favored customer\" clause, price-matching commitment, or rate guarantee of any kind.",
+            "In the event Hotel identifies an opportunity to sell rooms at a rate lower than Group's negotiated rate, any rate reduction or adjustment offered to Group shall apply only to new reservations made by Group after such lower rate has been identified and communicated in writing to Group.",
+            "Any adjusted rate made available to Group following identification of a lower public rate shall be treated as a non-commissionable rate and shall not be credited toward Group's room block pickup, occupancy targets, or performance metrics for purposes of calculating complimentary rooms, rebates, or other volume-based benefits under this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "rate parity guarantee is false, and CD's position is true; retroactive rate adjustment is false, and CD's position is true; commission on adjusted rates is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:gratuity_service_charge",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "gratuity_service_charge",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 14440,
+              "end": 14582
+            },
+            {
+              "part": "document",
+              "start": 14584,
+              "end": 14834
+            },
+            {
+              "part": "document",
+              "start": 14986,
+              "end": 15180
+            },
+            {
+              "part": "document",
+              "start": 14240,
+              "end": 14439
+            }
+          ],
+          "anchor_texts": [
+            "The terms 'gratuity' and 'service charge' are used interchangeably throughout this Agreement and do not constitute separately defined charges.",
+            "The Hotel retains sole discretion to determine the allocation and distribution of any gratuity or service charge collected, including the right to retain all or any portion thereof as Hotel revenue rather than directing such amounts to service staff.",
+            "Group acknowledges that this Agreement does not specify whether the service charge constitutes revenue of the Hotel or whether any portion of the service charge shall be paid to Hotel employees.",
+            "A service charge and gratuity shall be applied to all food and beverage charges incurred by Group during the Event and shall be assessed at the rate of twenty-four percent (24%) of the total charges."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "gratuity and service charge defined separately is false, and CD's position is true; gratuity distributed to staff is false, and CD's position is true; service charge disclosed as hotel revenue is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:resale_mitigation_duty",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "present",
+          "clause_type": "resale_mitigation_duty",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 5868,
+              "end": 6168
+            },
+            {
+              "part": "document",
+              "start": 6448,
+              "end": 6668
+            },
+            {
+              "part": "document",
+              "start": 6913,
+              "end": 7107
+            }
+          ],
+          "anchor_texts": [
+            "Upon release of rooms or function space by Group, the Hotel shall have no obligation to attempt to resell such released inventory, and Group waives any right to require the Hotel to undertake resale efforts or to mitigate damages through the placement of such space with alternative guests or groups.",
+            "Any proceeds received by the Hotel from the resale of released rooms or function space shall be retained entirely by the Hotel and shall not be credited against Group's remaining payment obligations under this Agreement.",
+            "Group shall have no right to inspect, audit, or otherwise review the Hotel's resale efforts, pricing strategies, marketing activities, or records related to the resale of any released inventory."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true."
+        }
+      ]
+    },
+    {
+      "contract": "eval-12-granite-bay.docx",
+      "exhaustive": true,
+      "items": [
+        {
+          "id": "eval-12-granite-bay:construction_renovation",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "construction_renovation",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 21038,
+              "end": 21239
+            },
+            {
+              "part": "document",
+              "start": 21435,
+              "end": 21687
+            },
+            {
+              "part": "document",
+              "start": 21688,
+              "end": 21972
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel makes no warranty, representation, or undertaking with respect to any construction, renovation, alteration, or other work that may be planned or under way at the Hotel during the event dates.",
+            "If the Hotel determines that construction or renovation work will materially interfere with Group's use of the Hotel facilities or the conduct of the event, the Hotel shall provide written notice to Group at least fourteen (14) days prior to the event.",
+            "Should Group determine that such work will in fact interfere with the event, Group may terminate this Agreement without liability or penalty, provided that Group provides written notice of termination to the Hotel within seven (7) days of receiving the Hotel's notice of interference."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "renovation notice period",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "no current renovation warranty is false, and CD's position is true; renovation notice period is 14, and CD's position is at least 30 days."
+        },
+        {
+          "id": "eval-12-granite-bay:master_account_billing",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "master_account_billing",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 16631,
+              "end": 16868
+            },
+            {
+              "part": "document",
+              "start": 16990,
+              "end": 17186
+            },
+            {
+              "part": "document",
+              "start": 17307,
+              "end": 17531
+            }
+          ],
+          "anchor_texts": [
+            "Group shall have seven (7) days from receipt of each invoice to notify the Hotel in writing of any disputed charges; invoices not disputed within this seven (7) day window shall be deemed accepted by Group and shall be final and binding.",
+            "Any amounts not paid within thirty (30) days of the due date shall accrue a monthly finance charge of two percent (2%) per month on the outstanding balance, compounded monthly, until paid in full.",
+            "In the event credit approval cannot be granted to Group, a prepayment equal to fifty percent (50%) of the anticipated total charges for rooms, food and beverage, and other services shall be required prior to the Event dates."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "invoice dispute window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 15
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "monthly finance charge",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.01
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "invoice dispute window is 7, and CD's position is at least 15 days; monthly finance charge is 0.02, and CD's position is at most 0.01 pct."
+        },
+        {
+          "id": "eval-12-granite-bay:exclusivity_vendors",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "exclusivity_vendors",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 24279,
+              "end": 24574
+            },
+            {
+              "part": "document",
+              "start": 24575,
+              "end": 24813
+            }
+          ],
+          "anchor_texts": [
+            "Group shall engage the Hotel's in-house vendors or vendors with whom the Hotel maintains exclusive appointments for all ancillary services required in connection with the Event, including but not limited to audiovisual services, telecommunications, floral arrangements, décor, and entertainment.",
+            "Any request by Group to retain an outside vendor not approved by the Hotel in writing shall be subject to a surcharge of $3,200.00 per outside vendor, which surcharge shall be payable by Group to the Hotel within ten (10) days of invoice."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "outside vendor surcharge",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 0
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "outside vendor choice is false, and CD's position is true; outside vendor surcharge is 3200, and CD's position is at most 0 usd."
+        },
+        {
+          "id": "eval-12-granite-bay:labor_disputes",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "labor_disputes",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 22979,
+              "end": 23315
+            },
+            {
+              "part": "document",
+              "start": 23534,
+              "end": 23881
+            },
+            {
+              "part": "document",
+              "start": 23882,
+              "end": 24254
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel does not undertake to provide advance notice to Group regarding the expiration dates of any collective bargaining agreement to which the Hotel or its management company is a party, or of any negotiations, disputes, or other labor relations matters involving the Hotel's employees or any union or other employee representative.",
+            "In the event that a labor dispute, strike, work stoppage, lockout, or other labor-related disruption occurs at the Hotel and materially interferes with Group's use of Hotel facilities or the conduct of the event, Group may cancel this Agreement within thirty (30) days of the date the disruption commences by providing written notice to the Hotel.",
+            "Notwithstanding any such cancellation right, the occurrence of any labor dispute or labor-related disruption at the Hotel shall not relieve Group of any financial obligation, payment requirement, or other liability under this Agreement, including but not limited to room charges, food and beverage minimums, and any other fees or charges incurred by or on behalf of Group."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "collective bargaining expiry notice",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "labor dispute cancellation window",
+              "unit": "days",
+              "comparator": "gte",
+              "value": 90
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "collective bargaining expiry notice is 0, and CD's position is at least 12 months; labor dispute cancellation window is 30, and CD's position is at least 90 days; labor dispute cancellation liability is false, and CD's position is true."
+        },
+        {
+          "id": "eval-12-granite-bay:gratuity_service_charge",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "gratuity_service_charge",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 11241,
+              "end": 11479
+            },
+            {
+              "part": "document",
+              "start": 11481,
+              "end": 11715
+            },
+            {
+              "part": "document",
+              "start": 11889,
+              "end": 12162
+            },
+            {
+              "part": "document",
+              "start": 12163,
+              "end": 12258
+            }
+          ],
+          "anchor_texts": [
+            "The terms gratuity and service charge are used interchangeably throughout this Agreement and refer to the same charge; they are not separately defined or charged, and only one such charge shall apply to each food and beverage transaction.",
+            "The Hotel retains sole discretion to determine the allocation and distribution of any gratuity collected on behalf of Group, and the Hotel may retain such gratuity as Hotel revenue without obligation to distribute it to service staff.",
+            "Group acknowledges that this Agreement does not disclose the portion of the service charge, if any, that constitutes Hotel revenue versus compensation to service staff, nor does it specify whether service charge revenue is retained by the Hotel or distributed to employees.",
+            "A service charge of twenty-five percent (25%) shall be added to all food and beverage invoices."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "gratuity and service charge defined separately is false, and CD's position is true; gratuity distributed to staff is false, and CD's position is true; service charge disclosed as hotel revenue is false, and CD's position is true."
+        }
+      ]
+    },
+    {
+      "contract": "eval-15-vantage.docx",
+      "exhaustive": true,
+      "items": [
+        {
+          "id": "eval-15-vantage:attrition",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "attrition",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 791,
+              "end": 916
+            },
+            {
+              "part": "document",
+              "start": 1122,
+              "end": 1340
+            },
+            {
+              "part": "document",
+              "start": 1342,
+              "end": 1555
+            },
+            {
+              "part": "document",
+              "start": 1854,
+              "end": 2000
+            },
+            {
+              "part": "document",
+              "start": 2211,
+              "end": 2378
+            }
+          ],
+          "anchor_texts": [
+            "Attrition is measured on a night-by-night basis and applies to the total room nights committed by Group under this Agreement.",
+            "If the actual room nights occupied by Group attendees fall below the attrition threshold of eighty-five percent (85%) of committed room nights, Group shall be liable for attrition damages with respect to the shortfall.",
+            "Attrition damages shall be calculated by multiplying the number of unoccupied room nights by the applicable nightly rate, and then multiplying that product by the attrition liability rate of seventy percent (70%).",
+            "Group receives no credit toward its block commitment for nights on which the Hotel achieves one hundred percent (100%) occupancy from all sources.",
+            "Group may request the Hotel's occupancy records to verify how attrition damages were calculated and to confirm the occupancy levels for each night of the Event period."
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "cumulative"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "night-by-night"
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "attrition threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.7
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attrition measurement basis is \"night_by_night\", and CD's position allows only \"cumulative\"; attrition threshold is 0.85, and CD's position is at most 0.7 pct; sold-out night credit is false, and CD's position is true."
+        },
+        {
+          "id": "eval-15-vantage:cancellation",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "cancellation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 3690,
+              "end": 3853
+            },
+            {
+              "part": "document",
+              "start": 4318,
+              "end": 4410
+            },
+            {
+              "part": "document",
+              "start": 5079,
+              "end": 5187
+            },
+            {
+              "part": "document",
+              "start": 5691,
+              "end": 5929
+            },
+            {
+              "part": "document",
+              "start": 5930,
+              "end": 6168
+            },
+            {
+              "part": "document",
+              "start": 6576,
+              "end": 6616
+            }
+          ],
+          "anchor_texts": [
+            "If Group cancels this Agreement in whole or in part, Group shall pay Hotel liquidated damages calculated as a percentage of gross room revenue as set forth herein.",
+            "Damages vary by how far before arrival the cancellation notice is given to Hotel in writing.",
+            "Revenue the Hotel earns reselling cancelled rooms is credited against what Group owes as liquidated damages.",
+            "Rebooking with the Hotel later earns Group no credit against damages already owed, provided that amounts paid as liquidated damages shall be applied as a credit against room charges for any future rebooking at Hotel at Hotel's discretion.",
+            "Notwithstanding any other provision herein, if Group provides cancellation notice at least six (6) months prior to the Event start date, Group shall have no liability for cancellation damages and may cancel this Agreement without penalty.",
+            "30 days or fewer prior to arrival  | 90%"
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "room profit"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "gross room revenue"
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "liability-free cancellation window",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; rebooking credit is false, and CD's position is true; liability-free cancellation window is 6, and CD's position is at least 12 months."
+        },
+        {
+          "id": "eval-15-vantage:force_majeure",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "force_majeure",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 7823,
+              "end": 8149
+            },
+            {
+              "part": "document",
+              "start": 8150,
+              "end": 8567
+            },
+            {
+              "part": "document",
+              "start": 8569,
+              "end": 8946
+            },
+            {
+              "part": "document",
+              "start": 9102,
+              "end": 9417
+            }
+          ],
+          "anchor_texts": [
+            "Neither party shall be liable for failure or delay in performance under this Agreement when such failure or delay results from causes beyond the reasonable control of that party, provided that performance has become physically impossible as a direct result of such cause and not merely more difficult, costly, or inconvenient.",
+            "Force majeure events shall include but are not limited to acts of God, war, terrorism, civil unrest, government-imposed travel restrictions and advisories that prevent or materially impede the travel of a substantial portion of the Group to the Hotel or from the Hotel, epidemics and pandemics affecting public health or mobility, natural disasters, utility failures, and transportation disruptions of common carrier.",
+            "Notwithstanding the above, concerns regarding attendee safety or the unwillingness or reluctance of attendees to travel, in the absence of an actual governmental restriction or specific order directed at the Hotel's location or at the attendees' originating location, shall not constitute a force majeure event and shall not excuse the Group's performance or obligation to pay.",
+            "In the event this Agreement is terminated in its entirety by either party on account of force majeure, the Hotel shall promptly refund to Group any deposits or prepayments received, less any documented costs incurred by the Hotel specifically attributable to preparation for the Event and not otherwise recoverable."
+          ],
+          "expected_language": [
+            {
+              "kind": "contains_phrase",
+              "phrase": "impracticable"
+            },
+            {
+              "kind": "absent_phrase",
+              "phrase": "impossible"
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; unsafe or imprudent travel is false, and CD's position is true."
+        },
+        {
+          "id": "eval-15-vantage:cutoff_date",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "cutoff_date",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 2652,
+              "end": 2839
+            },
+            {
+              "part": "document",
+              "start": 3159,
+              "end": 3435
+            },
+            {
+              "part": "footer1",
+              "start": 0,
+              "end": 118
+            }
+          ],
+          "anchor_texts": [
+            "All reservations for rooms in the Group block must be requested and confirmed with Hotel no later than forty (40) days prior to the first date of the Event, which shall be August 2, 2027.",
+            "Reservations requested after the cutoff date are still offered at the group rate, subject to availability, provided that Hotel has no obligation to hold any rooms beyond the cutoff date and may assign rooms from the Group block to its general inventory at its sole discretion.",
+            "Reservations must be received no later than 40 days prior to arrival; the room block is released in full at that time."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "room block cutoff date",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room block cutoff date is 40, and CD's position is at most 30 days."
+        },
+        {
+          "id": "eval-15-vantage:walk_relocation",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "walk_relocation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 22722,
+              "end": 22903
+            },
+            {
+              "part": "document",
+              "start": 23168,
+              "end": 23579
+            },
+            {
+              "part": "document",
+              "start": 23775,
+              "end": 24100
+            },
+            {
+              "part": "document",
+              "start": 24101,
+              "end": 24332
+            }
+          ],
+          "anchor_texts": [
+            "the Hotel shall relocate the affected guest to a hotel of comparable quality and location or superior grade, selected and arranged by the Hotel at the Hotel's sole cost and expense.",
+            "The Hotel shall provide complimentary round-trip transportation, including ground transportation between Seattle-Tacoma International Airport (or such other departure point as the guest designates) and the alternative hotel, and dedicated ground transportation between the alternative hotel and the Vantage Point Hotel and Convention Center for all event sessions, meals, and activities during the guest's stay.",
+            "the relocated guest shall return to the Vantage Point Hotel and Convention Center in a standard room assignment of the original booked category, with no room upgrade, no complimentary amenities beyond those included in the original rate agreement, and no additional services or concessions as compensation for the relocation.",
+            "The relocated night or nights shall not be credited toward Group's room pickup for purposes of calculating minimum room guarantees, commission eligibility, or future rate negotiation under this Agreement or any successor agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true."
+        },
+        {
+          "id": "eval-15-vantage:mandatory_fees",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "mandatory_fees",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 15759,
+              "end": 15949
+            },
+            {
+              "part": "document",
+              "start": 15950,
+              "end": 16045
+            }
+          ],
+          "anchor_texts": [
+            "Any charge or surcharge not specifically disclosed in writing to Group prior to the execution of this Agreement shall be deemed waived and shall not be collected from Group or its attendees.",
+            "The nightly resort fee for all room reservations under this Agreement shall be $26.00 per room."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "required",
+            "amount": 60450,
+            "tolerance": 0.25
+          },
+          "rationale": "written fee disclosure before signature is false, and CD's position is true."
+        },
+        {
+          "id": "eval-15-vantage:master_account_billing",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "master_account_billing",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 19918,
+              "end": 20160
+            },
+            {
+              "part": "document",
+              "start": 20268,
+              "end": 20485
+            },
+            {
+              "part": "document",
+              "start": 20624,
+              "end": 20846
+            }
+          ],
+          "anchor_texts": [
+            "Group shall have thirty (30) days from the date of invoice to dispute any charge by written notice to the Hotel's accounting department; disputes raised after thirty (30) days shall be deemed waived and the invoice shall be final and binding.",
+            "the Hotel shall assess a finance charge of 1.5% per month, or the maximum rate permitted by law, whichever is lower, calculated on the unpaid principal balance and compounded monthly until payment is received in full.",
+            "Where Group has not been approved for credit terms, Group shall remit prepayment equal to the percentage of anticipated charges designated by the Hotel prior to the event, with the remaining balance due upon final billing."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "monthly finance charge",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.01
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "monthly finance charge is 0.015, and CD's position is at most 0.01 pct."
+        },
+        {
+          "id": "eval-15-vantage:insurance_indemnification",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "insurance_indemnification",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 30077,
+              "end": 30235
+            },
+            {
+              "part": "document",
+              "start": 30237,
+              "end": 30565
+            },
+            {
+              "part": "document",
+              "start": 30694,
+              "end": 30924
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall indemnify the Group and its representatives on the same terms and conditions by which the Group indemnifies the Hotel and its representatives.",
+            "Notwithstanding the foregoing, each party's indemnity obligation shall be limited to losses and damages arising solely from that party's own negligence or willful misconduct, and neither party shall indemnify the other for any loss or damage arising from the other party's gross negligence, willful misconduct, or breach of law.",
+            "The Group shall obtain and maintain, at its own expense, comprehensive general liability insurance with a minimum limit of $3,000,000.00 per occurrence and $3,000,000.00 in the aggregate, naming the Hotel as an additional insured."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "group general liability requirement",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 2000000
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "group general liability requirement is 3000000, and CD's position is at most 2000000 usd."
+        },
+        {
+          "id": "eval-15-vantage:damage_deposit",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "damage_deposit",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 21086,
+              "end": 21364
+            },
+            {
+              "part": "document",
+              "start": 21631,
+              "end": 21902
+            },
+            {
+              "part": "document",
+              "start": 21903,
+              "end": 22134
+            }
+          ],
+          "anchor_texts": [
+            "Group shall deposit with the Hotel the sum of $30,000.00 as security for damage to Hotel premises and furnishings caused by Group, its members, guests, invitees, or agents during the event period of August 2-7, 2027 and any ancillary dates directly related to Group's occupancy.",
+            "The Hotel shall not apply the security deposit to any charges other than documented damage, including but not limited to room charges, food and beverage invoices, audio-visual fees, or any other operational or service charges, even if such charges remain unpaid by Group.",
+            "Any portion of the deposit not applied to documented damage claims shall be refunded to Group within forty-five (45) days of Group's final checkout, provided all rooms have been inspected and the master account has been reconciled."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "damage deposit refund window",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "damage deposit refund window is 45, and CD's position is at most 30 days."
+        },
+        {
+          "id": "eval-15-vantage:rate_parity",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "rate_parity",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 18010,
+              "end": 18384
+            },
+            {
+              "part": "document",
+              "start": 18802,
+              "end": 19072
+            },
+            {
+              "part": "document",
+              "start": 19074,
+              "end": 19305
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel guarantees that during the Event Period of August 2-7, 2027, it shall not offer or make available to the general public, to any competing group, or to any other customer category, including through any online travel agency, wholesale platform, or other distribution channel, any nightly room rate that is lower than the rates offered to Group under this Agreement.",
+            "Any rate adjustment or modification resulting from such discovery shall apply only to reservations made after the lower rate is identified and communicated to Group in writing, and shall not apply retroactively to any reservations confirmed prior to such identification.",
+            "The commission rate, sales credit, and pickup credit accrued or earned by Group or Group's booking agent shall not be affected, reduced, modified, or recalculated in connection with any rate adjustment made pursuant to this clause."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "retroactive rate adjustment is false, and CD's position is true."
+        },
+        {
+          "id": "eval-15-vantage:resale_mitigation_duty",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "resale_mitigation_duty",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 6658,
+              "end": 6885
+            },
+            {
+              "part": "document",
+              "start": 7092,
+              "end": 7322
+            },
+            {
+              "part": "document",
+              "start": 7464,
+              "end": 7801
+            }
+          ],
+          "anchor_texts": [
+            "Upon release by Group of any rooms or function space contracted for the Event, the Hotel shall undertake good faith efforts to resell such inventory at the highest rate obtainable in the ordinary course of the Hotel's business.",
+            "Any net proceeds derived from resale of released inventory shall be credited dollar-for-dollar against Group's financial obligations under this Agreement, reducing the amount due from Group by the full amount of such net proceeds.",
+            "The Hotel's resale efforts, including any attempts to place canceled rooms or space, its marketing activities, pricing decisions, and all related records and documentation shall remain the sole property and responsibility of the Hotel and shall not be subject to disclosure to Group, audit by Group, or review by Group's representatives."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "resale records available to group is false, and CD's position is true."
+        }
+      ]
+    }
+  ]
+}

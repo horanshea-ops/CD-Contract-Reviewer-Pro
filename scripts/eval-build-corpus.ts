@@ -72,6 +72,7 @@ async function main() {
   await mkdir(path.dirname(KEY_PATH), { recursive: true });
 
   const contracts: AnswerKeyContract[] = [];
+  const rejected: string[] = [];
   const totals = { input: 0, output: 0 };
 
   for (const spec of specs) {
@@ -112,16 +113,33 @@ async function main() {
         console.log(`REJECTED`);
         for (const failure of err.failures) console.log(`     ${failure}`);
         // Printed on failure too. They were only shown on success, so a
-        // rejection said what finally went wrong and nothing about the four
+        // rejection said what finally went wrong and nothing about the
         // attempts that led there.
         for (const retry of err.retries) console.log(`     retried: ${retry}`);
-        // A contract that cannot be verified must not reach the corpus, and a
-        // partial corpus keyed as exhaustive would score every missing
-        // contract's findings as false positives.
-        throw err;
+        rejected.push(spec.id);
+        continue;
       }
-      throw err;
+      // Anything that is not a gate failure — a dropped connection, a timeout —
+      // leaves the contract unbuilt rather than unverified. Same outcome for
+      // the key, so it is recorded and the build moves on.
+      console.log(`FAILED — ${err instanceof Error ? err.message : String(err)}`);
+      rejected.push(spec.id);
+      continue;
     }
+  }
+
+  if (rejected.length) {
+    // A contract missing from the key is simply not scored — `exhaustive` is a
+    // property of each contract, not of the corpus — so a partial key is
+    // sound. It is narrower, and the report says which contracts it covers.
+    console.log(
+      `\n${rejected.length} contract(s) did not build: ${rejected.join(", ")}.\n` +
+        `The key below covers the rest. Re-run with --resume to add them; everything already built is reused.`
+    );
+  }
+
+  if (contracts.length === 0) {
+    throw new Error("No contract built, so there is no key to write.");
   }
 
   if (!only) {
