@@ -30,7 +30,7 @@ import { buildContractDocx } from "./docx-builder";
  */
 
 const BATCH_SIZE = 6;
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 4;
 
 export interface ResolvedAnchor {
   clause_type: string;
@@ -142,14 +142,18 @@ export function checkDraftBatch(
         failures.push(`${request.clause_type}.${field.field}: no anchor sentence returned`);
         continue;
       }
-      if (!prose.includes(sentence)) {
-        failures.push(`${request.clause_type}.${field.field}: anchor sentence is not a verbatim substring of the prose`);
+      // Whitespace collapsed on both sides. A model reflows its own sentence
+      // when copying it back, and locateQuote matches that at the normalized
+      // tier regardless — so rejecting it here would re-draft the clause to fix
+      // a line break.
+      if (!flatten(prose).includes(flatten(sentence))) {
+        failures.push(`${request.clause_type}.${field.field}: anchor sentence is not a substring of the prose`);
         continue;
       }
       const clauseTerms = terms(spec, request.clause_type);
 
       const wording = requiredWording(request.clause_type, field.field, clauseTerms);
-      if (wording && !sentence.includes(wording)) {
+      if (wording && !flatten(sentence).includes(flatten(wording))) {
         failures.push(
           `${request.clause_type}.${field.field}: anchor sentence omits the dictated wording "${wording}"`
         );
@@ -299,10 +303,14 @@ export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Pr
 
   // Pass one: draft each batch until it survives the mechanical checks.
   for (const batch of batches) {
-    const requests = draftRequests(spec, batch);
+    // Only the clauses that failed are re-drafted, never the whole batch. A
+    // batch retry rerolls five clauses that were fine to fix a sixth, and each
+    // reroll is a fresh chance for a different one to drift — which is how a
+    // batch can fail three times over three different clauses.
+    let pending = draftRequests(spec, batch);
     let lastFailures: string[] = [];
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS && pending.length > 0; attempt++) {
       const result = await deps.draftClauses({
         hotel: spec.hotel,
         group: spec.group,
@@ -310,26 +318,39 @@ export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Pr
         state: spec.state,
         dates: spec.dates,
         voice: spec.style.voice,
-        clauses: requests,
+        clauses: pending,
       });
       tokens.input += result.input_tokens;
       tokens.output += result.output_tokens;
 
-      const clauses = normalizeClauseTypes(requests, result.clauses);
-      lastFailures = checkDraftBatch(spec, requests, clauses);
-      if (lastFailures.length === 0) {
-        for (const clause of clauses) {
+      const clauses = normalizeClauseTypes(pending, result.clauses);
+      const byClause = new Map(clauses.map((c) => [c.clause_type, c]));
+
+      const stillPending: ClauseDraftRequest[] = [];
+      lastFailures = [];
+
+      for (const request of pending) {
+        const clause = byClause.get(request.clause_type);
+        const failures = checkDraftBatch(spec, [request], clause ? [clause] : []);
+        if (failures.length === 0 && clause) {
           drafted.set(clause.clause_type, {
             clause_type: clause.clause_type,
             paragraphs: clause.paragraphs,
             anchors: clause.anchors,
           });
+          continue;
         }
-        break;
+        stillPending.push(request);
+        lastFailures.push(...failures);
       }
-      retries.push(`attempt ${attempt} for [${batch.join(", ")}]: ${lastFailures.join("; ")}`);
-      if (attempt === MAX_ATTEMPTS) throw new CorpusIntegrityError(spec.id, lastFailures);
+
+      if (stillPending.length) {
+        retries.push(`attempt ${attempt}: ${lastFailures.join("; ")}`);
+      }
+      pending = stillPending;
     }
+
+    if (pending.length) throw new CorpusIntegrityError(spec.id, lastFailures);
   }
 
   // Pass two: lay out, build, extract, and check the anchors survived the trip

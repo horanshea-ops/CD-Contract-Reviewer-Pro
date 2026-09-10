@@ -140,8 +140,21 @@ describe("checkDraftBatch", () => {
   it("catches an anchor that is not really in the prose", () => {
     const drifted = { ...good, anchors: [{ ...good.anchors[0], sentence: "The cutoff is 45 days out." }, good.anchors[1]] };
     expect(checkDraftBatch(spec, [request], [drifted])).toEqual([
-      "cutoff_date.days_prior: anchor sentence is not a verbatim substring of the prose",
+      "cutoff_date.days_prior: anchor sentence is not a substring of the prose",
     ]);
+  });
+
+  it("tolerates a sentence the model reflowed when copying it back", () => {
+    // Only the whitespace differs. locateQuote matches that at the normalized
+    // tier anyway, so rejecting it would re-draft a clause to fix a line break.
+    const reflowed = {
+      ...good,
+      anchors: [
+        { field: "days_prior", sentence: "The cutoff is forty-five (45)\n  days prior to arrival." },
+        good.anchors[1],
+      ],
+    };
+    expect(checkDraftBatch(spec, [request], [reflowed])).toEqual([]);
   });
 
   it("catches a dictated figure the sentence dropped", () => {
