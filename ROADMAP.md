@@ -322,6 +322,67 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+### Raised by the first eval run (2026-09-10)
+
+The §2.0.1 harness measured the pipeline for the first time: recall 96.7%,
+precision 48.9%, on 7 generated contracts and 90 key items. Full report and audit
+trail in `docs/eval-baseline-2026-09-10.txt`. Four things came out of it that need
+changing, and one that needs watching.
+
+- [ ] **1. The model files a finding for every clause it examines, not every problem
+      it finds. Highest priority of the four.** Half the output is noise: 88 spurious
+      findings against 90 real ones. On `eval-03-bayfront`, which has two real
+      problems, it filed 25 findings — the extra 23 reading
+      `finding_text: "...fully matches CD's standard. Compliant."` and
+      `proposed_language: "No change recommended; clause aligns with CD standard."`
+
+      Its judgement is right; the conclusion is written to the wrong field, and
+      `clauses_checked` already exists for exactly this. **This is not a judgement
+      problem and should not be treated as one.**
+
+      Why it matters beyond the number: `lib/get-actioned-findings.ts`,
+      `lib/export-memo.ts`, `lib/email-drafting/*` and the §1.5 redline engine all
+      read `findings` as things to act on, so a "no change recommended" entry becomes
+      a proposed change to a clause that was already fine — and the property email
+      path would transmit it. An associate seeing 25 flags on a clean contract also
+      stops trusting the tool, which is the failure mode no accuracy number captures.
+
+      Fix is in `buildSystemPrompt` and `FINDINGS_TOOL_SCHEMA`'s description in
+      `lib/anthropic.ts`: a finding means a deviation, a compliant clause belongs in
+      `clauses_checked` and nowhere else. **Opus work** — changing the analysis system
+      prompt changes the output of every review. Re-run `npm run eval:capture` and
+      compare precision to tell whether it worked; that is what the harness is for.
+
+      It is also most of the bill. Capture cost is dominated by output (79k output
+      against 76k input), so this cuts cost as well as noise.
+
+- [ ] **2. Severity is over-called.** Half the calls are exact and 95% land within one
+      band, but the model over-calls almost twice as often as it under-calls (29
+      against 15), and 23 of the key's `medium` items came back `high`. If everything
+      reads urgent, nothing does. Same prompt, same Opus rule: the library supplies
+      `severity_default` and the model should depart from it only on the specific
+      facts, saying why.
+
+- [ ] **3. Three genuine misses, all `medium`, all present-but-adverse rather than
+      missing clauses** — `named_storm` in eval-01, `fb_minimum` in eval-10,
+      `mandatory_fees` in eval-15. Small enough to read individually. Worth checking
+      whether the clause positions in `lib/standards/v1.ts` are vague at those three
+      points before assuming the model is at fault.
+
+- [ ] **4. Downstream consumers assume every finding is actionable.** Even once the
+      prompt is fixed, nothing between the model and the redline/memo/email checks
+      that a finding proposes an actual change. A defensive filter is cheap insurance
+      against a regression reaching a hotel. Decide whether to add one, or to rely on
+      the eval catching it.
+
+- **Watching: the harness itself is thin.** Seven contracts and 90 key items support
+  the per-clause and per-severity breakdowns, but not reading any single percentage as
+  a forecast. Eight more specs are written and held in `RESERVE_SPECS` — widening the
+  corpus is moving an id into the active list and re-running the build. Exposure is
+  graded on 15 of 87 pairs and proposed language on 57, both by design (see
+  `docs/eval-harness.md` § Known limits). None of this blocks acting on items 1-4.
+
+
 - **Export and email button consolidation — §1.12, not started (raised by the user
   2026-09-09).** The analysis header now carries six controls: Export memo, Draft
   client email, Export marked-up PDF, Export tracked-changes DOCX, Export proposed
