@@ -42,6 +42,43 @@ export interface ScoreRunArgs {
 
 const zeroTokens = () => ({ input: 0, output: 0, cache_read: 0, cache_creation: 0 });
 
+/**
+ * Checks the key's offsets still land on the wording the key says they do.
+ *
+ * A key stores character offsets into an extracted document. Rebuild that
+ * document — a redraft, a layout change, a different extractor — and the
+ * offsets survive as numbers while pointing at different text. Every finding
+ * then pairs against the wrong wording, and the report says the model is worse
+ * than it is, with nothing to suggest the key is at fault.
+ *
+ * Cheap to check because the key carries the text as well as the offsets, and
+ * they were written from the same slice.
+ */
+function verifyAnchors(entry: AnswerKey["contracts"][number], parts: LocatablePart[]): void {
+  const textByPart = new Map(parts.map((p) => [p.part, p.text]));
+
+  for (const item of entry.items) {
+    for (const [i, anchor] of item.anchors.entries()) {
+      const text = textByPart.get(anchor.part);
+      if (text === undefined) {
+        throw new Error(
+          `Key item ${item.id} anchors into part "${anchor.part}", which ${entry.contract} does not have. ` +
+            `Rebuild the key with npm run eval:build-corpus.`
+        );
+      }
+      const found = text.slice(anchor.start, anchor.end);
+      const expected = item.anchor_texts[i];
+      if (expected !== undefined && found !== expected) {
+        throw new Error(
+          `Key item ${item.id} has drifted from ${entry.contract}. The key expects ` +
+            `${JSON.stringify(expected.slice(0, 80))} at ${anchor.part}:${anchor.start}, and the document has ` +
+            `${JSON.stringify(found.slice(0, 80))}. Rebuild the key with npm run eval:build-corpus.`
+        );
+      }
+    }
+  }
+}
+
 function emptySeverityMatrix(): Record<Severity, Record<Severity, number>> {
   const row = () => Object.fromEntries(SEVERITY_ORDER.map((s) => [s, 0])) as Record<Severity, number>;
   return Object.fromEntries(SEVERITY_ORDER.map((s) => [s, row()])) as Record<Severity, Record<Severity, number>>;
@@ -93,6 +130,8 @@ function scoreContract(
       `No extracted text supplied for "${entry.contract}". Scoring re-extracts the DOCX rather than trusting text stored in the run.`
     );
   }
+
+  verifyAnchors(entry, parts);
 
   const { pairs, locations, unmatchedKey, unmatchedFindings } = matchDocument(entry.items, analysis.findings, parts);
 

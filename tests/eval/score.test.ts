@@ -296,3 +296,26 @@ describe("renderReport", () => {
     expect(renderReport(report)).toContain("--audit");
   });
 });
+
+describe("key drift", () => {
+  // A key stores offsets into an extracted document. Rebuild the document and
+  // the offsets survive as numbers while pointing at different text, so every
+  // finding pairs against the wrong wording and the report blames the model.
+  it("refuses to score when an anchor no longer lands on the wording it names", () => {
+    const shifted = new Map([[CONTRACT, [{ part: "document", text: `PREFIX ${TEXT}` }]]]);
+    expect(() => scoreRun({ key: key([ATTRITION]), run: run([finding()]), documents: shifted })).toThrow(
+      /has drifted from c1\.docx/
+    );
+  });
+
+  it("refuses to score when an anchor names a part the document does not have", () => {
+    const footerKey = key([
+      item("k-footer", "cutoff_date", null, {
+        kind: "present",
+        anchors: [{ part: "footer1", start: 0, end: 5 }],
+        anchor_texts: ["hello"],
+      }),
+    ]);
+    expect(() => scoreRun({ key: footerKey, run: run([finding()]), documents })).toThrow(/does not have/);
+  });
+});
