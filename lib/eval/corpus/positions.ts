@@ -177,8 +177,11 @@ export const CD_POSITIONS: ClausePosition[] = [
   {
     clause_type: "named_storm",
     exposure: "unspecified",
+    // Whether a named-storm provision exists at all is carried by the spec
+    // marking the clause "absent", not by a boolean inside it. A clause that is
+    // present always gets its own numbered section, so a term saying "there is
+    // no separate clause" contradicts the heading printed above it.
     checks: [
-      { field: "separate_clause", label: "separate named storm clause", kind: "boolean", expected: true },
       { field: "cancellation_window_hours", label: "named storm cancellation window", kind: "number", comparator: "gte", value: 72, unit: "hours" },
     ],
   },

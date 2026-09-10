@@ -153,10 +153,6 @@ const BOOLEAN_MEANING: Record<string, { true: string; false: string }> = {
     true: "Bankruptcy and foreclosure trigger the same notice and termination rights as a change of brand.",
     false: "Bankruptcy and foreclosure give Group no notice or termination right.",
   },
-  "named_storm.separate_clause": {
-    true: "A named tropical storm or hurricane is dealt with under its own provision, separately from general force majeure.",
-    false: "A named tropical storm or hurricane is dealt with only under the general force majeure provision.",
-  },
   "attendee_data_handling.marketing_use_barred": {
     true: "The Hotel will not use attendee data for its own marketing.",
     false: "The Hotel may use attendee data for its own marketing.",

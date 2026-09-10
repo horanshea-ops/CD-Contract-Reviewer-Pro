@@ -268,14 +268,25 @@ function resolveAnchors(
 
   for (const item of placed) {
     const located = locateQuote(parts, item.text, null);
+    // Failures quote the wording. "Does not resolve" with nothing to look at
+    // says only that something is wrong, and the difference is usually a single
+    // character.
+    const quoted = `\n      wanted: ${JSON.stringify(item.text.slice(0, 160))}`;
+
     if (!isLocated(located)) {
-      failures.push(`${item.clause_type}.${item.field}: anchor does not resolve in the built document — ${located.reason}`);
+      failures.push(
+        `${item.clause_type}.${item.field}: anchor does not resolve in the built document — ${located.reason}${quoted}`
+      );
       continue;
     }
     // A fuzzy hit means the text in the document is not the text the key
     // carries. Close enough to redline is not close enough to be ground truth.
     if (located.resolution === "fuzzy") {
-      failures.push(`${item.clause_type}.${item.field}: anchor resolves only fuzzily, so the key would not point at exact wording`);
+      const found = textByPart.get(located.part)!.slice(located.start, located.end);
+      failures.push(
+        `${item.clause_type}.${item.field}: anchor resolves only fuzzily, so the key would not point at exact wording` +
+          `${quoted}\n      found : ${JSON.stringify(found.slice(0, 160))}`
+      );
       continue;
     }
     anchors.push({
@@ -325,24 +336,26 @@ function resolveAnchors(
   return { anchors: deduped, failures };
 }
 
-export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Promise<BuildContractResult> {
-  const clauseTypes = clausesToDraft(spec);
-  const batches: string[][] = [];
+/** The clause a gate failure names, so a retry can be aimed at it. */
+const clauseOf = (failure: string) => failure.match(/^([a-z_]+)[.#]/)?.[1] ?? null;
+
+/**
+ * Drafts the named clauses into `drafted`, retrying a clause that fails the
+ * mechanical checks rather than the batch it arrived in.
+ *
+ * A batch retry rerolls clauses that were fine to fix one that was not, and
+ * each reroll is a fresh chance for a different clause to drift.
+ */
+async function draftInto(
+  spec: EvalContractSpec,
+  clauseTypes: string[],
+  drafted: Map<string, DraftedClause>,
+  deps: DraftDeps,
+  tokens: { input: number; output: number },
+  retries: string[]
+): Promise<void> {
   for (let i = 0; i < clauseTypes.length; i += BATCH_SIZE) {
-    batches.push(clauseTypes.slice(i, i + BATCH_SIZE));
-  }
-
-  const tokens = { input: 0, output: 0 };
-  const retries: string[] = [];
-  const drafted = new Map<string, DraftedClause>();
-
-  // Pass one: draft each batch until it survives the mechanical checks.
-  for (const batch of batches) {
-    // Only the clauses that failed are re-drafted, never the whole batch. A
-    // batch retry rerolls five clauses that were fine to fix a sixth, and each
-    // reroll is a fresh chance for a different one to drift — which is how a
-    // batch can fail three times over three different clauses.
-    let pending = draftRequests(spec, batch);
+    let pending = draftRequests(spec, clauseTypes.slice(i, i + BATCH_SIZE));
     let lastFailures: string[] = [];
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS && pending.length > 0; attempt++) {
@@ -381,44 +394,75 @@ export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Pr
         lastFailures.push(...failures);
       }
 
-      if (stillPending.length) {
-        retries.push(`attempt ${attempt}: ${lastFailures.join("; ")}`);
-      }
+      if (stillPending.length) retries.push(`draft attempt ${attempt}: ${lastFailures.join("; ")}`);
       pending = stillPending;
     }
 
     if (pending.length) throw new CorpusIntegrityError(spec.id, lastFailures);
   }
-
-  // Pass two: lay out, build, extract, and check the anchors survived the trip
-  // through OOXML and back.
-  const ordered = clauseTypes.map((c) => drafted.get(c)!).filter(Boolean);
-  const { document, anchors: placed } = layOutContract(spec, ordered);
-  const bytes = await buildContractDocx(document);
-  const extracted = await extractDocx(bytes);
-
-  const { anchors, failures } = resolveAnchors(extracted, placed);
-  if (failures.length) throw new CorpusIntegrityError(spec.id, failures);
-
-  // Pass three: read the finished contract back and check it means what the
-  // spec says. This is the only check that covers the boolean terms, whose
-  // wording the drafter chose.
-  const questions = readBackQuestions(spec);
-  const readBack = await withRetry("read-back", () =>
-    deps.readBack({
-      contractText: extracted.parts.map((p) => p.text).join("\n\n"),
-      questions: questions.map(({ id, question, options }) => ({ id, question, options })),
-    })
-  );
-  tokens.input += readBack.input_tokens;
-  tokens.output += readBack.output_tokens;
-
-  const answered = new Map(readBack.answers.map((a) => [a.id, a.answer]));
-  const disagreements = questions
-    .filter((q) => answered.get(q.id) !== q.expected)
-    .map((q) => `${q.id}: spec says "${q.expected}", the contract reads as "${answered.get(q.id) ?? "no answer"}"`);
-
-  if (disagreements.length) throw new CorpusIntegrityError(spec.id, disagreements);
-
-  return { spec, bytes, extracted, anchors, drafted: ordered, attempts: 1, tokens, retries };
 }
+
+export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Promise<BuildContractResult> {
+  const clauseTypes = clausesToDraft(spec);
+  const tokens = { input: 0, output: 0 };
+  const retries: string[] = [];
+  const drafted = new Map<string, DraftedClause>();
+
+  await draftInto(spec, clauseTypes, drafted, deps, tokens, retries);
+
+  /**
+   * Assemble, then check what came out, then fix what did not survive.
+   *
+   * Both remaining checks run on the FINISHED document rather than on the
+   * draft, so neither can be folded into the drafting loop above. A failure in
+   * either re-drafts the clause it names and assembles again — without that,
+   * one clause out of roughly fifty read back wrong would throw the whole
+   * contract away, and at that rate almost every contract fails.
+   */
+  for (let round = 1; round <= MAX_ATTEMPTS; round++) {
+    const ordered = clauseTypes.map((c) => drafted.get(c)!).filter(Boolean);
+    const { document, anchors: placed } = layOutContract(spec, ordered);
+    const bytes = await buildContractDocx(document);
+    const extracted = await extractDocx(bytes);
+
+    const { anchors, failures } = resolveAnchors(extracted, placed);
+    if (failures.length) {
+      if (round === MAX_ATTEMPTS) throw new CorpusIntegrityError(spec.id, failures);
+      retries.push(`round ${round} anchors: ${failures.join("; ")}`);
+      await draftInto(spec, unique(failures.map(clauseOf)), drafted, deps, tokens, retries);
+      continue;
+    }
+
+    const questions = readBackQuestions(spec);
+    const readBack = await withRetry("read-back", () =>
+      deps.readBack({
+        contractText: extracted.parts.map((p) => p.text).join("\n\n"),
+        questions: questions.map(({ id, question, options }) => ({ id, question, options })),
+      })
+    );
+    tokens.input += readBack.input_tokens;
+    tokens.output += readBack.output_tokens;
+
+    const answered = new Map(readBack.answers.map((a) => [a.id, a.answer]));
+    const disagreements = questions
+      .filter((q) => answered.get(q.id) !== q.expected)
+      .map((q) => `${q.id}: spec says "${q.expected}", the contract reads as "${answered.get(q.id) ?? "no answer"}"`);
+
+    if (disagreements.length === 0) {
+      return { spec, bytes, extracted, anchors, drafted: ordered, attempts: round, tokens, retries };
+    }
+    if (round === MAX_ATTEMPTS) throw new CorpusIntegrityError(spec.id, disagreements);
+    retries.push(`round ${round} read-back: ${disagreements.join("; ")}`);
+
+    // A question about an absent clause has no clause to re-draft — the reader
+    // found the topic somewhere in another clause's prose, and which one is not
+    // recoverable from the answer. Re-draft everything in that case.
+    const aboutAbsent = disagreements.some((d) => d.includes("#present"));
+    const target = aboutAbsent ? clauseTypes : unique(disagreements.map(clauseOf));
+    await draftInto(spec, target, drafted, deps, tokens, retries);
+  }
+
+  throw new CorpusIntegrityError(spec.id, ["the document never settled within the allowed rounds"]);
+}
+
+const unique = (values: Array<string | null>): string[] => [...new Set(values.filter((v): v is string => v !== null))];
