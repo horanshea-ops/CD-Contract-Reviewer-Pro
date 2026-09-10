@@ -44,6 +44,9 @@ const MAX_ATTEMPTS = 4;
 /** Attempts per call for a failure that says nothing about the draft itself. */
 const TRANSIENT_ATTEMPTS = 5;
 
+/** Questions per read-back call. See the comment where the chunking happens. */
+const READBACK_BATCH_SIZE = 15;
+
 export interface ResolvedAnchor {
   clause_type: string;
   field: string;
@@ -493,16 +496,26 @@ export async function buildContract(
     }
 
     const questions = readBackQuestions(spec);
-    const readBack = await withRetry("read-back", () =>
-      deps.readBack({
-        contractText: extracted.parts.map((p) => p.text).join("\n\n"),
-        questions: questions.map(({ id, question, options }) => ({ id, question, options })),
-      })
-    );
-    tokens.input += readBack.input_tokens;
-    tokens.output += readBack.output_tokens;
+    const contractText = extracted.parts.map((p) => p.text).join("\n\n");
+    const answered = new Map<string, string>();
 
-    const answered = new Map(readBack.answers.map((a) => [a.id, a.answer]));
+    // Asked in chunks. One call carrying a whole contract and forty-odd
+    // questions is the largest request the corpus build makes, and it was the
+    // one still being cut mid-flight after the drafting calls were shortened.
+    // Re-sending the contract per chunk costs a few cents and buys a request
+    // short enough to finish.
+    for (let i = 0; i < questions.length; i += READBACK_BATCH_SIZE) {
+      const chunk = questions.slice(i, i + READBACK_BATCH_SIZE);
+      const readBack = await withRetry("read-back", () =>
+        deps.readBack({
+          contractText,
+          questions: chunk.map(({ id, question, options }) => ({ id, question, options })),
+        })
+      );
+      tokens.input += readBack.input_tokens;
+      tokens.output += readBack.output_tokens;
+      for (const answer of readBack.answers) answered.set(answer.id, answer.answer);
+    }
     const disagreements = questions
       .filter((q) => answered.get(q.id) !== q.expected)
       .map((q) => `${q.id}: spec says "${q.expected}", the contract reads as "${answered.get(q.id) ?? "no answer"}"`);
