@@ -34,6 +34,7 @@ import type { AnchorSpan, KeyItem, LocationStatus, MatchBasis } from "./types";
 
 // Tiers, spaced so no combination of lower terms can reach the tier above.
 const SPAN_BASE = 1_000_000;
+const CLAUSE_REGION_BASE = 500_000;
 const CLAUSE_TYPE_BASE = 100_000;
 const OVERLAP_SCALE = 10_000;
 const CLAUSE_TYPE_AGREES = 300;
@@ -148,6 +149,38 @@ export function bestOverlap(anchors: AnchorSpan[], span: AnchorSpan): number {
   return best;
 }
 
+/**
+ * The stretch of each part a clause's anchors span, end to end.
+ *
+ * A clause is bigger than the sentences that state its terms. The drafted
+ * clause has an opening, procedural wording between the terms, and a tail, and
+ * none of that is anchored. A finding quoting one of those sentences is about
+ * the clause all the same — but it overlaps no anchor, so on anchor evidence
+ * alone it looks like a finding about somewhere else entirely, and would be
+ * scored as a miss and a false positive at once.
+ *
+ * Computed per part, because a clause restated in the footer has anchors in two
+ * parts and a hull spanning them would cover text belonging to neither.
+ */
+export function clauseRegions(anchors: AnchorSpan[]): AnchorSpan[] {
+  const byPart = new Map<string, AnchorSpan>();
+  for (const anchor of anchors) {
+    const existing = byPart.get(anchor.part);
+    byPart.set(
+      anchor.part,
+      existing
+        ? { part: anchor.part, start: Math.min(existing.start, anchor.start), end: Math.max(existing.end, anchor.end) }
+        : { ...anchor }
+    );
+  }
+  return [...byPart.values()];
+}
+
+/** Whether a span falls inside the stretch a clause's anchors cover. */
+export function withinClauseRegion(anchors: AnchorSpan[], span: AnchorSpan): boolean {
+  return clauseRegions(anchors).some((region) => overlapLength(region, span) > 0);
+}
+
 export interface Candidate {
   basis: MatchBasis;
   weight: number;
@@ -183,8 +216,16 @@ export function scoreCandidate(item: KeyItem, finding: Finding, location: Locati
 
   if (bothLocated) {
     const overlap = bestOverlap(item.anchors, location.span);
-    if (overlap <= 0) return null;
-    return { basis: "span", weight: SPAN_BASE + Math.round(overlap * OVERLAP_SCALE) + attributes, overlap };
+    if (overlap > 0) {
+      return { basis: "span", weight: SPAN_BASE + Math.round(overlap * OVERLAP_SCALE) + attributes, overlap };
+    }
+    // Inside the clause but not on a term sentence. Weaker than an anchor hit,
+    // so an anchor hit always wins the pairing, but not nothing — the finding is
+    // still pointing at this clause and no other.
+    if (withinClauseRegion(item.anchors, location.span)) {
+      return { basis: "span", weight: CLAUSE_REGION_BASE + attributes, overlap: 0 };
+    }
+    return null;
   }
 
   if (!typesAgree) return null;
@@ -268,16 +309,20 @@ export function matchDocument(keyItems: KeyItem[], findings: Finding[], parts: L
 
   // A finding pointing at a key item another finding already took is the same
   // issue reported twice, not an invented one.
+  //
+  // Eligibility is asked of scoreCandidate rather than re-derived here. Two
+  // rules for the same question drift: the first version of this used its own
+  // overlap test, and a finding sitting in a clause's unanchored middle came
+  // back spurious even though the matcher considered it a candidate for that
+  // very clause.
   const unmatchedFindings = findings
     .map((finding, findingIndex) => ({ finding, findingIndex }))
     .filter(({ findingIndex }) => !findingPaired.has(findingIndex))
     .map(({ finding, findingIndex }) => {
       const location = locations[findingIndex];
-      const duplicated = pairs.find((pair) => {
-        const item = keyItems[pair.keyIndex];
-        if (location.status === "located" && bestOverlap(item.anchors, location.span) > 0) return true;
-        return location.status !== "located" && clauseTypesAgree(item.clause_type, finding.clause_type);
-      });
+      const duplicated = pairs.find(
+        (pair) => scoreCandidate(keyItems[pair.keyIndex], finding, location) !== null
+      );
       return { findingIndex, duplicateOf: duplicated ? duplicated.keyIndex : null };
     });
 

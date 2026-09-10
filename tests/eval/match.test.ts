@@ -8,6 +8,7 @@ import {
   normalizeClauseType,
   clauseTypesAgree,
   bestOverlap,
+  clauseRegions,
 } from "@/lib/eval/match";
 
 /**
@@ -298,5 +299,72 @@ describe("matchDocument", () => {
       { findingIndex: 0, duplicateOf: null },
     ]);
     expect(matchDocument([], [], parts).pairs).toEqual([]);
+  });
+});
+
+describe("clause regions", () => {
+  // A clause is bigger than the sentences stating its terms. Anchors cover the
+  // first and last; the procedural sentence between them is anchored by neither.
+  const TEXT = [
+    "# 4. Attrition",
+    "Attrition is measured night-by-night.",
+    "Any determination under this Section shall be made in good faith.",
+    "The threshold is ninety-five percent (95%).",
+    "# 5. Cancellation",
+    "Damages are a percentage of gross room revenue.",
+  ].join("\n");
+
+  const at = (needle: string) => {
+    const start = TEXT.indexOf(needle);
+    if (start === -1) throw new Error(`fixture lacks ${needle}`);
+    return { part: "document", start, end: start + needle.length };
+  };
+
+  const parts = [{ part: "document", text: TEXT }];
+  const item = keyItem({
+    anchors: [at("Attrition is measured night-by-night."), at("The threshold is ninety-five percent (95%).")],
+    anchor_texts: ["Attrition is measured night-by-night.", "The threshold is ninety-five percent (95%)."],
+  });
+
+  it("groups a clause's anchors into one region per part", () => {
+    const regions = clauseRegions([
+      { part: "document", start: 10, end: 20 },
+      { part: "document", start: 50, end: 60 },
+      { part: "footer1", start: 0, end: 5 },
+    ]);
+    expect(regions).toEqual([
+      { part: "document", start: 10, end: 60 },
+      { part: "footer1", start: 0, end: 5 },
+    ]);
+  });
+
+  it("pairs a finding quoting the clause's unanchored middle, at a lower weight", () => {
+    const middle = finding({ quoted_text: "Any determination under this Section shall be made in good faith." });
+    const location = locateFinding(parts, middle);
+    const candidate = scoreCandidate(item, middle, location)!;
+
+    expect(candidate).not.toBeNull();
+    expect(candidate.basis).toBe("span");
+    expect(candidate.overlap).toBe(0);
+
+    // An anchor hit must always win the pairing over a region hit.
+    const onAnchor = finding({ quoted_text: "The threshold is ninety-five percent (95%)." });
+    const better = scoreCandidate(item, onAnchor, locateFinding(parts, onAnchor))!;
+    expect(better.weight).toBeGreaterThan(candidate.weight);
+  });
+
+  it("still refuses a finding located outside the clause entirely", () => {
+    const elsewhere = finding({ quoted_text: "Damages are a percentage of gross room revenue." });
+    expect(scoreCandidate(item, elsewhere, locateFinding(parts, elsewhere))).toBeNull();
+  });
+
+  it("prefers the anchor hit when two findings compete for one item", () => {
+    const middle = finding({ quoted_text: "Any determination under this Section shall be made in good faith." });
+    const onAnchor = finding({ quoted_text: "The threshold is ninety-five percent (95%)." });
+    const result = matchDocument([item], [middle, onAnchor], parts);
+
+    expect(result.pairs).toHaveLength(1);
+    expect(result.pairs[0].findingIndex).toBe(1);
+    expect(result.unmatchedFindings).toEqual([{ findingIndex: 0, duplicateOf: 0 }]);
   });
 });

@@ -283,8 +283,10 @@ need not.
 **Now, on personal accounts, no CD data:**
 
 - [x] 1. Analysis pipeline, headless — stage-1 library, structured outputs, inline PDF
-- [ ] 2. Eval harness against a synthetic answer key — **deferred at request**, revisit
-      once the library/UI are further along
+- [x] 2. Eval harness against a synthetic answer key — **built 2026-09-09** as §2.0.1.
+      Seven generated contracts, 90 key items, scored by document position rather than
+      by clause name. `npm run eval:capture` then `npm run eval:score -- --run <label>`.
+      See `docs/eval-harness.md`, including how CD's real key swaps in.
 - [x] 3. Scaffold — Next.js, Supabase schema, own auth layer, and GitHub repo
       ([horanshea-ops/CD-Contract-Reviewer-Pro](https://github.com/horanshea-ops/CD-Contract-Reviewer-Pro))
       all done; **Vercel deploy not started**, still local-only (`npm run dev`). Note
@@ -397,11 +399,27 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 - **Work that does not need CD — now §2.0.1/§2.0.2/§2.0.3/§2.1.1 (noted 2026-09-09,
   not started).** Numbered into `MASTER_PLAN.md` on 2026-09-09 and marked ungated there;
   90-140 hours in total. In leverage order:
-  1. **The eval harness — §2.0.1, Opus 5 · high** (build order item 2, deferred at
-     request). Highest
-     leverage of anything here. Building it now against a *synthetic* answer key
-     means the day CD's real key arrives it is a data swap, not a build — otherwise
-     the scarcest resource in the project waits on engineering.
+  1. **The eval harness — §2.0.1, Opus 5 · high. DONE 2026-09-09.** Built against a
+     synthetic answer key, so CD's real key arrives as a data swap rather than a build.
+     `lib/eval/` never imports the synthetic key and a test asserts it.
+
+     What it measures is narrower than "is the tool accurate": the key derives from
+     `lib/standards/v1.ts`, the same library the model reads, so a score says whether
+     the pipeline **applies the standards it is given**. Whether CD's positions are
+     right is still question 3, and still needs a senior associate.
+
+     Ground truth is by construction. Contracts are written *from* a spec that already
+     states every term, and a six-check gate refuses any draft whose prose drifted from
+     it — including a read-back by a second model, because an obligation granted or
+     denied has no literal handle to check. Findings are paired to key items by where
+     they point in the document, never by clause name: pairing on the name would make
+     "right issue, wrong name" score as a miss plus a false positive, and clause-name
+     accuracy would read as perfect on exactly the findings that got it wrong.
+
+     Corpus is seven contracts and 90 key items — enough for per-clause and
+     per-severity breakdowns, not enough to read one percentage as a forecast. Eight
+     more specs are written and held in `RESERVE_SPECS`. Recurring cost is about $1.50
+     per measurement run; scoring itself is free and offline.
   2. **Term extraction — §2.0.2, Opus 5 · xhigh.** Its own answer key was described as
      needing a senior
      associate, but verifying that a contract saying 90% was extracted as `0.90` is
