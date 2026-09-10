@@ -82,6 +82,29 @@ const terms = (spec: EvalContractSpec, clauseType: string): ClauseTerms => {
 /** Case, punctuation and spacing set aside, for comparing a sentence to a note. */
 const flatten = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
+/**
+ * Retries a call that failed for a reason unrelated to what it asked for.
+ *
+ * A dropped stream or a rate limit says nothing about the draft, and letting it
+ * end a seven-contract build wastes every contract already paid for. Gate
+ * failures are handled separately and are not retried here — those mean the
+ * draft was wrong, not that the call was.
+ */
+async function withRetry<T>(what: string, attempt: () => Promise<T>): Promise<T> {
+  let last: unknown;
+  for (let tries = 1; tries <= 3; tries++) {
+    try {
+      return await attempt();
+    } catch (err) {
+      last = err;
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`  ${what} failed (attempt ${tries}/3): ${message}`);
+      if (tries < 3) await new Promise((resolve) => setTimeout(resolve, 2000 * tries));
+    }
+  }
+  throw last;
+}
+
 function draftRequests(spec: EvalContractSpec, clauseTypes: string[]): ClauseDraftRequest[] {
   return clauseTypes.map((clauseType) => ({
     clause_type: clauseType,
@@ -318,15 +341,17 @@ export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Pr
     let lastFailures: string[] = [];
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS && pending.length > 0; attempt++) {
-      const result = await deps.draftClauses({
-        hotel: spec.hotel,
-        group: spec.group,
-        city: spec.city,
-        state: spec.state,
-        dates: spec.dates,
-        voice: spec.style.voice,
-        clauses: pending,
-      });
+      const result = await withRetry("drafting", () =>
+        deps.draftClauses({
+          hotel: spec.hotel,
+          group: spec.group,
+          city: spec.city,
+          state: spec.state,
+          dates: spec.dates,
+          voice: spec.style.voice,
+          clauses: pending,
+        })
+      );
       tokens.input += result.input_tokens;
       tokens.output += result.output_tokens;
 
@@ -374,10 +399,12 @@ export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Pr
   // spec says. This is the only check that covers the boolean terms, whose
   // wording the drafter chose.
   const questions = readBackQuestions(spec);
-  const readBack = await deps.readBack({
-    contractText: extracted.parts.map((p) => p.text).join("\n\n"),
-    questions: questions.map(({ id, question, options }) => ({ id, question, options })),
-  });
+  const readBack = await withRetry("read-back", () =>
+    deps.readBack({
+      contractText: extracted.parts.map((p) => p.text).join("\n\n"),
+      questions: questions.map(({ id, question, options }) => ({ id, question, options })),
+    })
+  );
   tokens.input += readBack.input_tokens;
   tokens.output += readBack.output_tokens;
 

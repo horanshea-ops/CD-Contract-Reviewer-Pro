@@ -80,9 +80,13 @@ export interface Quantity {
 
 const PERCENT_RE = /(\d+(?:\.\d+)?)\s*(?:%|percent\b)/gi;
 const USD_RE = /\$\s*([\d,]+(?:\.\d{1,2})?)/g;
-const DAYS_RE = /(\d+)\s*(?:\(\d+\)\s*)?(?:calendar\s+|business\s+)?days?\b/gi;
-const MONTHS_RE = /(\d+)\s*(?:\(\d+\)\s*)?months?\b/gi;
-const HOURS_RE = /(\d+)\s*(?:\(\d+\)\s*)?hours?\b/gi;
+// The digits may be bare ("30 days") or parenthesised after the word
+// ("thirty (30) days"), which is the form contracts actually use. Matching only
+// the first meant every duration assertion reported "states no figure" and
+// failed correct proposals — a scoring failure with no visible symptom.
+const DAYS_RE = /\(?(\d+)\)?\s*(?:calendar\s+|business\s+)?days?\b/gi;
+const MONTHS_RE = /\(?(\d+)\)?\s*months?\b/gi;
+const HOURS_RE = /\(?(\d+)\)?\s*hours?\b/gi;
 
 /**
  * Every quantity in a piece of text.
