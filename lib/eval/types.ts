@@ -76,10 +76,18 @@ export interface KeyItem {
   kind: KeyItemKind;
   clause_type: string;
   severity: Severity;
-  /** Where the offending wording sits. Null when the clause is absent. */
-  anchor: AnchorSpan | null;
-  /** The wording itself, carried so a human can audit the key without the DOCX. */
-  anchor_text: string | null;
+  /**
+   * Every place the offending wording sits. Empty when the clause is absent.
+   *
+   * A list rather than one span because contracts restate terms — a
+   * cancellation percentage appears in the prose and again in the schedule
+   * table — and a finding quoting either one is pointing at the same issue.
+   * With a single anchor the second quote overlaps nothing, and a correct
+   * finding is scored as a miss plus a false positive.
+   */
+  anchors: AnchorSpan[];
+  /** The wording itself, so a human can audit the key without opening the DOCX. */
+  anchor_texts: string[];
   expected_language: LanguageAssertion[];
   exposure: ExposureExpectation;
   /** Why this is ground truth, in plain language. Read by humans, never by code. */
@@ -202,11 +210,11 @@ export interface MatchedPair {
   finding_index: number;
   basis: MatchBasis;
   weight: number;
-  /** How much of the key's anchor the finding's span covers. 0 on a clause-type match. */
+  /** How much of the best-overlapping anchor the finding covers. 0 on a clause-type match. */
   overlap_fraction: number;
   key_clause_type: string;
   key_severity: Severity;
-  key_anchor_text: string | null;
+  key_anchor_texts: string[];
   finding_clause_type: string;
   finding_severity: Severity;
   finding_quoted_text: string | null;
@@ -219,7 +227,7 @@ export interface MissedItem {
   clause_type: string;
   severity: Severity;
   kind: KeyItemKind;
-  anchor_text: string | null;
+  anchor_texts: string[];
   /**
    * Index of a matched finding whose span already covers this anchor, when
    * there is one. That is one finding standing in for two issues, which is a
