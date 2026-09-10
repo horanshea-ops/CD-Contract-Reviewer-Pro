@@ -1,12 +1,13 @@
 import { loadEnvLocal } from "./load-env";
 loadEnvLocal();
 
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, readFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { draftEvalClauses, readBackEvalTerms } from "../lib/anthropic";
 import { loadStandardsLibrary } from "../lib/standards/load";
 import { EVAL_SPECS } from "../lib/eval/corpus/specs";
 import { buildContract, CorpusIntegrityError } from "../lib/eval/corpus/draft";
+import type { DraftedClause } from "../lib/eval/corpus/layout";
 import { deriveKeyItems, resolveKeyItems } from "../lib/eval/corpus/derive-key";
 import type { AnswerKey, AnswerKeyContract } from "../lib/eval/types";
 
@@ -16,12 +17,27 @@ import type { AnswerKey, AnswerKeyContract } from "../lib/eval/types";
  * Costs tokens. Every contract it writes is invented, and no CD client document
  * is read, written or referenced at any point.
  *
- * Run with no arguments to build all fifteen, or `--only eval-03-bayfront` to
- * build one — worth doing first, to look at the prose before paying for the
+ * Run with no arguments to build the whole corpus, or `--only eval-03-bayfront`
+ * to build one — worth doing first, to look at the prose before paying for the
  * rest.
+ *
+ * `--resume` reuses any contract whose drafted clauses are already on disk,
+ * redrafting only what is missing. Each successful build writes those clauses
+ * beside its DOCX for exactly that purpose: one contract failing at the end of
+ * seven should not mean paying to redraft the six that succeeded. A reused
+ * contract skips the read-back, which it already passed when it was written.
  */
 
 const CORPUS_DIR = path.join("data", "sample-contracts", "eval");
+
+/** Clauses an earlier successful build wrote, or null if there are none to reuse. */
+async function readDraft(at: string): Promise<DraftedClause[] | null> {
+  try {
+    return JSON.parse(await readFile(at, "utf8")) as DraftedClause[];
+  } catch {
+    return null;
+  }
+}
 const KEY_PATH = path.join("data", "eval", "synthetic-key-v1.json");
 
 // Rates per million tokens, for reporting only.
@@ -38,6 +54,7 @@ function costOf(model: string, input: number, output: number): number | null {
 }
 
 async function main() {
+  const resume = process.argv.includes("--resume");
   const onlyAt = process.argv.indexOf("--only");
   const only = onlyAt === -1 ? null : process.argv[onlyAt + 1];
   const specs = only ? EVAL_SPECS.filter((s) => s.id === only) : EVAL_SPECS;
@@ -62,13 +79,18 @@ async function main() {
     const started = Date.now();
 
     try {
-      const built = await buildContract(spec, {
-        draftClauses: draftEvalClauses,
-        readBack: readBackEvalTerms,
-      });
+      const draftPath = path.join(CORPUS_DIR, `${spec.id}.draft.json`);
+      const reuse = resume ? await readDraft(draftPath) : null;
+
+      const built = await buildContract(
+        spec,
+        { draftClauses: draftEvalClauses, readBack: readBackEvalTerms },
+        reuse ? { reuse } : {}
+      );
 
       const file = `${spec.id}.docx`;
       await writeFile(path.join(CORPUS_DIR, file), built.bytes);
+      await writeFile(draftPath, `${JSON.stringify(built.drafted, null, 2)}\n`);
 
       const items = resolveKeyItems(
         deriveKeyItems(spec, standards.entries).map((item) => ({ ...item, contract: file })),
@@ -81,7 +103,7 @@ async function main() {
 
       const words = built.extracted.parts.reduce((n, p) => n + p.text.split(/\s+/).length, 0);
       console.log(
-        `ok — ${(built.bytes.length / 1024).toFixed(0)}KB, ~${Math.round(words / 450)} pages, ` +
+        `${reuse ? "reused" : "ok"} — ${(built.bytes.length / 1024).toFixed(0)}KB, ~${Math.round(words / 450)} pages, ` +
           `${built.anchors.length} anchors, ${items.length} key items, ${((Date.now() - started) / 1000).toFixed(0)}s`
       );
       for (const retry of built.retries) console.log(`     retried: ${retry}`);

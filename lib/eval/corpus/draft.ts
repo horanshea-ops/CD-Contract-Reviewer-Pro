@@ -402,11 +402,47 @@ async function draftInto(
   }
 }
 
-export async function buildContract(spec: EvalContractSpec, deps: DraftDeps): Promise<BuildContractResult> {
+export interface BuildContractOptions {
+  /**
+   * Clauses drafted by an earlier run that already passed the gate.
+   *
+   * Supplying them skips drafting and skips the read-back, and the contract is
+   * only reassembled so its anchors can be located again. That is what makes a
+   * failed build cheap to resume: one contract failing at the end of seven
+   * should not mean paying to redraft the six that succeeded.
+   */
+  reuse?: DraftedClause[];
+}
+
+export async function buildContract(
+  spec: EvalContractSpec,
+  deps: DraftDeps,
+  options: BuildContractOptions = {}
+): Promise<BuildContractResult> {
   const clauseTypes = clausesToDraft(spec);
   const tokens = { input: 0, output: 0 };
   const retries: string[] = [];
   const drafted = new Map<string, DraftedClause>();
+
+  if (options.reuse) {
+    for (const clause of options.reuse) drafted.set(clause.clause_type, clause);
+
+    const missing = clauseTypes.filter((c) => !drafted.has(c));
+    if (missing.length) {
+      throw new CorpusIntegrityError(spec.id, [
+        `reused draft is missing clause(s) ${missing.join(", ")} — the spec changed since it was written, so redraft it`,
+      ]);
+    }
+
+    const ordered = clauseTypes.map((c) => drafted.get(c)!);
+    const { document, anchors: placed } = layOutContract(spec, ordered);
+    const bytes = await buildContractDocx(document);
+    const extracted = await extractDocx(bytes);
+    const { anchors, failures } = resolveAnchors(extracted, placed);
+    if (failures.length) throw new CorpusIntegrityError(spec.id, failures);
+
+    return { spec, bytes, extracted, anchors, drafted: ordered, attempts: 0, tokens, retries };
+  }
 
   await draftInto(spec, clauseTypes, drafted, deps, tokens, retries);
 
