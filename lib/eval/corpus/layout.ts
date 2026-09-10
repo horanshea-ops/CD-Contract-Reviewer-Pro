@@ -123,15 +123,26 @@ const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits
  * same figure whenever the top tier was low, so a contract whose spec says its
  * damages slide carried a table showing they do not.
  */
-function cancellationRows(topTierPct: number): string[][] {
-  const bands: Array<[string, number]> = [
-    ["365 days or more prior to arrival", 0.25],
-    ["364 through 181 days prior to arrival", 0.5],
-    ["180 through 91 days prior to arrival", 0.75],
-    ["90 through 31 days prior to arrival", 0.9],
-    ["30 days or fewer prior to arrival", 1],
+function cancellationRows(topTierPct: number, liabilityFreeMonths: number): string[][] {
+  // The third number is the band's NEAREST approach to arrival, in months. A
+  // band owes nothing only when the whole of it lies beyond the clause's
+  // liability-free window, which is what its nearest edge decides.
+  //
+  // Comparing against the band's far edge instead — the first attempt at this —
+  // zeroed every band from 364 days down to 31 in a contract with a twelve-month
+  // free window, leaving a schedule that charged nothing until the final tier
+  // and then jumped straight to the top rate. The model flagged that too.
+  const bands: Array<[string, number, number]> = [
+    ["365 days or more prior to arrival", 0.25, 12],
+    ["364 through 181 days prior to arrival", 0.5, 6],
+    ["180 through 91 days prior to arrival", 0.75, 3],
+    ["90 through 31 days prior to arrival", 0.9, 1],
+    ["30 days or fewer prior to arrival", 1, 0],
   ];
-  return bands.map(([label, share]) => [label, pct(share * topTierPct)]);
+  return bands.map(([label, share, nearestMonths]) => [
+    label,
+    liabilityFreeMonths > 0 && nearestMonths >= liabilityFreeMonths ? "None" : pct(share * topTierPct),
+  ]);
 }
 
 function roomBlockRows(spec: EvalContractSpec): string[][] {
@@ -160,9 +171,12 @@ export function layOutContract(spec: EvalContractSpec, drafted: DraftedClause[])
   blocks.push({
     kind: "para",
     text:
+      // The food and beverage minimum is stated by its own clause and nowhere
+      // else. Naming it here too produced two different figures in one contract
+      // — the spec's here, the drafter's there — which the model reported as a
+      // finding, correctly, against a key that knew nothing about it.
       `Hotel will hold a block of ${spec.room_block} guest rooms on the peak night at a group rate of ${usd(spec.adr)} per room, per night, ` +
-      `single or double occupancy, exclusive of applicable state and local occupancy taxes. Group's contracted food and beverage minimum ` +
-      `for the event is ${usd(spec.fb_minimum)}.`,
+      `single or double occupancy, exclusive of applicable state and local occupancy taxes.`,
   });
   if (spec.style.tables === "many") {
     blocks.push({ kind: "table", header: ["Date", "Rooms", "Group Rate"], rows: roomBlockRows(spec) });
@@ -185,7 +199,9 @@ export function layOutContract(spec: EvalContractSpec, drafted: DraftedClause[])
     if (clauseType === "cancellation") {
       const terms = spec.terms.cancellation;
       const topTier = terms !== "absent" && typeof terms.top_tier_pct === "number" ? terms.top_tier_pct : 1;
-      const rows = cancellationRows(topTier);
+      const freeMonths =
+        terms !== "absent" && typeof terms.liability_free_months === "number" ? terms.liability_free_months : 0;
+      const rows = cancellationRows(topTier, freeMonths);
       blocks.push({ kind: "table", header: ["Date of Written Cancellation Notice", "Liquidated Damages"], rows });
       anchors.push({
         clause_type: "cancellation",

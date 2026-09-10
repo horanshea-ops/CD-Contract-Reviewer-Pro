@@ -65,6 +65,20 @@ describe("the analysis system prompt", () => {
     });
   });
 
+  describe("a narrow deviation is still a deviation", () => {
+    // The first pass at the findings-shape rules cost a real finding: a 35-day
+    // cutoff against CD's 30 went unreported, having been checked. Telling the
+    // model not to file compliant clauses reads, without this, as "when in
+    // doubt, stay quiet".
+    it("says the margin does not matter", () => {
+      expect(prompt()).toContain("A deviation is a finding however narrow the margin");
+    });
+
+    it("separates meeting CD's position from missing it by a little", () => {
+      expect(prompt()).toContain("for clauses that MEET CD's position, not for ones that miss it by a little");
+    });
+  });
+
   describe("severity", () => {
     it("anchors severity to the library rather than leaving it free", () => {
       expect(prompt()).toContain("severity comes from that clause's severity_default");

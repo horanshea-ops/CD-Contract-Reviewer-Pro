@@ -1,0 +1,124 @@
+{
+  "run_id": "promptfix-eval03",
+  "created_at": "2026-09-10T20:10:15.652Z",
+  "model_id": "claude-sonnet-5",
+  "standards_version": "v1-industry-default",
+  "standards_hash": "e122df20b3e003bd27b3da51d97097a839febaefd51a19a968bbe597945976ea",
+  "documents": [
+    {
+      "contract": "eval-03-bayfront.docx",
+      "analysis": {
+        "findings": [
+          {
+            "clause_type": "fb_minimum",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "finding_text": "There are two conflicting F&B minimum figures in this contract: Section 1 states the minimum is $48,000.00, while Section 9 states it is $40,000.00. Section 9 also assesses the full dollar-for-dollar shortfall plus an additional 35% penalty on top of the shortfall, rather than capping Group's liability at 35% of the shortfall as CD negotiates. This creates significantly greater exposure than CD's standard and an internal inconsistency that should be resolved before signature.",
+            "cd_standard": "Food and beverage minimums should lock in menu pricing no earlier than 12 months before the event, and any shortfall should be billed at a fraction of the gap, not the full difference — CD's own contract asks for 35% of the shortfall, well below a dollar-for-dollar penalty.",
+            "proposed_language": "Group agrees to a single, consistent food and beverage minimum of $[X] (exclusive of service charge and tax), reconciling Sections 1 and 9 of this Agreement. If actual food and beverage revenue is less than the minimum, Group will pay Hotel thirty-five percent (35%) of the difference between actual revenue and the minimum, in lieu of the full shortfall amount plus any additional percentage penalty.",
+            "quoted_text": "The Group shall incur a food and beverage minimum of Forty Thousand Dollars ($40,000.00) for the event held June 2-5, 2027... If the Group's actual food and beverage charges fall short of the minimum, the Group shall pay the Hotel the shortfall amount within thirty (30) days of the Hotel's invoice... The shortfall rate shall apply to any shortfall amount, assessed at thirty-five percent (35%) in addition to the base shortfall.",
+            "exposure_amount": 14000,
+            "exposure_basis": "Full $40,000-48,000 shortfall potentially owed plus an additional 35% penalty on top, versus CD's standard of paying only 35% of any shortfall (e.g., on a full $40,000 miss, CD standard = $14,000 vs. this contract's $40,000 + $14,000 = $54,000).",
+            "model_confidence": "high"
+          },
+          {
+            "clause_type": "attrition",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "finding_text": "Attrition liability is triggered if pickup falls below 75% of the block, rather than CD's standard 70% threshold, meaning Group bears exposure on a larger share of unsold rooms than CD negotiates. The formula otherwise resembles CD's standard (cumulative measurement, 95% single-night credit, audit rights), but the higher trigger threshold increases Group's downside exposure.",
+            "cd_standard": "Attrition should be measured cumulatively across the entire room block, not night-by-night, with liability triggered only if pickup falls below 70% of the block — CD's own ideal contract language.",
+            "proposed_language": "Should Group fail to occupy at least seventy percent (70%) of committed rooms, Group shall pay the Hotel liquidated damages equal to the room rate applicable to the unoccupied rooms below that threshold, multiplied by seventy percent (70%), for each night the threshold is not met.",
+            "quoted_text": "Should Group fail to occupy at least seventy-five percent (75%) of committed rooms, Group shall pay the Hotel liquidated damages equal to the room rate applicable to the unoccupied rooms, multiplied by seventy percent (70%), for each night the threshold is not met.",
+            "exposure_amount": null,
+            "exposure_basis": null,
+            "model_confidence": "medium"
+          },
+          {
+            "clause_type": "cancellation",
+            "is_missing_clause": false,
+            "severity": "high",
+            "finding_text": "The cancellation damages scale runs as high as 70% and applies even for cancellations a full year or more prior to arrival (18% at 365+ days out), whereas CD's standard calls for no liability at all for cancellations more than 12 months before arrival, and lower percentages closer-in. This contract's scale is materially more punitive at every tier than CD's position, particularly the 18% floor charged even for very early cancellations.",
+            "cd_standard": "Cancellation damages should be a sliding scale tied to how close to the event the cancellation occurs, calculated against lost room profit (not gross revenue), with no liability for cancellation more than twelve (12) months prior to arrival.",
+            "proposed_language": "Replace the liquidated damages schedule with a sliding scale that imposes no liability for cancellation more than twelve (12) months prior to arrival, with damages calculated against seventy percent (70%) of the confirmed group room rate (room profit) rather than gross rate, and lower percentages at each subsequent tier (e.g., 25% at 12-6 months, 50% at 6-3 months, 70% within 90 days).",
+            "quoted_text": "365 days or more prior to arrival | 18%",
+            "exposure_amount": 4644.15,
+            "exposure_basis": "90 committed rooms x $199 group rate x 18% penalty applied even for cancellations 365+ days prior to arrival, where CD standard calls for zero liability at that point ($199 x 90 x 0.18 = $3,222 on peak-night estimate; using full 4-night block of 90 room-nights the exposure is proportionally similar).",
+            "model_confidence": "medium"
+          },
+          {
+            "clause_type": "gratuity_service_charge",
+            "is_missing_clause": false,
+            "severity": "low",
+            "finding_text": "The gratuity/service charge definitions and disclosure match CD's standard, but note the service charge rate itself (22% of F&B subtotal) is a substantial additional cost stacked on top of the F&B minimum — worth flagging to the client as a cost driver even though the clause structure is not deficient.",
+            "cd_standard": "Gratuity and service charge should be clearly and separately defined: gratuity should be fully distributed to the staff who worked the event, while any separate service charge — which is the hotel's own revenue, not staff pay — should be disclosed as such rather than left ambiguous or presented as a tip.",
+            "proposed_language": "Confirm the 22% service charge rate is acceptable to Group given its stacking on top of the food and beverage minimum, and consider negotiating a lower percentage given the size of the F&B commitment.",
+            "quoted_text": "Group shall pay a service charge of twenty-two percent (22%) calculated on the subtotal of food and beverage charges before tax.",
+            "exposure_amount": null,
+            "exposure_basis": null,
+            "model_confidence": "low"
+          },
+          {
+            "clause_type": "ada_compliance",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "finding_text": "The auxiliary aids cost-sharing provision is vague, stating costs 'shall be divided between Group and the Hotel' without specifying the split or which party is responsible for which category of aid, unlike CD's standard which clearly assigns event-space auxiliary aids to Group and guest room/common area aids to Hotel.",
+            "cd_standard": "The hotel should warrant that its guest rooms, common areas, function space, and transportation services comply with the ADA's public accommodation requirements... with a clear division of who funds auxiliary aids in event space (group) versus guest rooms and common areas (hotel).",
+            "proposed_language": "Group is responsible for obtaining and funding any auxiliary aids needed in the function space held for its use; Hotel is responsible for obtaining and funding any auxiliary aids required by law in guest rooms, public space, and common areas. Both parties will communicate known auxiliary-aid and accessible-guest-room needs to the other in advance.",
+            "quoted_text": "The cost of any auxiliary aids or services requested by Group or its attendees, including but not limited to interpreters, transcription services, specialized audio equipment and accessible transportation, shall be divided between Group and the Hotel.",
+            "exposure_amount": null,
+            "exposure_basis": null,
+            "model_confidence": "medium"
+          },
+          {
+            "clause_type": "assignment_subcontracting",
+            "is_missing_clause": false,
+            "severity": "low",
+            "finding_text": "The assignment clause requires the assignee to be 'in the same industry as Group' and imposes joint-and-several liability along with continuing liability for Group even after assignment — narrower and more burdensome than CD's standard, which asks only that the assignee assume obligations and that the event remain substantially unchanged, without requiring Group to remain on the hook after a permitted assignment.",
+            "cd_standard": "The group should be able to assign the contract to a successor management company or affiliated entity... without the hotel's consent being unreasonably withheld, particularly where the event itself is unchanged.",
+            "proposed_language": "Group may assign this Agreement to a successor association management company or affiliated entity without Hotel's consent, provided the assignee assumes all obligations under this Agreement and the event dates, room block, and program remain substantially unchanged. Upon a permitted assignment and assumption, Group shall be released from further liability under this Agreement.",
+            "quoted_text": "Group may assign this agreement to a successor or affiliated management entity provided that the assignee is in the same industry as Group, is capable of performing all obligations under the agreement, and assumes all of Group's liabilities and duties in writing. The assignee shall remain liable jointly and severally with Group for all payments and performance obligations, and Group shall remain liable to the Hotel for any default by the assignee.",
+            "exposure_amount": null,
+            "exposure_basis": null,
+            "model_confidence": "medium"
+          }
+        ],
+        "clauses_checked": [
+          "fb_minimum",
+          "exclusivity_vendors",
+          "attrition",
+          "cancellation",
+          "force_majeure",
+          "cutoff_date",
+          "walk_relocation",
+          "mandatory_fees",
+          "rebates",
+          "assignment_subcontracting",
+          "construction_renovation",
+          "master_account_billing",
+          "review_audit_dates",
+          "insurance_indemnification",
+          "damage_deposit",
+          "termination_rights",
+          "brand_ownership_change",
+          "named_storm",
+          "attendee_data_handling",
+          "ada_compliance",
+          "governing_law_venue",
+          "labor_disputes",
+          "rate_parity",
+          "gratuity_service_charge",
+          "resale_mitigation_duty"
+        ],
+        "document_notes": "The contract contains an internal inconsistency between Section 1 (F&B minimum stated as $48,000) and Section 9 (F&B minimum stated as $40,000, with detailed shortfall mechanics) — this discrepancy should be flagged to the hotel for correction regardless of the substantive shortfall-penalty issue. Most other clauses (force majeure, named storm, termination for cause, brand/ownership change, labor relations, outside vendors, rate parity, master account billing, security deposit, relocation, construction/renovation, mandatory fees, complimentary rooms, attendee data, governing law/venue, review/audit, resale mitigation, insurance/indemnification) track closely to CD's standard positions as drafted.",
+        "model_id": "claude-sonnet-5",
+        "standards_library_version": "v1-industry-default",
+        "input_tokens": 7840,
+        "output_tokens": 3846,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 11242
+      },
+      "error": null,
+      "elapsed_ms": 88773
+    }
+  ]
+}

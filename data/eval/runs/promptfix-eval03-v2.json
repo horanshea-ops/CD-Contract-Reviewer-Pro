@@ -1,0 +1,143 @@
+{
+  "run_id": "promptfix-eval03-v2",
+  "created_at": "2026-09-10T20:16:55.772Z",
+  "model_id": "claude-sonnet-5",
+  "standards_version": "v1-industry-default",
+  "standards_hash": "e122df20b3e003bd27b3da51d97097a839febaefd51a19a968bbe597945976ea",
+  "documents": [
+    {
+      "contract": "eval-03-bayfront.docx",
+      "analysis": {
+        "findings": [
+          {
+            "clause_type": "attrition",
+            "is_missing_clause": false,
+            "severity": "high",
+            "finding_text": "Attrition liability triggers if pickup falls below 75% of committed rooms, rather than CD's standard threshold of 70%. This means Group faces damages exposure for a smaller shortfall than CD's position calls for, even though the 70% damages rate and 95%-occupancy credit provisions otherwise match CD's standard.",
+            "cd_standard": "Attrition liability should be triggered only if pickup falls below 70% of the block, not 75%.",
+            "proposed_language": "Should Group fail to occupy at least seventy percent (70%) of committed rooms, Group shall pay the Hotel liquidated damages equal to the room rate applicable to the unoccupied rooms, multiplied by seventy percent (70%), for each night the threshold is not met.",
+            "quoted_text": "Should Group fail to occupy at least seventy-five percent (75%) of committed rooms, Group shall pay the Hotel liquidated damages equal to the room rate applicable to the unoccupied rooms, multiplied by seventy percent (70%), for each night the threshold is not met.",
+            "model_confidence": "high",
+            "location_section": "2. Attrition",
+            "exposure_amount": null,
+            "exposure_basis": null
+          },
+          {
+            "clause_type": "cutoff_date",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "finding_text": "The reservation cutoff is set at 35 days prior to arrival, which falls outside CD's preferred window of 21-30 days prior to arrival.",
+            "cd_standard": "The cutoff date should be no earlier than 21-30 days prior to arrival.",
+            "proposed_language": "All reservations for rooms within the group block must be made on or before twenty-one (21) days prior to arrival.",
+            "quoted_text": "All reservations for rooms within the group block must be made on or before thirty-five (35) days prior to arrival.",
+            "model_confidence": "high",
+            "location_section": "3. Reservation Cutoff Date",
+            "exposure_amount": null,
+            "exposure_basis": null
+          },
+          {
+            "clause_type": "cancellation",
+            "is_missing_clause": false,
+            "severity": "high",
+            "finding_text": "The cancellation table shows no sliding scale of graduated liability between the no-liability period and the final tier — every window from 364 days down to 31 days prior to arrival carries no liability, and then damages jump straight to 70% for cancellations within 30 days. This is not the sliding scale CD's standard calls for (which grades liability progressively as arrival approaches, including intermediate liability in the 6-12 month and closer windows), and it also does not match the narrative text in the same section, which describes 50% liability for cancellations 6-12 months out and 100% liability within 6 months — the table and narrative are inconsistent with each other, and neither matches the sliding-scale structure or percentages CD's standard calls for.",
+            "cd_standard": "Cancellation damages should be a sliding scale tied to how close to the event the cancellation occurs, calculated against lost room profit.",
+            "proposed_language": "Damages will be calculated as a percentage of room profit (defined as seventy percent (70%) of the confirmed group room rate) on a sliding scale based on the number of days prior to arrival, consistent between the narrative description and the table, with no liability for cancellation more than twelve (12) months prior to arrival and graduated liability percentages for each intervening window leading up to the event.",
+            "quoted_text": "cancellation more than twelve (12) months before arrival carries no liability, cancellation between six (6) and twelve (12) months before arrival is subject to fifty percent (50%) of damages, and cancellation within six (6) months of arrival is subject to one hundred percent (100%) of damages.",
+            "model_confidence": "high",
+            "location_section": "4. Cancellation and Liquidated Damages",
+            "exposure_amount": null,
+            "exposure_basis": null
+          },
+          {
+            "clause_type": "fb_minimum",
+            "is_missing_clause": false,
+            "severity": "high",
+            "finding_text": "The contract requires Group to pay the full shortfall amount plus an additional 35% penalty on top of that shortfall, rather than paying only 35% of the shortfall as CD's standard calls for. This is a substantially more onerous formula than CD's position — it is not simply a shortfall billed at 35%, but a full dollar-for-dollar shortfall payment plus a 35% surcharge.",
+            "cd_standard": "Any F&B shortfall should be billed at 35% of the gap, not the full difference (and certainly not the full difference plus an additional surcharge).",
+            "proposed_language": "If actual food and beverage revenue is less than the minimum, Group will pay Hotel thirty-five percent (35%) of the difference between actual revenue and the minimum, in lieu of the full shortfall amount.",
+            "quoted_text": "The Hotel shall calculate the shortfall based on its standard accounting records. Any dispute regarding the calculation must be raised in writing within fourteen (14) days of the invoice; absent a timely dispute, the calculation is deemed accepted. The shortfall rate shall apply to any shortfall amount, assessed at thirty-five percent (35%) in addition to the base shortfall.",
+            "model_confidence": "high",
+            "location_section": "9. Food and Beverage Minimum",
+            "exposure_amount": 14000,
+            "exposure_basis": "35% surcharge applied on top of the full $40,000 F&B minimum shortfall, if F&B revenue were $0, the surcharge alone would be $14,000 in addition to the $40,000 base shortfall"
+          },
+          {
+            "clause_type": "gratuity_service_charge",
+            "is_missing_clause": false,
+            "severity": "low",
+            "finding_text": "The 22% service charge itself is disclosed and distinguished from gratuity as CD's standard requires, but the rate (22%) is notably high; while CD's standard does not cap the percentage, this is flagged for the client's negotiating awareness given the size of the F&B minimum.",
+            "cd_standard": "Gratuity and service charge should be clearly and separately defined and disclosed, with gratuity going to staff and service charge disclosed as hotel revenue.",
+            "proposed_language": "Group shall pay a service charge of [renegotiated %] calculated on the subtotal of food and beverage charges before tax.",
+            "quoted_text": "Group shall pay a service charge of twenty-two percent (22%) calculated on the subtotal of food and beverage charges before tax.",
+            "model_confidence": "low",
+            "location_section": "10. Gratuity and Service Charge",
+            "exposure_amount": 8800,
+            "exposure_basis": "22% service charge on $40,000 F&B minimum equals $8,800; flagged for rate reasonableness relative to typical market service charges"
+          },
+          {
+            "clause_type": "ada_compliance",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "finding_text": "Auxiliary aid costs are to be split between Group and Hotel, rather than allocated with Group funding aids needed in event/function space and Hotel funding aids required in guest rooms and common areas, as CD's standard calls for.",
+            "cd_standard": "Group should be responsible for auxiliary aids in function space it uses; Hotel should be responsible for auxiliary aids in guest rooms and common areas.",
+            "proposed_language": "Group is responsible for obtaining and funding any auxiliary aids needed in the function space held for its use; Hotel is responsible for obtaining and funding any auxiliary aids required by law in guest rooms, public space, and common areas.",
+            "quoted_text": "The cost of any auxiliary aids or services requested by Group or its attendees, including but not limited to interpreters, transcription services, specialized audio equipment and accessible transportation, shall be divided between Group and the Hotel.",
+            "model_confidence": "medium",
+            "location_section": "22. Accessibility",
+            "exposure_amount": null,
+            "exposure_basis": null
+          },
+          {
+            "clause_type": "assignment_subcontracting",
+            "is_missing_clause": false,
+            "severity": "low",
+            "finding_text": "Assignment to a successor is permitted, but only if the assignee is in the same industry as Group and assumes joint and several liability with Group indefinitely (Group never released), which is narrower than CD's standard, which contemplates assignment to a successor or affiliated management entity without such joint-liability holdover and without an industry restriction.",
+            "cd_standard": "Group should be able to assign the contract to a successor management company or affiliated entity without the hotel's consent being unreasonably withheld, particularly where the event is unchanged, and without unnecessary additional restrictions.",
+            "proposed_language": "Group may assign this Agreement to a successor association management company or affiliated entity without Hotel's consent, provided the assignee assumes all obligations under this Agreement and the event dates, room block, and program remain substantially unchanged.",
+            "quoted_text": "Group may assign this agreement to a successor or affiliated management entity provided that the assignee is in the same industry as Group, is capable of performing all obligations under the agreement, and assumes all of Group's liabilities and duties in writing. The assignee shall remain liable jointly and severally with Group for all payments and performance obligations, and Group shall remain liable to the Hotel for any default by the assignee.",
+            "model_confidence": "medium",
+            "location_section": "25. Assignment",
+            "exposure_amount": null,
+            "exposure_basis": null
+          }
+        ],
+        "clauses_checked": [
+          "fb_minimum",
+          "exclusivity_vendors",
+          "attrition",
+          "cancellation",
+          "force_majeure",
+          "cutoff_date",
+          "walk_relocation",
+          "mandatory_fees",
+          "rebates",
+          "assignment_subcontracting",
+          "construction_renovation",
+          "master_account_billing",
+          "review_audit_dates",
+          "insurance_indemnification",
+          "damage_deposit",
+          "termination_rights",
+          "brand_ownership_change",
+          "named_storm",
+          "attendee_data_handling",
+          "ada_compliance",
+          "governing_law_venue",
+          "labor_disputes",
+          "rate_parity",
+          "gratuity_service_charge",
+          "resale_mitigation_duty"
+        ],
+        "document_notes": "The contract is well-organized with numbered sections closely tracking CD's standard clause library topics, and most provisions (force majeure, named storm, termination for cause, brand/ownership change, labor relations, rate parity, walk/relocation, complimentary rooms, mandatory fees, security deposit, outside vendors, master account billing, governing law/venue, attendee data, reporting/audit, resale mitigation) already reflect CD's negotiated positions closely. Notably, the cancellation clause contains an internal inconsistency between its narrative text (describing 50%/100% liability tiers) and its accompanying table (showing 0% liability until the final 30-day window, then 70%) — this discrepancy itself should be flagged to the property for clarification regardless of which version governs. The F&B minimum clause similarly contains language that is easy to misread; on close reading it imposes the full shortfall plus an additional 35% charge, rather than a 35%-of-shortfall formula, which is a significant deviation from CD's standard and larger in exposure than a simple percentage mismatch would suggest.\"",
+        "model_id": "claude-sonnet-5",
+        "standards_library_version": "v1-industry-default",
+        "input_tokens": 7807,
+        "output_tokens": 3927,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 11356
+      },
+      "error": null,
+      "elapsed_ms": 33996
+    }
+  ]
+}
