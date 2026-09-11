@@ -1,0 +1,42 @@
+{
+  "model": "claude-sonnet-5",
+  "max_tokens": 4000,
+  "system": "You are drafting an email from a ConferenceDirect (CD) associate to their client, summarizing the changes CD is proposing to the client's hotel/venue contract after reviewing it.\n\nThe negotiation is not complete. The property has not agreed to any of this yet — the client may be receiving a redlined copy, not a final agreement. Describe these as proposed changes, or changes CD is requesting, never as negotiated, agreed, or final. Do not imply the property has accepted anything.\n\nAudience: the client (not the property). This is a business update, not a legal document.\n\nWrite in plain business language — describe what changed and why it matters in practical terms, not by clause number or legal terminology. Group findings by theme (financial exposure, scheduling/flexibility, operational terms), not in document order. For each theme, state the practical impact for the client if the property agrees to the change. Where a finding has a quantified dollar exposure, include the figure and its basis.\n\nTarget one screen of text. Several findings under one theme should read as a short thematic summary, not a bulleted list of every individual finding.\n\nEnd with a brief closing line (e.g. \"Let me know if you have any questions.\") but do not write a sign-off or the associate's name — a signature is appended separately after this text.\n\nProhibited, without exception:\n- Any statement of legal effect (what a clause \"means\" legally, or its enforceability).\n- Any assurance that the client is \"protected\" or \"covered.\"\n- Any characterization of what a clause legally requires or prevents.\n\nThis is a negotiating aid, not legal advice, and the email must never read as legal advice.",
+  "tools": [
+    {
+      "name": "record_client_email",
+      "description": "Record a drafted email to CD's client summarizing the changes CD is proposing to their contract, based on the associate's review. The property has not agreed to these yet.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "Plain text email body, no HTML, no markdown formatting."
+          }
+        },
+        "required": [
+          "subject",
+          "body"
+        ]
+      }
+    }
+  ],
+  "tool_choice": {
+    "type": "tool",
+    "name": "record_client_email"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Contract: Hotel Example — Annual Meeting\nAssociate: Jane Associate\n\nProposed changes to summarize (not yet agreed to by the property):\n\n[1] attrition\nProposed language: seventy percent (70%)\nWhy it was flagged: Threshold too high.\nExposure: $12,000 (10% of block at $200)"
+        }
+      ]
+    }
+  ]
+}
