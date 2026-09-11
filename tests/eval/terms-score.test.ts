@@ -101,13 +101,28 @@ describe("scoring term extraction", () => {
     expect(sameValue("schedule", a, [b[0]])).toBe(false);
   });
 
-  it("counts a contract the run failed on as missing every value", () => {
+  it("counts a contract the run failed on as missing every value, and credits it nothing", () => {
     const k = key({ "a.pct": 0.9, "a.gone": "not_stated" });
     const r: TermsRunRecord = { ...run([]), documents: [{ contract: "c.docx", terms: null, error: "timeout", tokens: null, elapsed_ms: 0 }] };
     const report = scoreTermsRun({ key: k, run: r, catalog: CATALOG });
 
     expect(report.contracts[0].error).toBe("timeout");
-    expect(report.tally).toMatchObject({ missed: 1, correct_absent: 1 });
+    expect(report.tally).toMatchObject({ keyed_values: 1, missed: 1, keyed_absent: 0, correct_absent: 0 });
+  });
+
+  it("leaves a contract outside a --only run unscored", () => {
+    const k: TermsKey = {
+      ...key({ "a.pct": 0.9 }),
+      contracts: [
+        { contract: "c.docx", terms: { "a.pct": 0.9 } },
+        { contract: "other.docx", terms: { "a.pct": 0.5, "a.gone": "not_stated" } },
+      ],
+    };
+    const report = scoreTermsRun({ key: k, run: run([stated("a.pct", 0.9)]), catalog: CATALOG });
+
+    expect(report.tally).toMatchObject({ keyed_values: 1, correct: 1, missed: 0, keyed_absent: 0 });
+    expect(report.contracts[1]).toMatchObject({ error: "Not in the run.", results: [] });
+    expect(renderTermsReport(report)).toMatch(/Contracts scored: 1 of 2[\s\S]*other\.docx\s+not in this run/);
   });
 
   it("refuses a key that scores a term the catalog does not have", () => {

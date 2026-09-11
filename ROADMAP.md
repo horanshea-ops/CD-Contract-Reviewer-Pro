@@ -559,8 +559,11 @@ changing, and one that needs watching.
        user's call). Migration `006` adds `contract_terms`, and is **not yet applied**.
      - The answer key is free: 525 stated values and 33 absent ones across the seven eval
        contracts. A perfect run built from it scores 100% against the real DOCX text.
-     - **Open:** one paid measurement run, about $0.65 for all seven. Then 8–13 real
-       contracts, keyed by reading them, to reach MASTER_PLAN's 15–20.
+     - **Measured on eval-01, the contract that states every clause (~$0.12):** 79/79
+       correct, none wrong, missed or invented. One correct value was left unusable
+       because the model shortened its quote with "...", and the prompt now forbids that.
+     - **Open:** the other six contracts, about $0.60. Then 8–13 real contracts, keyed by
+       reading them, to reach MASTER_PLAN's 15–20.
 
      Original note: its own answer key was described as
      needing a senior

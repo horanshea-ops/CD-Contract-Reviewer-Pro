@@ -108,9 +108,20 @@ npm run eval:terms:score -- --run real-1 --key data/private/terms-key.json
 
 With `--key`, run files are written beside the key, in `data/private/terms-runs/`. They hold quotes from the real contract, so they stay inside the ignored folder with no step to remember.
 
+## Measured
+
+| Run | Contracts | Correct | Silent wrong | Missed | Invented | Cost |
+|---|---|---|---|---|---|---|
+| `terms-eval01` (2026-09-11) | eval-01 | 79/79 | 0 | 0 | 0 | ~$0.12 (13.9k in, 8.5k out) |
+
+- `terms-eval01` stored one correct value as `unlocated`. The model shortened its quote with "...". The prompt now requires one continuous span, and that run used the earlier wording.
+- Every entry came back with `high` confidence. The model's confidence tells us nothing, and the document check is what separates values.
+- It read the peak-night block (340) from the prose, not the contradicting table, and correctly reported the F&B minimum as not stated.
+
 ## Known limits
 
 - **33 absent terms is a thin test of invention.** Real contracts leave out far more.
+- **Model confidence is not a signal.** Use verification instead.
 - **The prompt says "hotel or venue".** That wording is industry-specific in the same way as the analysis prompt (§2.0.3).
 - **PDF uploads verify against positioned-line text.** Hyphenation at a line break can leave a sound quote unlocated.
 - **Schedules keyed by calendar date aren't modelled.** The bands are days before arrival. A contract that dates its tiers needs the arrival date to convert, and the extractor won't guess it.

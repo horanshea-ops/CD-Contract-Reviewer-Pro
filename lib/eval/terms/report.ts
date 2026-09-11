@@ -1,5 +1,5 @@
 import type { TermValue } from "../../terms/types";
-import { NOT_STATED, type KeyedValue, type TermsScoreReport, type TermsTally } from "./types";
+import { NOT_IN_RUN, NOT_STATED, type KeyedValue, type TermsScoreReport, type TermsTally } from "./types";
 
 /**
  * The term extraction report, as plain text (MASTER_PLAN.md §2.0.2).
@@ -41,6 +41,8 @@ export function renderTermsReport(report: TermsScoreReport, { audit = false }: {
 
   out.push(`TERM EXTRACTION — run ${report.run_id} against ${report.key_version} (${report.key_source} key)`);
   out.push(`Model ${report.model_id} · catalog ${report.catalog_version} · captured ${report.run_created_at}`);
+  const inRun = report.contracts.filter((c) => c.error !== NOT_IN_RUN).length;
+  out.push(`Contracts scored: ${inRun} of ${report.contracts.length} in the key`);
   if (report.catalog_mismatch) out.push(`WARNING: ${report.catalog_mismatch}`);
   out.push("");
   out.push(`SILENT WRONG: ${t.silent_wrong} — wrong or invented values that passed verification`);
@@ -65,6 +67,10 @@ export function renderTermsReport(report: TermsScoreReport, { audit = false }: {
 
   out.push("BY CONTRACT                     correct   wrong   missed   invented   silent   rejected   out tokens");
   for (const c of report.contracts) {
+    if (c.error === NOT_IN_RUN) {
+      out.push(`  ${c.contract.padEnd(28)} not in this run`);
+      continue;
+    }
     if (c.error) {
       out.push(`  ${c.contract.padEnd(28)} FAILED — ${c.error}`);
       continue;

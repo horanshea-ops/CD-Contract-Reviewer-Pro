@@ -1,5 +1,6 @@
 import { USABLE_VERIFICATIONS, type ScheduleTier, type TermCatalog, type TermValue, type Verification } from "../../terms/types";
 import {
+  NOT_IN_RUN,
   NOT_STATED,
   type KeyedValue,
   type TermOutcome,
@@ -95,15 +96,26 @@ export function scoreTermsRun({
 
   const contracts: TermsContractResult[] = key.contracts.map((entry) => {
     const doc = documents.get(entry.contract);
-    const stated = doc?.terms?.stated ?? [];
+    for (const termKey of Object.keys(entry.terms)) {
+      if (!kindOf.has(termKey)) throw new Error(`The key scores "${termKey}", which catalog ${catalog.version} does not have.`);
+    }
+
+    // A contract left out of the run (a --only capture) is not scored at all.
+    // One the run tried and failed on still counts: its stated values are
+    // missed, since a pass that cannot read a contract found nothing in it. Its
+    // absent terms are not credited as correctly left out, which it never did.
+    if (!doc) {
+      return { contract: entry.contract, error: NOT_IN_RUN, results: [], tally: emptyTally(), unkeyed_stated: 0, rejected: 0, tokens: null };
+    }
+    const analysed = doc.terms !== null;
+    const stated = doc.terms?.stated ?? [];
     for (const t of stated) verification[t.verification] += 1;
-    for (const k of Object.keys(tokens) as (keyof typeof tokens)[]) tokens[k] += doc?.tokens?.[k] ?? 0;
+    for (const k of Object.keys(tokens) as (keyof typeof tokens)[]) tokens[k] += doc.tokens?.[k] ?? 0;
 
     const tally = emptyTally();
-    const results: TermResult[] = Object.entries(entry.terms).map(([termKey, expected]) => {
-      const kind = kindOf.get(termKey);
-      if (!kind) throw new Error(`The key scores "${termKey}", which catalog ${catalog.version} does not have.`);
-
+    const scored = Object.entries(entry.terms).filter(([, expected]) => analysed || expected !== NOT_STATED);
+    const results: TermResult[] = scored.map(([termKey, expected]) => {
+      const kind = kindOf.get(termKey)!;
       const got = stated
         .filter((t) => t.term_key === termKey)
         .map((t) => ({ value: t.value, verification: t.verification, quoted_text: t.quoted_text }));
@@ -119,12 +131,12 @@ export function scoreTermsRun({
 
     return {
       contract: entry.contract,
-      error: doc ? doc.error : "Not in the run.",
+      error: doc.error,
       results,
       tally,
       unkeyed_stated: stated.filter((t) => !(t.term_key in entry.terms)).length,
-      rejected: doc?.terms?.rejected.length ?? 0,
-      tokens: doc?.tokens ?? null,
+      rejected: doc.terms?.rejected.length ?? 0,
+      tokens: doc.tokens,
     };
   });
 

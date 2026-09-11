@@ -10,6 +10,9 @@ import type { ExtractedTerms, TermValue, Verification } from "../../terms/types"
 
 export const NOT_STATED = "not_stated" as const;
 
+/** The error a contract carries when a --only capture left it out. It is not scored. */
+export const NOT_IN_RUN = "Not in the run.";
+
 export type KeyedValue = TermValue | typeof NOT_STATED;
 
 export interface TermsKey {

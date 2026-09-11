@@ -617,6 +617,7 @@ Rules:
 - Read the whole document before answering, including tables, exhibits, headers and footers. A term may sit anywhere.
 - Report percentages as the number written (90 for 90%, 1.5 for 1.5%), dollar amounts as plain numbers (289 for $289.00), days, months, hours and rooms as plain numbers, and dates as YYYY-MM-DD. For an enum, give one of the listed values, or "other" if none fits.
 - quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that states it.
+- quoted_text is one continuous span. Never shorten it with "..." or join words from different places; a quote that is not in the contract character for character cannot be checked, and the value is then set aside.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Never include a "#", a "|", or a reconstructed list number inside quoted_text.
 - If the contract states a term more than once with different values, record each as its own entry. If it repeats the same value, one entry is enough.
 - source_section is the heading or section number the value sits under, or null.
