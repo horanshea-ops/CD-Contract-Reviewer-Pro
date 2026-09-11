@@ -66,7 +66,7 @@ export default function LoginPage() {
         />
         <div className="relative flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded bg-white text-[var(--cd-navy)] text-sm font-bold">
-            CD
+            {ORG.shortName}
           </span>
           <span className="text-white font-semibold tracking-tight">Contract Reviewer</span>
         </div>
@@ -75,7 +75,7 @@ export default function LoginPage() {
             Every finding is a candidate for review, never a clearance.
           </h2>
           <p className="text-[var(--cd-blue-light)] text-sm max-w-sm">
-            A negotiating aid for {ORG.name} associates — measured against how CD actually
+            A negotiating aid for {ORG.name} associates — measured against how {ORG.shortName} actually
             negotiates, not generic industry defaults.
           </p>
         </div>
@@ -85,7 +85,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <span className="flex h-8 w-8 items-center justify-center rounded bg-[var(--cd-navy)] text-white text-sm font-bold">
-              CD
+              {ORG.shortName}
             </span>
             <span className="text-[var(--text-primary)] font-semibold tracking-tight">Contract Reviewer</span>
           </div>

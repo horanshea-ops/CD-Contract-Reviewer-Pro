@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldInput, FieldTextarea, Field } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
+import { ORG } from "@/lib/org";
 
 interface Draft {
   id: string;
@@ -132,7 +133,7 @@ export function ClientEmailPanel({
           Generated from accepted findings only. Review and edit before sending — nothing is sent from here.
         </p>
         <p className="text-xs text-[var(--cd-navy)] bg-[var(--cd-blue-pale)] rounded px-2 py-1.5 mb-4">
-          This draft includes CD&apos;s exposure figures and negotiating rationale. It is for internal use only —
+          This draft includes {ORG.shortName}&apos;s exposure figures and negotiating rationale. It is for internal use only —
           never send it to the property.
         </p>
 

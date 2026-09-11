@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { StatusPill } from "@/components/ui/status-pill";
 import SignOutButton from "@/components/sign-out-button";
+import { ORG } from "@/lib/org";
 
 export interface NavAssociate {
   name: string;
@@ -159,7 +160,7 @@ export function BrandMark({ collapsed }: { collapsed?: boolean } = {}) {
         className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-bold shrink-0"
         style={{ background: "linear-gradient(135deg, var(--cd-navy), var(--cd-navy-darker))" }}
       >
-        CD
+        {ORG.shortName}
       </span>
       {!collapsed && (
         <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">Contract Reviewer</span>

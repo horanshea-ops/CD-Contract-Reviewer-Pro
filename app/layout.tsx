@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CD Contract Reviewer",
+  title: `${ORG.shortName} Contract Reviewer`,
   description: `Contract review tool for ${ORG.name} associates.`,
 };
 

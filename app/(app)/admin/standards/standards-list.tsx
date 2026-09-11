@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { ORG } from "@/lib/org";
 
 export interface StandardRow {
   id: string;
@@ -25,8 +26,8 @@ export interface StandardRow {
 
 const PROVENANCE_STYLE: Record<StandardRow["provenance"], { label: string; className: string }> = {
   industry_default: { label: "Industry default · unvalidated", className: "bg-[var(--severity-medium-bg)] text-[var(--severity-medium)]" },
-  extracted: { label: "Extracted from CD contracts · unvalidated", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
-  cd_validated: { label: "CD validated", className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
+  extracted: { label: `Extracted from ${ORG.shortName} contracts · unvalidated`, className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
+  cd_validated: { label: `${ORG.shortName} validated`, className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
 };
 
 const SEVERITY_OPTIONS = ["high", "medium", "low", "note"] as const;

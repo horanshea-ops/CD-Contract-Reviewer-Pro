@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ClientEmailPanel } from "@/components/client-email-panel";
 import { PropertyEmailPanel } from "@/components/property-email-panel";
+import { ORG } from "@/lib/org";
 
 /**
  * One "Email" button over the two draft audiences, replacing two separate
@@ -46,7 +47,7 @@ export function EmailPicker({ analysisId }: { analysisId: string }) {
               >
                 <span className="block text-xs font-medium text-[var(--text-primary)]">Client</span>
                 <span className="block mt-1 text-xs text-[var(--text-secondary)]">
-                  Internal email for the firm, including CD&apos;s exposure figures and negotiating rationale.
+                  Internal email for the firm, including {ORG.shortName}&apos;s exposure figures and negotiating rationale.
                   Never send this to the property.
                 </span>
               </button>
