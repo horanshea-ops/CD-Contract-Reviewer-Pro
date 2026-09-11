@@ -52,3 +52,6 @@ next-env.d.ts
 *.pdf
 !tests/fixtures/**
 !data/sample-contracts/**
+
+# Contracts supplied for hand-keying, and their keys. Real terms never enter git.
+/data/private/

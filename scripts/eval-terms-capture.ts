@@ -21,7 +21,8 @@ import { withRetry } from "./with-retry";
  *   --only a.docx,b.docx  a subset, for checking a change on one contract first
  *   --model <id>          e.g. claude-haiku-4-5, to compare against the default
  *   --resume              reuse contracts an earlier attempt at this label got
- *   --key <path>          a different key, such as a hand-written one
+ *   --key <path>          a different key, such as a hand-written one; runs are
+ *                         then written beside it rather than in data/eval/
  *   --corpus <dir>        where that key's contracts live (default: the eval corpus)
  */
 
@@ -39,8 +40,12 @@ async function main() {
   const model = argAfter("--model") ?? undefined;
   const only = argAfter("--only")?.split(",").map((c) => c.trim()) ?? null;
   const corpusDir = argAfter("--corpus") ?? CORPUS_DIR;
-  const key: TermsKey = JSON.parse(await readFile(argAfter("--key") ?? KEY_PATH, "utf8"));
-  const outPath = path.join(RUNS_DIR, `${label}.json`);
+  const keyPath = argAfter("--key") ?? KEY_PATH;
+  const key: TermsKey = JSON.parse(await readFile(keyPath, "utf8"));
+  // A run holds quotes from its contracts, so a hand key's runs stay beside it,
+  // inside data/private/, and never need moving before a commit.
+  const runsDir = argAfter("--key") ? path.join(path.dirname(keyPath), "terms-runs") : RUNS_DIR;
+  const outPath = path.join(runsDir, `${label}.json`);
 
   const already = new Map<string, TermsRunDocument>();
   if (process.argv.includes("--resume")) {
@@ -99,7 +104,7 @@ async function main() {
     catalog_version: HOTEL_TERM_CATALOG.version,
     documents,
   };
-  await mkdir(RUNS_DIR, { recursive: true });
+  await mkdir(runsDir, { recursive: true });
   await writeFile(outPath, `${JSON.stringify(run, null, 2)}\n`);
 
   const sum = (k: "input" | "output" | "cache_read") => documents.reduce((n, d) => n + (d.tokens?.[k] ?? 0), 0);

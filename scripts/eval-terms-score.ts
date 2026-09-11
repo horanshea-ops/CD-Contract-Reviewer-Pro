@@ -12,7 +12,8 @@ import type { TermsKey, TermsRunRecord } from "../lib/eval/terms/types";
  * capture time against the DOCX text, so this only compares values.
  *
  *   --run <label>   the run to score (required)
- *   --key <path>    a different key, such as a hand-written one
+ *   --key <path>    a different key, such as a hand-written one; its runs are
+ *                   read from beside it
  *   --audit         print every term not scored correct, with its quote
  *   --json <path>   also write the full report as JSON
  */
@@ -29,8 +30,10 @@ async function main() {
   const label = argAfter("--run");
   if (!label) throw new Error("Name the run to score: npm run eval:terms:score -- --run <label>");
 
-  const key: TermsKey = JSON.parse(await readFile(argAfter("--key") ?? KEY_PATH, "utf8"));
-  const run: TermsRunRecord = JSON.parse(await readFile(path.join(RUNS_DIR, `${label}.json`), "utf8"));
+  const keyPath = argAfter("--key") ?? KEY_PATH;
+  const key: TermsKey = JSON.parse(await readFile(keyPath, "utf8"));
+  const runsDir = argAfter("--key") ? path.join(path.dirname(keyPath), "terms-runs") : RUNS_DIR;
+  const run: TermsRunRecord = JSON.parse(await readFile(path.join(runsDir, `${label}.json`), "utf8"));
   const report = scoreTermsRun({ key, run, catalog: HOTEL_TERM_CATALOG });
 
   const jsonPath = argAfter("--json");

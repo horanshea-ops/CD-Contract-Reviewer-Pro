@@ -423,6 +423,27 @@ changing, and one that needs watching.
       worth fixing the next time the corpus is rebuilt for another reason, not on
       their own.
 
+      **Two more, found by §2.0.2's perfect-run check (2026-09-11).** Neither needs a
+      redraft, and both are fixable in a free rebuild from saved drafts.
+      - `phrase()` in `lib/quantities.ts` rounds percentages to one decimal place.
+        So eval-07's spec says a 1.25% finance charge while the contract prints 1.3%,
+        and the findings key still carries 1.25%. Harmless to findings scoring, since
+        both sit on the wrong side of CD's 1%. The terms key reads back the printed
+        figure.
+      - `roomBlockRows` in `lib/eval/corpus/layout.ts` prints per-night rooms that
+        contradict the prose block. eval-01 says 340 on the peak night, and the table
+        shows 170 every night. The terms key leaves `deal.peak_night_rooms` unkeyed in
+        table-heavy contracts until this is fixed.
+
+- [ ] **7. The findings eval reads slightly different text than production. New,
+      2026-09-11.** `scripts/eval-capture.ts` joins a DOCX's parts plainly.
+      `processAnalysis` flattens them with `contractText` (now
+      `lib/docx/contract-text.ts`), which labels header and footer text as part of the
+      agreement. So a term carried only in a footer reaches the eval model unlabelled.
+      That's a one-line fix, but it changes what the baseline measured, so it should
+      land with the next paid run rather than alone. The terms capture already uses
+      `contractText`.
+
 - **Watching: the harness itself is thin.** Seven contracts and 90 key items support
   the per-clause and per-severity breakdowns, but not reading any single percentage as
   a forecast. Eight more specs are written and held in `RESERVE_SPECS` — widening the
@@ -431,8 +452,8 @@ changing, and one that needs watching.
   `docs/eval-harness.md` § Known limits). None of this blocks acting on items 1-4.
 
 
-- **Export and email button consolidation — §1.12, not started (raised by the user
-  2026-09-09).** The analysis header now carries six controls: Export memo, Draft
+- **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
+  picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft
   client email, Export marked-up PDF, Export tracked-changes DOCX, Export proposed
   contract, Draft property email. Each was added on its own and the row is
   crowded and hard to read.
@@ -529,7 +550,19 @@ changing, and one that needs watching.
      per-severity breakdowns, not enough to read one percentage as a forecast. Eight
      more specs are written and held in `RESERVE_SPECS`. Recurring cost is about $1.50
      per measurement run; scoring itself is free and offline.
-  2. **Term extraction — §2.0.2, Opus 5 · xhigh.** Its own answer key was described as
+  2. **Term extraction — §2.0.2, Opus 5 · xhigh. BUILT 2026-09-11, not yet measured.**
+     `docs/term-extraction.md` has the detail.
+     - A separate pass reads 81 catalog terms as typed values (`lib/terms/`). Each value
+       is checked against the document before storage. The quote must be in the text,
+       and a figure must appear in its own quote.
+     - Wired into `processAnalysis` behind `TERM_EXTRACTION=on`, off by default (the
+       user's call). Migration `006` adds `contract_terms`, and is **not yet applied**.
+     - The answer key is free: 525 stated values and 33 absent ones across the seven eval
+       contracts. A perfect run built from it scores 100% against the real DOCX text.
+     - **Open:** one paid measurement run, about $0.65 for all seven. Then 8–13 real
+       contracts, keyed by reading them, to reach MASTER_PLAN's 15–20.
+
+     Original note: its own answer key was described as
      needing a senior
      associate, but verifying that a contract saying 90% was extracted as `0.90` is
      reading comprehension, not negotiating expertise — anyone literate can check
