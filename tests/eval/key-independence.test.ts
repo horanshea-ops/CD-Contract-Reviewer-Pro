@@ -15,19 +15,35 @@ import path from "node:path";
  * produces a report.
  */
 
-const SCORING_DIR = path.join("lib", "eval");
+/** The findings scorer, and the term extraction scorer beside it (§2.0.2). */
+const SCORING_DIRS = [path.join("lib", "eval"), path.join("lib", "eval", "terms")];
 const FORBIDDEN = [/corpus\//, /synthetic/i, /specs/, /data\/eval/, /sample-contracts/];
 
 async function scoringFiles(): Promise<string[]> {
-  const entries = await readdir(SCORING_DIR, { withFileTypes: true });
-  return entries.filter((e) => e.isFile() && e.name.endsWith(".ts")).map((e) => path.join(SCORING_DIR, e.name));
+  const files: string[] = [];
+  for (const dir of SCORING_DIRS) {
+    const entries = await readdir(dir, { withFileTypes: true });
+    files.push(...entries.filter((e) => e.isFile() && e.name.endsWith(".ts")).map((e) => path.join(dir, e.name)));
+  }
+  return files;
 }
 
 describe("the scorer is key-agnostic", () => {
-  it("has scoring modules at the top level of lib/eval", async () => {
+  it("has the scoring modules it is expected to have", async () => {
     const files = await scoringFiles();
-    expect(files.map((f) => path.basename(f)).sort()).toEqual(
-      ["grade.ts", "hungarian.ts", "language.ts", "match.ts", "report.ts", "score.ts", "types.ts"].sort()
+    expect(files.map((f) => path.relative(path.join("lib", "eval"), f)).sort()).toEqual(
+      [
+        "grade.ts",
+        "hungarian.ts",
+        "language.ts",
+        "match.ts",
+        "report.ts",
+        "score.ts",
+        "types.ts",
+        path.join("terms", "report.ts"),
+        path.join("terms", "score.ts"),
+        path.join("terms", "types.ts"),
+      ].sort()
     );
   });
 
