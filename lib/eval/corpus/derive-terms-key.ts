@@ -42,6 +42,54 @@ function tierFromRow([label, damages]: string[]): ScheduleTier {
 }
 
 /**
+ * Where a draft does not say what its spec says, found by reading the audit of
+ * the first full run (2026-09-11).
+ *
+ * The drafting gates checked that each dictated figure and meaning reached the
+ * prose, but not what role it ended up playing. A few drafts put a figure to a
+ * different use, or reworded a meaning until it flipped. The key follows the
+ * document, and each entry names the sentence that settles it, so checking one
+ * takes a single read.
+ */
+const CORRECTIONS: Record<string, Record<string, { value: KeyedValue; quote?: string; reason: string }>> = {
+  "eval-03-bayfront": {
+    "named_storm.cancellation_window_hours": {
+      value: 12,
+      quote:
+        "Group must provide written notice of cancellation to the Hotel's Director of Sales within twelve (12) hours of the National Weather Service's issuance of a hurricane or tropical storm warning for the Portland area.",
+      reason: "The spec's 72 hours became the forecast window before the event. The notice window the catalog asks for is 12 hours.",
+    },
+  },
+  "eval-10-crossroads": {
+    "fb_minimum.shortfall_rate": {
+      value: 1,
+      quote: "the Group shall pay to the Hotel the shortfall within thirty (30) days of final invoice",
+      reason: "The spec's 80% became the guarantee level, and the Group pays the whole shortfall.",
+    },
+  },
+  "eval-12-granite-bay": {
+    "damage_deposit.refund_window_days": {
+      value: NOT_STATED,
+      reason: "No deposit is required, so there is no refund window. The spec's 30 days became a deadline for an accounting of damage costs.",
+    },
+  },
+  "eval-15-vantage": {
+    "fb_minimum.shortfall_rate": {
+      value: 1,
+      quote:
+        "the Group shall be obligated to pay the Hotel a shortfall fee equal to the difference between the Minimum F&B Commitment and the actual charges incurred",
+      reason: "The shortfall fee is the whole difference. The spec's 35% became a threshold for renegotiation.",
+    },
+    "master_account_billing.prepayment_defined": {
+      value: false,
+      quote:
+        "Group shall remit prepayment equal to the percentage of anticipated charges designated by the Hotel prior to the event",
+      reason: "The Hotel designates the percentage, so the agreement states none.",
+    },
+  },
+};
+
+/**
  * The figure the contract prints, which is the one extraction should find.
  *
  * The drafter reproduced `phrase(value)` verbatim, and phrase rounds a
@@ -103,7 +151,14 @@ function contractKey(spec: EvalContractSpec, catalog: TermCatalog): TermsKeyCont
     else unkeyed[key] = `The spec's "${group}" clause does not set "${field}".`;
   }
 
-  return { contract: `${spec.id}.docx`, terms, unkeyed };
+  const corrected: NonNullable<TermsKeyContract["corrected"]> = {};
+  for (const [key, fix] of Object.entries(CORRECTIONS[spec.id] ?? {})) {
+    if (!(key in terms)) throw new Error(`${spec.id}: a correction names "${key}", which the key does not score.`);
+    terms[key] = fix.value;
+    corrected[key] = fix.quote ? { reason: fix.reason, quote: fix.quote } : { reason: fix.reason };
+  }
+
+  return { contract: `${spec.id}.docx`, terms, unkeyed, ...(Object.keys(corrected).length > 0 ? { corrected } : {}) };
 }
 
 export function deriveTermsKey(specs: EvalContractSpec[], catalog: TermCatalog): TermsKey {

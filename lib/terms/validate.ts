@@ -1,3 +1,4 @@
+import { collapseWhitespace, normalizeText } from "../docx/normalize";
 import { parseQuantities } from "../quantities";
 import { locateQuote, type LocatablePart } from "../redline-engine/locate";
 import { catalogIndex } from "./catalog";
@@ -114,11 +115,48 @@ export function normalizeValue(def: TermDefinition, raw: unknown): Normalized {
   }
 }
 
+/** How a model marks a cut in a long quote. It cuts whatever the prompt says. */
+const ELLIPSIS = /\s*(?:\.\s?\.\s?\.|…)\s*/;
+
+/** Shorter pieces prove nothing: "the Hotel" is in every clause. */
+const MIN_PIECE = 12;
+
+/** Pieces further apart than this are not one passage. */
+const MAX_GAP = 800;
+
+const flat = (s: string) => collapseWhitespace(normalizeText(s)).toLowerCase();
+
+/**
+ * A quote cut with "..." is in the contract when every piece is there word for
+ * word, in order, and close together. Measured: a model asked for continuous
+ * quotes still cut about one in fifty, every one of them around a correct value.
+ */
+function cutQuoteFound(parts: LocatablePart[], quote: string): boolean {
+  const pieces = quote.split(ELLIPSIS).map(flat).filter((p) => p.length > 0);
+  if (pieces.length === 0 || pieces.some((p) => p.length < MIN_PIECE)) return false;
+
+  for (const part of parts) {
+    const text = flat(part.text);
+    for (let start = text.indexOf(pieces[0]); start !== -1; start = text.indexOf(pieces[0], start + 1)) {
+      let end = start + pieces[0].length;
+      const inOrder = pieces.slice(1).every((piece) => {
+        const at = text.indexOf(piece, end);
+        if (at === -1 || at - end > MAX_GAP) return false;
+        end = at + piece.length;
+        return true;
+      });
+      if (inOrder) return true;
+    }
+  }
+  return false;
+}
+
 const quoteFound = (parts: LocatablePart[], quote: string, section: string | null) => {
   // Several matches still prove the wording is in the contract, which is all
   // verification asks. Which occurrence is meant matters for a redline, not here.
   const result = locateQuote(parts, quote, section);
-  return result.resolution !== "unresolved" || result.ambiguous === true;
+  if (result.resolution !== "unresolved" || result.ambiguous === true) return true;
+  return ELLIPSIS.test(quote) && cutQuoteFound(parts, quote);
 };
 
 const sameNumber = (a: number, b: number) => Math.abs(a - b) < 1e-9;
@@ -158,6 +196,21 @@ export function verify(def: TermDefinition, value: TermValue, quote: string, sec
   if (def.kind === "number") return numberEvidence(def, value as number, quote);
   if (def.kind === "date") return dateEvidence(value as string, quote);
   return "located";
+}
+
+/**
+ * Re-checks stored values against the document. Scoring a captured run this way
+ * measures the current checker rather than the one the run was captured with.
+ */
+export function reverify(terms: ExtractedTerms, catalog: TermCatalog, parts: LocatablePart[]): ExtractedTerms {
+  const index = catalogIndex(catalog);
+  return {
+    ...terms,
+    stated: terms.stated.map((t) => {
+      const def = index.get(t.term_key);
+      return def ? { ...t, verification: verify(def, t.value, t.quoted_text, t.source_section, parts) } : t;
+    }),
+  };
 }
 
 const canonical = (value: TermValue) =>

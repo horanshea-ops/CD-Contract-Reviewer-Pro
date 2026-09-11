@@ -149,6 +149,30 @@ describe("verifying each value against the document", () => {
   });
 });
 
+describe("quotes the model cut with an ellipsis", () => {
+  const verification = (quote: string, text = TEXT) =>
+    validateTerms([entry("attrition.threshold", 90, quote)], HOTEL_TERM_CATALOG, [{ part: "document", text }]).stated[0]
+      .verification;
+
+  it("finds every piece in order, and checks the figure", () => {
+    expect(verification("Group shall be deemed in attrition...ninety percent (90%) on any night")).toBe("verified");
+    expect(verification("Group shall be deemed in attrition … ninety percent (90%) on any night")).toBe("verified");
+  });
+
+  it("refuses pieces out of order", () => {
+    expect(verification("ninety percent (90%) on any night...Group shall be deemed in attrition")).toBe("unlocated");
+  });
+
+  it("refuses a piece too short to prove anything", () => {
+    expect(verification("Group...ninety percent (90%) on any night")).toBe("unlocated");
+  });
+
+  it("refuses pieces too far apart to be one passage", () => {
+    const text = `Group shall be deemed in attrition ${"and so on ".repeat(100)} below ninety percent (90%) on any night.`;
+    expect(verification("Group shall be deemed in attrition...ninety percent (90%) on any night", text)).toBe("unlocated");
+  });
+});
+
 describe("repeats, conflicts and silence", () => {
   it("stores a repeated value once, keeping its best-verified quote", () => {
     const result = run(

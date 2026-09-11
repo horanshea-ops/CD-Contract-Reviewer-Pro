@@ -29,6 +29,11 @@ export interface TermsKeyContract {
   terms: Record<string, KeyedValue>;
   /** Terms deliberately left unscored, and why. Read by humans. */
   unkeyed?: Record<string, string>;
+  /**
+   * Terms whose value follows the document rather than the source it was
+   * derived from, each with the reason and the sentence that settles it.
+   */
+  corrected?: Record<string, { reason: string; quote?: string }>;
 }
 
 export interface TermsRunDocument {

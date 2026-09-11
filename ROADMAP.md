@@ -435,6 +435,21 @@ changing, and one that needs watching.
         shows 170 every night. The terms key leaves `deal.peak_night_rooms` unkeyed in
         table-heavy contracts until this is fixed.
 
+      **Five places where a draft plays a dictated figure in a different role, found by
+      §2.0.2's first full run.** The drafting gates checked that each figure and meaning
+      reached the prose, not what the figure ended up doing. The F&B shortfall defect
+      above is two of them (eval-10, eval-15). The other three:
+      - eval-03's named-storm 72 hours became the forecast window.
+      - eval-12's deposit refund window became an accounting deadline, in a contract with
+        no deposit.
+      - eval-15's defined prepayment became "a percentage designated by the Hotel".
+
+      The terms key follows the documents (`corrected` in `data/eval/terms-key-v1.json`).
+      The findings key still carries the spec's values. Where the spec calls a clause
+      compliant and the document doesn't (eval-03 named storm, eval-15 shortfall and
+      prepayment), a correct finding scores as a false positive. That's more of the
+      depressed precision item 6 describes.
+
 - [ ] **7. The findings eval reads slightly different text than production. New,
       2026-09-11.** `scripts/eval-capture.ts` joins a DOCX's parts plainly.
       `processAnalysis` flattens them with `contractText` (now
@@ -559,11 +574,16 @@ changing, and one that needs watching.
        user's call). Migration `006` adds `contract_terms`, and is **not yet applied**.
      - The answer key is free: 525 stated values and 33 absent ones across the seven eval
        contracts. A perfect run built from it scores 100% against the real DOCX text.
-     - **Measured on eval-01, the contract that states every clause (~$0.12):** 79/79
-       correct, none wrong, missed or invented. One correct value was left unusable
-       because the model shortened its quote with "...", and the prompt now forbids that.
-     - **Open:** the other six contracts, about $0.60. Then 8–13 real contracts, keyed by
-       reading them, to reach MASTER_PLAN's 15–20.
+     - **Measured on all seven (~$0.72 in total):** 524 of 524 stated values correct,
+       and 32 of 34 absent terms left out. None were wrong or missed. There were 2
+       silent-wrong values, both inventions: a room-block audit read into an attrition
+       clause, and a zero derived from "no deposit". The prompt and catalog now address
+       both, unmeasured. Checking eval-05 and eval-12 again costs about $0.18.
+     - Four more flagged values turned out to be corpus defects the model read
+       correctly. They're corrected in the key, each with its sentence.
+     - **Open:** split `named_storm.cancellation_window_hours` into the forecast window
+       and the notice window before a feature uses it. Then 8–13 real contracts, keyed
+       by reading them, to reach MASTER_PLAN's 15–20.
 
      Original note: its own answer key was described as
      needing a senior

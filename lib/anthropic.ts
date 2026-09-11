@@ -613,11 +613,12 @@ Rules:
 - Record only what the contract states. If it does not address a term, leave that term out. Never infer a value from what contracts of this kind usually say.
 - A boolean is recorded only when the contract addresses the point. False means the contract addresses it and does not grant it — it withholds it, excludes it, or leaves it to the hotel's discretion. Silence is never false.
 - Record 0 only where the contract says there is no such period, fee or window. If it is silent, leave the term out.
+- Take each value from wording about that term itself. Never work one term out from another: "no deposit is required" states the deposit amount and says nothing about a refund window.
 - Each meaning names exactly one figure. Where a clause states several numbers, record the one the meaning describes.
 - Read the whole document before answering, including tables, exhibits, headers and footers. A term may sit anywhere.
 - Report percentages as the number written (90 for 90%, 1.5 for 1.5%), dollar amounts as plain numbers (289 for $289.00), days, months, hours and rooms as plain numbers, and dates as YYYY-MM-DD. For an enum, give one of the listed values, or "other" if none fits.
 - quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that states it.
-- quoted_text is one continuous span. Never shorten it with "..." or join words from different places; a quote that is not in the contract character for character cannot be checked, and the value is then set aside.
+- Quote one continuous span where you can. If you must shorten a long one, mark each cut with "..." and keep every piece word for word and in its original order.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Never include a "#", a "|", or a reconstructed list number inside quoted_text.
 - If the contract states a term more than once with different values, record each as its own entry. If it repeats the same value, one entry is enough.
 - source_section is the heading or section number the value sits under, or null.

@@ -43,7 +43,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     num("attrition.threshold", "pct", "The share of the room block the group must pick up before attrition damages apply. 90% means damages start below 90% pickup."),
     num("attrition.liability_rate", "pct", "The share of the room rate the group pays for each room below the attrition threshold. 100% means the full rate."),
     bool("attrition.high_occupancy_credit", "True when the group gets credit toward its block for nights the hotel is sold out or at high occupancy. False when the agreement denies that credit."),
-    bool("attrition.audit_rights", "True when the group may review the hotel's occupancy records to check an attrition calculation. False when the hotel's calculation is final or its records are closed to the group."),
+    bool("attrition.audit_rights", "True when the group may review the hotel's occupancy records to check an attrition calculation. False when the hotel's calculation is final or its records are closed to the group. An audit of the room block against the group's registration list is review_audit_dates.block_audit_right, not this."),
 
     // Cancellation
     {
@@ -119,7 +119,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     // Reporting and audit
     bool("review_audit_dates.weekly_pickup_reports", "True when the hotel sends the group a written pickup report every week before cutoff. False when pickup information comes only on request."),
     num("review_audit_dates.post_event_report_days", "days", "How many days after the event the hotel must deliver its post-event report."),
-    bool("review_audit_dates.block_audit_right", "True when the group may audit the room block. False when it has no such right."),
+    bool("review_audit_dates.block_audit_right", "True when the group may audit the room block, comparing the hotel's in-house guest list with its own registration list to find attendees booked outside it. False when it has no such right. Checking occupancy records behind an attrition charge is attrition.audit_rights, not this."),
 
     // Insurance and indemnification
     bool("insurance_indemnification.mutual", "True when each party indemnifies the other on the same terms. False when only the group gives an indemnity."),

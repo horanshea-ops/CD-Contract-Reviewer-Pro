@@ -49,6 +49,8 @@ beforeAll(async () => {
 
     const quoteFor = (termKey: string, value: TermValue): string => {
       const [group, field] = termKey.split(".");
+      const corrected = entry.corrected?.[termKey]?.quote;
+      if (corrected) return corrected;
       if (termKey === "deal.group_rate_usd") return `a group rate of ${formatUsd(spec.adr)} per room`;
       if (termKey === "deal.peak_night_rooms") return `a block of ${spec.room_block} guest rooms on the peak night`;
       if (group === "deal") return `for the event to be held ${spec.dates}`;
@@ -107,10 +109,13 @@ describe("a perfect extraction over all seven eval contracts", () => {
 
   it("verifies every non-zero figure against its own quote", () => {
     // A zero is drafted as meaning ("no liability-free window"), so it has no
-    // figure to check and is located instead.
+    // figure to check and is located instead. So is a correction whose truth is
+    // worded rather than printed, such as "pay the shortfall" for 100%.
     for (const doc of run.documents) {
+      const corrected = key.contracts.find((c) => c.contract === doc.contract)?.corrected ?? {};
       for (const t of doc.terms!.stated) {
         const def = index.get(t.term_key)!;
+        if (t.term_key in corrected) continue;
         if ((def.kind === "number" && t.value !== 0) || def.kind === "date") {
           expect(t.verification, `${doc.contract} ${t.term_key}`).toBe("verified");
         }

@@ -84,7 +84,8 @@ npm run eval:terms:score -- --run <name> --audit                # every term not
 
 ## The synthetic key
 
-- 7 contracts, 525 stated values, 33 deliberately absent terms.
+- 7 contracts, 524 stated values, 34 deliberately absent terms.
+- Five values follow the document where a draft doesn't say what its spec says. Each is listed under `corrected` with its reason and the sentence that settles it.
 - Clause terms come from the specs, read back through the phrasing the drafter was given. The key holds the figure the contract prints.
 - The schedule, the rate, the block and the dates come from what the layout printed.
 - Unkeyed, with the reason in the key file:
@@ -110,17 +111,34 @@ With `--key`, run files are written beside the key, in `data/private/terms-runs/
 
 ## Measured
 
-| Run | Contracts | Correct | Silent wrong | Missed | Invented | Cost |
-|---|---|---|---|---|---|---|
-| `terms-eval01` (2026-09-11) | eval-01 | 79/79 | 0 | 0 | 0 | ~$0.12 (13.9k in, 8.5k out) |
+| Run | Contracts | Values correct | Absent left out | Silent wrong | Cost |
+|---|---|---|---|---|---|
+| `terms-full` (2026-09-11) | all 7 | 524/524 | 32/34 | 2 | ~$0.72 (75k in, 56k out) |
 
-- `terms-eval01` stored one correct value as `unlocated`. The model shortened its quote with "...". The prompt now requires one continuous span, and that run used the earlier wording.
-- Every entry came back with `high` confidence. The model's confidence tells us nothing, and the document check is what separates values.
-- It read the peak-night block (340) from the prose, not the contradicting table, and correctly reported the F&B minimum as not stated.
+Sonnet 5. Scored after the corrections and checker fix below, which is free to redo with `npm run eval:terms:score -- --run terms-full --audit`.
+
+**The first scoring flagged six values as silent-wrong.**
+
+| Value | Whose error | What happened |
+|---|---|---|
+| eval-10 and eval-15 F&B shortfall rate | Corpus | The drafts make the group pay the whole shortfall. The spec's figure became a guarantee level in one and a renegotiation trigger in the other. The model read 100%, which is right. |
+| eval-15 prepayment defined | Corpus | The hotel designates the percentage, so none is stated. The model said false, which is right. |
+| eval-03 named-storm window | Corpus | The draft put the spec's 72 hours in the forecast window. The model gave the 12-hour notice window the catalog asks for. |
+| eval-12 deposit refund window | Both | No deposit exists, so there's no refund window. The key had 30 and the model said 0 when it should have left the term out. |
+| eval-05 room-block audit | Model | It took the attrition occupancy-records clause for a room-block audit. |
+
+- **Corpus errors** are corrected in the key. Each correction records the sentence that settles it (`corrected` in the key file).
+- **Model errors.** The prompt now says to take each value from wording about that term. The room-block audit meaning now says how it differs from the attrition audit. Both changes are unmeasured, and a check of eval-05 and eval-12 costs about $0.18.
+
+**Cut quotes.** 10 of 530 stored values were correct but `unlocated`, because the model shortened its quote with "...". That happened even on the six contracts run after the prompt forbade it. The checker now accepts a cut quote when every piece is word for word in the contract, in order, and within 800 characters. Each piece must be at least 12 characters.
+
+**Confidence.** Every entry came back `high`, so the model's confidence tells us nothing. Verification is what separates values.
 
 ## Known limits
 
-- **33 absent terms is a thin test of invention.** Real contracts leave out far more.
+- **A key error the model shares scores as correct.** The audit only surfaces disagreements, so a draft and a model that misread a clause the same way would pass unnoticed.
+- **The named-storm term covers only the notice window.** A named-storm clause also has a forecast window before arrival, and both matter to a deadline or what-if feature. Split the term before either feature uses it.
+- **34 absent terms is a thin test of invention.** Real contracts leave out far more.
 - **Model confidence is not a signal.** Use verification instead.
 - **The prompt says "hotel or venue".** That wording is industry-specific in the same way as the analysis prompt (§2.0.3).
 - **PDF uploads verify against positioned-line text.** Hyphenation at a line break can leave a sound quote unlocated.

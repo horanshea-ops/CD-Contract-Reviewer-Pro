@@ -215,7 +215,7 @@
         "brand_ownership_change.notice_days": 30,
         "brand_ownership_change.termination_window_days": 30,
         "brand_ownership_change.covers_bankruptcy": true,
-        "named_storm.cancellation_window_hours": 72,
+        "named_storm.cancellation_window_hours": 12,
         "attendee_data_handling.marketing_use_barred": true,
         "attendee_data_handling.third_party_sale_barred": true,
         "ada_compliance.hotel_warranty": true,
@@ -239,6 +239,12 @@
       },
       "unkeyed": {
         "deal.fb_minimum_usd": "The layout never prints it and the drafter was never given it."
+      },
+      "corrected": {
+        "named_storm.cancellation_window_hours": {
+          "reason": "The spec's 72 hours became the forecast window before the event. The notice window the catalog asks for is 12 hours.",
+          "quote": "Group must provide written notice of cancellation to the Hotel's Director of Sales within twelve (12) hours of the National Weather Service's issuance of a hurricane or tropical storm warning for the Portland area."
+        }
       }
     },
     {
@@ -535,7 +541,7 @@
         "force_majeure.covers_unsafe_travel": true,
         "force_majeure.deposit_refund": false,
         "fb_minimum.menu_price_lock_months": 24,
-        "fb_minimum.shortfall_rate": 0.8,
+        "fb_minimum.shortfall_rate": 1,
         "cutoff_date.days_prior": 45,
         "cutoff_date.post_cutoff_group_rate": false,
         "walk_relocation.comparable_accommodation": false,
@@ -596,6 +602,12 @@
       },
       "unkeyed": {
         "deal.fb_minimum_usd": "The layout never prints it and the drafter was never given it."
+      },
+      "corrected": {
+        "fb_minimum.shortfall_rate": {
+          "reason": "The spec's 80% became the guarantee level, and the Group pays the whole shortfall.",
+          "quote": "the Group shall pay to the Hotel the shortfall within thirty (30) days of final invoice"
+        }
       }
     },
     {
@@ -679,7 +691,7 @@
         "insurance_indemnification.mutual": true,
         "insurance_indemnification.own_negligence_only": true,
         "insurance_indemnification.group_liability_limit_usd": 1000000,
-        "damage_deposit.refund_window_days": 30,
+        "damage_deposit.refund_window_days": "not_stated",
         "damage_deposit.offsets_other_charges": false,
         "damage_deposit.deposit_usd": 0,
         "exclusivity_vendors.outside_vendors_allowed": false,
@@ -715,6 +727,11 @@
       },
       "unkeyed": {
         "deal.fb_minimum_usd": "The layout never prints it and the drafter was never given it."
+      },
+      "corrected": {
+        "damage_deposit.refund_window_days": {
+          "reason": "No deposit is required, so there is no refund window. The spec's 30 days became a deadline for an accounting of damage costs."
+        }
       }
     },
     {
@@ -772,7 +789,7 @@
         "force_majeure.covers_unsafe_travel": false,
         "force_majeure.deposit_refund": true,
         "fb_minimum.menu_price_lock_months": 12,
-        "fb_minimum.shortfall_rate": 0.35,
+        "fb_minimum.shortfall_rate": 1,
         "cutoff_date.days_prior": 40,
         "cutoff_date.post_cutoff_group_rate": true,
         "walk_relocation.comparable_accommodation": true,
@@ -790,7 +807,7 @@
         "construction_renovation.termination_if_interferes": true,
         "master_account_billing.dispute_window_days": 30,
         "master_account_billing.finance_charge_monthly_pct": 0.015,
-        "master_account_billing.prepayment_defined": true,
+        "master_account_billing.prepayment_defined": false,
         "review_audit_dates.weekly_pickup_reports": true,
         "review_audit_dates.post_event_report_days": 30,
         "review_audit_dates.block_audit_right": true,
@@ -834,6 +851,16 @@
       "unkeyed": {
         "deal.peak_night_rooms": "The room-block table prints per-night figures that contradict the prose block (layout.ts).",
         "deal.fb_minimum_usd": "The layout never prints it and the drafter was never given it."
+      },
+      "corrected": {
+        "fb_minimum.shortfall_rate": {
+          "reason": "The shortfall fee is the whole difference. The spec's 35% became a threshold for renegotiation.",
+          "quote": "the Group shall be obligated to pay the Hotel a shortfall fee equal to the difference between the Minimum F&B Commitment and the actual charges incurred"
+        },
+        "master_account_billing.prepayment_defined": {
+          "reason": "The Hotel designates the percentage, so the agreement states none.",
+          "quote": "Group shall remit prepayment equal to the percentage of anticipated charges designated by the Hotel prior to the event"
+        }
       }
     }
   ]

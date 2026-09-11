@@ -43,6 +43,17 @@ describe("the term extraction key", () => {
     expect(contract("eval-07-monarch").terms["master_account_billing.finance_charge_monthly_pct"]).toBe(0.013);
   });
 
+  it("follows the document where a draft does not say what its spec says", () => {
+    const e10 = contract("eval-10-crossroads");
+    expect(e10.terms["fb_minimum.shortfall_rate"]).toBe(1);
+    expect(e10.corrected?.["fb_minimum.shortfall_rate"]?.reason).toMatch(/guarantee level/);
+
+    expect(contract("eval-12-granite-bay").terms["damage_deposit.refund_window_days"]).toBe("not_stated");
+
+    const all = derived.contracts.flatMap((c) => Object.keys(c.corrected ?? {}));
+    expect(all).toHaveLength(5);
+  });
+
   it("reads the cancellation schedule from the printed rows", () => {
     expect(contract("eval-01-harborview").terms["cancellation.schedule"]).toEqual([
       { label: "365 days or more prior to arrival", days_prior_min: 365, days_prior_max: null, pct: 0.25 },
