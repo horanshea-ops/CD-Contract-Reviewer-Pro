@@ -56,6 +56,13 @@ async function main() {
   const model = modelAt === -1 ? undefined : process.argv[modelAt + 1];
 
   const resume = process.argv.includes("--resume");
+
+  // `--only <file>` captures one contract, for checking a prompt change against
+  // the contract that shows it most sharply before paying for the whole corpus.
+  // Scoring such a run reports every other contract as unanalysed, which is
+  // correct — read that contract's own rows.
+  const onlyAt = process.argv.indexOf("--only");
+  const only = onlyAt === -1 ? null : (process.argv[onlyAt + 1] ?? "").split(",").map((c) => c.trim());
   const key: AnswerKey = JSON.parse(await readFile(KEY_PATH, "utf8"));
   const standards = await loadStandardsLibrary();
 
@@ -84,8 +91,16 @@ async function main() {
   console.log(`Corpus: ${key.contracts.length} contracts from ${key.version}\n`);
 
   const documents: RunDocument[] = [];
+  // Several contracts in one invocation share the cached standards library,
+  // which the first call pays for and the rest read at a tenth of the price.
+  const wanted = only ? key.contracts.filter((c) => only.includes(c.contract)) : key.contracts;
+  if (wanted.length === 0) {
+    throw new Error(
+      `No contract named "${only?.join(", ")}" in the key. Known: ${key.contracts.map((c) => c.contract).join(", ")}`
+    );
+  }
 
-  for (const entry of key.contracts) {
+  for (const entry of wanted) {
     process.stdout.write(`${entry.contract} ... `);
     const started = Date.now();
 

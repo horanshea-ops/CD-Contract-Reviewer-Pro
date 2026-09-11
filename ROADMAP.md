@@ -324,8 +324,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ### Raised by the first eval run (2026-09-10)
 
-The §2.0.1 harness measured the pipeline for the first time: recall 96.7%,
-precision 48.9%, on 7 generated contracts and 90 key items. Full report and audit
+The §2.0.1 harness measured the pipeline for the first time: recall 100%,
+precision 50.6%, on 7 generated contracts and 90 key items. Full report and audit
 trail in `docs/eval-baseline-2026-09-10.txt`. Four things came out of it that need
 changing, and one that needs watching.
 
@@ -347,33 +347,81 @@ changing, and one that needs watching.
       path would transmit it. An associate seeing 25 flags on a clean contract also
       stops trusting the tool, which is the failure mode no accuracy number captures.
 
-      Fix is in `buildSystemPrompt` and `FINDINGS_TOOL_SCHEMA`'s description in
+      **Fixed 2026-09-10**, in `buildSystemPrompt` and `FINDINGS_TOOL_SCHEMA` in
       `lib/anthropic.ts`: a finding means a deviation, a compliant clause belongs in
-      `clauses_checked` and nowhere else. **Opus work** — changing the analysis system
-      prompt changes the output of every review. Re-run `npm run eval:capture` and
-      compare precision to tell whether it worked; that is what the harness is for.
+      `clauses_checked` and nowhere else, and silence about a clause is the positive
+      claim that it complies.
 
-      It is also most of the bill. Capture cost is dominated by output (79k output
-      against 76k input), so this cuts cost as well as noise.
+      Measured on four of the seven contracts, chosen as the extremes plus the two
+      untested risks — $0.44 in total:
 
-- [ ] **2. Severity is over-called.** Half the calls are exact and 95% land within one
+      | contract | key items | recall before | after | findings filed |
+      |---|---|---|---|---|
+      | eval-01 most adverse | 25 | 24/25 | **25/25** | 25 → 29 |
+      | eval-03 nearly clean | 2 | 2/2 | **2/2** | 25 → 7 |
+      | eval-05 twelve clauses absent | 14 | 14/14 | **14/14** | 25 → 16 |
+      | eval-07 every margin narrow | 9 | 9/9 | **7/9** | 25 → 14 |
+      | | **50** | **49/50** | **48/50** | **100 → 66** |
+
+      A third fewer findings for one fewer catch, and eval-01 went from one false
+      positive to none. Severity improved as a side effect: 96% exact on eval-01
+      against 49% corpus-wide before, with one over-call and no under-calls.
+
+- [x] **2. Severity over-calling — fixed 2026-09-10 by the same prompt change.**
+      Anchoring severity to the library's `severity_default` and requiring a stated
+      reason to depart from it took eval-01 from 49% exact corpus-wide to 96% exact,
+      one over-call, no under-calls. Original note below.
+
+- [ ] ~~**2. Severity is over-called.**~~ Half the calls are exact and 95% land within one
       band, but the model over-calls almost twice as often as it under-calls (29
       against 15), and 23 of the key's `medium` items came back `high`. If everything
       reads urgent, nothing does. Same prompt, same Opus rule: the library supplies
       `severity_default` and the model should depart from it only on the specific
       facts, saying why.
 
-- [ ] **3. Three genuine misses, all `medium`, all present-but-adverse rather than
-      missing clauses** — `named_storm` in eval-01, `fb_minimum` in eval-10,
-      `mandatory_fees` in eval-15. Small enough to read individually. Worth checking
-      whether the clause positions in `lib/standards/v1.ts` are vague at those three
-      points before assuming the model is at fault.
+- [x] **3. The three "misses" were harness bugs, not misses. Fixed 2026-09-10.**
+      Reading them individually showed the model had filed a correct finding for
+      each — the 24-hour storm window, the 24-month menu lock at a 100% shortfall
+      rate, the unilateral right to add fees after signature. The scorer refused
+      each pairing because the finding quoted a sentence of the clause outside the
+      span its anchors covered; one ended at character 15758 where its clause's
+      anchors began at 15759.
+
+      A clause's region is now the section it occupies rather than the hull of its
+      anchors. Re-scoring the same captured run — free, no API — moved recall from
+      96.7% to **100%**, and precision from 48.9% to 50.6%.
+
+      Worth noting how it surfaced: the number looked plausible either way. It was
+      reading the audit trail against the contracts that found it, which is the
+      reason the trail is part of the report rather than a debugging aid.
 
 - [ ] **4. Downstream consumers assume every finding is actionable.** Even once the
       prompt is fixed, nothing between the model and the redline/memo/email checks
       that a finding proposes an actual change. A defensive filter is cheap insurance
       against a regression reaching a hotel. Decide whether to add one, or to rely on
       the eval catching it.
+
+- [ ] **5. Narrow-margin deviations are dropped about two times in nine. New,
+      2026-09-10.** On eval-07, whose every deviation is narrow, recall is 7/9 — and
+      the two dropped differ between runs, so this is variance at the decision
+      boundary rather than a fixed blind spot. A second, stronger prompt pass did not
+      move it, and one run each cannot separate the two versions.
+
+      These are the findings that matter most to keep: a comp-room ratio five rooms
+      the wrong side of CD's, or a storm window twelve hours short, is exactly what an
+      associate skims past. Worth another look when there is a reason to spend on
+      several runs at once — a single run cannot tell a real improvement from noise
+      at this sample size.
+
+- [ ] **6. Three known defects in the eval corpus.** The contracts contain small
+      inconsistencies the key does not know about, so every finding about one scores
+      as a false positive and precision reads lower than it is. The F&B shortfall
+      directive is ambiguous about whether the rate is of the shortfall or on top of
+      it; the auxiliary-aids meaning was over-simplified and no longer states CD's
+      position; and the assignment clause in eval-03 carries restrictions its spec
+      never asked for. All three need the affected clauses redrafted, so they are
+      worth fixing the next time the corpus is rebuilt for another reason, not on
+      their own.
 
 - **Watching: the harness itself is thin.** Seven contracts and 90 key items support
   the per-clause and per-severity breakdowns, but not reading any single percentage as

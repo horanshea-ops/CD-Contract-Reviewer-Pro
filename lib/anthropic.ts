@@ -40,15 +40,17 @@ export interface AnalysisResult {
 
 const FINDINGS_TOOL_NAME = "record_analysis";
 
-const FINDINGS_TOOL_SCHEMA = {
+export const FINDINGS_TOOL_SCHEMA = {
   name: FINDINGS_TOOL_NAME,
   description:
-    "Record the findings from reviewing this hotel/venue contract against ConferenceDirect's standards library.",
+    "Record a review of this hotel/venue contract against ConferenceDirect's standards library: the deviations found, and separately the full list of clause types examined.",
   input_schema: {
     type: "object" as const,
     properties: {
       findings: {
         type: "array",
+        description:
+          "Deviations only. One entry per clause whose language falls short of CD's position, plus any clause CD's standards call for that this contract is missing. A clause that already matches CD's position does not belong here — it belongs in clauses_checked.",
         items: {
           type: "object",
           properties: {
@@ -68,7 +70,11 @@ const FINDINGS_TOOL_SCHEMA = {
             exposure_basis: { type: ["string", "null"] },
             finding_text: { type: "string" },
             cd_standard: { type: "string" },
-            proposed_language: { type: "string" },
+            proposed_language: {
+              type: "string",
+              description:
+                "The replacement wording. Always an actual change — never a note that no change is needed.",
+            },
             model_confidence: { type: "string", enum: ["high", "medium", "low"] },
           },
           required: [
@@ -96,12 +102,22 @@ const FINDINGS_TOOL_SCHEMA = {
   },
 };
 
-function buildSystemPrompt(standards: StandardEntry[], standardsVersion: string) {
+/**
+ * Exported so a test can assert on the rules it carries, the same way the two
+ * email prompts are. Changing this changes the output of every review, and the
+ * rules most easily lost are the ones added after a measured failure.
+ */
+export function buildSystemPrompt(standards: StandardEntry[], standardsVersion: string) {
   const instructions = `You are reviewing a hotel or venue contract on behalf of ConferenceDirect (CD), a meetings and events company. Your job is to find terms that create financial exposure for CD's client, measured against the standards library below, which encodes how CD negotiates.
 
 Rules:
 - This is a negotiating aid, not legal advice. Do not describe any finding as a legal opinion, and do not state or imply that a contract is "safe" or "cleared."
-- For every clause type in the standards library, check whether the contract's language matches CD's position. If it does not, or the clause is missing entirely, record a finding.
+- For every clause type in the standards library, check whether the contract's language matches CD's position. Record a finding only where it does not, or where a clause CD's standards call for is missing entirely.
+- A clause that already matches CD's position is NOT a finding. Do not record one to show that you looked — clauses_checked is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
+- Never write "compliant", "no change recommended", "matches CD's standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
+- A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of CD's position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
+- Leaving a clause out of findings is a statement that it MEETS CD's position, and listing it in clauses_checked with no finding says the same thing. Never say that about a clause that falls short by any margin at all.
+- severity comes from that clause's severity_default in the standards library. Depart from it only where this contract's own facts justify it — an unusually large block, a term that compounds another — and say why in finding_text. Calling everything high is the same as calling nothing high. A narrow margin is not a reason to lower the severity, and never a reason to leave the finding out.
 - quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.

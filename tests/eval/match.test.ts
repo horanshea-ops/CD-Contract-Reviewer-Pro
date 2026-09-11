@@ -326,22 +326,32 @@ describe("clause regions", () => {
     anchor_texts: ["Attrition is measured night-by-night.", "The threshold is ninety-five percent (95%)."],
   });
 
-  it("groups a clause's anchors into one region per part", () => {
-    const regions = clauseRegions([
-      { part: "document", start: 10, end: 20 },
-      { part: "document", start: 50, end: 60 },
-      { part: "footer1", start: 0, end: 5 },
-    ]);
-    expect(regions).toEqual([
-      { part: "document", start: 10, end: 60 },
-      { part: "footer1", start: 0, end: 5 },
-    ]);
+  it("takes the whole section as the region, not just the span the anchors cover", () => {
+    // Measured: three correct findings in the first baseline fell between the
+    // clause heading and its first anchor, or after its last, and were scored
+    // as a miss and a false positive each. One ended at character 15758 where
+    // its clause's anchors began at 15759.
+    const regions = clauseRegions([at("The threshold is ninety-five percent (95%).")], parts);
+    expect(regions).toHaveLength(1);
+
+    const section = TEXT.slice(regions[0].start, regions[0].end);
+    expect(section).toContain("# 4. Attrition");
+    expect(section).toContain("Attrition is measured night-by-night.");
+    expect(section).not.toContain("# 5. Cancellation");
+  });
+
+  it("keeps a clause restated in another part as one region per part", () => {
+    const regions = clauseRegions(
+      [at("Attrition is measured night-by-night."), { part: "footer1", start: 3, end: 8 }],
+      [...parts, { part: "footer1", text: "Reservations close early." }]
+    );
+    expect(regions.map((r) => r.part)).toEqual(["document", "footer1"]);
   });
 
   it("pairs a finding quoting the clause's unanchored middle, at a lower weight", () => {
+    const regions = clauseRegions(item.anchors, parts);
     const middle = finding({ quoted_text: "Any determination under this Section shall be made in good faith." });
-    const location = locateFinding(parts, middle);
-    const candidate = scoreCandidate(item, middle, location)!;
+    const candidate = scoreCandidate(item, middle, locateFinding(parts, middle), regions)!;
 
     expect(candidate).not.toBeNull();
     expect(candidate.basis).toBe("span");
@@ -349,13 +359,14 @@ describe("clause regions", () => {
 
     // An anchor hit must always win the pairing over a region hit.
     const onAnchor = finding({ quoted_text: "The threshold is ninety-five percent (95%)." });
-    const better = scoreCandidate(item, onAnchor, locateFinding(parts, onAnchor))!;
+    const better = scoreCandidate(item, onAnchor, locateFinding(parts, onAnchor), regions)!;
     expect(better.weight).toBeGreaterThan(candidate.weight);
   });
 
-  it("still refuses a finding located outside the clause entirely", () => {
+  it("still refuses a finding located in a different section", () => {
     const elsewhere = finding({ quoted_text: "Damages are a percentage of gross room revenue." });
-    expect(scoreCandidate(item, elsewhere, locateFinding(parts, elsewhere))).toBeNull();
+    const regions = clauseRegions(item.anchors, parts);
+    expect(scoreCandidate(item, elsewhere, locateFinding(parts, elsewhere), regions)).toBeNull();
   });
 
   it("prefers the anchor hit when two findings compete for one item", () => {

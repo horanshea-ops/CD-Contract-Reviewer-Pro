@@ -150,35 +150,69 @@ export function bestOverlap(anchors: AnchorSpan[], span: AnchorSpan): number {
 }
 
 /**
- * The stretch of each part a clause's anchors span, end to end.
+ * Where each numbered section of a part begins.
  *
- * A clause is bigger than the sentences that state its terms. The drafted
- * clause has an opening, procedural wording between the terms, and a tail, and
- * none of that is anchored. A finding quoting one of those sentences is about
- * the clause all the same — but it overlaps no anchor, so on anchor evidence
- * alone it looks like a finding about somewhere else entirely, and would be
- * scored as a miss and a false positive at once.
- *
- * Computed per part, because a clause restated in the footer has anchors in two
- * parts and a hull spanning them would cover text belonging to neither.
+ * §1.4 marks a heading with "#", so the sections a contract is divided into are
+ * visible in the extracted text. Cached per part, since the same text is walked
+ * once per finding otherwise.
  */
-export function clauseRegions(anchors: AnchorSpan[]): AnchorSpan[] {
-  const byPart = new Map<string, AnchorSpan>();
-  for (const anchor of anchors) {
-    const existing = byPart.get(anchor.part);
-    byPart.set(
-      anchor.part,
-      existing
-        ? { part: anchor.part, start: Math.min(existing.start, anchor.start), end: Math.max(existing.end, anchor.end) }
-        : { ...anchor }
-    );
-  }
-  return [...byPart.values()];
+const sectionStartsCache = new WeakMap<LocatablePart, number[]>();
+
+function sectionStarts(part: LocatablePart): number[] {
+  const cached = sectionStartsCache.get(part);
+  if (cached) return cached;
+  const starts = [...part.text.matchAll(/^#{1,6} .*$/gm)].map((m) => m.index ?? 0);
+  sectionStartsCache.set(part, starts);
+  return starts;
 }
 
-/** Whether a span falls inside the stretch a clause's anchors cover. */
-export function withinClauseRegion(anchors: AnchorSpan[], span: AnchorSpan): boolean {
-  return clauseRegions(anchors).some((region) => overlapLength(region, span) > 0);
+/** The section containing an offset, from its heading to the next one. */
+function sectionAround(part: LocatablePart, offset: number): AnchorSpan {
+  const starts = sectionStarts(part);
+  let start = 0;
+  let end = part.text.length;
+  for (const at of starts) {
+    if (at <= offset) start = at;
+    else {
+      end = at;
+      break;
+    }
+  }
+  return { part: part.part, start, end };
+}
+
+/**
+ * The sections a clause's anchors sit in.
+ *
+ * A clause is bigger than the sentences that state its terms — it has an
+ * opening, procedural wording between the terms, and a tail, none of which is
+ * anchored. A finding quoting one of those is about the clause all the same.
+ *
+ * The region is the SECTION, not the span between the first and last anchor.
+ * The hull was measurably too narrow: in the first baseline run, three correct
+ * findings fell outside it and were scored as a miss and a false positive each.
+ * One of them ended at character 15758 where its clause's anchors began at
+ * 15759 — the sentence immediately before the first anchored one.
+ *
+ * Computed per part, because a clause restated in the footer has anchors in two
+ * parts and one range spanning both would cover text belonging to neither.
+ */
+export function clauseRegions(anchors: AnchorSpan[], parts: LocatablePart[]): AnchorSpan[] {
+  const byPart = new Map(parts.map((p) => [p.part, p]));
+  const regions: AnchorSpan[] = [];
+
+  for (const anchor of anchors) {
+    const part = byPart.get(anchor.part);
+    if (!part) continue;
+    const region = sectionAround(part, anchor.start);
+    if (!regions.some((r) => r.part === region.part && r.start === region.start)) regions.push(region);
+  }
+  return regions;
+}
+
+/** Whether a span falls inside a section this clause occupies. */
+export function withinClauseRegion(regions: AnchorSpan[], span: AnchorSpan): boolean {
+  return regions.some((region) => overlapLength(region, span) > 0);
 }
 
 export interface Candidate {
@@ -202,7 +236,13 @@ export interface Candidate {
  * it, and that has to grade as a presence error on a real pair rather than
  * vanish into a miss and a false positive at once.
  */
-export function scoreCandidate(item: KeyItem, finding: Finding, location: LocationStatus): Candidate | null {
+export function scoreCandidate(
+  item: KeyItem,
+  finding: Finding,
+  location: LocationStatus,
+  /** The sections this key item's clause occupies. Empty means anchors only. */
+  regions: AnchorSpan[] = []
+): Candidate | null {
   const typesAgree = clauseTypesAgree(item.clause_type, finding.clause_type);
   const presenceAgrees = (item.kind === "absent") === Boolean(finding.is_missing_clause);
   const severityAgrees = item.severity === finding.severity;
@@ -222,7 +262,7 @@ export function scoreCandidate(item: KeyItem, finding: Finding, location: Locati
     // Inside the clause but not on a term sentence. Weaker than an anchor hit,
     // so an anchor hit always wins the pairing, but not nothing — the finding is
     // still pointing at this clause and no other.
-    if (withinClauseRegion(item.anchors, location.span)) {
+    if (withinClauseRegion(regions, location.span)) {
       return { basis: "span", weight: CLAUSE_REGION_BASE + attributes, overlap: 0 };
     }
     return null;
@@ -270,8 +310,9 @@ export function matchDocument(keyItems: KeyItem[], findings: Finding[], parts: L
     .map((_, i) => i)
     .sort((a, b) => findingKey(findings[a]).localeCompare(findingKey(findings[b])) || a - b);
 
+  const regionsFor = keyItems.map((item) => clauseRegions(item.anchors, parts));
   const candidates = keyOrder.map((k) =>
-    findingOrder.map((f) => scoreCandidate(keyItems[k], findings[f], locations[f]))
+    findingOrder.map((f) => scoreCandidate(keyItems[k], findings[f], locations[f], regionsFor[k]))
   );
   const weights = candidates.map((row) => row.map((c) => c?.weight ?? 0));
 
@@ -321,7 +362,7 @@ export function matchDocument(keyItems: KeyItem[], findings: Finding[], parts: L
     .map(({ finding, findingIndex }) => {
       const location = locations[findingIndex];
       const duplicated = pairs.find(
-        (pair) => scoreCandidate(keyItems[pair.keyIndex], finding, location) !== null
+        (pair) => scoreCandidate(keyItems[pair.keyIndex], finding, location, regionsFor[pair.keyIndex]) !== null
       );
       return { findingIndex, duplicateOf: duplicated ? duplicated.keyIndex : null };
     });

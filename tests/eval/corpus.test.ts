@@ -231,6 +231,57 @@ describe("readBackQuestions", () => {
 });
 
 describe("layOutContract", () => {
+  it("shows no liability in a band beyond the clause's liability-free window", async () => {
+    // The schedule charged 18% at 365 days in a contract whose own text said
+    // nothing was owed beyond twelve months. The model reported the
+    // contradiction, correctly, and the key had no way to know about it.
+    const spec = EVAL_SPECS.find((s) => s.id === "eval-03-bayfront")!;
+    const drafted = clausesToDraft(spec).map((clause_type) => ({
+      clause_type,
+      paragraphs: [`Prose for ${clause_type}.`],
+      anchors: [],
+    }));
+    const { document } = layOutContract(spec, drafted);
+    const schedule = document.blocks.find(
+      (b) => b.kind === "table" && b.header[0].startsWith("Date of Written")
+    );
+
+    expect(schedule).toBeDefined();
+    if (schedule?.kind !== "table") throw new Error("unreachable");
+    // eval-03 is liability-free beyond twelve months, so the outermost band owes
+    // nothing and every band inside twelve months still owes something. An
+    // earlier version zeroed all but the last, which is a different contract.
+    expect(schedule.rows[0]).toEqual(["365 days or more prior to arrival", "None"]);
+    expect(schedule.rows.slice(1).map((r) => r[1])).not.toContain("None");
+  });
+
+  it("charges every band when the clause has no liability-free window", () => {
+    const spec = EVAL_SPECS.find((s) => s.id === "eval-01-harborview")!;
+    const drafted = clausesToDraft(spec).map((clause_type) => ({
+      clause_type,
+      paragraphs: [`Prose for ${clause_type}.`],
+      anchors: [],
+    }));
+    const { document } = layOutContract(spec, drafted);
+    const schedule = document.blocks.find(
+      (b) => b.kind === "table" && b.header[0].startsWith("Date of Written")
+    );
+    if (schedule?.kind !== "table") throw new Error("unreachable");
+    expect(schedule.rows.map((r) => r[1])).not.toContain("None");
+  });
+
+  it("states the food and beverage minimum once, in its own clause", async () => {
+    // Naming it in the room-block section as well produced two different
+    // figures in one contract: the spec's here, the drafter's there.
+    const spec = EVAL_SPECS.find((s) => s.id === "eval-03-bayfront")!;
+    const { document } = layOutContract(spec, []);
+    const roomBlock = document.blocks.find((b) => b.kind === "para" && b.text.includes("guest rooms on the peak night"));
+
+    expect(roomBlock).toBeDefined();
+    if (roomBlock?.kind !== "para") throw new Error("unreachable");
+    expect(roomBlock.text).not.toMatch(/food and beverage/i);
+  });
+
   it("keeps the cancellation top tier out of the prose, so it lives only in the table", () => {
     expect(isTableOnly("cancellation", "top_tier_pct")).toBe(true);
     const spec = EVAL_SPECS[0];
