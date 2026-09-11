@@ -1,5 +1,6 @@
 import type { Severity } from "../standards/types";
 import type { AnalysisResult } from "../anthropic";
+import type { NumericUnit } from "../quantities";
 
 /**
  * Types for the eval harness (MASTER_PLAN.md §2.0.1).
@@ -29,7 +30,7 @@ export interface AnchorSpan {
   end: number;
 }
 
-export type NumericUnit = "pct" | "usd" | "days" | "months" | "hours" | "rooms";
+export type { NumericUnit };
 export type Comparator = "lte" | "lt" | "eq" | "gte" | "gt";
 
 /**

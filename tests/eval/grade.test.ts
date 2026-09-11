@@ -3,7 +3,7 @@ import type { Finding } from "@/lib/anthropic";
 import type { KeyItem, LanguageAssertion, LocationStatus } from "@/lib/eval/types";
 import { gradePair, languageWasGraded } from "@/lib/eval/grade";
 import { gradeLanguage } from "@/lib/eval/language";
-import { numberToWords, phrase, parseQuantities } from "@/lib/eval/phrasing";
+import { numberToWords, phrase, parseQuantities } from "@/lib/quantities";
 
 function keyItem(over: Partial<KeyItem> = {}): KeyItem {
   return {

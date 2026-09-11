@@ -123,7 +123,7 @@ const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits
  * same figure whenever the top tier was low, so a contract whose spec says its
  * damages slide carried a table showing they do not.
  */
-function cancellationRows(topTierPct: number, liabilityFreeMonths: number): string[][] {
+export function cancellationRows(topTierPct: number, liabilityFreeMonths: number): string[][] {
   // The third number is the band's NEAREST approach to arrival, in months. A
   // band owes nothing only when the whole of it lies beyond the clause's
   // liability-free window, which is what its nearest edge decides.

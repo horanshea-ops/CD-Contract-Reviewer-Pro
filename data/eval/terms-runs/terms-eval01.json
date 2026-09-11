@@ -1,0 +1,780 @@
+{
+  "run_id": "terms-eval01",
+  "created_at": "2026-09-11T15:33:01.281Z",
+  "model_id": "claude-sonnet-5",
+  "catalog_version": "hotel-v1",
+  "documents": [
+    {
+      "contract": "eval-01-harborview.docx",
+      "terms": {
+        "catalog_version": "hotel-v1",
+        "stated": [
+          {
+            "term_key": "deal.peak_night_rooms",
+            "value": 340,
+            "unit": "rooms",
+            "quoted_text": "Hotel will hold a block of 340 guest rooms on the peak night",
+            "source_section": "1. Room Block and Rates",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "deal.group_rate_usd",
+            "value": 289,
+            "unit": "usd",
+            "quoted_text": "group rate of $289.00 per room, per night",
+            "source_section": "1. Room Block and Rates",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "deal.event_start_date",
+            "value": "2027-04-12",
+            "unit": null,
+            "quoted_text": "held April 12-16, 2027",
+            "source_section": null,
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "deal.event_end_date",
+            "value": "2027-04-16",
+            "unit": null,
+            "quoted_text": "held April 12-16, 2027",
+            "source_section": null,
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "attrition.basis",
+            "value": "night_by_night",
+            "unit": null,
+            "quoted_text": "Attrition is measured on a night-by-night basis, with shortfalls calculated by comparing actual rooms occupied to the block size on each night of the event period.",
+            "source_section": "2. Attrition",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "attrition.threshold",
+            "value": 0.9,
+            "unit": "pct",
+            "quoted_text": "Group shall be deemed in attrition if actual occupancy falls below the attrition threshold of ninety percent (90%) on any night.",
+            "source_section": "2. Attrition",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "attrition.liability_rate",
+            "value": 1,
+            "unit": "pct",
+            "quoted_text": "Group shall be liable for attrition damages at the rate of one hundred percent (100%) of the nightly room rate for each unoccupied room within the block.",
+            "source_section": "2. Attrition",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "attrition.high_occupancy_credit",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group shall receive no credit toward its block commitment for nights on which the Hotel sells out all available rooms in the Hotel",
+            "source_section": "2. Attrition",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "attrition.audit_rights",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel's occupancy records, registration cards, and room-by-room occupancy logs shall not be open to Group for audit, verification, or inspection",
+            "source_section": "2. Attrition",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "cancellation.damages_basis",
+            "value": "gross_revenue",
+            "unit": null,
+            "quoted_text": "Group shall be liable to the Hotel for liquidated damages calculated as a percentage of gross room revenue",
+            "source_section": "4. Cancellation and Liquidated Damages",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "cancellation.sliding_scale",
+            "value": true,
+            "unit": null,
+            "quoted_text": "The amount of liquidated damages shall vary by how far in advance of the event's arrival date the cancellation notice is provided to the Hotel",
+            "source_section": "4. Cancellation and Liquidated Damages",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "cancellation.resale_credit",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group shall not receive credit toward damages owed for any revenue the Hotel subsequently earns from reselling cancelled rooms or function space",
+            "source_section": "4. Cancellation and Liquidated Damages",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "cancellation.rebook_credit",
+            "value": false,
+            "unit": null,
+            "quoted_text": "such rebooking shall constitute a new and separate commitment and shall earn Group no credit, offset, or other financial benefit against damages",
+            "source_section": "4. Cancellation and Liquidated Damages",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "cancellation.liability_free_months",
+            "value": 0,
+            "unit": "months",
+            "quoted_text": "no period of time following execution shall be deemed a liability-free window during which cancellation would occur without incurring liquidated damages",
+            "source_section": "4. Cancellation and Liquidated Damages",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "cancellation.top_tier_pct",
+            "value": 1,
+            "unit": "pct",
+            "quoted_text": "30 days or fewer prior to arrival | 100%",
+            "source_section": "4. Cancellation and Liquidated Damages",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "cancellation.schedule",
+            "value": [
+              {
+                "label": "365 days or more prior to arrival",
+                "days_prior_min": 365,
+                "days_prior_max": null,
+                "pct": 0.25
+              },
+              {
+                "label": "364 through 181 days prior to arrival",
+                "days_prior_min": 181,
+                "days_prior_max": 364,
+                "pct": 0.5
+              },
+              {
+                "label": "180 through 91 days prior to arrival",
+                "days_prior_min": 91,
+                "days_prior_max": 180,
+                "pct": 0.75
+              },
+              {
+                "label": "90 through 31 days prior to arrival",
+                "days_prior_min": 31,
+                "days_prior_max": 90,
+                "pct": 0.9
+              },
+              {
+                "label": "30 days or fewer prior to arrival",
+                "days_prior_min": 0,
+                "days_prior_max": 30,
+                "pct": 1
+              }
+            ],
+            "unit": "pct",
+            "quoted_text": "365 days or more prior to arrival | 25%",
+            "source_section": "4. Cancellation and Liquidated Damages",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "force_majeure.standard",
+            "value": "impossible",
+            "unit": null,
+            "quoted_text": "provided that the event rendered performance physically impossible and was not foreseeable at the time of agreement execution",
+            "source_section": "6. Force Majeure",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "force_majeure.covers_government_restrictions",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the following shall not constitute force majeure: government-issued travel restrictions, travel advisories, or governmental directives limiting group gatherings or travel",
+            "source_section": "6. Force Majeure",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "force_majeure.covers_epidemic",
+            "value": false,
+            "unit": null,
+            "quoted_text": "epidemics, pandemics, or declarations of public health emergency, including any government responses thereto",
+            "source_section": "6. Force Majeure",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "force_majeure.covers_unsafe_travel",
+            "value": false,
+            "unit": null,
+            "quoted_text": "concerns among Group members regarding attendee safety, willingness to travel, or health considerations",
+            "source_section": "6. Force Majeure",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "force_majeure.deposit_refund",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the invocation of force majeure by either party shall not relieve Group of its obligations to remit the deposit and initial payment to the Hotel, which shall be retained by the Hotel despite any termination of this agreement resulting from force majeure",
+            "source_section": "6. Force Majeure",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "fb_minimum.menu_price_lock_months",
+            "value": 24,
+            "unit": "months",
+            "quoted_text": "the Hotel shall provide Group with menus and pricing no later than twenty-four (24) months prior to the Event dates",
+            "source_section": "9. Food and Beverage Minimum",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "fb_minimum.shortfall_rate",
+            "value": 1,
+            "unit": "pct",
+            "quoted_text": "The shortfall payment rate shall be one hundred percent (100%) of the difference between the minimum guarantee and actual consumption.",
+            "source_section": "9. Food and Beverage Minimum",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "cutoff_date.days_prior",
+            "value": 45,
+            "unit": "days",
+            "quoted_text": "received on or before forty-five (45) days prior to the arrival date of April 12, 2027",
+            "source_section": "3. Reservation Cutoff Date",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "cutoff_date.post_cutoff_group_rate",
+            "value": false,
+            "unit": null,
+            "quoted_text": "shall be offered accommodations, if available, only at the Hotel's prevailing rack rate in effect at the time of booking, with no access to the negotiated group rate",
+            "source_section": "3. Reservation Cutoff Date",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "walk_relocation.comparable_accommodation",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the Hotel shall make a reasonable effort to secure alternative lodging at the guest's sole expense and cost",
+            "source_section": "16. Relocation of Guaranteed Reservations",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "walk_relocation.transportation",
+            "value": false,
+            "unit": null,
+            "quoted_text": "All transportation to and from any alternative hotel, including airport transfers, shall be the guest's own responsibility and expense",
+            "source_section": "16. Relocation of Guaranteed Reservations",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "walk_relocation.return_upgrade",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the relocated guest shall be assigned to a standard guest room without any upgrade, suite premium, room enhancement, or additional amenity",
+            "source_section": "16. Relocation of Guaranteed Reservations",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "walk_relocation.counts_toward_pickup",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Each night during which a guest's guaranteed reservation was relocated to an alternative hotel shall not be credited toward the Group's room pickup, occupancy count, or commission calculation",
+            "source_section": "16. Relocation of Guaranteed Reservations",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "mandatory_fees.disclosed_before_signature",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group shall pay all such fees as added to its bills, whether or not such fees were disclosed prior to Group's signature on this Agreement.",
+            "source_section": "11. Mandatory Fees and Surcharges",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "mandatory_fees.undisclosed_waived",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group waives any claim that undisclosed charges are unenforceable or that such charges constitute a material modification of the Agreement.",
+            "source_section": "11. Mandatory Fees and Surcharges",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "mandatory_fees.resort_fee_usd",
+            "value": 35,
+            "unit": "usd",
+            "quoted_text": "A resort fee of $35.00 per occupied room per night shall be charged to all rooms in the block.",
+            "source_section": "11. Mandatory Fees and Surcharges",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "rebates.comp_room_ratio",
+            "value": 75,
+            "unit": "rooms",
+            "quoted_text": "a ratio of one (1) complimentary room per seventy-five (75) paid room nights occupied during the Event Period",
+            "source_section": "12. Complimentary Rooms",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "rebates.formula_based",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The complimentary room ratio of seventy-five (75) stated above is a guideline only and does not create an entitlement in Group.",
+            "source_section": "12. Complimentary Rooms",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "rebates.forfeited_on_attrition",
+            "value": true,
+            "unit": null,
+            "quoted_text": "Should Group fail to meet its room block commitment during the Event Period, all complimentary room credits earned under this clause shall be forfeited in their entirety.",
+            "source_section": "12. Complimentary Rooms",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "construction_renovation.no_current_plans_warranty",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel makes no representation, warranty, or guarantee regarding the status, scope, timing, or impact of any construction, renovation, maintenance, or capital improvement work",
+            "source_section": "17. Construction and Renovation",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "construction_renovation.notice_days",
+            "value": 0,
+            "unit": "days",
+            "quoted_text": "The Hotel reserves the right to commence, continue, or complete any construction, renovation, or maintenance work at any time without providing the Group with advance written notice",
+            "source_section": "17. Construction and Renovation",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "construction_renovation.termination_if_interferes",
+            "value": false,
+            "unit": null,
+            "quoted_text": "such work shall not constitute grounds for the Group to terminate this Agreement, to claim damages or loss of value, to demand a rate reduction or credit, or to pursue any other remedy or relief against the Hotel",
+            "source_section": "17. Construction and Renovation",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "master_account_billing.dispute_window_days",
+            "value": 0,
+            "unit": "days",
+            "quoted_text": "the Group waives any right to dispute or withhold payment of billed amounts after receipt of an invoice from the Hotel",
+            "source_section": "14. Master Account and Billing",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "master_account_billing.finance_charge_monthly_pct",
+            "value": 0.015,
+            "unit": "pct",
+            "quoted_text": "a monthly finance charge of 1.5% shall accrue on the unpaid balance",
+            "source_section": "14. Master Account and Billing",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "master_account_billing.prepayment_defined",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the Hotel may require prepayment in such amount as the Hotel determines to be appropriate before rooms are held",
+            "source_section": "14. Master Account and Billing",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "review_audit_dates.weekly_pickup_reports",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel shall provide pickup reports to Group showing room occupancy, rate structure, and charges incurred under the room block only upon Group's written request and at the Hotel's convenience",
+            "source_section": "24. Reporting and Audit",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "review_audit_dates.post_event_report_days",
+            "value": 90,
+            "unit": "days",
+            "quoted_text": "Within ninety (90) days following the conclusion of Group's event on April 16, 2027, the Hotel shall provide Group with a comprehensive post-event report",
+            "source_section": "24. Reporting and Audit",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "review_audit_dates.block_audit_right",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group shall have no right to audit, inspect, or verify the Hotel's room block records, reservation systems, or internal accounting related to Group's event",
+            "source_section": "24. Reporting and Audit",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "insurance_indemnification.mutual",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel shall not indemnify Group and makes no commitment to defend Group against any claim",
+            "source_section": "21. Insurance and Indemnification",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "insurance_indemnification.own_negligence_only",
+            "value": false,
+            "unit": null,
+            "quoted_text": "This indemnification obligation shall extend to claims arising from the Hotel's own negligence in its provision of services or maintenance of premises",
+            "source_section": "21. Insurance and Indemnification",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "insurance_indemnification.group_liability_limit_usd",
+            "value": 5000000,
+            "unit": "usd",
+            "quoted_text": "with a minimum limit of not less than $5,000,000.00 per occurrence",
+            "source_section": "21. Insurance and Indemnification",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "damage_deposit.refund_window_days",
+            "value": 90,
+            "unit": "days",
+            "quoted_text": "Any remaining balance of the security deposit shall be refunded to the Group within ninety (90) days following the last day of the Event",
+            "source_section": "15. Security Deposit",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "damage_deposit.offsets_other_charges",
+            "value": true,
+            "unit": null,
+            "quoted_text": "The Hotel may apply the security deposit, or such portion thereof as necessary, against any attrition charges, food and beverage shortfalls, damages to the Hotel's premises, incidental costs, outstanding room charges, service failures, cancellation penalties, or any other sum that the Group owes",
+            "source_section": "15. Security Deposit",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "damage_deposit.deposit_usd",
+            "value": 25000,
+            "unit": "usd",
+            "quoted_text": "The Group shall deposit with the Hotel the sum of $25,000.00 as security for the faithful performance",
+            "source_section": "15. Security Deposit",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "exclusivity_vendors.outside_vendors_allowed",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group shall not retain, contract with, or permit on the Hotel's premises any outside vendor, supplier, decorator, caterer, audiovisual provider, florist, musician, photographer, or other service provider without the Hotel's prior written consent.",
+            "source_section": "20. Outside Vendors",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "exclusivity_vendors.opt_out_fee_usd",
+            "value": 2500,
+            "unit": "usd",
+            "quoted_text": "Group's use of any outside vendor in violation of this requirement shall incur a surcharge of $2,500.00 for each such engagement.",
+            "source_section": "20. Outside Vendors",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "termination_rights.for_cause_no_liability",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Termination for such cause does not relieve Group of liability for damages, including lost profit, diminution in value, and consequential loss incurred by the Hotel",
+            "source_section": "8. Termination for Cause",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "termination_rights.separate_from_cancellation_scale",
+            "value": false,
+            "unit": null,
+            "quoted_text": "any and all termination by Group shall be deemed and treated as a cancellation subject to the cancellation damages scale set forth in this Agreement",
+            "source_section": "8. Termination for Cause",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "assignment_subcontracting.assignable_to_successor",
+            "value": false,
+            "unit": null,
+            "quoted_text": "This Agreement and all rights and obligations of Group under it shall not be assigned, delegated, or otherwise transferred by Group, whether by operation of law, merger, consolidation, restructuring, bankruptcy, or any other means, without the prior written consent of Hotel.",
+            "source_section": "25. Assignment",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "assignment_subcontracting.consent_not_unreasonably_withheld",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Hotel's consent to any proposed assignment is entirely within Hotel's sole discretion and may be withheld in Hotel's absolute discretion for any reason whatsoever, or for no reason at all.",
+            "source_section": "25. Assignment",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "brand_ownership_change.notice_days",
+            "value": 90,
+            "unit": "days",
+            "quoted_text": "the Hotel shall provide such notice no later than ninety (90) days prior to the effective date of any such change",
+            "source_section": "18. Change of Brand, Management or Ownership",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "brand_ownership_change.termination_window_days",
+            "value": 10,
+            "unit": "days",
+            "quoted_text": "the Group shall have the right to terminate this Agreement by providing written notice to the Hotel within ten (10) days of receipt of such notice",
+            "source_section": "18. Change of Brand, Management or Ownership",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "brand_ownership_change.covers_bankruptcy",
+            "value": false,
+            "unit": null,
+            "quoted_text": "such events shall not trigger any notice requirement, termination right, or remedy available to the Group",
+            "source_section": "18. Change of Brand, Management or Ownership",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "named_storm.cancellation_window_hours",
+            "value": 24,
+            "unit": "hours",
+            "quoted_text": "such cancellation notice is delivered to the Hotel in writing within twenty-four (24) hours of the issuance of such warning",
+            "source_section": "7. Named Storm",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "attendee_data_handling.marketing_use_barred",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the Hotel may utilize such attendee data for the Hotel's own marketing, promotional, and business development purposes",
+            "source_section": "23. Attendee Information",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "attendee_data_handling.third_party_sale_barred",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group authorizes the Hotel to share and disclose attendee data with the Hotel's corporate affiliates, brand partners, and third-party marketing service providers",
+            "source_section": "23. Attendee Information",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "ada_compliance.hotel_warranty",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel makes no representation, warranty, or covenant regarding the accessibility of its facilities under the Americans with Disabilities Act",
+            "source_section": "22. Accessibility",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "ada_compliance.auxiliary_aids_split",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Group shall fund and arrange for all such auxiliary aids and accommodations",
+            "source_section": "22. Accessibility",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "governing_law_venue.venue",
+            "value": "hotel_state",
+            "unit": null,
+            "quoted_text": "This Agreement shall be governed by the laws of the state in which the Hotel is located",
+            "source_section": "26. Governing Law and Venue",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "governing_law_venue.punitive_damages_barred",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the Hotel shall be entitled to recover... an award of punitive damages to the extent permitted by applicable law",
+            "source_section": "26. Governing Law and Venue",
+            "confidence": "high",
+            "verification": "unlocated"
+          },
+          {
+            "term_key": "governing_law_venue.each_party_own_fees",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel shall be deemed the prevailing party if it recovers any material relief, whether by judgment, settlement, or otherwise.",
+            "source_section": "26. Governing Law and Venue",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "labor_disputes.cba_expiry_notice_months",
+            "value": 0,
+            "unit": "months",
+            "quoted_text": "The Hotel shall not be obligated to provide the Group with advance written notice regarding the expiration date, renewal status, or proposed modification of any collective bargaining agreement",
+            "source_section": "19. Labor Relations",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "labor_disputes.cancel_window_days",
+            "value": 0,
+            "unit": "days",
+            "quoted_text": "no cancellation window or notice period is defined herein, and the Group shall have no right to cancel this Agreement based upon the occurrence or threatened occurrence of any such labor-related event",
+            "source_section": "19. Labor Relations",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "labor_disputes.cancel_no_liability",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the Group shall have no right to cancel this Agreement based upon the occurrence or threatened occurrence of any such labor-related event",
+            "source_section": "19. Labor Relations",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "rate_parity.guaranteed",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel retains the absolute right to sell rooms to the general public at any rate, including rates below the rate offered to Group.",
+            "source_section": "13. Rate Parity",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "rate_parity.retroactive_adjustment",
+            "value": false,
+            "unit": null,
+            "quoted_text": "No retroactive adjustment to Group's rate shall apply to reservations already confirmed prior to the date on which the lower rate is identified.",
+            "source_section": "13. Rate Parity",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "rate_parity.commission_preserved",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Any rate adjustment determined by the Hotel to apply to Group's block shall be treated as a non-commissionable rate for purposes of Group's commission or rebate structure under this Agreement.",
+            "source_section": "13. Rate Parity",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "gratuity_service_charge.separately_defined",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the terms 'gratuity' and 'service charge' shall be used interchangeably throughout this Agreement and are not separately defined",
+            "source_section": "10. Gratuity and Service Charge",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "gratuity_service_charge.gratuity_to_staff",
+            "value": false,
+            "unit": null,
+            "quoted_text": "The Hotel may retain the gratuity and service charge as its own revenue or may distribute a portion or all of it to service staff at the Hotel's election.",
+            "source_section": "10. Gratuity and Service Charge",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "gratuity_service_charge.service_charge_disclosed",
+            "value": false,
+            "unit": null,
+            "quoted_text": "No representation is made regarding the destination of these funds, and Group waives any right to direct, approve, or inquire into the allocation thereof.",
+            "source_section": "10. Gratuity and Service Charge",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "gratuity_service_charge.service_charge_pct",
+            "value": 0.24,
+            "unit": "pct",
+            "quoted_text": "The combined gratuity and service charge shall be automatically applied at the rate of twenty-four percent (24%) of the subtotal of all covered charges before tax.",
+            "source_section": "10. Gratuity and Service Charge",
+            "confidence": "high",
+            "verification": "verified"
+          },
+          {
+            "term_key": "resale_mitigation_duty.affirmative_duty",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the Hotel shall have no obligation to attempt to resell such released inventory or function space",
+            "source_section": "5. Resale of Released Inventory",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "resale_mitigation_duty.proceeds_credited",
+            "value": false,
+            "unit": null,
+            "quoted_text": "Resale proceeds shall not be credited, offset, or applied against Group's outstanding obligations to the Hotel",
+            "source_section": "5. Resale of Released Inventory",
+            "confidence": "high",
+            "verification": "located"
+          },
+          {
+            "term_key": "resale_mitigation_duty.records_available",
+            "value": false,
+            "unit": null,
+            "quoted_text": "the complete records related to all resale transactions shall not be open to Group for inspection, audit, or verification of any kind",
+            "source_section": "5. Resale of Released Inventory",
+            "confidence": "high",
+            "verification": "located"
+          }
+        ],
+        "not_stated": [
+          "deal.fb_minimum_usd"
+        ],
+        "rejected": [],
+        "conflicts": []
+      },
+      "error": null,
+      "tokens": {
+        "input": 13850,
+        "output": 8513,
+        "cache_read": 0,
+        "cache_creation": 7495
+      },
+      "elapsed_ms": 57473
+    }
+  ]
+}

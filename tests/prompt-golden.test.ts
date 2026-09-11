@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { analyzeContract, generateClientEmail, generatePropertyEmail } from "@/lib/anthropic";
+import { analyzeContract, extractContractTerms, generateClientEmail, generatePropertyEmail } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
+import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
 /**
  * The exact request each model call sends, pinned byte for byte.
@@ -86,6 +87,20 @@ describe("request goldens", () => {
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
       "./fixtures/prompt-golden/property-email-request.json"
+    );
+  });
+
+  it("term extraction", async () => {
+    create.mockResolvedValue(toolResponse({ terms: [] }));
+
+    await extractContractTerms({
+      document: { kind: "text", text: "CONTRACT BODY" },
+      catalog: HOTEL_TERM_CATALOG,
+      model: MODEL,
+    });
+
+    await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
+      "./fixtures/prompt-golden/term-extraction-request.json"
     );
   });
 });

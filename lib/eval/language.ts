@@ -1,5 +1,5 @@
 import { collapseWhitespace, normalizeText } from "../docx/normalize";
-import { parseQuantities } from "./phrasing";
+import { parseQuantities } from "../quantities";
 import type { Comparator, LanguageAssertion, LanguageCheck } from "./types";
 
 /**

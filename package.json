@@ -21,7 +21,10 @@
     "dev:login-link": "tsx scripts/dev-login-link.ts",
     "eval:build-corpus": "tsx scripts/eval-build-corpus.ts",
     "eval:capture": "tsx scripts/eval-capture.ts",
-    "eval:score": "tsx scripts/eval-score.ts"
+    "eval:score": "tsx scripts/eval-score.ts",
+    "eval:terms:key": "tsx scripts/eval-terms-key.ts",
+    "eval:terms:capture": "tsx scripts/eval-terms-capture.ts",
+    "eval:terms:score": "tsx scripts/eval-terms-score.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
