@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSystemPrompt, FINDINGS_TOOL_SCHEMA } from "@/lib/anthropic";
+import { buildSystemPrompt, findingsToolSchema } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 
 /**
@@ -118,7 +118,8 @@ describe("the analysis system prompt", () => {
 });
 
 describe("the findings tool schema", () => {
-  const properties = FINDINGS_TOOL_SCHEMA.input_schema.properties;
+  const schema = findingsToolSchema();
+  const properties = schema.input_schema.properties;
 
   it("tells the model what belongs in findings", () => {
     expect(properties.findings.description).toContain("Deviations only");
@@ -131,15 +132,15 @@ describe("the findings tool schema", () => {
   });
 
   it("describes the tool as deviations plus coverage, not as everything found", () => {
-    expect(FINDINGS_TOOL_SCHEMA.description).toContain("deviations found");
-    expect(FINDINGS_TOOL_SCHEMA.description).toContain("clause types examined");
+    expect(schema.description).toContain("deviations found");
+    expect(schema.description).toContain("clause types examined");
   });
 
   it("still requires the fields the pipeline depends on", () => {
     expect(properties.findings.items.required).toEqual(
       expect.arrayContaining(["clause_type", "is_missing_clause", "severity", "proposed_language"])
     );
-    expect(FINDINGS_TOOL_SCHEMA.input_schema.required).toEqual(
+    expect(schema.input_schema.required).toEqual(
       expect.arrayContaining(["findings", "clauses_checked"])
     );
   });

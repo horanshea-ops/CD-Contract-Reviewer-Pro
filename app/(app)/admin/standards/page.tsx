@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ORG_NAME } from "@/lib/org";
+import { ORG } from "@/lib/org";
 import StandardsList, { type StandardRow } from "./standards-list";
 
 export default async function StandardsAdminPage() {
@@ -45,7 +45,7 @@ export default async function StandardsAdminPage() {
       <div className="rounded-md border border-[var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-4 py-3 mb-6 text-sm text-[var(--severity-medium)]">
         <span className="font-medium">{counts.industry_default} of {rows.length} entries</span> are still
         generic industry defaults, not CD&apos;s validated position — nothing here should be presented to an
-        associate as &ldquo;how {ORG_NAME} negotiates&rdquo; until a senior associate reviews it.
+        associate as &ldquo;how {ORG.name} negotiates&rdquo; until a senior associate reviews it.
         {counts.extracted > 0 && ` ${counts.extracted} extracted from CD contracts (unvalidated).`}
         {counts.cd_validated > 0 && ` ${counts.cd_validated} CD-validated.`}
       </div>

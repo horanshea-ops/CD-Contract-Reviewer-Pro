@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
+import { ORG, type OrgProfile } from "./org";
 
 /**
  * THE single module for outbound calls to the model. Non-negotiable #5 in the
@@ -40,17 +41,15 @@ export interface AnalysisResult {
 
 const FINDINGS_TOOL_NAME = "record_analysis";
 
-export const FINDINGS_TOOL_SCHEMA = {
+export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) => ({
   name: FINDINGS_TOOL_NAME,
-  description:
-    "Record a review of this hotel/venue contract against ConferenceDirect's standards library: the deviations found, and separately the full list of clause types examined.",
+  description: `Record a review of this hotel/venue contract against ${name}'s standards library: the deviations found, and separately the full list of clause types examined.`,
   input_schema: {
     type: "object" as const,
     properties: {
       findings: {
         type: "array",
-        description:
-          "Deviations only. One entry per clause whose language falls short of CD's position, plus any clause CD's standards call for that this contract is missing. A clause that already matches CD's position does not belong here — it belongs in clauses_checked.",
+        description: `Deviations only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — it belongs in clauses_checked.`,
         items: {
           type: "object",
           properties: {
@@ -100,23 +99,24 @@ export const FINDINGS_TOOL_SCHEMA = {
     },
     required: ["findings", "clauses_checked", "document_notes"],
   },
-};
+});
 
 /**
  * Exported so a test can assert on the rules it carries, the same way the two
  * email prompts are. Changing this changes the output of every review, and the
  * rules most easily lost are the ones added after a measured failure.
  */
-export function buildSystemPrompt(standards: StandardEntry[], standardsVersion: string) {
-  const instructions = `You are reviewing a hotel or venue contract on behalf of ConferenceDirect (CD), a meetings and events company. Your job is to find terms that create financial exposure for CD's client, measured against the standards library below, which encodes how CD negotiates.
+export function buildSystemPrompt(standards: StandardEntry[], standardsVersion: string, org: OrgProfile = ORG) {
+  const { name, shortName: firm, description } = org;
+  const instructions = `You are reviewing a hotel or venue contract on behalf of ${name} (${firm}), ${description}. Your job is to find terms that create financial exposure for ${firm}'s client, measured against the standards library below, which encodes how ${firm} negotiates.
 
 Rules:
 - This is a negotiating aid, not legal advice. Do not describe any finding as a legal opinion, and do not state or imply that a contract is "safe" or "cleared."
-- For every clause type in the standards library, check whether the contract's language matches CD's position. Record a finding only where it does not, or where a clause CD's standards call for is missing entirely.
-- A clause that already matches CD's position is NOT a finding. Do not record one to show that you looked — clauses_checked is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
-- Never write "compliant", "no change recommended", "matches CD's standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
-- A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of CD's position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
-- Leaving a clause out of findings is a statement that it MEETS CD's position, and listing it in clauses_checked with no finding says the same thing. Never say that about a clause that falls short by any margin at all.
+- For every clause type in the standards library, check whether the contract's language matches ${firm}'s position. Record a finding only where it does not, or where a clause ${firm}'s standards call for is missing entirely.
+- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clauses_checked is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
+- Never write "compliant", "no change recommended", "matches ${firm}'s standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
+- A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of ${firm}'s position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
+- Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and listing it in clauses_checked with no finding says the same thing. Never say that about a clause that falls short by any margin at all.
 - severity comes from that clause's severity_default in the standards library. Depart from it only where this contract's own facts justify it — an unusually large block, a term that compounds another — and say why in finding_text. Calling everything high is the same as calling nothing high. A narrow margin is not a reason to lower the severity, and never a reason to leave the finding out.
 - quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
@@ -160,6 +160,7 @@ export interface AnalyzeContractPdfArgs {
   standardsVersion: string;
   contextNote?: string;
   model?: string;
+  org?: OrgProfile;
 }
 
 export async function analyzeContract({
@@ -168,6 +169,7 @@ export async function analyzeContract({
   standardsVersion,
   contextNote,
   model,
+  org = ORG,
 }: AnalyzeContractPdfArgs): Promise<AnalysisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -192,8 +194,8 @@ export async function analyzeContract({
     const response = await client.messages.create({
       model: modelId,
       max_tokens: 16000,
-      system: buildSystemPrompt(standards, standardsVersion),
-      tools: [FINDINGS_TOOL_SCHEMA],
+      system: buildSystemPrompt(standards, standardsVersion, org),
+      tools: [findingsToolSchema(org)],
       tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
       messages: [{ role: "user", content: userContent }],
     });
@@ -252,10 +254,9 @@ export async function analyzeContract({
 
 const CLIENT_EMAIL_TOOL_NAME = "record_client_email";
 
-const CLIENT_EMAIL_TOOL_SCHEMA = {
+const clientEmailToolSchema = ({ shortName: firm }: OrgProfile) => ({
   name: CLIENT_EMAIL_TOOL_NAME,
-  description:
-    "Record a drafted email to CD's client summarizing the changes CD is proposing to their contract, based on the associate's review. The property has not agreed to these yet.",
+  description: `Record a drafted email to ${firm}'s client summarizing the changes ${firm} is proposing to their contract, based on the associate's review. The property has not agreed to these yet.`,
   input_schema: {
     type: "object" as const,
     properties: {
@@ -264,18 +265,18 @@ const CLIENT_EMAIL_TOOL_SCHEMA = {
     },
     required: ["subject", "body"],
   },
-};
+});
 
 /**
- * Static — the rules don't vary per call, so this needs no arguments and is
+ * Static apart from the firm — the rules don't vary per call, so this is
  * directly testable by checking it contains each required instruction.
  * Exported for exactly that test (§1.8.2's own "explicit prompt constraint,
  * and test it").
  */
-export function buildClientEmailPrompt(): string {
-  return `You are drafting an email from a ConferenceDirect (CD) associate to their client, summarizing the changes CD is proposing to the client's hotel/venue contract after reviewing it.
+export function buildClientEmailPrompt({ name, shortName: firm }: OrgProfile = ORG): string {
+  return `You are drafting an email from a ${name} (${firm}) associate to their client, summarizing the changes ${firm} is proposing to the client's hotel/venue contract after reviewing it.
 
-The negotiation is not complete. The property has not agreed to any of this yet — the client may be receiving a redlined copy, not a final agreement. Describe these as proposed changes, or changes CD is requesting, never as negotiated, agreed, or final. Do not imply the property has accepted anything.
+The negotiation is not complete. The property has not agreed to any of this yet — the client may be receiving a redlined copy, not a final agreement. Describe these as proposed changes, or changes ${firm} is requesting, never as negotiated, agreed, or final. Do not imply the property has accepted anything.
 
 Audience: the client (not the property). This is a business update, not a legal document.
 
@@ -306,6 +307,7 @@ export interface GenerateClientEmailArgs {
   associateName: string;
   contractLabel: string;
   model?: string;
+  org?: OrgProfile;
 }
 
 export async function generateClientEmail({
@@ -313,6 +315,7 @@ export async function generateClientEmail({
   associateName,
   contractLabel,
   model,
+  org = ORG,
 }: GenerateClientEmailArgs): Promise<ClientEmailResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -336,8 +339,8 @@ export async function generateClientEmail({
     const response = await client.messages.create({
       model: modelId,
       max_tokens: 4000,
-      system: buildClientEmailPrompt(),
-      tools: [CLIENT_EMAIL_TOOL_SCHEMA],
+      system: buildClientEmailPrompt(org),
+      tools: [clientEmailToolSchema(org)],
       tool_choice: { type: "tool", name: CLIENT_EMAIL_TOOL_NAME },
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     });
@@ -401,11 +404,11 @@ const PROPERTY_EMAIL_TOOL_SCHEMA = {
 };
 
 /**
- * Static — the rules don't vary per call, so this needs no arguments and is
+ * Static apart from the firm — the rules don't vary per call, so this is
  * directly testable by checking it contains each required instruction.
  */
-export function buildPropertyEmailPrompt(): string {
-  return `You are drafting a short cover email from a ConferenceDirect (CD) associate to a hotel or venue, transmitting a marked-up copy of the venue's own contract draft.
+export function buildPropertyEmailPrompt({ name, shortName: firm }: OrgProfile = ORG): string {
+  return `You are drafting a short cover email from a ${name} (${firm}) associate to a hotel or venue, transmitting a marked-up copy of the venue's own contract draft.
 
 Audience: the property, which is the counterparty in this negotiation. The tone is courteous, professional and matter-of-fact. These are people the associate works with repeatedly.
 
@@ -416,7 +419,7 @@ Structure, in this order and nothing more:
 
 Describe each item in neutral, factual terms — what changed, never why. "Adjusted the attrition threshold and added resale credit language" is the target. Name the subject of each change and, where it is short and concrete, the substance of the new language.
 
-Do not state or speculate about reasoning. Never explain why a change was requested, what concerned CD, how important an item is, or how firm CD's position is. Do not write phrases like "to protect our client", "this is important to us", "we would need", or "our budget requires". You have not been given CD's reasoning and must not invent it — anything you write beyond a neutral description of the change would be a guess presented to the counterparty as CD's position.
+Do not state or speculate about reasoning. Never explain why a change was requested, what concerned ${firm}, how important an item is, or how firm ${firm}'s position is. Do not write phrases like "to protect our client", "this is important to us", "we would need", or "our budget requires". You have not been given ${firm}'s reasoning and must not invent it — anything you write beyond a neutral description of the change would be a guess presented to the counterparty as ${firm}'s position.
 
 Treat every item as equal in weight. Do not rank, prioritise, flag anything as significant or minor, or signal which items matter more.
 
@@ -460,12 +463,14 @@ export interface GeneratePropertyEmailArgs {
   items: PropertyEmailItem[];
   propertyLabel: string;
   model?: string;
+  org?: OrgProfile;
 }
 
 export async function generatePropertyEmail({
   items,
   propertyLabel,
   model,
+  org = ORG,
 }: GeneratePropertyEmailArgs): Promise<PropertyEmailResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -481,7 +486,7 @@ export async function generatePropertyEmail({
     const response = await client.messages.create({
       model: modelId,
       max_tokens: 2000,
-      system: buildPropertyEmailPrompt(),
+      system: buildPropertyEmailPrompt(org),
       tools: [PROPERTY_EMAIL_TOOL_SCHEMA],
       tool_choice: { type: "tool", name: PROPERTY_EMAIL_TOOL_NAME },
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
