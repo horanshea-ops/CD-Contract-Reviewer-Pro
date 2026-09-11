@@ -74,8 +74,21 @@ describe("the analysis system prompt", () => {
       expect(prompt()).toContain("A deviation is a finding however narrow the margin");
     });
 
-    it("separates meeting CD's position from missing it by a little", () => {
-      expect(prompt()).toContain("for clauses that MEET CD's position, not for ones that miss it by a little");
+    it("takes materiality out of the model's hands", () => {
+      // Measured: it checked a 45-room comp ratio against CD's 40 and a 60-hour
+      // storm window against CD's 72, and reported neither. Deciding a gap is
+      // too small to raise is triage, and triage belongs to the associate.
+      const text = prompt();
+      expect(text).toContain("Do not weigh whether a gap is wide enough to be worth raising");
+      expect(text).toContain("belongs to the associate reading your output");
+    });
+
+    it("frames silence about a clause as a positive claim that it complies", () => {
+      expect(prompt()).toContain("Leaving a clause out of findings is a statement that it MEETS CD's position");
+    });
+
+    it("says a narrow margin lowers nothing and excuses nothing", () => {
+      expect(prompt()).toContain("A narrow margin is not a reason to lower the severity");
     });
   });
 
