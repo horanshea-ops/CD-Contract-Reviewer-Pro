@@ -547,8 +547,28 @@ changing, and one that needs watching.
      Hobby's 60s function limit is under the 300s analysis budget.
   5. **The §1.5 table-quote follow-up** below — narrow, but tables carry the money.
 
-- **Portability: retooling for a different client — now §2.0.3 (noted 2026-09-09,
-  nothing acted on).** Raised by the user — if CD does not buy, how cheaply can this serve another
+- **Portability: retooling for a different client — §2.0.3, DONE 2026-09-11.**
+  Retooling for another firm in the same space now means editing `ORG` in `lib/org.ts`
+  and loading that firm's standards. No other code changes.
+  - **Org name.** `lib/org.ts` exports an `OrgProfile` (full name, short form, one-line
+    description). All four prompt sites, the client email tool schema and the UI read
+    it. `tests/prompt-golden.test.ts` pins the exact request each model call sends,
+    and those goldens passed unchanged, so every CD review sends what it sent before.
+  - **Taxonomy.** `StandardEntry.clause_type` is a plain `string`. Nothing had narrowed
+    on the old union. Two tests on the bundled library replace its typo check.
+  - **Acceptance test.** `tests/portability.test.ts` runs an invented client, whose
+    clause types share nothing with the hotel library, through analysis, redline,
+    the validation oracle, the memo and both emails. The model is mocked. The oracle
+    passes clean and no request names CD. No paid run was needed.
+  - **Still industry-specific, by design.** The prompts say "hotel or venue" and
+    "property". The eval synonym map in `lib/eval/match.ts` and the table warning in
+    `lib/docx/health.ts` assume hotel clauses. Another vertical would need prompt
+    re-tuning against measured runs, which a parameter cannot replace.
+  - **Internal names kept.** The `cd_standard` column, the `cd_validated` provenance
+    value and the `--cd-*` CSS variables. Users see none of them, and renaming
+    `cd_standard` in the tool schema would change model output.
+
+  The original note follows. Raised by the user — if CD does not buy, how cheaply can this serve another
   company in the same space? Most of the answer is already good. Three layers, and
   today only the third is client-specific:
   | Layer | Example | Scope |
