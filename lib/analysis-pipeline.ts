@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { analyzeContract, type AnalyzableDocument } from "./anthropic";
 import { extractDocx } from "./docx";
+import { contractText } from "./docx/contract-text";
 import { loadStandardsLibrary } from "./standards/load";
 import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
@@ -258,21 +259,4 @@ export async function processAnalysis(analysisId: string) {
       metadata: { error: message },
     });
   }
-}
-
-/**
- * Flattens the extracted parts into the single block of text the model reads.
- * Headers and footers are labelled rather than silently concatenated, because a
- * cutoff date in a header is a real contract term and the associate needs to
- * know where a finding came from.
- */
-function contractText(extracted: Awaited<ReturnType<typeof extractDocx>>): string {
-  return extracted.parts
-    .map((part) =>
-      part.part === "document"
-        ? part.text
-        : `\n\n[${part.part.toUpperCase()} — these terms form part of the agreement]\n${part.text}`
-    )
-    .join("")
-    .trim();
 }

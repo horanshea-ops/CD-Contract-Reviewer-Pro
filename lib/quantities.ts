@@ -1,18 +1,17 @@
 /**
- * Contract number phrasing (MASTER_PLAN.md §2.0.1).
+ * Contract number phrasing, in both directions.
  *
  * Hotel contracts write numbers twice — "seventy percent (70%)", "thirty (30)
- * days" — and both halves matter here. The corpus builder uses `phrase` to tell
- * the drafter exactly how a term must read, so the verification gate can check
- * the value survived into the prose. The scorer uses `parseQuantities` to read
- * numbers back out of proposed language, where the model writes in whichever
- * form it likes.
+ * days" — and both halves matter here. The eval corpus builder uses `phrase` to
+ * tell the drafter exactly how a term must read. The eval scorer and term
+ * verification (lib/terms/) use `parseQuantities` to read numbers back out of
+ * text the model wrote or quoted.
  *
  * One module for both directions, so what is written and what is read can never
  * disagree about what "seventy percent (70%)" means.
  */
 
-import type { NumericUnit } from "./types";
+export type NumericUnit = "pct" | "usd" | "days" | "months" | "hours" | "rooms";
 
 const ONES = [
   "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",

@@ -1,5 +1,5 @@
 import type { ClauseFieldDirective } from "../../anthropic";
-import { phrase } from "../phrasing";
+import { phrase } from "../../quantities";
 import type { ClauseTerms, TermCheck } from "./spec";
 import { POSITION_BY_CLAUSE } from "./positions";
 import { isTableOnly } from "./layout";

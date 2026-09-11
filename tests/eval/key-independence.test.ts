@@ -27,7 +27,7 @@ describe("the scorer is key-agnostic", () => {
   it("has scoring modules at the top level of lib/eval", async () => {
     const files = await scoringFiles();
     expect(files.map((f) => path.basename(f)).sort()).toEqual(
-      ["grade.ts", "hungarian.ts", "language.ts", "match.ts", "phrasing.ts", "report.ts", "score.ts", "types.ts"].sort()
+      ["grade.ts", "hungarian.ts", "language.ts", "match.ts", "report.ts", "score.ts", "types.ts"].sort()
     );
   });
 
