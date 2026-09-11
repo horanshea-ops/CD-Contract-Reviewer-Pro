@@ -65,7 +65,8 @@ function normalizePct(raw: unknown, what: string): { ok: true; value: number } |
   const n = toNumber(raw);
   if (n === null) return { ok: false, reason: `${what} is not a number.` };
   if (n < 0 || n > 100) return { ok: false, reason: `${what} of ${n}% is outside 0–100.` };
-  return { ok: true, value: n / 100 };
+  // Rounded so 99.9% stores as 0.999, not 0.9990000000000001.
+  return { ok: true, value: Number((n / 100).toFixed(10)) };
 }
 
 export function normalizeValue(def: TermDefinition, raw: unknown): Normalized {

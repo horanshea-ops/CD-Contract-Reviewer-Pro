@@ -1,0 +1,200 @@
+{
+  "model": "claude-sonnet-5",
+  "max_tokens": 16000,
+  "system": [
+    {
+      "type": "text",
+      "text": "You are reading a hotel or venue group contract and recording the terms it states. You are not reviewing it, judging it, or suggesting changes.\n\nThe catalog below lists the terms to look for. Record an entry for each one the contract states.\n\nRules:\n- Record only what the contract states. If it does not address a term, leave that term out. Never infer a value from what contracts of this kind usually say.\n- A boolean is recorded only when the contract addresses the point. False means the contract addresses it and does not grant it — it withholds it, excludes it, or leaves it to the hotel's discretion. Silence is never false.\n- Record 0 only where the contract says there is no such period, fee or window. If it is silent, leave the term out.\n- Each meaning names exactly one figure. Where a clause states several numbers, record the one the meaning describes.\n- Read the whole document before answering, including tables, exhibits, headers and footers. A term may sit anywhere.\n- Report percentages as the number written (90 for 90%, 1.5 for 1.5%), dollar amounts as plain numbers (289 for $289.00), days, months, hours and rooms as plain numbers, and dates as YYYY-MM-DD. For an enum, give one of the listed values, or \"other\" if none fits.\n- quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that states it.\n- If the document is supplied as text, its layout markers are ours, not the contract's: \"#\" marks a heading, \"|\" separates table cells, and list numbers like \"1.a\" are reconstructed. Never include a \"#\", a \"|\", or a reconstructed list number inside quoted_text.\n- If the contract states a term more than once with different values, record each as its own entry. If it repeats the same value, one entry is enough.\n- source_section is the heading or section number the value sits under, or null.\n- confidence is high when the wording is explicit, medium when you had to interpret it, and low when you are unsure."
+    },
+    {
+      "type": "text",
+      "text": "\n\nTERM CATALOG (version hotel-v1):\n- deal.peak_night_rooms (number, rooms): Guest rooms held on the peak night of the room block.\n- deal.group_rate_usd (number, US dollars): The group room rate per room, per night, before taxes, for the main room block.\n- deal.event_start_date (date, YYYY-MM-DD): The first date of the event, as the agreement states it.\n- deal.event_end_date (date, YYYY-MM-DD): The last date of the event, as the agreement states it.\n- deal.fb_minimum_usd (number, US dollars): The total food and beverage minimum the group commits to spend.\n- attrition.basis (one of: cumulative | night_by_night | other): How pickup is measured against the block for attrition.\n    cumulative: Attrition is measured across the whole block over the full stay.\n    night_by_night: Attrition is measured separately for each night.\n- attrition.threshold (number, percentage, as written): The share of the room block the group must pick up before attrition damages apply. 90% means damages start below 90% pickup.\n- attrition.liability_rate (number, percentage, as written): The share of the room rate the group pays for each room below the attrition threshold. 100% means the full rate.\n- attrition.high_occupancy_credit (boolean): True when the group gets credit toward its block for nights the hotel is sold out or at high occupancy. False when the agreement denies that credit.\n- attrition.audit_rights (boolean): True when the group may review the hotel's occupancy records to check an attrition calculation. False when the hotel's calculation is final or its records are closed to the group.\n- cancellation.damages_basis (one of: room_profit | gross_revenue | other): What cancellation damages are calculated from.\n    room_profit: Cancellation damages are a percentage of lost room profit.\n    gross_revenue: Cancellation damages are a percentage of gross room revenue.\n- cancellation.sliding_scale (boolean): True when cancellation damages vary with how far before arrival the group cancels. False when one flat figure applies whenever it cancels.\n- cancellation.resale_credit (boolean): True when revenue from reselling cancelled rooms is credited against cancellation damages. False when the hotel keeps resale revenue with no credit.\n- cancellation.rebook_credit (boolean): True when revenue from a later rebooking at the hotel is credited against cancellation damages. False when rebooking earns no credit.\n- cancellation.liability_free_months (number, months): How many months after signing the group may cancel without damages. 0 when damages apply from signature with no liability-free window.\n- cancellation.top_tier_pct (number, percentage, as written): The damages percentage in the schedule tier closest to arrival, which is the most the group can owe.\n- cancellation.schedule (schedule): The cancellation damages schedule, one tier per band of days before arrival. days_prior_min is the fewest days before arrival the band covers (0 when the band runs up to arrival). days_prior_max is the most days it covers (null for an open-ended earliest band such as \"365 days or more\"). pct is the damages percentage for that band (0 where the band carries no damages).\n- force_majeure.standard (one of: impracticable | impossible | other): How hard performance must be before force majeure excuses it.\n    impracticable: Performance is excused when it is illegal, impossible or commercially impracticable.\n    impossible: Performance is excused only when it is physically impossible.\n- force_majeure.covers_government_restrictions (boolean): True when government travel restrictions or advisories count as force majeure. False when they are excluded.\n- force_majeure.covers_epidemic (boolean): True when epidemics or pandemics count as force majeure. False when they are excluded.\n- force_majeure.covers_unsafe_travel (boolean): True when conditions making it unsafe or imprudent for attendees to travel or gather count as force majeure. False when attendee safety concerns do not excuse performance.\n- force_majeure.deposit_refund (boolean): True when deposits are refunded if the agreement ends for force majeure. False when the hotel keeps them.\n- fb_minimum.menu_price_lock_months (number, months): How many months before the event the hotel sets menus and pricing for the group.\n- fb_minimum.shortfall_rate (number, percentage, as written): The share of any shortfall below the food and beverage minimum the group must pay. 100% means the full shortfall.\n- cutoff_date.days_prior (number, days): How many days before arrival the room block cutoff falls.\n- cutoff_date.post_cutoff_group_rate (boolean): True when reservations after the cutoff are still offered at the group rate, subject to availability. False when they are offered only at the hotel's prevailing rate.\n- walk_relocation.comparable_accommodation (boolean): True when a relocated guest is placed in comparable or better lodging at the hotel's expense. False when relocation is at the guest's expense or only a best effort.\n- walk_relocation.transportation (boolean): True when the hotel pays transportation between the alternative hotel and the event. False when that is the guest's responsibility.\n- walk_relocation.return_upgrade (boolean): True when a relocated guest returns to an upgraded room or receives an amenity. False when they return to a standard room with nothing extra.\n- walk_relocation.counts_toward_pickup (boolean): True when a relocated night still counts toward the group's pickup and commission. False when it does not.\n- mandatory_fees.disclosed_before_signature (boolean): True when every mandatory fee or surcharge must be disclosed in writing before signature. False when the hotel may add fees after signature.\n- mandatory_fees.undisclosed_waived (boolean): True when charges not disclosed before signature are waived. False when they remain payable.\n- mandatory_fees.resort_fee_usd (number, US dollars): The resort, amenity or facility fee per room, per night. 0 when the agreement says there is none.\n- rebates.comp_room_ratio (number, rooms): Paid room nights needed to earn one complimentary room night. 40 means one complimentary room per 40 paid.\n- rebates.formula_based (boolean): True when complimentary rooms accrue automatically from a stated ratio. False when the ratio is only a guideline or complimentary rooms are at the hotel's discretion.\n- rebates.forfeited_on_attrition (boolean): True when complimentary room credit is forfeited if the group falls short of its block. False when credit already earned survives a shortfall.\n- construction_renovation.no_current_plans_warranty (boolean): True when the hotel warrants it has no renovation planned that would affect the group. False when it makes no such representation.\n- construction_renovation.notice_days (number, days): How many days' notice the hotel must give of renovation that affects the group. 0 when it may begin work without notice.\n- construction_renovation.termination_if_interferes (boolean): True when the group may terminate without liability if renovation will interfere with the event. False when renovation gives it no such right.\n- master_account_billing.dispute_window_days (number, days): How many days the group has to dispute an invoiced charge. 0 when invoices are due in full with no dispute period.\n- master_account_billing.finance_charge_monthly_pct (number, percentage, as written): The monthly finance charge on a late balance.\n- master_account_billing.prepayment_defined (boolean): True when, without approved credit, the prepayment due is a stated percentage of anticipated charges. False when the hotel may set the prepayment amount itself.\n- review_audit_dates.weekly_pickup_reports (boolean): True when the hotel sends the group a written pickup report every week before cutoff. False when pickup information comes only on request.\n- review_audit_dates.post_event_report_days (number, days): How many days after the event the hotel must deliver its post-event report.\n- review_audit_dates.block_audit_right (boolean): True when the group may audit the room block. False when it has no such right.\n- insurance_indemnification.mutual (boolean): True when each party indemnifies the other on the same terms. False when only the group gives an indemnity.\n- insurance_indemnification.own_negligence_only (boolean): True when each party's indemnity is limited to its own negligence or misconduct. False when the group's indemnity covers the hotel's own negligence.\n- insurance_indemnification.group_liability_limit_usd (number, US dollars): The general liability insurance limit the group must carry.\n- damage_deposit.refund_window_days (number, days): How many days after the event the hotel must refund the damage deposit.\n- damage_deposit.offsets_other_charges (boolean): True when the hotel may apply the damage deposit to amounts other than damage, such as attrition or food and beverage shortfalls. False when it covers documented damage only.\n- damage_deposit.deposit_usd (number, US dollars): The damage deposit amount. 0 when the agreement says none is charged.\n- exclusivity_vendors.outside_vendors_allowed (boolean): True when the group may use its own vendors for services such as audio-visual, decorating, security or transportation. False when it must use the hotel's in-house or exclusive vendors.\n- exclusivity_vendors.opt_out_fee_usd (number, US dollars): The surcharge for using an outside vendor. 0 when the agreement says there is none.\n- termination_rights.for_cause_no_liability (boolean): True when the group may terminate for cause without liability. False when damages still apply after termination for cause.\n- termination_rights.separate_from_cancellation_scale (boolean): True when termination for cause does not trigger the cancellation damages scale. False when any termination is treated as a cancellation.\n- assignment_subcontracting.assignable_to_successor (boolean): True when the group may assign the agreement to a successor or affiliated entity. False when it may not assign it.\n- assignment_subcontracting.consent_not_unreasonably_withheld (boolean): True when the hotel's consent to an assignment will not be unreasonably withheld. False when it may refuse for any reason.\n- brand_ownership_change.notice_days (number, days): How many days after a change of brand, management or ownership the hotel must notify the group.\n- brand_ownership_change.termination_window_days (number, days): How many days the group has after that notice to terminate without liability.\n- brand_ownership_change.covers_bankruptcy (boolean): True when bankruptcy or foreclosure triggers the same notice and termination rights as a change of brand. False when it does not.\n- named_storm.cancellation_window_hours (number, hours): How many hours the group has to give cancellation notice once a qualifying storm watch or warning is issued. Not the period before arrival in which the warning must fall.\n- attendee_data_handling.marketing_use_barred (boolean): True when the hotel may not use attendee data for its own marketing. False when it may.\n- attendee_data_handling.third_party_sale_barred (boolean): True when the hotel may not sell or share attendee data with third parties. False when it may share it.\n- ada_compliance.hotel_warranty (boolean): True when the hotel warrants its rooms, public areas and function space comply with the Americans with Disabilities Act. False when it gives no such warranty.\n- ada_compliance.auxiliary_aids_split (boolean): True when the cost of auxiliary aids is shared between the group and the hotel. False when the group pays for all of them.\n- governing_law_venue.venue (one of: group_state | hotel_state | other): Which state's law governs the agreement.\n    group_state: The law of the state where the group has its principal offices governs.\n    hotel_state: The law of the state where the hotel is located governs.\n- governing_law_venue.punitive_damages_barred (boolean): True when neither party may recover punitive damages. False when the hotel may.\n- governing_law_venue.each_party_own_fees (boolean): True when each party bears its own attorney's fees. False when the group pays the hotel's.\n- labor_disputes.cba_expiry_notice_months (number, months): How many months' notice the hotel gives of its collective bargaining agreements expiring. 0 when the agreement says it gives none.\n- labor_disputes.cancel_window_days (number, days): The period before the event, in days, within which a labor dispute lets the group cancel. 90 means a dispute arising within 90 days of the event qualifies. 0 when the agreement says no such period is defined.\n- labor_disputes.cancel_no_liability (boolean): True when the group may cancel without liability if a labor dispute affects the hotel. False when a labor dispute relieves it of nothing.\n- rate_parity.guaranteed (boolean): True when the hotel will not offer the public a lower rate than the group's during the event dates. False when it may.\n- rate_parity.retroactive_adjustment (boolean): True when a lower public rate triggers a matching adjustment, including for reservations already made. False when an adjustment applies only to later reservations.\n- rate_parity.commission_preserved (boolean): True when commission and pickup credit survive a rate adjustment. False when an adjusted rate is non-commissionable or does not count toward pickup.\n- gratuity_service_charge.separately_defined (boolean): True when gratuity and service charge are defined separately, each with its own purpose. False when the terms are used interchangeably.\n- gratuity_service_charge.gratuity_to_staff (boolean): True when gratuity goes in full to the staff who worked the event. False when the hotel may allocate or keep it.\n- gratuity_service_charge.service_charge_disclosed (boolean): True when the agreement says the service charge is the hotel's own revenue and not a tip to staff. False when the agreement expressly leaves where the money goes unstated or open.\n- gratuity_service_charge.service_charge_pct (number, percentage, as written): The service charge percentage added to food and beverage.\n- resale_mitigation_duty.affirmative_duty (boolean): True when the hotel must actively try to resell released rooms or function space. False when it has no such obligation.\n- resale_mitigation_duty.proceeds_credited (boolean): True when resale proceeds are credited against what the group owes. False when the hotel keeps them as well.\n- resale_mitigation_duty.records_available (boolean): True when the hotel makes its resale records available to the group. False when they are closed to it.",
+      "cache_control": {
+        "type": "ephemeral"
+      }
+    }
+  ],
+  "tools": [
+    {
+      "name": "record_contract_terms",
+      "description": "Record every term from the catalog that this contract states, each with the wording that states it.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "type": "array",
+            "description": "One entry per stated term. Leave out any term the contract does not state.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "term_key": {
+                  "type": "string",
+                  "enum": [
+                    "deal.peak_night_rooms",
+                    "deal.group_rate_usd",
+                    "deal.event_start_date",
+                    "deal.event_end_date",
+                    "deal.fb_minimum_usd",
+                    "attrition.basis",
+                    "attrition.threshold",
+                    "attrition.liability_rate",
+                    "attrition.high_occupancy_credit",
+                    "attrition.audit_rights",
+                    "cancellation.damages_basis",
+                    "cancellation.sliding_scale",
+                    "cancellation.resale_credit",
+                    "cancellation.rebook_credit",
+                    "cancellation.liability_free_months",
+                    "cancellation.top_tier_pct",
+                    "cancellation.schedule",
+                    "force_majeure.standard",
+                    "force_majeure.covers_government_restrictions",
+                    "force_majeure.covers_epidemic",
+                    "force_majeure.covers_unsafe_travel",
+                    "force_majeure.deposit_refund",
+                    "fb_minimum.menu_price_lock_months",
+                    "fb_minimum.shortfall_rate",
+                    "cutoff_date.days_prior",
+                    "cutoff_date.post_cutoff_group_rate",
+                    "walk_relocation.comparable_accommodation",
+                    "walk_relocation.transportation",
+                    "walk_relocation.return_upgrade",
+                    "walk_relocation.counts_toward_pickup",
+                    "mandatory_fees.disclosed_before_signature",
+                    "mandatory_fees.undisclosed_waived",
+                    "mandatory_fees.resort_fee_usd",
+                    "rebates.comp_room_ratio",
+                    "rebates.formula_based",
+                    "rebates.forfeited_on_attrition",
+                    "construction_renovation.no_current_plans_warranty",
+                    "construction_renovation.notice_days",
+                    "construction_renovation.termination_if_interferes",
+                    "master_account_billing.dispute_window_days",
+                    "master_account_billing.finance_charge_monthly_pct",
+                    "master_account_billing.prepayment_defined",
+                    "review_audit_dates.weekly_pickup_reports",
+                    "review_audit_dates.post_event_report_days",
+                    "review_audit_dates.block_audit_right",
+                    "insurance_indemnification.mutual",
+                    "insurance_indemnification.own_negligence_only",
+                    "insurance_indemnification.group_liability_limit_usd",
+                    "damage_deposit.refund_window_days",
+                    "damage_deposit.offsets_other_charges",
+                    "damage_deposit.deposit_usd",
+                    "exclusivity_vendors.outside_vendors_allowed",
+                    "exclusivity_vendors.opt_out_fee_usd",
+                    "termination_rights.for_cause_no_liability",
+                    "termination_rights.separate_from_cancellation_scale",
+                    "assignment_subcontracting.assignable_to_successor",
+                    "assignment_subcontracting.consent_not_unreasonably_withheld",
+                    "brand_ownership_change.notice_days",
+                    "brand_ownership_change.termination_window_days",
+                    "brand_ownership_change.covers_bankruptcy",
+                    "named_storm.cancellation_window_hours",
+                    "attendee_data_handling.marketing_use_barred",
+                    "attendee_data_handling.third_party_sale_barred",
+                    "ada_compliance.hotel_warranty",
+                    "ada_compliance.auxiliary_aids_split",
+                    "governing_law_venue.venue",
+                    "governing_law_venue.punitive_damages_barred",
+                    "governing_law_venue.each_party_own_fees",
+                    "labor_disputes.cba_expiry_notice_months",
+                    "labor_disputes.cancel_window_days",
+                    "labor_disputes.cancel_no_liability",
+                    "rate_parity.guaranteed",
+                    "rate_parity.retroactive_adjustment",
+                    "rate_parity.commission_preserved",
+                    "gratuity_service_charge.separately_defined",
+                    "gratuity_service_charge.gratuity_to_staff",
+                    "gratuity_service_charge.service_charge_disclosed",
+                    "gratuity_service_charge.service_charge_pct",
+                    "resale_mitigation_duty.affirmative_duty",
+                    "resale_mitigation_duty.proceeds_credited",
+                    "resale_mitigation_duty.records_available"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "string",
+                    "boolean",
+                    "array"
+                  ],
+                  "description": "Typed as the catalog says. Percentages as written (90 for 90%), dollars and counts as plain numbers, dates as YYYY-MM-DD, schedules as a list of tiers.",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "days_prior_min": {
+                        "type": "number"
+                      },
+                      "days_prior_max": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "pct": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "days_prior_min",
+                      "days_prior_max",
+                      "pct"
+                    ]
+                  }
+                },
+                "quoted_text": {
+                  "type": "string",
+                  "description": "The shortest span, copied verbatim from the contract, that states this value."
+                },
+                "source_section": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ]
+                }
+              },
+              "required": [
+                "term_key",
+                "value",
+                "quoted_text",
+                "confidence"
+              ]
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
+      }
+    }
+  ],
+  "tool_choice": {
+    "type": "tool",
+    "name": "record_contract_terms"
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "CONTRACT TEXT:\n\nCONTRACT BODY"
+        }
+      ]
+    }
+  ]
+}

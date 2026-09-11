@@ -3,6 +3,7 @@ import type { StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
+import type { TermCatalog, TermDefinition } from "./terms/types";
 
 /**
  * THE single module for outbound calls to the model. Non-negotiable #5 in the
@@ -517,6 +518,190 @@ export async function generatePropertyEmail({
     return await attempt();
   } catch (err) {
     console.error("generatePropertyEmail: first attempt failed, retrying once —", err);
+    return await attempt();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// §2.0.2 — structured term extraction. Same module as analyzeContract per the
+// single-outbound-call-site rule at the top of this file.
+//
+// Reading, not reviewing. The model reports what the contract states, typed by
+// the catalog, and everything it returns is validated and checked against the
+// document in lib/terms/validate.ts before anything is stored.
+// ---------------------------------------------------------------------------
+
+const TERMS_TOOL_NAME = "record_contract_terms";
+
+export const termsToolSchema = (catalog: TermCatalog) => ({
+  name: TERMS_TOOL_NAME,
+  description: "Record every term from the catalog that this contract states, each with the wording that states it.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      terms: {
+        type: "array",
+        description: "One entry per stated term. Leave out any term the contract does not state.",
+        items: {
+          type: "object",
+          properties: {
+            term_key: { type: "string", enum: catalog.terms.map((t) => t.key) },
+            value: {
+              type: ["number", "string", "boolean", "array"],
+              description:
+                "Typed as the catalog says. Percentages as written (90 for 90%), dollars and counts as plain numbers, dates as YYYY-MM-DD, schedules as a list of tiers.",
+              items: {
+                type: "object",
+                properties: {
+                  label: { type: "string" },
+                  days_prior_min: { type: "number" },
+                  days_prior_max: { type: ["number", "null"] },
+                  pct: { type: "number" },
+                },
+                required: ["label", "days_prior_min", "days_prior_max", "pct"],
+              },
+            },
+            quoted_text: {
+              type: "string",
+              description: "The shortest span, copied verbatim from the contract, that states this value.",
+            },
+            source_section: { type: ["string", "null"] },
+            confidence: { type: "string", enum: ["high", "medium", "low"] },
+          },
+          required: ["term_key", "value", "quoted_text", "confidence"],
+        },
+      },
+    },
+    required: ["terms"],
+  },
+});
+
+const UNIT_WORDS: Record<string, string> = {
+  pct: "percentage, as written",
+  usd: "US dollars",
+  days: "days",
+  months: "months",
+  hours: "hours",
+  rooms: "rooms",
+};
+
+function describeTerm(term: TermDefinition): string {
+  const type =
+    term.kind === "number"
+      ? `number, ${UNIT_WORDS[term.unit!]}`
+      : term.kind === "enum"
+        ? `one of: ${[...Object.keys(term.options ?? {}), "other"].join(" | ")}`
+        : term.kind === "date"
+          ? "date, YYYY-MM-DD"
+          : term.kind;
+  const options = Object.entries(term.options ?? {})
+    .map(([value, meaning]) => `\n    ${value}: ${meaning}`)
+    .join("");
+  return `- ${term.key} (${type}): ${term.meaning}${options}`;
+}
+
+/**
+ * Exported so a test can pin it. The catalog block is cached; the instructions
+ * are not, for the same reason as the analysis prompt's library block.
+ */
+export function buildTermExtractionPrompt(catalog: TermCatalog) {
+  const instructions = `You are reading a hotel or venue group contract and recording the terms it states. You are not reviewing it, judging it, or suggesting changes.
+
+The catalog below lists the terms to look for. Record an entry for each one the contract states.
+
+Rules:
+- Record only what the contract states. If it does not address a term, leave that term out. Never infer a value from what contracts of this kind usually say.
+- A boolean is recorded only when the contract addresses the point. False means the contract addresses it and does not grant it — it withholds it, excludes it, or leaves it to the hotel's discretion. Silence is never false.
+- Record 0 only where the contract says there is no such period, fee or window. If it is silent, leave the term out.
+- Each meaning names exactly one figure. Where a clause states several numbers, record the one the meaning describes.
+- Read the whole document before answering, including tables, exhibits, headers and footers. A term may sit anywhere.
+- Report percentages as the number written (90 for 90%, 1.5 for 1.5%), dollar amounts as plain numbers (289 for $289.00), days, months, hours and rooms as plain numbers, and dates as YYYY-MM-DD. For an enum, give one of the listed values, or "other" if none fits.
+- quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that states it.
+- If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Never include a "#", a "|", or a reconstructed list number inside quoted_text.
+- If the contract states a term more than once with different values, record each as its own entry. If it repeats the same value, one entry is enough.
+- source_section is the heading or section number the value sits under, or null.
+- confidence is high when the wording is explicit, medium when you had to interpret it, and low when you are unsure.`;
+
+  const catalogBlock = `\n\nTERM CATALOG (version ${catalog.version}):\n${catalog.terms.map(describeTerm).join("\n")}`;
+
+  return [
+    { type: "text" as const, text: instructions },
+    { type: "text" as const, text: catalogBlock, cache_control: { type: "ephemeral" as const } },
+  ];
+}
+
+export interface ExtractContractTermsArgs {
+  document: AnalyzableDocument;
+  catalog: TermCatalog;
+  model?: string;
+}
+
+export interface ExtractContractTermsResult {
+  /** Unvalidated. Pass through validateTerms before anything reads a value. */
+  entries: unknown[];
+  model_id: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+}
+
+export async function extractContractTerms({
+  document,
+  catalog,
+  model,
+}: ExtractContractTermsArgs): Promise<ExtractContractTermsResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
+  }
+
+  const client = new Anthropic({ apiKey });
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
+  const userContent: Anthropic.Messages.ContentBlockParam[] =
+    document.kind === "pdf"
+      ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
+      : [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }];
+
+  async function attempt(): Promise<ExtractContractTermsResult> {
+    const response = await client.messages.create({
+      model: modelId,
+      max_tokens: 16000,
+      system: buildTermExtractionPrompt(catalog),
+      tools: [termsToolSchema(catalog)],
+      tool_choice: { type: "tool", name: TERMS_TOOL_NAME },
+      messages: [{ role: "user", content: userContent }],
+    });
+
+    const toolUseBlock = response.content.find(
+      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
+    );
+    if (!toolUseBlock) {
+      throw new Error("Model did not return extracted terms (no tool_use block in response).");
+    }
+
+    const parsed = toolUseBlock.input as { terms?: unknown[] };
+    if (!Array.isArray(parsed.terms)) {
+      throw new Error(
+        `Model returned malformed term extraction (no terms array). stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
+      );
+    }
+
+    return {
+      entries: parsed.terms,
+      model_id: modelId,
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+      cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+    };
+  }
+
+  try {
+    return await attempt();
+  } catch (err) {
+    console.error("extractContractTerms: first attempt failed, retrying once —", err);
     return await attempt();
   }
 }
