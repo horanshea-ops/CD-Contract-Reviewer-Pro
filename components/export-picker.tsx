@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { startDownload } from "@/lib/download";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
+import { ORG } from "@/lib/org";
 
 /**
  * One "Export" button over the four export routes, replacing four separate
@@ -238,7 +239,7 @@ export function ExportPicker({
                       Requested-revisions memo (PDF)
                     </span>
                     <span className="block text-xs text-[var(--text-secondary)]">
-                      Findings and CD&apos;s rationale, for internal review — not for the property. {includedCount}{" "}
+                      Findings and {ORG.shortName}&apos;s rationale, for internal review — not for the property. {includedCount}{" "}
                       finding{includedCount === 1 ? "" : "s"} included.
                     </span>
                   </span>

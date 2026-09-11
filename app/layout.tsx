@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ORG_NAME } from "@/lib/org";
+import { ORG } from "@/lib/org";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CD Contract Reviewer",
-  description: `Contract review tool for ${ORG_NAME} associates.`,
+  title: `${ORG.shortName} Contract Reviewer`,
+  description: `Contract review tool for ${ORG.name} associates.`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

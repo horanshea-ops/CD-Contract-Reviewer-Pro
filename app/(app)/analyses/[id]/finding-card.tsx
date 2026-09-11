@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { ORG } from "@/lib/org";
 
 export interface Finding {
   id: string;
@@ -199,9 +200,9 @@ export default function FindingCard({
       )}
 
       <details className="text-sm mb-2">
-        <summary className="cursor-pointer text-[var(--text-secondary)]">CD standard &amp; proposed language</summary>
+        <summary className="cursor-pointer text-[var(--text-secondary)]">{ORG.shortName} standard &amp; proposed language</summary>
         <p className="mt-1 text-[var(--text-primary)]">
-          <span className="font-medium">CD standard: </span>
+          <span className="font-medium">{ORG.shortName} standard: </span>
           {finding.cd_standard}
         </p>
         <p className="mt-1 text-[var(--text-primary)]">

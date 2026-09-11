@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { NavFooter, NavLinkList, type NavAssociate } from "@/components/nav-links";
+import { ORG } from "@/lib/org";
 
 /** Slim top bar + off-canvas drawer, shown only below the lg breakpoint where SidebarNav is hidden. */
 export default function MobileTopBar({ associate }: { associate: NavAssociate | null }) {
@@ -16,7 +17,7 @@ export default function MobileTopBar({ associate }: { associate: NavAssociate | 
             className="flex h-7 w-7 items-center justify-center rounded-lg text-white text-xs font-bold"
             style={{ background: "linear-gradient(135deg, var(--cd-navy), var(--cd-navy-darker))" }}
           >
-            CD
+            {ORG.shortName}
           </span>
           <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">Contract Reviewer</span>
         </Link>

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Field, FieldInput } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { ORG_NAME } from "@/lib/org";
+import { ORG } from "@/lib/org";
 
 const REDIRECT_ERRORS: Record<string, string> = {
   not_authorized:
@@ -66,7 +66,7 @@ export default function LoginPage() {
         />
         <div className="relative flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded bg-white text-[var(--cd-navy)] text-sm font-bold">
-            CD
+            {ORG.shortName}
           </span>
           <span className="text-white font-semibold tracking-tight">Contract Reviewer</span>
         </div>
@@ -75,7 +75,7 @@ export default function LoginPage() {
             Every finding is a candidate for review, never a clearance.
           </h2>
           <p className="text-[var(--cd-blue-light)] text-sm max-w-sm">
-            A negotiating aid for {ORG_NAME} associates — measured against how CD actually
+            A negotiating aid for {ORG.name} associates — measured against how {ORG.shortName} actually
             negotiates, not generic industry defaults.
           </p>
         </div>
@@ -85,14 +85,14 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <span className="flex h-8 w-8 items-center justify-center rounded bg-[var(--cd-navy)] text-white text-sm font-bold">
-              CD
+              {ORG.shortName}
             </span>
             <span className="text-[var(--text-primary)] font-semibold tracking-tight">Contract Reviewer</span>
           </div>
 
           <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Sign in</h1>
           <p className="text-sm text-[var(--text-secondary)] mb-6">
-            Use your {ORG_NAME} email. We&apos;ll send you a login link — no password needed.
+            Use your {ORG.name} email. We&apos;ll send you a login link — no password needed.
           </p>
 
           <Suspense fallback={null}>
