@@ -2,6 +2,8 @@ import { createAdminClient } from "./supabase/admin";
 import { analyzeContract, type AnalyzableDocument } from "./anthropic";
 import { extractDocx } from "./docx";
 import { contractText } from "./docx/contract-text";
+import type { LocatablePart } from "./redline-engine/locate";
+import { extractionRecord, extractTerms, termRows } from "./terms/extract";
 import { loadStandardsLibrary } from "./standards/load";
 import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
@@ -67,6 +69,8 @@ export async function processAnalysis(analysisId: string) {
     // edits in the wrong part of the document.
     let document: AnalyzableDocument = { kind: "pdf", pdfBase64 };
     let scanText: string | null = null;
+    // The text quotes are checked against — the same text the model reads.
+    let readParts: LocatablePart[] | null = null;
     if (analysis.intake_route === "docx_native" && analysis.original_storage_path) {
       try {
         const { data: originalBlob, error: originalErr } = await admin.storage
@@ -76,6 +80,7 @@ export async function processAnalysis(analysisId: string) {
         const extracted = await extractDocx(new Uint8Array(await originalBlob.arrayBuffer()));
         scanText = contractText(extracted);
         document = { kind: "text", text: scanText };
+        readParts = extracted.parts;
       } catch (extractErr) {
         // Falling back to the PDF loses table structure but still produces an
         // analysis, which beats failing the run outright. Recorded, not silent.
@@ -138,6 +143,18 @@ export async function processAnalysis(analysisId: string) {
         return;
       }
     }
+
+    // §2.0.2 — term extraction, off unless TERM_EXTRACTION=on. It runs
+    // alongside the review and after the AI-use gate, since it also sends the
+    // contract to the model. Both outcomes resolve rather than reject, so a
+    // failed pass can never fail the review or leave a rejection unhandled.
+    const termsPass =
+      process.env.TERM_EXTRACTION === "on"
+        ? extractTerms({ document, parts: readParts ?? [{ part: "document", text: scanText }] }).then(
+            (outcome) => ({ ok: true as const, ...outcome }),
+            (err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : String(err) })
+          )
+        : null;
 
     const result = await analyzeContract({
       document,
@@ -243,6 +260,8 @@ export async function processAnalysis(analysisId: string) {
         standards_hash: standards.hash,
       },
     });
+
+    if (termsPass) await saveTerms(admin, analysisId, await termsPass);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
@@ -258,5 +277,46 @@ export async function processAnalysis(analysisId: string) {
       entityId: analysisId,
       metadata: { error: message },
     });
+  }
+}
+
+type TermsOutcome =
+  | ({ ok: true } & Awaited<ReturnType<typeof extractTerms>>)
+  | { ok: false; error: string };
+
+/**
+ * Stores a term extraction pass. Best-effort by design: nothing reads terms
+ * yet, so a failure here is logged and recorded, never raised into a review
+ * that has already completed.
+ *
+ * Any earlier rows for the analysis are replaced, so a re-run never leaves two
+ * passes' terms side by side.
+ */
+async function saveTerms(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: TermsOutcome) {
+  try {
+    let record = extractionRecord(outcome);
+
+    if (outcome.ok) {
+      const cleared = await admin.from("contract_terms").delete().eq("analysis_id", analysisId);
+      const inserted = cleared.error
+        ? cleared
+        : await admin.from("contract_terms").insert(termRows(analysisId, outcome.terms));
+      if (inserted.error) {
+        record = extractionRecord({
+          ok: false,
+          error: `Terms were extracted but not saved: ${inserted.error.message}`,
+          model_id: outcome.model_id,
+        });
+      }
+    }
+
+    const { error } = await admin.from("analyses").update({ term_extraction: record }).eq("id", analysisId);
+    if (error) throw new Error(error.message);
+  } catch (err) {
+    console.error(
+      `processAnalysis: term extraction for ${analysisId} could not be recorded. ` +
+        `If this mentions an unknown table or column, migration 006 has not been applied —`,
+      err
+    );
   }
 }
