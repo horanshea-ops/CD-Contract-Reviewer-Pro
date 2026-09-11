@@ -77,3 +77,20 @@ describe("hashStandards", () => {
     expect(hashStandards(full)).not.toBe(hashStandards(short));
   });
 });
+
+/**
+ * clause_type is a plain string, so the compiler no longer catches a typo in
+ * the bundled library. These checks take over that job.
+ */
+describe("the bundled library", () => {
+  it("names every clause type in snake_case", () => {
+    for (const e of STANDARDS_LIBRARY) {
+      expect(e.clause_type, e.clause_type).toMatch(/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/);
+    }
+  });
+
+  it("has one entry per clause type and segment", () => {
+    const keys = STANDARDS_LIBRARY.map((e) => `${e.clause_type}/${e.segment}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
