@@ -496,12 +496,10 @@ connection dropping mid-run supplied the fourth for free.
       failed fetch, and times the wait from the run's own start so a reload no longer
       resets the clock. Verified live: the stuck run recovered by clicking the button.
 
-**Open, in the order agreed with the user (2026-09-11).** Items 1 and 3 are done; items
-2 and 4-12 follow in this order, and none of them should be folded into either finished
-pass — a restyle or a visibility change that also changes behaviour cannot be reviewed
-by eye. Item 2 is next and wants Opus 5, since extracting the export routes touches what
-reaches a hotel and the §1.6 oracle wiring; items 4-12 are Sonnet 5 work under the
-CLAUDE.md table.
+**Open, in the order agreed with the user (2026-09-11).** Items 1, 2 and 3 are done;
+items 4-12 follow in this order, and none of them should be folded into a finished pass
+— a restyle or a visibility change that also changes behaviour cannot be reviewed by
+eye. Item 4 is next; items 4-12 are Sonnet 5 work under the CLAUDE.md table.
 
 - [x] **1. Visual style, raised by the user twice during the walkthrough. High
       priority. Fixed 2026-09-12 (4d67e3a), on `phase/ui-style-pass`.** A finding card
@@ -519,14 +517,38 @@ CLAUDE.md table.
       (`--severity-low,#166534`) never fired — switched to the existing
       `--status-success` token. Verified live against the dev database's 25-finding
       Harborview analysis; `npm run lint`/`typecheck`/`test` all green (698/698).
-- [ ] **2. Selecting several exports at once silently loses files.** Four downloads fire
-      from one click; the browser saved one and the picker reported "Downloaded." for
-      all four, because `runMemo` and friends assert success straight after
-      `startDownload` without waiting for anything. The user's suggestion is the right
-      fix — one zip. That means extracting each export route's orchestration into a
-      callable builder first (the four routes hold it inline, 71-167 lines each), then a
-      zip route over the builders. Roughly a couple of hours. The 20-minute stopgap is
-      to stop claiming a download happened that was never verified.
+- [x] **2. Selecting several exports at once silently loses files. Fixed 2026-09-12
+      (ac6a8fd, 17901c5), on `phase/export-zip-fix`.** Four downloads fired from one
+      click; the browser saved one and the picker reported "Downloaded." for all four,
+      because `runMemo` and friends asserted success straight after `startDownload`
+      without waiting for anything. Each route's orchestration moved to a builder in
+      `lib/exports/`, one per format, returning bytes plus a `commit` closure holding
+      the `exports` row and the audit entry. Splitting the side effects out lets
+      `?preflight=1` report a verdict without logging, and lets the new
+      `/api/analyses/[id]/export-zip` route write one row per file it actually
+      delivers, so §1.6.6's degradation rate reads the same whether an associate took
+      one file or four. `downloadFile` replaced `startDownload` and fetches, so a row
+      reports "Downloaded." only once its response has resolved.
+
+      A format whose verdict is not clean stays out of the zip and expands its existing
+      verdict row instead (decided with the user) — a partial redline is missing
+      findings, and §1.6's point is that the associate reads which ones before sending
+      it. They download that one file afterwards. The zip route still skips a refusal
+      rather than failing the whole archive, and names it in a `NOT-EXPORTED.txt`
+      inside.
+
+      Also fixed in passing: an em dash in `Content-Disposition` threw before any bytes
+      reached the associate, and the tracked-changes export names its file after the
+      uploaded contract — so "Harborview Grand — NACE Annual Meeting.docx" would have
+      500'd on a single-file redline export. The header now carries RFC 5987's
+      `filename*` beside a stripped ASCII fallback.
+
+      Verified live against the dev database: all four selected produced one
+      `exports-99fe1054.zip` holding all four files (the redline with 10 `w:ins` and 10
+      `w:del`, matching its 10 accepted findings) and exactly four `exports` rows;
+      each format standalone produced the same file as before; and on a PDF-sourced
+      analysis a refused format left its error on the row while the other two still
+      zipped. `npm run lint`/`typecheck`/`test` all green (706/706).
 - [x] **3. The proposed language is hidden behind a disclosure while Accept sits in the
       open. Fixed 2026-09-12 (c2de4a9), on `phase/proposed-language-default`.** The
       replacement wording is the thing that reaches the hotel, and an associate could
