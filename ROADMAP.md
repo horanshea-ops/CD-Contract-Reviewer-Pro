@@ -466,6 +466,94 @@ changing, and one that needs watching.
   graded on 15 of 87 pairs and proposed language on 57, both by design (see
   `docs/eval-harness.md` § Known limits). None of this blocks acting on items 1-4.
 
+### Raised by the first end-to-end walkthrough (2026-09-11)
+
+One contract carried from login to a sent-ready email in one sitting, as an associate
+would — `eval-01-harborview.docx` uploaded through the real form, 25 findings reviewed,
+10 accepted or edited, 2 dismissed, all four exports taken, both emails drafted. The
+first three defects below all came out of the first ten minutes, and the user's own
+connection dropping mid-run supplied the fourth for free.
+
+**Fixed in this pass** (fade5a9):
+
+- [x] **A filename with an em dash killed the upload.** Storage keys were built from
+      `file.name` verbatim, and Supabase Storage rejects the punctuation Word and macOS
+      put in real contract filenames ("Harborview Grand — NACE Annual Meeting.docx").
+      The associate saw a raw `Invalid key:` string. `lib/storage-key.ts` now sanitises
+      the key; the row still shows the filename as typed.
+- [x] **A failed upload left an orphan negotiation.** The thread row is written before
+      the file work that can fail, so every failed attempt added an empty negotiation to
+      the "Continuing one" dropdown, un-usable and un-removable. Two were already
+      sitting in the dev database from earlier testing. Every bail-out after that point
+      now removes it.
+- [x] **A dropped connection stranded an analysis at "processing" for ever.** The write
+      that records a failure needs the network the failure took out, so the row kept no
+      error and the review screen polled an analysis that would never arrive. Runs older
+      than six minutes now read as stalled (`lib/analysis-status.ts`), and both the
+      stalled and failed screens offer a real retry over the stored file
+      (`POST /api/analyses/[id]/retry`) instead of a link to a blank upload form. The
+      screen also keeps polling through a blip rather than stranding itself on the first
+      failed fetch, and times the wait from the run's own start so a reload no longer
+      resets the clock. Verified live: the stuck run recovered by clicking the button.
+
+**Open, in the order I'd take them:**
+
+- [ ] **1. Visual style, raised by the user twice during the walkthrough. High
+      priority.** A finding card carries five type sizes, an italic block quote, three
+      button weights and four text colours, and the same inconsistency runs through the
+      export dialog, the email panels and the forms — the user's words were that it
+      "looks cheap". This is the screen CD sees first. The fix is a real typographic
+      pass, not a tweak: one type scale actually used, one field and card recipe, colour
+      reserved for severity and action rather than decoration. `components/ui/` already
+      holds the primitives to do it through. Deliberately deferred out of this pass by
+      the user so the walkthrough could finish.
+- [ ] **2. Selecting several exports at once silently loses files.** Four downloads fire
+      from one click; the browser saved one and the picker reported "Downloaded." for
+      all four, because `runMemo` and friends assert success straight after
+      `startDownload` without waiting for anything. The user's suggestion is the right
+      fix — one zip. That means extracting each export route's orchestration into a
+      callable builder first (the four routes hold it inline, 71-167 lines each), then a
+      zip route over the builders. Roughly a couple of hours. The 20-minute stopgap is
+      to stop claiming a download happened that was never verified.
+- [ ] **3. The proposed language is hidden behind a disclosure while Accept sits in the
+      open.** The replacement wording is the thing that reaches the hotel, and an
+      associate can accept 25 findings without ever reading one. Show the proposal by
+      default and collapse CD's internal standard instead.
+- [ ] **4. The thread view says exports were "sent".** They were downloaded. Nothing in
+      this app sends anything, deliberately, and this is the one line that says
+      otherwise. It also prints the raw duplicated format list ("sent pdf, docx, pdf,
+      memo, memo").
+- [ ] **5. The edit box is four rows for a 600-character clause.** Editing contract
+      language happens in a 98px window with no expand.
+- [ ] **6. Nothing warns at export time that 13 findings are still undecided.** The
+      header says so, but the export dialog is where it matters, and undecided findings
+      are silently excluded.
+- [ ] **7. No overview of a review.** 25 findings arrive as a flat list with no counts
+      by severity, no total exposure, no filter, no way to hide the decided ones and no
+      keyboard path. An associate loses their place after ten decisions.
+- [ ] **8. A wrong file type is only caught server-side.** Clear message, but it costs a
+      full upload round trip — bad on a 30MB file over hotel wifi. Drag-and-drop also
+      bypasses the `accept` filter entirely.
+- [ ] **9. The property-name field on the upload form has no label of its own**, only
+      the group label "Negotiation" and a placeholder.
+- [ ] **10. "Client" is described as an "internal email for the firm."** It goes to CD's
+      customer. The warning it carries is right; the noun is wrong.
+- [ ] **11. The memo downloaded as `e.pdf` once**, though the route sets a correct
+      `Content-Disposition`. Seen once under browser automation and not reproduced —
+      check in a real browser before chasing it.
+- [ ] **12. Mobile — low priority, by the user's call (2026-09-11).** Associates are not
+      expected to run this on a phone. Recorded so it isn't rediscovered: the dashboard
+      table runs off-screen and hides the Status column, and the review header collapses
+      into a cramped ribbon.
+
+**Confirmed working, for the record.** The DOCX preview rendered the room-block and
+cancellation tables as real tables; "Show in document" highlighted the right clause;
+exposure arithmetic was shown with its basis ($392,840 = 340 rooms × 4 nights × $289);
+the edit flow pre-filled the model's proposal and carried the edited figure through to
+the property email; the property email leaked no exposure figure, severity or rationale;
+and the tracked-changes redline passed all ten validation checks with 10 of 10 accepted
+changes applied, clean, including the reject-round-trip.
+
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft
