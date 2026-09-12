@@ -4,20 +4,26 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import { Body, Meta } from "@/components/ui/typography";
-import { startDownload } from "@/lib/download";
+import { downloadFile } from "@/lib/download";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
 import { titleCase } from "@/lib/format";
 import { ORG } from "@/lib/org";
 
 /**
- * One "Export" button over the four export routes, replacing four separate
- * buttons that each grew their own trigger as its feature landed.
+ * One "Export" button over the export routes, replacing four separate buttons
+ * that each grew their own trigger as its feature landed.
  *
- * Each row runs independently. The two routes with a server preflight
- * (tracked-changes DOCX, proposed contract) fetch `?preflight=1` on their own
- * and expand in place if the verdict isn't clean — so one row's refusal never
- * blocks or delays another row's download. Verdict copy and options are
- * carried over unchanged from the components this replaces.
+ * Exporting runs in two phases. First every selected format settles — the two
+ * with a server preflight (tracked-changes DOCX, proposed contract) fetch
+ * `?preflight=1`, and a verdict that isn't clean expands that row in place.
+ * Then the formats that came back clean download as one zip.
+ *
+ * Keeping a non-clean format out of the zip is deliberate. A partial redline is
+ * safe to send but is missing findings, and the verdict row is where the
+ * associate reads which ones before deciding — §1.6's whole point is that
+ * degradation stays visible. They download that file on its own afterwards.
+ *
+ * Nothing reports "Downloaded." until its response has resolved.
  */
 
 type ExportKey = "memo" | "markup" | "redline" | "clean";
@@ -56,11 +62,20 @@ interface CleanPreflight {
 type RowStatus =
   | { kind: "idle" }
   | { kind: "checking" }
+  | { kind: "preparing" }
   | { kind: "downloaded" }
+  | { kind: "zipped" }
   | { kind: "error"; message: string }
   | { kind: "downgrade" }
   | { kind: "redline"; verdict: RedlinePreflight }
   | { kind: "clean"; verdict: CleanPreflight };
+
+const IDLE_STATUSES: Record<ExportKey, RowStatus> = {
+  memo: { kind: "idle" },
+  markup: { kind: "idle" },
+  redline: { kind: "idle" },
+  clean: { kind: "idle" },
+};
 
 function redlineUnavailableReason(
   sourceFormat: "pdf" | "docx" | "doc",
@@ -91,30 +106,35 @@ export function ExportPicker({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Set<ExportKey>>(new Set());
   const [started, setStarted] = useState(false);
-  const [statuses, setStatuses] = useState<Record<ExportKey, RowStatus>>({
-    memo: { kind: "idle" },
-    markup: { kind: "idle" },
-    redline: { kind: "idle" },
-    clean: { kind: "idle" },
-  });
+  const [busy, setBusy] = useState(false);
+  const [statuses, setStatuses] = useState<Record<ExportKey, RowStatus>>(IDLE_STATUSES);
 
-  const memoUrl = `/api/analyses/${analysisId}/export`;
-  const markupUrl = `/api/analyses/${analysisId}/export-markup`;
-  const redlineUrl = `/api/analyses/${analysisId}/export-redline-docx`;
-  const cleanUrl = `/api/analyses/${analysisId}/export-clean-pdf`;
+  const short = analysisId.slice(0, 8);
+  const singleUrl: Record<ExportKey, string> = {
+    memo: `/api/analyses/${analysisId}/export`,
+    markup: `/api/analyses/${analysisId}/export-markup`,
+    redline: `/api/analyses/${analysisId}/export-redline-docx`,
+    clean: `/api/analyses/${analysisId}/export-clean-pdf`,
+  };
+
+  // Only a fallback. The route names each file on the way out.
+  const fallbackName: Record<ExportKey, string> = {
+    memo: `requested-revisions-${short}.pdf`,
+    markup: `marked-up-${short}.pdf`,
+    redline: `tracked-changes-${short}.docx`,
+    clean: `proposed-contract-${short}.pdf`,
+  };
+  const zipName = `exports-${short}.zip`;
 
   const redlineUnavailable = redlineUnavailableReason(sourceFormat, intakeRoute);
   const forcedDowngrade = sourceFormat !== "pdf" && intakeRoute !== "docx_native";
+  const zippedCount = Object.values(statuses).filter((s) => s.kind === "zipped").length;
 
   function reset() {
     setSelected(new Set());
     setStarted(false);
-    setStatuses({
-      memo: { kind: "idle" },
-      markup: { kind: "idle" },
-      redline: { kind: "idle" },
-      clean: { kind: "idle" },
-    });
+    setBusy(false);
+    setStatuses(IDLE_STATUSES);
   }
 
   function toggle(key: ExportKey) {
@@ -130,69 +150,89 @@ export function ExportPicker({
     setStatuses((prev) => ({ ...prev, [key]: status }));
   }
 
-  function runMemo() {
-    startDownload(memoUrl);
-    setStatus("memo", { kind: "downloaded" });
-  }
-
-  function runMarkup() {
-    if (forcedDowngrade) {
-      setStatus("markup", { kind: "downgrade" });
-      return;
-    }
-    startDownload(markupUrl);
-    setStatus("markup", { kind: "downloaded" });
-  }
-
-  async function runRedline() {
-    setStatus("redline", { kind: "checking" });
+  /** Downloads one file on its own — a verdict row's follow-up, or a lone selection. */
+  async function downloadOne(key: ExportKey, url: string, filename: string) {
+    setBusy(true);
     try {
-      const res = await fetch(`${redlineUrl}?preflight=1`);
+      await downloadFile(url, filename);
+      setStatus(key, { kind: "downloaded" });
+    } catch (err) {
+      setStatus(key, { kind: "error", message: messageOf(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Runs a format's preflight. Returns true when it came back clean and can be zipped. */
+  async function settlePreflight(key: "redline" | "clean"): Promise<boolean> {
+    setStatus(key, { kind: "checking" });
+    try {
+      const res = await fetch(`${singleUrl[key]}?preflight=1`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setStatus("redline", { kind: "error", message: body.error ?? "Could not prepare the tracked-changes export." });
-        return;
+        setStatus(key, {
+          kind: "error",
+          message:
+            body.error ??
+            (key === "redline"
+              ? "Could not prepare the tracked-changes export."
+              : "Could not prepare the proposed contract."),
+        });
+        return false;
       }
-      const verdict: RedlinePreflight = await res.json();
-      if (verdict.outcome === "clean") {
-        startDownload(redlineUrl);
-        setStatus("redline", { kind: "downloaded" });
-        return;
-      }
-      setStatus("redline", { kind: "redline", verdict });
+      const verdict = await res.json();
+      if (verdict.outcome === "clean") return true;
+      setStatus(key, key === "redline" ? { kind: "redline", verdict } : { kind: "clean", verdict });
+      return false;
     } catch {
-      setStatus("redline", { kind: "error", message: "Could not reach the server." });
+      setStatus(key, { kind: "error", message: "Could not reach the server." });
+      return false;
     }
   }
 
-  async function runClean() {
-    setStatus("clean", { kind: "checking" });
-    try {
-      const res = await fetch(`${cleanUrl}?preflight=1`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setStatus("clean", { kind: "error", message: body.error ?? "Could not prepare the proposed contract." });
-        return;
-      }
-      const verdict: CleanPreflight = await res.json();
-      if (verdict.outcome === "clean") {
-        startDownload(cleanUrl);
-        setStatus("clean", { kind: "downloaded" });
-        return;
-      }
-      setStatus("clean", { kind: "clean", verdict });
-    } catch {
-      setStatus("clean", { kind: "error", message: "Could not reach the server." });
-    }
-  }
-
-  function handleExport() {
+  async function handleExport() {
     if (selected.size === 0) return;
     setStarted(true);
-    if (selected.has("memo")) runMemo();
-    if (selected.has("markup")) runMarkup();
-    if (selected.has("redline")) runRedline();
-    if (selected.has("clean")) runClean();
+    setBusy(true);
+
+    const ready: ExportKey[] = [];
+
+    if (selected.has("memo")) ready.push("memo");
+
+    if (selected.has("markup")) {
+      if (forcedDowngrade) setStatus("markup", { kind: "downgrade" });
+      else ready.push("markup");
+    }
+
+    // Both preflights are plain fetches, so they can run together.
+    const [redlineReady, cleanReady] = await Promise.all([
+      selected.has("redline") ? settlePreflight("redline") : Promise.resolve(false),
+      selected.has("clean") ? settlePreflight("clean") : Promise.resolve(false),
+    ]);
+    if (redlineReady) ready.push("redline");
+    if (cleanReady) ready.push("clean");
+
+    if (ready.length === 0) {
+      setBusy(false);
+      return;
+    }
+
+    for (const key of ready) setStatus(key, { kind: "preparing" });
+
+    const single = ready.length === 1 ? ready[0] : null;
+    const url = single
+      ? singleUrl[single]
+      : `/api/analyses/${analysisId}/export-zip?formats=${ready.join(",")}`;
+
+    try {
+      await downloadFile(url, single ? fallbackName[single] : zipName);
+      for (const key of ready) setStatus(key, single ? { kind: "downloaded" } : { kind: "zipped" });
+    } catch (err) {
+      const message = messageOf(err);
+      for (const key of ready) setStatus(key, { kind: "error", message });
+    } finally {
+      setBusy(false);
+    }
   }
 
   function close() {
@@ -220,7 +260,7 @@ export function ExportPicker({
         maxWidth="xl"
         footer={
           <>
-            <Button variant="ghost" size="sm" onClick={close}>
+            <Button variant="ghost" size="sm" onClick={close} disabled={busy}>
               {started ? "Close" : "Cancel"}
             </Button>
             {!started && (
@@ -231,7 +271,15 @@ export function ExportPicker({
           </>
         }
       >
-        <Meta className="text-[var(--text-secondary)] mb-3">Pick one or more files to export.</Meta>
+        <Meta className="text-[var(--text-secondary)] mb-3">
+          Pick one or more files to export. Several arrive as a single zip.
+        </Meta>
+
+        {zippedCount > 0 && (
+          <Body as="p" className="mb-3 rounded bg-[var(--surface-muted)] p-2 text-[var(--status-success)]">
+            Downloaded {zipName} — {zippedCount} files.
+          </Body>
+        )}
 
         <div className="space-y-3">
           {/* Memo */}
@@ -259,11 +307,7 @@ export function ExportPicker({
                 </Meta>
               </span>
             </label>
-            {statuses.memo.kind === "downloaded" && (
-              <Meta as="p" className="mt-2 text-[var(--status-success)]">
-                Downloaded.
-              </Meta>
-            )}
+            <RowStatusLine status={statuses.memo} />
           </div>
 
           {/* Marked-up PDF */}
@@ -299,26 +343,25 @@ export function ExportPicker({
                   {getMarkupReason({ sourceFormat, intakeHealthReason })}
                 </Meta>
                 <div className="mt-2 flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setStatus("markup", { kind: "idle" })}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => setStatus("markup", { kind: "idle" })}
+                  >
                     Skip
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      startDownload(markupUrl);
-                      setStatus("markup", { kind: "downloaded" });
-                    }}
+                    disabled={busy}
+                    onClick={() => downloadOne("markup", singleUrl.markup, fallbackName.markup)}
                   >
                     Download marked-up PDF
                   </Button>
                 </div>
               </div>
             )}
-            {statuses.markup.kind === "downloaded" && (
-              <Meta as="p" className="mt-2 text-[var(--status-success)]">
-                Downloaded.
-              </Meta>
-            )}
+            <RowStatusLine status={statuses.markup} />
           </div>
 
           {/* Tracked-changes DOCX */}
@@ -345,33 +388,14 @@ export function ExportPicker({
                 </Meta>
               </span>
             </label>
-            {statuses.redline.kind === "checking" && (
-              <Meta as="p" className="mt-2 text-[var(--text-muted)]">
-                Checking...
-              </Meta>
-            )}
-            {statuses.redline.kind === "error" && (
-              <Meta as="p" className="mt-2 text-[var(--severity-high)]">
-                {statuses.redline.message}
-              </Meta>
-            )}
-            {statuses.redline.kind === "downloaded" && (
-              <Meta as="p" className="mt-2 text-[var(--status-success)]">
-                Downloaded.
-              </Meta>
-            )}
+            <RowStatusLine status={statuses.redline} />
             {statuses.redline.kind === "redline" && (
               <RedlineVerdictRow
                 verdict={statuses.redline.verdict}
+                busy={busy}
                 onSkip={() => setStatus("redline", { kind: "idle" })}
-                onDownload={() => {
-                  startDownload(redlineUrl);
-                  setStatus("redline", { kind: "downloaded" });
-                }}
-                onDownloadFallback={(url) => {
-                  startDownload(url);
-                  setStatus("redline", { kind: "downloaded" });
-                }}
+                onDownload={() => downloadOne("redline", singleUrl.redline, fallbackName.redline)}
+                onDownloadFallback={(url) => downloadOne("redline", url, fallbackName.markup)}
               />
             )}
           </div>
@@ -401,33 +425,14 @@ export function ExportPicker({
                 </Meta>
               </span>
             </label>
-            {statuses.clean.kind === "checking" && (
-              <Meta as="p" className="mt-2 text-[var(--text-muted)]">
-                Checking...
-              </Meta>
-            )}
-            {statuses.clean.kind === "error" && (
-              <Meta as="p" className="mt-2 text-[var(--severity-high)]">
-                {statuses.clean.message}
-              </Meta>
-            )}
-            {statuses.clean.kind === "downloaded" && (
-              <Meta as="p" className="mt-2 text-[var(--status-success)]">
-                Downloaded.
-              </Meta>
-            )}
+            <RowStatusLine status={statuses.clean} />
             {statuses.clean.kind === "clean" && (
               <CleanVerdictRow
                 verdict={statuses.clean.verdict}
+                busy={busy}
                 onSkip={() => setStatus("clean", { kind: "idle" })}
-                onDownload={() => {
-                  startDownload(cleanUrl);
-                  setStatus("clean", { kind: "downloaded" });
-                }}
-                onDownloadFallback={(url) => {
-                  startDownload(url);
-                  setStatus("clean", { kind: "downloaded" });
-                }}
+                onDownload={() => downloadOne("clean", singleUrl.clean, fallbackName.clean)}
+                onDownloadFallback={(url) => downloadOne("clean", url, fallbackName.markup)}
               />
             )}
           </div>
@@ -437,13 +442,58 @@ export function ExportPicker({
   );
 }
 
+function messageOf(err: unknown): string {
+  return err instanceof Error ? err.message : "The download failed.";
+}
+
+function RowStatusLine({ status }: { status: RowStatus }) {
+  if (status.kind === "checking") {
+    return (
+      <Meta as="p" className="mt-2 text-[var(--text-muted)]">
+        Checking...
+      </Meta>
+    );
+  }
+  if (status.kind === "preparing") {
+    return (
+      <Meta as="p" className="mt-2 text-[var(--text-muted)]">
+        Preparing...
+      </Meta>
+    );
+  }
+  if (status.kind === "downloaded") {
+    return (
+      <Meta as="p" className="mt-2 text-[var(--status-success)]">
+        Downloaded.
+      </Meta>
+    );
+  }
+  if (status.kind === "zipped") {
+    return (
+      <Meta as="p" className="mt-2 text-[var(--status-success)]">
+        In the zip.
+      </Meta>
+    );
+  }
+  if (status.kind === "error") {
+    return (
+      <Meta as="p" className="mt-2 text-[var(--severity-high)]">
+        {status.message}
+      </Meta>
+    );
+  }
+  return null;
+}
+
 function RedlineVerdictRow({
   verdict,
+  busy,
   onSkip,
   onDownload,
   onDownloadFallback,
 }: {
   verdict: RedlinePreflight;
+  busy: boolean;
   onSkip: () => void;
   onDownload: () => void;
   onDownloadFallback: (url: string) => void;
@@ -467,10 +517,10 @@ function RedlineVerdictRow({
           The marked-up PDF carries the same findings and is safe to send instead.
         </Meta>
         <div className="mt-2 flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onSkip}>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
             Skip
           </Button>
-          <Button size="sm" onClick={() => onDownloadFallback(verdict.markupPdfUrl)}>
+          <Button size="sm" disabled={busy} onClick={() => onDownloadFallback(verdict.markupPdfUrl)}>
             Download marked-up PDF
           </Button>
         </div>
@@ -506,10 +556,10 @@ function RedlineVerdictRow({
         ))}
       </ul>
       <div className="mt-2 flex justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={onSkip}>
+        <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
           Skip
         </Button>
-        <Button size="sm" onClick={onDownload}>
+        <Button size="sm" disabled={busy} onClick={onDownload}>
           Download anyway
         </Button>
       </div>
@@ -519,11 +569,13 @@ function RedlineVerdictRow({
 
 function CleanVerdictRow({
   verdict,
+  busy,
   onSkip,
   onDownload,
   onDownloadFallback,
 }: {
   verdict: CleanPreflight;
+  busy: boolean;
   onSkip: () => void;
   onDownload: () => void;
   onDownloadFallback: (url: string) => void;
@@ -550,10 +602,10 @@ function CleanVerdictRow({
           The marked-up PDF carries the same changes and is safe to send instead.
         </Meta>
         <div className="mt-2 flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={onSkip}>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
             Skip
           </Button>
-          <Button size="sm" onClick={() => onDownloadFallback(verdict.markupPdfUrl)}>
+          <Button size="sm" disabled={busy} onClick={() => onDownloadFallback(verdict.markupPdfUrl)}>
             Download marked-up PDF
           </Button>
         </div>
@@ -590,10 +642,10 @@ function CleanVerdictRow({
         </Meta>
       )}
       <div className="mt-2 flex justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={onSkip}>
+        <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
           Skip
         </Button>
-        <Button size="sm" onClick={onDownload}>
+        <Button size="sm" disabled={busy} onClick={onDownload}>
           Download
         </Button>
       </div>
