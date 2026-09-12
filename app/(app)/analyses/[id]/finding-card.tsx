@@ -205,16 +205,14 @@ export default function FindingCard({
         </ReadingText>
       )}
 
+      <Meta as="p" className="font-medium text-[var(--text-secondary)] mb-1">
+        Proposed language
+      </Meta>
+      <ReadingText className="text-[var(--text-primary)] mb-2">{finding.proposed_language}</ReadingText>
+
       <Meta as="details" className="mb-2">
-        <summary className="cursor-pointer text-[var(--text-secondary)]">{ORG.shortName} standard &amp; proposed language</summary>
-        <p className="mt-1 text-[var(--text-primary)]">
-          <span className="font-medium">{ORG.shortName} standard: </span>
-          {finding.cd_standard}
-        </p>
-        <p className="mt-1 text-[var(--text-primary)]">
-          <span className="font-medium">Proposed: </span>
-          {finding.proposed_language}
-        </p>
+        <summary className="cursor-pointer text-[var(--text-secondary)]">{ORG.shortName} standard</summary>
+        <p className="mt-1 text-[var(--text-primary)]">{finding.cd_standard}</p>
       </Meta>
 
       {mode === "view" && finding.current_action && !changingDecision && (
