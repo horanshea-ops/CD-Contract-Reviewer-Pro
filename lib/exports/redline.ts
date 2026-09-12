@@ -5,7 +5,6 @@ import { UNAPPLIED_REASON_TEXT, validateRedline } from "../redline-validation";
 import { recordExport, recordResolutions } from "../export-log";
 import type { ExportContext } from "./context";
 import type { ExportBuildResult, ExportRefusalResult } from "./types";
-import { EXPORT_FORMAT_LABELS } from "./types";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -29,28 +28,38 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
   const markupPdfUrl = `/api/analyses/${analysisId}/export-markup`;
 
   if (analysis.source_format !== "docx" || !analysis.original_storage_path) {
-    return refusal(400, {
-      error: "Tracked-changes export is only available for contracts uploaded as DOCX.",
-    });
+    return refusal(
+      400,
+      { error: "Tracked-changes export is only available for contracts uploaded as DOCX." },
+      "Tracked-changes DOCX was not exported. This contract was uploaded as a PDF, so there is no Word file to mark up."
+    );
   }
 
   // §1.4.9 decided at upload that this document could not be safely edited, and
   // the associate was told so before they reviewed anything. Honour that here
   // rather than editing it anyway and leaning on §1.6 to catch the damage.
   if (analysis.intake_route === "pdf") {
-    return refusal(400, {
-      error:
-        "This document could not be read cleanly enough to edit, so it takes the PDF path. " +
-        "Use the marked-up PDF export instead.",
-      markupPdfUrl,
-    });
+    return refusal(
+      400,
+      {
+        error:
+          "This document could not be read cleanly enough to edit, so it takes the PDF path. " +
+          "Use the marked-up PDF export instead.",
+        markupPdfUrl,
+      },
+      "Tracked-changes DOCX was not exported. This Word file could not be read cleanly enough to edit, so it takes the PDF path."
+    );
   }
 
   const { data: originalBlob, error: downloadError } = await admin.storage
     .from(STORAGE_BUCKET)
     .download(analysis.original_storage_path);
   if (downloadError || !originalBlob) {
-    return refusal(500, { error: `Could not load the original document: ${downloadError?.message}` });
+    return refusal(
+      500,
+      { error: `Could not load the original document: ${downloadError?.message}` },
+      "Tracked-changes DOCX was not exported. The original document could not be loaded."
+    );
   }
 
   const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
@@ -64,9 +73,11 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
       author: associate.name,
     });
   } catch (err) {
-    return refusal(500, {
-      error: err instanceof Error ? err.message : "Could not generate tracked changes.",
-    });
+    return refusal(
+      500,
+      { error: err instanceof Error ? err.message : "Could not generate tracked changes." },
+      "Tracked-changes DOCX was not exported. The tracked changes could not be generated."
+    );
   }
 
   const report = await validateRedline({ originalBytes, engineResult, author: associate.name });
@@ -124,8 +135,8 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
       },
       preflight,
       summary:
-        `${EXPORT_FORMAT_LABELS.redline}: the file did not pass validation and was discarded. ` +
-        `The marked-up PDF carries the same findings.`,
+        "Tracked-changes DOCX was not exported. The file did not pass validation and was discarded. " +
+        "The marked-up PDF carries the same findings.",
       commit,
     };
   }
@@ -142,12 +153,10 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
   };
 }
 
-function refusal(status: number, body: ExportRefusalResult["body"]): ExportRefusalResult {
-  return {
-    kind: "refusal",
-    status,
-    body,
-    preflight: null,
-    summary: `${EXPORT_FORMAT_LABELS.redline}: ${body.error}`,
-  };
+function refusal(
+  status: number,
+  body: ExportRefusalResult["body"],
+  summary: string
+): ExportRefusalResult {
+  return { kind: "refusal", status, body, preflight: null, summary };
 }

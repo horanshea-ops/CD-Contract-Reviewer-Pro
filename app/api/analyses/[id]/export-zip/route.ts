@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { openExport } from "@/lib/exports/context";
 import { EXPORT_BUILDERS } from "@/lib/exports/builders";
 import { assembleExportZip, type ZipEntry } from "@/lib/exports/zip";
+import { contentDisposition } from "@/lib/exports/respond";
 import { EXPORT_FORMAT_KEYS, type ExportFormatKey } from "@/lib/exports/types";
 
 /**
@@ -52,7 +53,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     status: 200,
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="exports-${id.slice(0, 8)}.zip"`,
+      "Content-Disposition": contentDisposition(`exports-${id.slice(0, 8)}.zip`),
     },
   });
 }

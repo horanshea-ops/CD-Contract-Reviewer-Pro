@@ -47,11 +47,3 @@ export interface ExportRefusalResult {
 export type ExportFormatKey = "memo" | "markup" | "redline" | "clean";
 
 export const EXPORT_FORMAT_KEYS: ExportFormatKey[] = ["memo", "markup", "redline", "clean"];
-
-/** How each format names itself in the zip manifest and in error copy. */
-export const EXPORT_FORMAT_LABELS: Record<ExportFormatKey, string> = {
-  memo: "Requested-revisions memo (PDF)",
-  markup: "Marked-up PDF",
-  redline: "Tracked-changes DOCX",
-  clean: "Proposed contract (clean copy)",
-};

@@ -5,7 +5,6 @@ import { generateCleanContractPdf, type CleanContractFinding } from "../clean-co
 import { recordExport } from "../export-log";
 import type { ExportContext } from "./context";
 import type { ExportBuildResult, ExportRefusalResult } from "./types";
-import { EXPORT_FORMAT_LABELS } from "./types";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -25,7 +24,11 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
     .from(STORAGE_BUCKET)
     .download(analysis.storage_path);
   if (pdfError || !pdfBlob) {
-    return refusal(500, { error: `Could not load the document: ${pdfError?.message}` });
+    return refusal(
+      500,
+      { error: `Could not load the document: ${pdfError?.message}` },
+      "The proposed contract was not exported. The document could not be loaded."
+    );
   }
 
   let lines;
@@ -38,9 +41,11 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
       pdfBytes: new Uint8Array(await pdfBlob.arrayBuffer()),
     });
   } catch (err) {
-    return refusal(500, {
-      error: err instanceof Error ? err.message : "Could not read this document's text.",
-    });
+    return refusal(
+      500,
+      { error: err instanceof Error ? err.message : "Could not read this document's text." },
+      "The proposed contract was not exported. This document's text could not be read."
+    );
   }
 
   // The allowlist boundary. getActionedFindings carries severity, finding_text
@@ -56,9 +61,11 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
   }));
 
   if (findings.length === 0) {
-    return refusal(400, {
-      error: "No accepted changes, so this would just be the original contract.",
-    });
+    return refusal(
+      400,
+      { error: "No accepted changes, so this would just be the original contract." },
+      "The proposed contract was not exported. There are no accepted changes, so it would just be the original contract."
+    );
   }
 
   // The property's own name where the analysis is linked to a thread, never the
@@ -77,7 +84,11 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
   try {
     result = await generateCleanContractPdf({ lines, findings, title });
   } catch (err) {
-    return refusal(500, { error: err instanceof Error ? err.message : "Could not build the contract." });
+    return refusal(
+      500,
+      { error: err instanceof Error ? err.message : "Could not build the contract." },
+      "The proposed contract was not exported. The document could not be built."
+    );
   }
 
   const outcome = !result.conservation.ok ? "fallback" : result.unplaced.length ? "partial" : "clean";
@@ -101,8 +112,8 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
       },
       preflight,
       summary:
-        `${EXPORT_FORMAT_LABELS.clean}: the document failed its content check and was not produced. ` +
-        `The marked-up PDF carries the same changes.`,
+        "The proposed contract was not exported. It failed its content check and was discarded. " +
+        "The marked-up PDF carries the same changes.",
     };
   }
 
@@ -143,12 +154,10 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
   };
 }
 
-function refusal(status: number, body: ExportRefusalResult["body"]): ExportRefusalResult {
-  return {
-    kind: "refusal",
-    status,
-    body,
-    preflight: null,
-    summary: `${EXPORT_FORMAT_LABELS.clean}: ${body.error}`,
-  };
+function refusal(
+  status: number,
+  body: ExportRefusalResult["body"],
+  summary: string
+): ExportRefusalResult {
+  return { kind: "refusal", status, body, preflight: null, summary };
 }

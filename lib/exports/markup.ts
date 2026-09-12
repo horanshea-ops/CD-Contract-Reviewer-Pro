@@ -5,7 +5,6 @@ import { getPositionedLines } from "../get-positioned-lines";
 import { recordExport } from "../export-log";
 import type { ExportContext } from "./context";
 import type { ExportBuildResult } from "./types";
-import { EXPORT_FORMAT_LABELS } from "./types";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -25,7 +24,10 @@ export async function buildMarkup(ctx: ExportContext): Promise<ExportBuildResult
     .from(STORAGE_BUCKET)
     .download(analysis.storage_path);
   if (pdfError || !pdfBlob) {
-    return refusal(500, `Could not load the document: ${pdfError?.message}`);
+    return refusal(
+      `Could not load the document: ${pdfError?.message}`,
+      "The marked-up PDF was not exported. The document could not be loaded."
+    );
   }
   const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
 
@@ -39,7 +41,10 @@ export async function buildMarkup(ctx: ExportContext): Promise<ExportBuildResult
       pdfBytes,
     });
   } catch (err) {
-    return refusal(500, err instanceof Error ? err.message : "Could not read this document's text.");
+    return refusal(
+      err instanceof Error ? err.message : "Could not read this document's text.",
+      "The marked-up PDF was not exported. This document's text could not be read."
+    );
   }
 
   const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
@@ -78,12 +83,6 @@ export async function buildMarkup(ctx: ExportContext): Promise<ExportBuildResult
   };
 }
 
-function refusal(status: number, error: string): ExportBuildResult {
-  return {
-    kind: "refusal",
-    status,
-    body: { error },
-    preflight: null,
-    summary: `${EXPORT_FORMAT_LABELS.markup}: ${error}`,
-  };
+function refusal(error: string, summary: string): ExportBuildResult {
+  return { kind: "refusal", status: 500, body: { error }, preflight: null, summary };
 }
