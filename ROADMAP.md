@@ -546,6 +546,28 @@ connection dropping mid-run supplied the fourth for free.
       table runs off-screen and hides the Status column, and the review header collapses
       into a cramped ribbon.
 
+**A redline was opened in real Word for the first time (2026-09-11).** The user opened
+this walkthrough's export in Word for Mac. Every previous claim about the redline rested
+on the reject-round-trip oracle, never on a human seeing it, and
+`docs/redline-export-plan.md` had said this check could not be done from here. Word
+rendered the insertions inline and the deletions in margin balloons, with the revisions
+attributed correctly.
+
+- **Not a defect, worth knowing.** A balloon for a replacement reads
+  `Deleted: <old sentence>.<first words of the new sentence>` with no separator, because
+  Word treats an adjacent `w:del`/`w:ins` pair as one revision and runs the two together
+  in the balloon. The XML is one deletion and one insertion as siblings, correctly
+  marked, and the inline text keeps its spacing. Reading the same file with
+  Review → Markup Options → Show All Revisions Inline avoids it entirely, which is also
+  how most counterparties read a redline. Worth putting in associate guidance, and worth
+  testing whether emitting the insertion before the deletion reads better in balloons.
+- **Compatibility Mode comes from the corpus, not the engine.** Neither the eval contract
+  nor the redline carries a `word/settings.xml`, and Word flags any such file. Contracts
+  authored in Word have one, so this will not appear on a real upload. Cheap to fix in
+  the corpus generator if it ever confuses a demo.
+- **Still unverified**: accepting and rejecting individual changes by hand in Word, and
+  how the strike-and-clone table replacement renders there.
+
 **Confirmed working, for the record.** The DOCX preview rendered the room-block and
 cancellation tables as real tables; "Show in document" highlighted the right clause;
 exposure arithmetic was shown with its basis ($392,840 = 340 rooms × 4 nights × $289);
