@@ -11,6 +11,8 @@ import { ExportPicker } from "@/components/export-picker";
 import { EmailPicker } from "@/components/email-picker";
 import { AiClauseReview } from "@/components/ai-clause-review";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
+import { isStalledRun } from "@/lib/analysis-status";
+import { Button } from "@/components/ui/button";
 
 interface AiUseMatch {
   term: string;
@@ -26,6 +28,7 @@ interface AnalysisResponse {
   status: "queued" | "processing" | "complete" | "failed";
   error: string | null;
   created_at: string;
+  started_at: string | null;
   model_id: string | null;
   library_version: string | null;
   documentUrl: string | null;
@@ -44,6 +47,31 @@ interface AnalysisResponse {
 }
 
 const POLL_INTERVAL_MS = 2000;
+const OFFLINE_POLL_INTERVAL_MS = 5000;
+
+function RetryControls({
+  onRetry,
+  retrying,
+  error,
+}: {
+  onRetry: () => void;
+  retrying: boolean;
+  error: string;
+}) {
+  return (
+    <>
+      <Button size="sm" onClick={onRetry} loading={retrying} loadingText="Restarting...">
+        Run the analysis again
+      </Button>
+      <p className="text-xs text-[var(--text-muted)] mt-2">Uses the contract already uploaded. No re-upload needed.</p>
+      {error && (
+        <p role="alert" className="text-xs text-[var(--severity-high)] mt-2">
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
 
 export default function AnalysisPage() {
   const params = useParams<{ id: string }>();
@@ -53,11 +81,10 @@ export default function AnalysisPage() {
   const [activePage, setActivePage] = useState<number | null>(null);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
   const [highlightCache, setHighlightCache] = useState<Record<string, HighlightRect[] | null>>({});
-  const startedAt = useRef<number | null>(null);
-
-  useEffect(() => {
-    startedAt.current = Date.now();
-  }, []);
+  const [offline, setOffline] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState("");
+  const pollNow = useRef<() => void>(() => {});
 
   useEffect(() => {
     let cancelled = false;
@@ -75,16 +102,26 @@ export default function AnalysisPage() {
           return;
         }
 
+        setOffline(false);
         setData(body);
 
         if (body.status === "queued" || body.status === "processing") {
           timer = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch {
-        if (!cancelled) setLoadError("Lost connection while checking status.");
+        // A dropped connection is not the end of the run. The analysis keeps
+        // going on the server, so keep asking rather than stranding the screen
+        // on an error it can recover from by itself.
+        if (cancelled) return;
+        setOffline(true);
+        timer = setTimeout(poll, OFFLINE_POLL_INTERVAL_MS);
       }
     }
 
+    pollNow.current = () => {
+      clearTimeout(timer);
+      poll();
+    };
     poll();
     return () => {
       cancelled = true;
@@ -92,14 +129,36 @@ export default function AnalysisPage() {
     };
   }, [params.id]);
 
+  // Counted from when the run started, not from when this screen opened, so a
+  // reload doesn't reset the clock an associate is judging the wait by.
   useEffect(() => {
     if (!data || data.status === "complete" || data.status === "failed") return;
-    const interval = setInterval(() => {
-      if (startedAt.current == null) return;
-      setElapsedSeconds(Math.round((Date.now() - startedAt.current) / 1000));
-    }, 1000);
+    const since = Date.parse(data.started_at || data.created_at);
+    if (Number.isNaN(since)) return;
+    const tick = () => setElapsedSeconds(Math.max(0, Math.round((Date.now() - since) / 1000)));
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [data]);
+
+  async function retryAnalysis() {
+    setRetrying(true);
+    setRetryError("");
+    try {
+      const res = await fetch(`/api/analyses/${params.id}/retry`, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRetryError(body.error || "Could not restart this analysis.");
+        return;
+      }
+      setData((prev) => (prev ? { ...prev, status: "queued", error: null, started_at: null, findings: [] } : prev));
+      pollNow.current();
+    } catch {
+      setRetryError("Could not reach the server. Check your connection and try again.");
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   async function handleSelectFinding(finding: Finding) {
     setSelectedFindingId(finding.id);
@@ -170,18 +229,31 @@ export default function AnalysisPage() {
   }
 
   if (data.status === "queued" || data.status === "processing") {
+    const stalled = isStalledRun(data);
+
     return (
       <div className="h-full flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
-            {data.status === "queued" ? "Queued..." : "Analyzing " + data.filename}
+            {stalled ? "This run has stopped responding" : data.status === "queued" ? "Queued..." : "Analyzing " + data.filename}
           </p>
           <p className="text-sm text-[var(--text-secondary)] mb-3">
-            Usually 1-3 minutes, longer if the model needs a retry or the contract is unusually long. ({elapsedSeconds}s elapsed)
+            {stalled
+              ? `Nothing has come back in ${Math.floor(elapsedSeconds / 60)} minutes, which usually means the connection dropped mid-run. Your contract is still saved — start it again from here.`
+              : `Usually 1-3 minutes, longer if the model needs a retry or the contract is unusually long. (${elapsedSeconds}s elapsed)`}
           </p>
-          <div className="h-1.5 w-64 mx-auto rounded bg-[var(--border)] overflow-hidden">
-            <div className="h-full w-1/3 bg-[var(--cd-navy)] animate-pulse" />
-          </div>
+          {stalled ? (
+            <RetryControls onRetry={retryAnalysis} retrying={retrying} error={retryError} />
+          ) : (
+            <div className="h-1.5 w-64 mx-auto rounded bg-[var(--border)] overflow-hidden">
+              <div className="h-full w-1/3 bg-[var(--cd-navy)] animate-pulse" />
+            </div>
+          )}
+          {offline && !stalled && (
+            <p className="text-xs text-[var(--text-muted)] mt-3">
+              Can&apos;t reach the server right now — still checking. The analysis keeps running without this page.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -195,9 +267,12 @@ export default function AnalysisPage() {
           <p className="text-sm text-[var(--text-secondary)] mb-4">
             {data.error || "Something went wrong processing this contract."}
           </p>
-          <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
-            Try again
-          </Link>
+          <RetryControls onRetry={retryAnalysis} retrying={retrying} error={retryError} />
+          <p className="mt-3">
+            <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
+              Or upload a different file
+            </Link>
+          </p>
         </div>
       </div>
     );

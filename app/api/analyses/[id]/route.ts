@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: analysis, error } = await admin
     .from("analyses")
     .select(
-      "id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at, thread_id, round_number, negotiation_threads(property_name)"
+      "id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, started_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at, thread_id, round_number, negotiation_threads(property_name)"
     )
     .eq("id", id)
     .maybeSingle();

@@ -9,6 +9,7 @@ import { detectSourceFormat, convertToPdf } from "@/lib/document-conversion";
 import { extractDocx } from "@/lib/docx";
 import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
 import { nextRoundLinkage } from "@/lib/negotiation-threads";
+import { storageSafeName } from "@/lib/storage-key";
 
 export const maxDuration = 300;
 
@@ -136,6 +137,19 @@ export async function POST(request: Request) {
   const analysisId = randomUUID();
   const fileBytes = Buffer.from(await file.arrayBuffer());
 
+  // Storage keys take a sanitised name; the row keeps `file.name` as typed.
+  const keyName = storageSafeName(file.name);
+
+  // A thread was created above, before any of the file work below could fail.
+  // Without this, every failed upload leaves an empty negotiation in the
+  // "Continuing one" dropdown that an associate can neither use nor remove.
+  const fail = async (message: string, status: number) => {
+    if (negotiationMode === "new") {
+      await admin.from("negotiation_threads").delete().eq("id", threadId);
+    }
+    return NextResponse.json({ error: message }, { status });
+  };
+
   // Decide at intake, before analysis, whether this document can be safely
   // edited (§1.4.9). Doing it here rather than at export means an associate is
   // told they are getting a PDF markup *before* spending an hour reviewing
@@ -180,29 +194,23 @@ export async function POST(request: Request) {
         .from(STORAGE_BUCKET)
         .upload(positionsPath, JSON.stringify(converted.lines), { contentType: "application/json" });
       if (positionsUploadError) {
-        return NextResponse.json(
-          { error: `Could not store document layout data: ${positionsUploadError.message}` },
-          { status: 500 }
-        );
+        return fail(`Could not store document layout data: ${positionsUploadError.message}`, 500);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not read this document.";
-      return NextResponse.json({ error: message }, { status: 400 });
+      return fail(message, 400);
     }
 
-    originalStoragePath = `${associate.id}/${analysisId}/original-${file.name}`;
+    originalStoragePath = `${associate.id}/${analysisId}/original-${keyName}`;
     const { error: originalUploadError } = await admin.storage
       .from(STORAGE_BUCKET)
       .upload(originalStoragePath, fileBytes, { contentType: file.type });
     if (originalUploadError) {
-      return NextResponse.json(
-        { error: `Could not store the original file: ${originalUploadError.message}` },
-        { status: 500 }
-      );
+      return fail(`Could not store the original file: ${originalUploadError.message}`, 500);
     }
   }
 
-  const pdfFilename = sourceFormat === "pdf" ? file.name : file.name.replace(/\.(docx?|DOCX?)$/, "") + ".pdf";
+  const pdfFilename = sourceFormat === "pdf" ? keyName : keyName.replace(/\.docx?$/i, "") + ".pdf";
   const storagePath = `${associate.id}/${analysisId}/${pdfFilename}`;
 
   const { error: uploadError } = await admin.storage
@@ -210,10 +218,7 @@ export async function POST(request: Request) {
     .upload(storagePath, pdfBytes, { contentType: "application/pdf" });
 
   if (uploadError) {
-    return NextResponse.json(
-      { error: `Could not store the file: ${uploadError.message}` },
-      { status: 500 }
-    );
+    return fail(`Could not store the file: ${uploadError.message}`, 500);
   }
 
   const { error: insertError } = await admin.from("analyses").insert({
@@ -236,10 +241,7 @@ export async function POST(request: Request) {
   });
 
   if (insertError) {
-    return NextResponse.json(
-      { error: `Could not create the analysis record: ${insertError.message}` },
-      { status: 500 }
-    );
+    return fail(`Could not create the analysis record: ${insertError.message}`, 500);
   }
 
   await logAudit({
