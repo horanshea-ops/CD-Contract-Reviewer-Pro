@@ -496,11 +496,12 @@ connection dropping mid-run supplied the fourth for free.
       failed fetch, and times the wait from the run's own start so a reload no longer
       resets the clock. Verified live: the stuck run recovered by clicking the button.
 
-**Open, in the order agreed with the user (2026-09-11).** Item 1 (the style pass) is
-done; items 2-12 follow it in this order, and none of them should be folded into that
-pass — a restyle that also changes behaviour cannot be reviewed by eye. Item 2 wants
-Opus 5, since extracting the export routes touches what reaches a hotel and the §1.6
-oracle wiring; items 3-12 are Sonnet 5 work under the CLAUDE.md table.
+**Open, in the order agreed with the user (2026-09-11).** Items 1 and 3 are done; items
+2 and 4-12 follow in this order, and none of them should be folded into either finished
+pass — a restyle or a visibility change that also changes behaviour cannot be reviewed
+by eye. Item 2 is next and wants Opus 5, since extracting the export routes touches what
+reaches a hotel and the §1.6 oracle wiring; items 4-12 are Sonnet 5 work under the
+CLAUDE.md table.
 
 - [x] **1. Visual style, raised by the user twice during the walkthrough. High
       priority. Fixed 2026-09-12 (4d67e3a), on `phase/ui-style-pass`.** A finding card
@@ -526,10 +527,15 @@ oracle wiring; items 3-12 are Sonnet 5 work under the CLAUDE.md table.
       callable builder first (the four routes hold it inline, 71-167 lines each), then a
       zip route over the builders. Roughly a couple of hours. The 20-minute stopgap is
       to stop claiming a download happened that was never verified.
-- [ ] **3. The proposed language is hidden behind a disclosure while Accept sits in the
-      open.** The replacement wording is the thing that reaches the hotel, and an
-      associate can accept 25 findings without ever reading one. Show the proposal by
-      default and collapse CD's internal standard instead.
+- [x] **3. The proposed language is hidden behind a disclosure while Accept sits in the
+      open. Fixed 2026-09-12 (c2de4a9), on `phase/proposed-language-default`.** The
+      replacement wording is the thing that reaches the hotel, and an associate could
+      accept 25 findings without ever reading one. `proposed_language` now renders
+      directly on the finding card (no click needed); `cd_standard` moved into its own
+      single-item disclosure instead. No behaviour change — submitAction, the edit
+      flow's pre-fill, and the API calls are untouched. Verified live against the dev
+      database's Harborview analysis; `npm run lint`/`typecheck`/`test` all green
+      (698/698).
 - [ ] **4. The thread view says exports were "sent".** They were downloaded. Nothing in
       this app sends anything, deliberately, and this is the one line that says
       otherwise. It also prints the raw duplicated format list ("sent pdf, docx, pdf,
