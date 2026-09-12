@@ -5,12 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Field, FieldInput } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { Body, Title } from "@/components/ui/typography";
 import { ORG } from "@/lib/org";
 
 const REDIRECT_ERRORS: Record<string, string> = {
   not_authorized:
     "That email isn't on the associate list yet. Ask your admin to add it, then try again.",
-  auth_failed: "That login link didn't work — it may have expired. Request a new one below.",
+  auth_failed: "That login link didn't work. It may have expired, so request a new one below.",
 };
 
 function RedirectError() {
@@ -18,12 +19,13 @@ function RedirectError() {
   const error = searchParams.get("error");
   if (!error || !REDIRECT_ERRORS[error]) return null;
   return (
-    <p
+    <Body
+      as="p"
       role="alert"
-      className="mb-4 rounded-md border border-[color:var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-3 py-2 text-sm text-[var(--severity-medium)]"
+      className="mb-4 rounded-md border border-[color:var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-3 py-2 text-[var(--severity-medium)]"
     >
       {REDIRECT_ERRORS[error]}
-    </p>
+    </Body>
   );
 }
 
@@ -71,13 +73,13 @@ export default function LoginPage() {
           <span className="text-white font-semibold tracking-tight">Contract Reviewer</span>
         </div>
         <div className="relative">
-          <h2 className="text-3xl font-semibold text-white leading-tight mb-3">
+          <Title as="h2" className="text-white leading-tight mb-3">
             Every finding is a candidate for review, never a clearance.
-          </h2>
-          <p className="text-[var(--cd-blue-light)] text-sm max-w-sm">
-            A negotiating aid for {ORG.name} associates — measured against how {ORG.shortName} actually
-            negotiates, not generic industry defaults.
-          </p>
+          </Title>
+          <Body as="p" className="text-[var(--cd-blue-light)] max-w-sm">
+            A negotiating aid for {ORG.name} associates, measured against how {ORG.shortName} actually negotiates,
+            not generic industry defaults.
+          </Body>
         </div>
       </div>
 
@@ -90,24 +92,24 @@ export default function LoginPage() {
             <span className="text-[var(--text-primary)] font-semibold tracking-tight">Contract Reviewer</span>
           </div>
 
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Sign in</h1>
-          <p className="text-sm text-[var(--text-secondary)] mb-6">
-            Use your {ORG.name} email. We&apos;ll send you a login link — no password needed.
-          </p>
+          <Title className="text-[var(--text-primary)] tracking-tight mb-1">Sign in</Title>
+          <Body as="p" className="text-[var(--text-secondary)] mb-6">
+            Use your {ORG.name} email. We&apos;ll send you a login link, no password needed.
+          </Body>
 
           <Suspense fallback={null}>
             <RedirectError />
           </Suspense>
 
           {status === "sent" ? (
-            <div
+            <Body
+              as="div"
               role="status"
               aria-live="polite"
-              className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-sm text-[var(--text-primary)]"
+              className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-[var(--text-primary)]"
             >
-              Check <span className="font-medium">{email}</span> for a login link. It expires in a
-              few minutes.
-            </div>
+              Check <span className="font-medium">{email}</span> for a login link. It expires in a few minutes.
+            </Body>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3">
               <Field label="Email">
@@ -125,9 +127,9 @@ export default function LoginPage() {
                 Send login link
               </Button>
               {status === "error" && (
-                <p role="alert" className="text-sm text-[var(--severity-high)]">
+                <Body as="p" role="alert" className="text-[var(--severity-high)]">
                   {errorMessage}
-                </p>
+                </Body>
               )}
             </form>
           )}

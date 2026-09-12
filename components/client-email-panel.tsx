@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DialogShell } from "@/components/ui/dialog-shell";
 import { FieldInput, FieldTextarea, Field } from "@/components/ui/field";
+import { Body, Meta } from "@/components/ui/typography";
 import { useToast } from "@/components/ui/toast";
 import { ORG } from "@/lib/org";
 
@@ -99,7 +101,7 @@ export function ClientEmailPanel({
       await navigator.clipboard.writeText(fullText());
       showToast("Copied to clipboard.", "success");
     } catch {
-      showToast("Could not copy — select and copy manually.", "error");
+      showToast("Could not copy. Select and copy manually.", "error");
     }
   }
 
@@ -118,67 +120,61 @@ export function ClientEmailPanel({
     URL.revokeObjectURL(url);
   }
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-lg bg-white p-5 shadow-lg">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Client email</h2>
-          <button onClick={onClose} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-            Close
-          </button>
-        </div>
-        <p className="text-xs text-[var(--text-secondary)] mb-2">
-          Generated from accepted findings only. Review and edit before sending — nothing is sent from here.
-        </p>
-        <p className="text-xs text-[var(--cd-navy)] bg-[var(--cd-blue-pale)] rounded px-2 py-1.5 mb-4">
-          This draft includes {ORG.shortName}&apos;s exposure figures and negotiating rationale. It is for internal use only —
-          never send it to the property.
-        </p>
+    <DialogShell open={open} onClose={onClose} title="Client email" maxWidth="2xl" scrollBody>
+      <Meta as="p" className="text-[var(--text-secondary)] mb-2">
+        Generated from accepted findings only. Review and edit before sending, since nothing is sent from here.
+      </Meta>
+      <Meta as="p" className="text-[var(--cd-navy)] bg-[var(--cd-blue-pale)] rounded px-2 py-1.5 mb-4">
+        This draft includes {ORG.shortName}&apos;s exposure figures and negotiating rationale. It is for internal
+        use only. Never send it to the property.
+      </Meta>
 
-        {!draft ? (
-          <p className="text-sm text-[var(--text-secondary)] py-8 text-center">Drafting...</p>
-        ) : (
-          <div className="space-y-3">
-            <Field label="Subject">
-              <FieldInput
-                value={draft.subject}
-                onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                onBlur={() => saveDraft({ subject: draft.subject })}
-              />
-            </Field>
-            <Field label="Body">
-              <FieldTextarea
-                value={draft.body}
-                onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-                onBlur={() => saveDraft({ body: draft.body })}
-                rows={14}
-              />
-            </Field>
-            <Field label="Signature" hint="Remembered for next time">
-              <FieldTextarea
-                value={signature}
-                onChange={(e) => setSignature(e.target.value)}
-                onBlur={saveSignature}
-                rows={3}
-              />
-            </Field>
+      {!draft ? (
+        <Body as="p" className="text-[var(--text-secondary)] py-8 text-center">
+          Drafting...
+        </Body>
+      ) : (
+        <div className="space-y-3">
+          <Field label="Subject">
+            <FieldInput
+              value={draft.subject}
+              onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+              onBlur={() => saveDraft({ subject: draft.subject })}
+            />
+          </Field>
+          <Field label="Body">
+            <FieldTextarea
+              value={draft.body}
+              onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+              onBlur={() => saveDraft({ body: draft.body })}
+              rows={14}
+            />
+          </Field>
+          <Field label="Signature" hint="Remembered for next time">
+            <FieldTextarea
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              onBlur={saveSignature}
+              rows={3}
+            />
+          </Field>
 
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-[var(--text-muted)]">{saving ? "Saving..." : ""}</p>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={copyToClipboard}>
-                  Copy
-                </Button>
-                <Button size="sm" onClick={downloadEml}>
-                  Download .eml
-                </Button>
-              </div>
+          <div className="flex items-center justify-between pt-2">
+            <Meta as="p" className="text-[var(--text-muted)]">
+              {saving ? "Saving..." : ""}
+            </Meta>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={copyToClipboard}>
+                Copy
+              </Button>
+              <Button size="sm" onClick={downloadEml}>
+                Download .eml
+              </Button>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </DialogShell>
   );
 }

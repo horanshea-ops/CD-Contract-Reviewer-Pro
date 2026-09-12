@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { Body, Meta, Subtitle, Title } from "@/components/ui/typography";
 
 const STATUS_STYLE: Record<string, string> = {
   queued: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]",
@@ -72,10 +73,10 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
 
       <div className="flex items-center justify-between mt-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
-            {thread.property_name}
-          </h1>
-          <p className="text-sm text-[var(--text-secondary)]">{clientName ?? "No client name recorded"}</p>
+          <Title className="text-[var(--text-primary)] tracking-tight">{thread.property_name}</Title>
+          <Body as="p" className="text-[var(--text-secondary)]">
+            {clientName ?? "No client name recorded"}
+          </Body>
         </div>
         <StatusPill
           label={thread.status}
@@ -85,13 +86,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
 
       <Card padding="none" className="overflow-hidden">
         <div className="px-5 py-3 border-b border-[var(--border)]">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+          <Subtitle className="text-[var(--text-primary)]">
             {(rounds ?? []).length} round{(rounds ?? []).length === 1 ? "" : "s"}
-          </h2>
+          </Subtitle>
         </div>
         <div className="divide-y divide-[var(--border)]">
           {(rounds ?? []).length === 0 ? (
-            <p className="px-5 py-4 text-sm text-[var(--text-secondary)]">No rounds yet.</p>
+            <Body as="p" className="px-5 py-4 text-[var(--text-secondary)]">
+              No rounds yet.
+            </Body>
           ) : (
             (rounds ?? []).map((round) => {
               const sent = exportsByRound.get(round.id) ?? [];
@@ -103,17 +106,17 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        Round {round.round_number} — {round.filename}
-                      </p>
-                      <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      <Body as="p" className="font-medium text-[var(--text-primary)]">
+                        Round {round.round_number} · {round.filename}
+                      </Body>
+                      <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
                         {new Date(round.created_at).toLocaleDateString()}
                         {" · "}
                         {findingCountByRound.get(round.id) ?? 0} finding
                         {(findingCountByRound.get(round.id) ?? 0) === 1 ? "" : "s"}
                         {sent.length > 0 &&
                           ` · sent ${sent.map((s) => s.format).join(", ")} ${new Date(sent[0].created_at).toLocaleDateString()}`}
-                      </p>
+                      </Meta>
                     </div>
                     <StatusPill
                       label={round.status}

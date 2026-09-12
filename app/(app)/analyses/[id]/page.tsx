@@ -13,6 +13,7 @@ import { AiClauseReview } from "@/components/ai-clause-review";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
 import { isStalledRun } from "@/lib/analysis-status";
 import { Button } from "@/components/ui/button";
+import { Body, Meta, Title } from "@/components/ui/typography";
 
 interface AiUseMatch {
   term: string;
@@ -63,11 +64,13 @@ function RetryControls({
       <Button size="sm" onClick={onRetry} loading={retrying} loadingText="Restarting...">
         Run the analysis again
       </Button>
-      <p className="text-xs text-[var(--text-muted)] mt-2">Uses the contract already uploaded. No re-upload needed.</p>
+      <Meta as="p" className="text-[var(--text-muted)] mt-2">
+        Uses the contract already uploaded. No re-upload needed.
+      </Meta>
       {error && (
-        <p role="alert" className="text-xs text-[var(--severity-high)] mt-2">
+        <Meta as="p" role="alert" className="text-[var(--severity-high)] mt-2">
           {error}
-        </p>
+        </Meta>
       )}
     </>
   );
@@ -193,7 +196,9 @@ export default function AnalysisPage() {
     return (
       <div className="h-full flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-sm text-[var(--severity-high)] mb-2">{loadError}</p>
+          <Body as="p" className="text-[var(--severity-high)] mb-2">
+            {loadError}
+          </Body>
           <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
             Try uploading again
           </Link>
@@ -205,7 +210,9 @@ export default function AnalysisPage() {
   if (!data) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-sm text-[var(--text-secondary)]">Loading...</p>
+        <Body as="p" className="text-[var(--text-secondary)]">
+          Loading...
+        </Body>
       </div>
     );
   }
@@ -234,14 +241,14 @@ export default function AnalysisPage() {
     return (
       <div className="h-full flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
-          <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
+          <Body as="p" className="font-medium text-[var(--text-primary)] mb-1">
             {stalled ? "This run has stopped responding" : data.status === "queued" ? "Queued..." : "Analyzing " + data.filename}
-          </p>
-          <p className="text-sm text-[var(--text-secondary)] mb-3">
+          </Body>
+          <Body as="p" className="text-[var(--text-secondary)] mb-3">
             {stalled
-              ? `Nothing has come back in ${Math.floor(elapsedSeconds / 60)} minutes, which usually means the connection dropped mid-run. Your contract is still saved — start it again from here.`
+              ? `Nothing has come back in ${Math.floor(elapsedSeconds / 60)} minutes, which usually means the connection dropped mid-run. Your contract is still saved, so start it again from here.`
               : `Usually 1-3 minutes, longer if the model needs a retry or the contract is unusually long. (${elapsedSeconds}s elapsed)`}
-          </p>
+          </Body>
           {stalled ? (
             <RetryControls onRetry={retryAnalysis} retrying={retrying} error={retryError} />
           ) : (
@@ -250,9 +257,10 @@ export default function AnalysisPage() {
             </div>
           )}
           {offline && !stalled && (
-            <p className="text-xs text-[var(--text-muted)] mt-3">
-              Can&apos;t reach the server right now — still checking. The analysis keeps running without this page.
-            </p>
+            <Meta as="p" className="text-[var(--text-muted)] mt-3">
+              Can&apos;t reach the server right now, so it&apos;s still checking. The analysis keeps running without
+              this page.
+            </Meta>
           )}
         </div>
       </div>
@@ -263,10 +271,12 @@ export default function AnalysisPage() {
     return (
       <div className="h-full flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <p className="text-sm font-medium text-[var(--severity-high)] mb-1">Analysis failed</p>
-          <p className="text-sm text-[var(--text-secondary)] mb-4">
+          <Body as="p" className="font-medium text-[var(--severity-high)] mb-1">
+            Analysis failed
+          </Body>
+          <Body as="p" className="text-[var(--text-secondary)] mb-4">
             {data.error || "Something went wrong processing this contract."}
-          </p>
+          </Body>
           <RetryControls onRetry={retryAnalysis} retrying={retrying} error={retryError} />
           <p className="mt-3">
             <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
@@ -295,7 +305,7 @@ export default function AnalysisPage() {
           <Link href="/" className="text-xs text-[var(--text-muted)] hover:text-[var(--cd-navy)]">
             ← Back
           </Link>
-          <h1 className="text-sm font-semibold text-[var(--text-primary)]">{data.filename}</h1>
+          <Title className="text-[var(--text-primary)]">{data.filename}</Title>
           {data.thread_id && (
             <Link
               href={`/threads/${data.thread_id}`}
@@ -306,11 +316,11 @@ export default function AnalysisPage() {
           )}
         </div>
         <div className="flex items-center gap-4">
-          <p className="text-xs text-[var(--text-muted)]">
+          <Meta as="p" className="text-[var(--text-muted)]">
             {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"}
             {undecidedCount > 0 && ` · ${undecidedCount} still need a decision`}
-            {" · not legal advice — review each one"}
-          </p>
+            {" · not legal advice, review each one"}
+          </Meta>
           <ExportPicker
             analysisId={data.id}
             includedCount={includedCount}
@@ -325,11 +335,11 @@ export default function AnalysisPage() {
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
           {data.source_format !== "pdf" && data.intake_route !== "docx_native" && (
-            <div className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs px-4 py-2 shrink-0">
+            <Meta as="div" className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] px-4 py-2 shrink-0">
               {getMarkupReason({ sourceFormat: data.source_format, intakeHealthReason: data.intake_health?.reason ?? null })}{" "}
-              Converted from {data.source_format.toUpperCase()} for review — text only, original formatting
-              (tables, letterhead, styling) isn&apos;t preserved here.
-            </div>
+              Converted from {data.source_format.toUpperCase()} for review, text only. Original formatting (tables,
+              letterhead, styling) isn&apos;t preserved here.
+            </Meta>
           )}
           {data.intake_route === "docx_native" ? (
             <DocxPreview
@@ -354,15 +364,17 @@ export default function AnalysisPage() {
               />
             </div>
           ) : (
-            <p className="p-6 text-sm text-[var(--text-secondary)]">Document preview unavailable.</p>
+            <Body as="p" className="p-6 text-[var(--text-secondary)]">
+              Document preview unavailable.
+            </Body>
           )}
         </div>
 
         <div className="lg:w-1/2 overflow-y-auto px-4 py-4 space-y-3 bg-[var(--surface-muted)]">
           {sortedFindings.length === 0 ? (
-            <p className="text-sm text-[var(--text-secondary)]">
-              No findings — nothing flagged against the standards library.
-            </p>
+            <Body as="p" className="text-[var(--text-secondary)]">
+              No findings. Nothing flagged against the standards library.
+            </Body>
           ) : (
             sortedFindings.map((f) => (
               <FindingCard

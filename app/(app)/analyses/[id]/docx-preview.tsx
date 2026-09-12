@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveHighlight, type PreviewBlock, type PreviewPart, type PreviewRun } from "@/lib/docx-preview";
+import { Body, Meta, ReadingText, Subtitle, Title } from "@/components/ui/typography";
+import { titleCase } from "@/lib/format";
 
 export interface DocxPreviewProps {
   analysisId: string;
@@ -12,13 +14,16 @@ export interface DocxPreviewProps {
   highlightColor: string;
 }
 
-const HEADING_CLASS: Record<number, string> = {
-  1: "text-lg font-semibold mt-4 mb-2",
-  2: "text-base font-semibold mt-4 mb-2",
-  3: "text-sm font-semibold mt-3 mb-1.5",
-  4: "text-sm font-semibold mt-3 mb-1.5",
-  5: "text-sm font-medium mt-2 mb-1",
-  6: "text-sm font-medium mt-2 mb-1",
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
+type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+
+const HEADING_STEP: Record<HeadingLevel, { Text: typeof Title; className: string }> = {
+  1: { Text: Title, className: "mt-4 mb-2" },
+  2: { Text: Subtitle, className: "mt-4 mb-2" },
+  3: { Text: Body, className: "font-semibold mt-3 mb-2" },
+  4: { Text: Body, className: "font-semibold mt-3 mb-2" },
+  5: { Text: Body, className: "font-medium mt-3 mb-2" },
+  6: { Text: Body, className: "font-medium mt-3 mb-2" },
 };
 
 export default function DocxPreview({
@@ -74,7 +79,9 @@ export default function DocxPreview({
   if (loadError) {
     return (
       <div className="p-6">
-        <p className="text-sm text-[var(--severity-high)]">{loadError}</p>
+        <Body as="p" className="text-[var(--severity-high)]">
+          {loadError}
+        </Body>
       </div>
     );
   }
@@ -94,18 +101,18 @@ export default function DocxPreview({
   return (
     <div className="flex flex-col h-full">
       {hadExistingRevisions && (
-        <div className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs px-4 py-2 shrink-0">
-          Round 2+ — {existingRevisionCount} prior edit{existingRevisionCount === 1 ? "" : "s"} by:{" "}
+        <Meta as="div" className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] px-4 py-2 shrink-0">
+          Round 2+, {existingRevisionCount} prior edit{existingRevisionCount === 1 ? "" : "s"} by{" "}
           {existingRevisionAuthors.join(", ")}
-        </div>
+        </Meta>
       )}
       <div ref={containerRef} className="flex-1 overflow-auto bg-white px-6 py-4">
         {parts.map((part) => (
           <div key={part.part}>
             {part.part !== "document" && (
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] mt-6 mb-2">
-                {part.part}
-              </p>
+              <Meta as="p" className="font-semibold text-[var(--text-muted)] mt-6 mb-2">
+                {titleCase(part.part)}
+              </Meta>
             )}
             {part.blocks.map((block, i) => (
               <Block key={i} block={block} partName={part.part} match={match} highlightColor={highlightColor} />
@@ -130,7 +137,7 @@ function Block({
 }) {
   if (block.kind === "table") {
     return (
-      <table className="border-collapse w-full my-3 text-sm">
+      <table className="border-collapse w-full my-3">
         <tbody>
           {block.rows.map((row, r) => (
             <tr key={r}>
@@ -151,33 +158,34 @@ function Block({
   const runs = <Runs runs={block.runs} partName={partName} match={match} highlightColor={highlightColor} />;
 
   if (block.kind === "heading") {
-    const className = HEADING_CLASS[block.level] ?? HEADING_CLASS[6];
-    switch (block.level) {
-      case 1:
-        return <h1 className={className}>{runs}</h1>;
-      case 2:
-        return <h2 className={className}>{runs}</h2>;
-      case 3:
-        return <h3 className={className}>{runs}</h3>;
-      case 4:
-        return <h4 className={className}>{runs}</h4>;
-      case 5:
-        return <h5 className={className}>{runs}</h5>;
-      default:
-        return <h6 className={className}>{runs}</h6>;
-    }
+    const level = (block.level in HEADING_STEP ? block.level : 6) as HeadingLevel;
+    const { Text, className } = HEADING_STEP[level];
+    const tag = `h${level}` as HeadingTag;
+    return (
+      <Text as={tag} className={className}>
+        {runs}
+      </Text>
+    );
   }
 
   if (block.kind === "list-item") {
     return (
-      <div className="flex gap-2 text-sm mb-1" style={{ marginLeft: block.indent * 16 }}>
-        <span className="text-[var(--text-secondary)] shrink-0">{block.marker}</span>
-        <span className="whitespace-pre-wrap">{runs}</span>
+      <div className="flex gap-2 mb-1" style={{ marginLeft: block.indent * 16 }}>
+        <ReadingText as="span" className="text-[var(--text-secondary)] shrink-0">
+          {block.marker}
+        </ReadingText>
+        <ReadingText as="span" className="whitespace-pre-wrap">
+          {runs}
+        </ReadingText>
       </div>
     );
   }
 
-  return <p className="text-sm whitespace-pre-wrap mb-2">{runs}</p>;
+  return (
+    <ReadingText as="p" className="whitespace-pre-wrap mb-2">
+      {runs}
+    </ReadingText>
+  );
 }
 
 function Runs({

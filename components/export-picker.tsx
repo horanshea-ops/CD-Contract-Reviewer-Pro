@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DialogShell } from "@/components/ui/dialog-shell";
+import { Body, Meta } from "@/components/ui/typography";
 import { startDownload } from "@/lib/download";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
+import { titleCase } from "@/lib/format";
 import { ORG } from "@/lib/org";
 
 /**
@@ -59,17 +62,15 @@ type RowStatus =
   | { kind: "redline"; verdict: RedlinePreflight }
   | { kind: "clean"; verdict: CleanPreflight };
 
-const titleCase = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-
 function redlineUnavailableReason(
   sourceFormat: "pdf" | "docx" | "doc",
   intakeRoute: "docx_native" | "pdf" | null
 ): string | null {
   if (sourceFormat !== "docx") {
-    return "Not available — this contract was reviewed as a PDF, so there's no Word file to mark up.";
+    return "Not available. This contract was reviewed as a PDF, so there's no Word file to mark up.";
   }
   if (intakeRoute === "pdf") {
-    return "Not available — this Word file couldn't be read cleanly enough to edit directly, so it was reviewed as a PDF instead.";
+    return "Not available. This Word file couldn't be read cleanly enough to edit directly, so it was reviewed as a PDF instead.";
   }
   return null;
 }
@@ -212,205 +213,226 @@ export function ExportPicker({
         Export
       </Button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-xl rounded-lg bg-white p-5 shadow-lg">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Export</h2>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">Pick one or more files to export.</p>
-
-            <div className="mt-4 space-y-3">
-              {/* Memo */}
-              <div className="rounded border border-[var(--border)] p-3">
-                <label
-                  htmlFor="export-memo"
-                  aria-label="Requested-revisions memo (PDF)"
-                  className="flex items-start gap-2 cursor-pointer"
-                >
-                  <input
-                    id="export-memo"
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={selected.has("memo")}
-                    disabled={started}
-                    onChange={() => toggle("memo")}
-                  />
-                  <span>
-                    <span className="block text-xs font-medium text-[var(--text-primary)]">
-                      Requested-revisions memo (PDF)
-                    </span>
-                    <span className="block text-xs text-[var(--text-secondary)]">
-                      Findings and {ORG.shortName}&apos;s rationale, for internal review — not for the property. {includedCount}{" "}
-                      finding{includedCount === 1 ? "" : "s"} included.
-                    </span>
-                  </span>
-                </label>
-                {statuses.memo.kind === "downloaded" && (
-                  <p className="mt-2 text-xs text-[var(--severity-low,#166534)]">Downloaded.</p>
-                )}
-              </div>
-
-              {/* Marked-up PDF */}
-              <div className="rounded border border-[var(--border)] p-3">
-                <label
-                  htmlFor="export-markup"
-                  aria-label="Marked-up PDF"
-                  className="flex items-start gap-2 cursor-pointer"
-                >
-                  <input
-                    id="export-markup"
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={selected.has("markup")}
-                    disabled={started}
-                    onChange={() => toggle("markup")}
-                  />
-                  <span>
-                    <span className="block text-xs font-medium text-[var(--text-primary)]">Marked-up PDF</span>
-                    <span className="block text-xs text-[var(--text-secondary)]">
-                      Redlines as PDF comments and strikeouts, for a property that can&apos;t work in Word.
-                    </span>
-                  </span>
-                </label>
-                {statuses.markup.kind === "downgrade" && (
-                  <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
-                    <p className="text-xs text-[var(--text-primary)] font-medium">
-                      This document is getting a PDF markup, not tracked changes
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                      {getMarkupReason({ sourceFormat, intakeHealthReason })}
-                    </p>
-                    <div className="mt-2 flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setStatus("markup", { kind: "idle" })}>
-                        Skip
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          startDownload(markupUrl);
-                          setStatus("markup", { kind: "downloaded" });
-                        }}
-                      >
-                        Download marked-up PDF
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {statuses.markup.kind === "downloaded" && (
-                  <p className="mt-2 text-xs text-[var(--severity-low,#166534)]">Downloaded.</p>
-                )}
-              </div>
-
-              {/* Tracked-changes DOCX */}
-              <div className="rounded border border-[var(--border)] p-3">
-                <label
-                  htmlFor="export-redline"
-                  aria-label="Tracked-changes DOCX"
-                  className={`flex items-start gap-2 ${redlineUnavailable ? "" : "cursor-pointer"}`}
-                >
-                  <input
-                    id="export-redline"
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={selected.has("redline")}
-                    disabled={started || !!redlineUnavailable}
-                    onChange={() => toggle("redline")}
-                  />
-                  <span>
-                    <span className="block text-xs font-medium text-[var(--text-primary)]">Tracked-changes DOCX</span>
-                    <span className="block text-xs text-[var(--text-secondary)]">
-                      {redlineUnavailable ?? "Redlines as Word tracked changes, for a property that will negotiate in the document."}
-                    </span>
-                  </span>
-                </label>
-                {statuses.redline.kind === "checking" && (
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">Checking...</p>
-                )}
-                {statuses.redline.kind === "error" && (
-                  <p className="mt-2 text-xs text-[var(--severity-high)]">{statuses.redline.message}</p>
-                )}
-                {statuses.redline.kind === "downloaded" && (
-                  <p className="mt-2 text-xs text-[var(--severity-low,#166534)]">Downloaded.</p>
-                )}
-                {statuses.redline.kind === "redline" && (
-                  <RedlineVerdictRow
-                    verdict={statuses.redline.verdict}
-                    onSkip={() => setStatus("redline", { kind: "idle" })}
-                    onDownload={() => {
-                      startDownload(redlineUrl);
-                      setStatus("redline", { kind: "downloaded" });
-                    }}
-                    onDownloadFallback={(url) => {
-                      startDownload(url);
-                      setStatus("redline", { kind: "downloaded" });
-                    }}
-                  />
-                )}
-              </div>
-
-              {/* Proposed contract */}
-              <div className="rounded border border-[var(--border)] p-3">
-                <label
-                  htmlFor="export-clean"
-                  aria-label="Proposed contract (clean copy)"
-                  className="flex items-start gap-2 cursor-pointer"
-                >
-                  <input
-                    id="export-clean"
-                    type="checkbox"
-                    className="mt-0.5"
-                    checked={selected.has("clean")}
-                    disabled={started}
-                    onChange={() => toggle("clean")}
-                  />
-                  <span>
-                    <span className="block text-xs font-medium text-[var(--text-primary)]">
-                      Proposed contract (clean copy)
-                    </span>
-                    <span className="block text-xs text-[var(--text-secondary)]">
-                      The contract as it would read if every accepted change applied, for review or to send as a
-                      clean attachment.
-                    </span>
-                  </span>
-                </label>
-                {statuses.clean.kind === "checking" && (
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">Checking...</p>
-                )}
-                {statuses.clean.kind === "error" && (
-                  <p className="mt-2 text-xs text-[var(--severity-high)]">{statuses.clean.message}</p>
-                )}
-                {statuses.clean.kind === "downloaded" && (
-                  <p className="mt-2 text-xs text-[var(--severity-low,#166534)]">Downloaded.</p>
-                )}
-                {statuses.clean.kind === "clean" && (
-                  <CleanVerdictRow
-                    verdict={statuses.clean.verdict}
-                    onSkip={() => setStatus("clean", { kind: "idle" })}
-                    onDownload={() => {
-                      startDownload(cleanUrl);
-                      setStatus("clean", { kind: "downloaded" });
-                    }}
-                    onDownloadFallback={(url) => {
-                      startDownload(url);
-                      setStatus("clean", { kind: "downloaded" });
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={close}>
-                {started ? "Close" : "Cancel"}
+      <DialogShell
+        open={open}
+        onClose={close}
+        title="Export"
+        maxWidth="xl"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={close}>
+              {started ? "Close" : "Cancel"}
+            </Button>
+            {!started && (
+              <Button size="sm" onClick={handleExport} disabled={selected.size === 0}>
+                Export selected ({selected.size})
               </Button>
-              {!started && (
-                <Button size="sm" onClick={handleExport} disabled={selected.size === 0}>
-                  Export selected ({selected.size})
-                </Button>
-              )}
-            </div>
+            )}
+          </>
+        }
+      >
+        <Meta className="text-[var(--text-secondary)] mb-3">Pick one or more files to export.</Meta>
+
+        <div className="space-y-3">
+          {/* Memo */}
+          <div className="rounded border border-[var(--border)] p-3">
+            <label
+              htmlFor="export-memo"
+              aria-label="Requested-revisions memo (PDF)"
+              className="flex items-start gap-2 cursor-pointer"
+            >
+              <input
+                id="export-memo"
+                type="checkbox"
+                className="mt-0.5"
+                checked={selected.has("memo")}
+                disabled={started}
+                onChange={() => toggle("memo")}
+              />
+              <span>
+                <Body as="span" className="block font-medium text-[var(--text-primary)]">
+                  Requested-revisions memo (PDF)
+                </Body>
+                <Meta as="span" className="block text-[var(--text-secondary)]">
+                  Findings and {ORG.shortName}&apos;s rationale, for internal review. Not for the property.{" "}
+                  {includedCount} finding{includedCount === 1 ? "" : "s"} included.
+                </Meta>
+              </span>
+            </label>
+            {statuses.memo.kind === "downloaded" && (
+              <Meta as="p" className="mt-2 text-[var(--status-success)]">
+                Downloaded.
+              </Meta>
+            )}
+          </div>
+
+          {/* Marked-up PDF */}
+          <div className="rounded border border-[var(--border)] p-3">
+            <label
+              htmlFor="export-markup"
+              aria-label="Marked-up PDF"
+              className="flex items-start gap-2 cursor-pointer"
+            >
+              <input
+                id="export-markup"
+                type="checkbox"
+                className="mt-0.5"
+                checked={selected.has("markup")}
+                disabled={started}
+                onChange={() => toggle("markup")}
+              />
+              <span>
+                <Body as="span" className="block font-medium text-[var(--text-primary)]">
+                  Marked-up PDF
+                </Body>
+                <Meta as="span" className="block text-[var(--text-secondary)]">
+                  Redlines as PDF comments and strikeouts, for a property that can&apos;t work in Word.
+                </Meta>
+              </span>
+            </label>
+            {statuses.markup.kind === "downgrade" && (
+              <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
+                <Body as="p" className="font-medium text-[var(--text-primary)]">
+                  This document is getting a PDF markup, not tracked changes
+                </Body>
+                <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
+                  {getMarkupReason({ sourceFormat, intakeHealthReason })}
+                </Meta>
+                <div className="mt-2 flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setStatus("markup", { kind: "idle" })}>
+                    Skip
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      startDownload(markupUrl);
+                      setStatus("markup", { kind: "downloaded" });
+                    }}
+                  >
+                    Download marked-up PDF
+                  </Button>
+                </div>
+              </div>
+            )}
+            {statuses.markup.kind === "downloaded" && (
+              <Meta as="p" className="mt-2 text-[var(--status-success)]">
+                Downloaded.
+              </Meta>
+            )}
+          </div>
+
+          {/* Tracked-changes DOCX */}
+          <div className="rounded border border-[var(--border)] p-3">
+            <label
+              htmlFor="export-redline"
+              aria-label="Tracked-changes DOCX"
+              className={`flex items-start gap-2 ${redlineUnavailable ? "" : "cursor-pointer"}`}
+            >
+              <input
+                id="export-redline"
+                type="checkbox"
+                className="mt-0.5"
+                checked={selected.has("redline")}
+                disabled={started || !!redlineUnavailable}
+                onChange={() => toggle("redline")}
+              />
+              <span>
+                <Body as="span" className="block font-medium text-[var(--text-primary)]">
+                  Tracked-changes DOCX
+                </Body>
+                <Meta as="span" className="block text-[var(--text-secondary)]">
+                  {redlineUnavailable ?? "Redlines as Word tracked changes, for a property that will negotiate in the document."}
+                </Meta>
+              </span>
+            </label>
+            {statuses.redline.kind === "checking" && (
+              <Meta as="p" className="mt-2 text-[var(--text-muted)]">
+                Checking...
+              </Meta>
+            )}
+            {statuses.redline.kind === "error" && (
+              <Meta as="p" className="mt-2 text-[var(--severity-high)]">
+                {statuses.redline.message}
+              </Meta>
+            )}
+            {statuses.redline.kind === "downloaded" && (
+              <Meta as="p" className="mt-2 text-[var(--status-success)]">
+                Downloaded.
+              </Meta>
+            )}
+            {statuses.redline.kind === "redline" && (
+              <RedlineVerdictRow
+                verdict={statuses.redline.verdict}
+                onSkip={() => setStatus("redline", { kind: "idle" })}
+                onDownload={() => {
+                  startDownload(redlineUrl);
+                  setStatus("redline", { kind: "downloaded" });
+                }}
+                onDownloadFallback={(url) => {
+                  startDownload(url);
+                  setStatus("redline", { kind: "downloaded" });
+                }}
+              />
+            )}
+          </div>
+
+          {/* Proposed contract */}
+          <div className="rounded border border-[var(--border)] p-3">
+            <label
+              htmlFor="export-clean"
+              aria-label="Proposed contract (clean copy)"
+              className="flex items-start gap-2 cursor-pointer"
+            >
+              <input
+                id="export-clean"
+                type="checkbox"
+                className="mt-0.5"
+                checked={selected.has("clean")}
+                disabled={started}
+                onChange={() => toggle("clean")}
+              />
+              <span>
+                <Body as="span" className="block font-medium text-[var(--text-primary)]">
+                  Proposed contract (clean copy)
+                </Body>
+                <Meta as="span" className="block text-[var(--text-secondary)]">
+                  The contract as it would read if every accepted change applied, for review or to send as a clean
+                  attachment.
+                </Meta>
+              </span>
+            </label>
+            {statuses.clean.kind === "checking" && (
+              <Meta as="p" className="mt-2 text-[var(--text-muted)]">
+                Checking...
+              </Meta>
+            )}
+            {statuses.clean.kind === "error" && (
+              <Meta as="p" className="mt-2 text-[var(--severity-high)]">
+                {statuses.clean.message}
+              </Meta>
+            )}
+            {statuses.clean.kind === "downloaded" && (
+              <Meta as="p" className="mt-2 text-[var(--status-success)]">
+                Downloaded.
+              </Meta>
+            )}
+            {statuses.clean.kind === "clean" && (
+              <CleanVerdictRow
+                verdict={statuses.clean.verdict}
+                onSkip={() => setStatus("clean", { kind: "idle" })}
+                onDownload={() => {
+                  startDownload(cleanUrl);
+                  setStatus("clean", { kind: "downloaded" });
+                }}
+                onDownloadFallback={(url) => {
+                  startDownload(url);
+                  setStatus("clean", { kind: "downloaded" });
+                }}
+              />
+            )}
           </div>
         </div>
-      )}
+      </DialogShell>
     </>
   );
 }
@@ -429,19 +451,21 @@ function RedlineVerdictRow({
   if (verdict.outcome === "fallback") {
     return (
       <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
-        <p className="text-xs font-medium text-[var(--text-primary)]">
+        <Body as="p" className="font-medium text-[var(--text-primary)]">
           The Word file could not be produced safely
-        </p>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        </Body>
+        <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
           Marking up this contract produced a file that failed its checks, so it was discarded rather than sent to
           you. Nothing about the original document has changed.
-        </p>
+        </Meta>
         {verdict.fallbackReason && (
-          <p className="mt-1 rounded bg-white p-2 text-xs text-[var(--text-muted)]">{verdict.fallbackReason}</p>
+          <Meta as="p" className="mt-1 rounded bg-white p-2 text-[var(--text-muted)]">
+            {verdict.fallbackReason}
+          </Meta>
         )}
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
           The marked-up PDF carries the same findings and is safe to send instead.
-        </p>
+        </Meta>
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onSkip}>
             Skip
@@ -456,22 +480,28 @@ function RedlineVerdictRow({
 
   return (
     <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
-      <p className="text-xs font-medium text-[var(--text-primary)]">
+      <Body as="p" className="font-medium text-[var(--text-primary)]">
         {verdict.appliedCount} change{verdict.appliedCount === 1 ? "" : "s"} marked up. {verdict.unapplied.length}{" "}
         could not be.
-      </p>
-      <p className="mt-1 text-xs text-[var(--text-secondary)]">
+      </Body>
+      <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
         The file is safe to send. These items are not in the markup, so raise them another way.
-      </p>
+      </Meta>
       <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
         {verdict.unapplied.map((u, i) => (
           <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
-            <p className="text-xs font-medium text-[var(--text-primary)]">
+            <Meta as="p" className="font-medium text-[var(--text-primary)]">
               {titleCase(u.clause_type)}
               <span className="ml-2 font-normal text-[var(--text-muted)]">{u.severity}</span>
-            </p>
-            {u.quoted_text && <p className="mt-1 text-xs italic text-[var(--text-secondary)]">“{u.quoted_text}”</p>}
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{u.explanation}</p>
+            </Meta>
+            {u.quoted_text && (
+              <Meta as="p" className="mt-1 border-l-2 border-[var(--border)] pl-2 text-[var(--text-muted)]">
+                &ldquo;{u.quoted_text}&rdquo;
+              </Meta>
+            )}
+            <Meta as="p" className="mt-1 text-[var(--text-muted)]">
+              {u.explanation}
+            </Meta>
           </li>
         ))}
       </ul>
@@ -501,24 +531,24 @@ function CleanVerdictRow({
   if (verdict.outcome === "fallback") {
     return (
       <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
-        <p className="text-xs font-medium text-[var(--text-primary)]">
+        <Body as="p" className="font-medium text-[var(--text-primary)]">
           The proposed contract could not be produced safely
-        </p>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        </Body>
+        <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
           Rebuilding this contract produced a document that failed its content check, so it was discarded rather
           than sent to you. A clean copy that quietly omits text reads as finished, which is worse than not having
           one.
-        </p>
+        </Meta>
         <ul className="mt-1 space-y-1">
           {verdict.problems.map((p, i) => (
-            <li key={i} className="rounded bg-white p-2 text-xs text-[var(--text-muted)]">
-              {p}
+            <li key={i} className="rounded bg-white p-2">
+              <Meta className="text-[var(--text-muted)]">{p}</Meta>
             </li>
           ))}
         </ul>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
           The marked-up PDF carries the same changes and is safe to send instead.
-        </p>
+        </Meta>
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onSkip}>
             Skip
@@ -533,27 +563,31 @@ function CleanVerdictRow({
 
   return (
     <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
-      <p className="text-xs font-medium text-[var(--text-primary)]">
+      <Body as="p" className="font-medium text-[var(--text-primary)]">
         {verdict.appliedCount} change{verdict.appliedCount === 1 ? "" : "s"} applied. {verdict.unplaced.length} could
         not be placed.
-      </p>
-      <p className="mt-1 text-xs text-[var(--text-secondary)]">
+      </Body>
+      <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
         The contract below carries its original wording for these items, and lists them with the proposed language
         at the end of the document.
-      </p>
+      </Meta>
       <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
         {verdict.unplaced.map((u, i) => (
           <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
-            <p className="text-xs font-medium text-[var(--text-primary)]">{titleCase(u.clause_type)}</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{u.reason}</p>
+            <Meta as="p" className="font-medium text-[var(--text-primary)]">
+              {titleCase(u.clause_type)}
+            </Meta>
+            <Meta as="p" className="mt-1 text-[var(--text-muted)]">
+              {u.reason}
+            </Meta>
           </li>
         ))}
       </ul>
       {verdict.additions.length > 0 && (
-        <p className="mt-2 text-xs text-[var(--text-secondary)]">
+        <Meta as="p" className="mt-2 text-[var(--text-secondary)]">
           {verdict.additions.length} new clause{verdict.additions.length === 1 ? " is" : "s are"} added at the end,
           under their own heading.
-        </p>
+        </Meta>
       )}
       <div className="mt-2 flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={onSkip}>

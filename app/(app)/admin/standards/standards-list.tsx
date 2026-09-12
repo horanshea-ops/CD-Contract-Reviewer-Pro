@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { Body, Meta, Subtitle } from "@/components/ui/typography";
+import { titleCase } from "@/lib/format";
 import { ORG } from "@/lib/org";
 
 export interface StandardRow {
@@ -117,29 +119,33 @@ function StandardCard({
     <Card>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
-          <span className="text-sm font-semibold text-[var(--text-primary)] uppercase tracking-wide">
-            {standard.clause_type.replace(/_/g, " ")}
-          </span>
-          <span className="text-xs text-[var(--text-muted)] ml-2">segment: {standard.segment}</span>
+          <Subtitle as="span" className="text-[var(--text-primary)]">
+            {titleCase(standard.clause_type)}
+          </Subtitle>
+          <Meta as="span" className="text-[var(--text-muted)] ml-2">
+            segment: {standard.segment}
+          </Meta>
         </div>
         <StatusPill label={provenanceStyle.label} className={`shrink-0 ${provenanceStyle.className}`} />
       </div>
 
       {standard.provenance === "cd_validated" && standard.validated_by && (
-        <p className="text-xs text-[var(--text-muted)] mb-2">
+        <Meta as="p" className="text-[var(--text-muted)] mb-2">
           Validated by {associateNames[standard.validated_by] ?? "unknown"}
           {standard.validated_at && ` on ${new Date(standard.validated_at).toLocaleDateString()}`}
-        </p>
+        </Meta>
       )}
 
       {!editing ? (
         <>
-          <div className="text-sm text-[var(--text-primary)] mb-2">
+          <Body as="div" className="text-[var(--text-primary)] mb-2">
             <span className="font-medium">Severity default: </span>
             {standard.severity_default}
-          </div>
-          <p className="text-sm text-[var(--text-secondary)] mb-2">{standard.position}</p>
-          <details className="text-sm mb-2">
+          </Body>
+          <Body as="p" className="text-[var(--text-secondary)] mb-2">
+            {standard.position}
+          </Body>
+          <Body as="details" className="mb-2">
             <summary className="cursor-pointer text-[var(--text-secondary)]">Fallback language &amp; walk-away condition</summary>
             <p className="mt-1 text-[var(--text-primary)]">
               <span className="font-medium">Fallback: </span>
@@ -149,7 +155,7 @@ function StandardCard({
               <span className="font-medium">Walk-away: </span>
               {standard.walk_away_condition || <span className="text-[var(--text-muted)]">none set</span>}
             </p>
-          </details>
+          </Body>
           <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
             Edit
           </Button>
@@ -214,9 +220,9 @@ function StandardCard({
             </Button>
           </div>
           {error && (
-            <p role="alert" className="text-xs text-[var(--severity-high)]">
+            <Meta as="p" role="alert" className="text-[var(--severity-high)]">
               {error}
-            </p>
+            </Meta>
           )}
         </div>
       )}

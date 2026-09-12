@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
+import { Meta, ReadingText, Subtitle } from "@/components/ui/typography";
+import { titleCase } from "@/lib/format";
 import { ORG } from "@/lib/org";
 
 export interface Finding {
@@ -145,11 +147,13 @@ export default function FindingCard({
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <StatusPill label={style.label} style={{ background: style.bg, color: style.textColor }} />
-          <span className="text-xs text-[var(--text-muted)] uppercase tracking-wide">
-            {finding.clause_type.replace(/_/g, " ")}
-          </span>
+          <Meta as="span" className="text-[var(--text-muted)]">
+            {titleCase(finding.clause_type)}
+          </Meta>
           {finding.is_missing_clause && (
-            <span className="text-xs text-[var(--text-muted)]">(missing from contract)</span>
+            <Meta as="span" className="text-[var(--text-muted)]">
+              (missing from contract)
+            </Meta>
           )}
         </div>
         {finding.current_action && (
@@ -161,7 +165,7 @@ export default function FindingCard({
       </div>
 
       {!finding.is_missing_clause && finding.quoted_text && (
-        <p className="text-xs mb-1">
+        <Meta as="p" className="mb-1">
           {locateMode === "docx" ? (
             <button
               onClick={() => onSelectFinding?.(finding)}
@@ -178,28 +182,30 @@ export default function FindingCard({
             </button>
           ) : (
             <span className="text-[var(--text-muted)]">
-              Location not pinpointed — won&apos;t be marked in place if exported
+              Location not pinpointed, so it won&apos;t be marked in place if exported
             </span>
           )}
-        </p>
+        </Meta>
       )}
 
       {finding.exposure_amount != null && (
-        <p className="text-lg font-semibold text-[var(--text-primary)] mb-1">
+        <Subtitle as="p" className="text-[var(--text-primary)] mb-1">
           ${finding.exposure_amount.toLocaleString()}
-          <span className="text-xs font-normal text-[var(--text-secondary)] ml-2">{finding.exposure_basis}</span>
-        </p>
+          <Meta as="span" className="font-normal text-[var(--text-secondary)] ml-2">
+            {finding.exposure_basis}
+          </Meta>
+        </Subtitle>
       )}
 
-      <p className="text-sm text-[var(--text-primary)] mb-2">{finding.finding_text}</p>
+      <ReadingText className="text-[var(--text-primary)] mb-2">{finding.finding_text}</ReadingText>
 
       {finding.quoted_text && (
-        <blockquote className="text-sm text-[var(--text-secondary)] italic border-l-2 border-[var(--border)] pl-2 mb-2">
+        <ReadingText as="blockquote" className="text-[var(--text-muted)] border-l-2 border-[var(--border)] pl-2 mb-2">
           &ldquo;{finding.quoted_text}&rdquo;
-        </blockquote>
+        </ReadingText>
       )}
 
-      <details className="text-sm mb-2">
+      <Meta as="details" className="mb-2">
         <summary className="cursor-pointer text-[var(--text-secondary)]">{ORG.shortName} standard &amp; proposed language</summary>
         <p className="mt-1 text-[var(--text-primary)]">
           <span className="font-medium">{ORG.shortName} standard: </span>
@@ -209,7 +215,7 @@ export default function FindingCard({
           <span className="font-medium">Proposed: </span>
           {finding.proposed_language}
         </p>
-      </details>
+      </Meta>
 
       {mode === "view" && finding.current_action && !changingDecision && (
         <div className="mt-3">
@@ -227,7 +233,7 @@ export default function FindingCard({
           <Button variant="secondary" size="sm" onClick={() => setMode("editing")} disabled={saving}>
             Edit
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>
+          <Button variant="ghost" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>
             Dismiss
           </Button>
           {finding.current_action && (
@@ -299,9 +305,9 @@ export default function FindingCard({
       )}
 
       {error && (
-        <p role="alert" className="text-xs text-[var(--severity-high)] mt-2">
+        <Meta as="p" role="alert" className="text-[var(--severity-high)] mt-2">
           {error}
-        </p>
+        </Meta>
       )}
     </Card>
   );

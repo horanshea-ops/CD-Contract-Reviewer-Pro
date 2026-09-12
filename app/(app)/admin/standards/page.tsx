@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ORG } from "@/lib/org";
+import { Body, Title } from "@/components/ui/typography";
 import StandardsList, { type StandardRow } from "./standards-list";
 
 export default async function StandardsAdminPage() {
@@ -36,19 +37,22 @@ export default async function StandardsAdminPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Standards library</h1>
-      <p className="text-sm text-[var(--text-secondary)] mb-4">
-        {ORG.shortName}&apos;s negotiating playbook, admin-only. Associates see individual findings during a
-        review but never this list — it&apos;s the source those findings are measured against.
-      </p>
+      <Title className="text-[var(--text-primary)] tracking-tight mb-1">Standards library</Title>
+      <Body as="p" className="text-[var(--text-secondary)] mb-4">
+        {ORG.shortName}&apos;s negotiating playbook, admin-only. Associates see individual findings during a review
+        but never this list, because it&apos;s the source those findings are measured against.
+      </Body>
 
-      <div className="rounded-md border border-[var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-4 py-3 mb-6 text-sm text-[var(--severity-medium)]">
+      <Body
+        as="div"
+        className="rounded-md border border-[var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-4 py-3 mb-6 text-[var(--severity-medium)]"
+      >
         <span className="font-medium">{counts.industry_default} of {rows.length} entries</span> are still
-        generic industry defaults, not {ORG.shortName}&apos;s validated position — nothing here should be presented to an
-        associate as &ldquo;how {ORG.name} negotiates&rdquo; until a senior associate reviews it.
+        generic industry defaults, not {ORG.shortName}&apos;s validated position. Nothing here should be presented
+        to an associate as &ldquo;how {ORG.name} negotiates&rdquo; until a senior associate reviews it.
         {counts.extracted > 0 && ` ${counts.extracted} extracted from ${ORG.shortName} contracts (unvalidated).`}
         {counts.cd_validated > 0 && ` ${counts.cd_validated} ${ORG.shortName}-validated.`}
-      </div>
+      </Body>
 
       <StandardsList initialStandards={rows} associateNames={associateNames} />
     </div>

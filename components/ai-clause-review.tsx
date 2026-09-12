@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { Body, ReadingText, Subtitle } from "@/components/ui/typography";
 
 interface AiUseMatch {
   term: string;
@@ -16,11 +17,14 @@ function Highlighted({ match }: { match: AiUseMatch }) {
   const hit = match.excerpt.slice(match.matchStart, match.matchStart + match.matchLength);
   const after = match.excerpt.slice(match.matchStart + match.matchLength);
   return (
-    <p className="text-sm text-[var(--text-secondary)] italic">
+    <ReadingText
+      as="p"
+      className="text-[var(--text-muted)] border-l-2 border-[var(--border)] pl-2"
+    >
       {before}
-      <mark className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] not-italic font-medium px-0.5">{hit}</mark>
+      <mark className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] font-medium px-0.5">{hit}</mark>
       {after}
-    </p>
+    </ReadingText>
   );
 }
 
@@ -65,13 +69,11 @@ export function AiClauseReview({
   return (
     <div className="h-full flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-lg">
-        <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">
-          This contract may restrict AI-assisted review
-        </p>
-        <p className="text-sm text-[var(--text-secondary)] mb-4">
-          The document wasn&apos;t sent anywhere — this was found by a local scan. Review the language below and decide
-          whether to proceed with analysis.
-        </p>
+        <Subtitle className="text-[var(--text-primary)] mb-1">This contract may restrict AI-assisted review</Subtitle>
+        <Body as="p" className="text-[var(--text-secondary)] mb-4">
+          The document wasn&apos;t sent anywhere. This was found by a local scan. Review the language below and
+          decide whether to proceed with analysis.
+        </Body>
         <ul className="space-y-3 max-h-72 overflow-y-auto mb-4">
           {matches.map((m, i) => (
             <li key={i} className="rounded border border-[var(--border)] p-3 bg-[var(--surface-muted)]">

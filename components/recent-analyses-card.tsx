@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
+import { Body, Meta, Subtitle } from "@/components/ui/typography";
 
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   queued: { label: "Queued", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
@@ -39,7 +40,7 @@ export function RecentAnalysesCard({ analyses }: { analyses: RecentAnalysisRow[]
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between gap-4">
-        <h2 className="text-sm font-semibold text-[var(--text-primary)] shrink-0">Recent analyses</h2>
+        <Subtitle className="text-[var(--text-primary)] shrink-0">Recent analyses</Subtitle>
 
         {analyses.length > 0 && (
           <div className="relative w-full max-w-xs">
@@ -67,21 +68,29 @@ export function RecentAnalysesCard({ analyses }: { analyses: RecentAnalysisRow[]
       </div>
 
       {analyses.length === 0 ? (
-        <p className="text-sm text-[var(--text-secondary)] px-5 py-8 text-center">
-          Nothing yet — upload a contract to get started.
-        </p>
+        <Body as="p" className="text-[var(--text-secondary)] px-5 py-8 text-center">
+          Nothing yet. Upload a contract to get started.
+        </Body>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-[var(--text-secondary)] px-5 py-8 text-center">
+        <Body as="p" className="text-[var(--text-secondary)] px-5 py-8 text-center">
           No analyses match &quot;{query}&quot;.
-        </p>
+        </Body>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--border)]">
-              <th className="px-5 py-2 font-medium">Contract</th>
-              <th className="px-5 py-2 font-medium">Client</th>
-              <th className="px-5 py-2 font-medium">Date</th>
-              <th className="px-5 py-2 font-medium text-right">Status</th>
+            <tr className="text-left border-b border-[var(--border)]">
+              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)]">
+                Contract
+              </Meta>
+              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)]">
+                Client
+              </Meta>
+              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)]">
+                Date
+              </Meta>
+              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)] text-right">
+                Status
+              </Meta>
             </tr>
           </thead>
           <tbody>

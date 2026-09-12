@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Field, FieldInput, FieldSelect } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Body, Meta, Title } from "@/components/ui/typography";
 import { cn } from "@/lib/cn";
 
 interface OpenThread {
@@ -81,7 +82,7 @@ export default function UploadPage() {
       router.push(`/analyses/${body.analysisId}`);
     } catch {
       setStatus("error");
-      setErrorMessage("Upload failed — check your connection and try again.");
+      setErrorMessage("Upload failed. Check your connection and try again.");
     }
   }
 
@@ -92,11 +93,11 @@ export default function UploadPage() {
       </Link>
 
       <Card padding="lg" elevated className="mt-4">
-        <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Review a contract</h1>
-        <p className="text-sm text-[var(--text-secondary)] mb-6">
-          This is a negotiating aid, not legal advice — review every finding yourself before
-          sending anything to a property.
-        </p>
+        <Title className="text-[var(--text-primary)] tracking-tight mb-1">Review a contract</Title>
+        <Body as="p" className="text-[var(--text-secondary)] mb-6">
+          This is a negotiating aid, not legal advice. Review every finding yourself before sending anything to a
+          property.
+        </Body>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Field label="Contract">
@@ -123,14 +124,16 @@ export default function UploadPage() {
                 required
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
-              <p className="text-xs text-[var(--text-muted)] mt-1">PDF, DOCX, or DOC, up to 32MB.</p>
-              <p className="text-xs text-[var(--text-muted)] mt-2">
+              <Meta as="p" className="text-[var(--text-muted)] mt-1">
+                PDF, DOCX, or DOC, up to 32MB.
+              </Meta>
+              <Meta as="p" className="text-[var(--text-muted)] mt-2">
                 Drag and drop a file here, or use the button above.
-              </p>
+              </Meta>
               {file && (
-                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                <Meta as="p" className="text-[var(--text-secondary)] mt-1">
                   Selected: <span className="font-medium">{file.name}</span>
-                </p>
+                </Meta>
               )}
             </div>
           </Field>
@@ -180,14 +183,14 @@ export default function UploadPage() {
                 {threads.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.propertyName}
-                    {t.clientName ? ` — ${t.clientName}` : ""} (round {t.roundCount} so far)
+                    {t.clientName ? ` · ${t.clientName}` : ""} (round {t.roundCount} so far)
                   </option>
                 ))}
               </FieldSelect>
             ) : (
-              <p className="text-xs text-[var(--text-muted)]">
-                No open negotiations yet — start one with &quot;New negotiation&quot; above.
-              </p>
+              <Meta as="p" className="text-[var(--text-muted)]">
+                No open negotiations yet. Start one with &quot;New negotiation&quot; above.
+              </Meta>
             )}
           </Field>
 
@@ -202,9 +205,9 @@ export default function UploadPage() {
           </Button>
 
           {status === "error" && (
-            <p role="alert" className="text-sm text-[var(--severity-high)]">
+            <Body as="p" role="alert" className="text-[var(--severity-high)]">
               {errorMessage}
-            </p>
+            </Body>
           )}
         </form>
       </Card>

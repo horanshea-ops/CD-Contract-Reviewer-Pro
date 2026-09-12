@@ -3,6 +3,7 @@ import { getCurrentAssociate } from "@/lib/current-associate";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Body, Display, Meta, Title } from "@/components/ui/typography";
 import { RecentAnalysesCard } from "@/components/recent-analyses-card";
 
 function startOfMonthISO() {
@@ -54,10 +55,10 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">Dashboard</h1>
-          <p className="text-sm text-[var(--text-secondary)]">
+          <Title className="text-[var(--text-primary)] tracking-tight">Dashboard</Title>
+          <Body as="p" className="text-[var(--text-secondary)]">
             Welcome back, {associate.name.split(" ")[0]}.
-          </p>
+          </Body>
         </div>
         <Button href="/upload" gradient>
           Review a new contract
@@ -67,8 +68,10 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {stats.map((s) => (
           <Card key={s.label} padding="sm" elevated>
-            <p className="text-2xl font-semibold text-[var(--cd-navy)]">{s.value}</p>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">{s.label}</p>
+            <Display className="text-[var(--cd-navy)]">{s.value}</Display>
+            <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
+              {s.label}
+            </Meta>
           </Card>
         ))}
       </div>

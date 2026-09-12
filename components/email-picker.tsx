@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DialogShell } from "@/components/ui/dialog-shell";
+import { Body, Meta } from "@/components/ui/typography";
 import { ClientEmailPanel } from "@/components/client-email-panel";
 import { PropertyEmailPanel } from "@/components/property-email-panel";
 import { ORG } from "@/lib/org";
@@ -35,43 +37,45 @@ export function EmailPicker({ analysisId }: { analysisId: string }) {
         Email
       </Button>
 
-      {pickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-lg">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Who is this email for?</h2>
+      <DialogShell
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title="Who is this email for?"
+        maxWidth="lg"
+        footer={
+          <Button variant="ghost" size="sm" onClick={() => setPickerOpen(false)}>
+            Cancel
+          </Button>
+        }
+      >
+        <div className="space-y-3">
+          <button
+            onClick={() => choose("client")}
+            className="w-full rounded border border-[var(--border-strong)] p-3 text-left hover:bg-[var(--surface-muted)]"
+          >
+            <Body as="span" className="block font-medium text-[var(--text-primary)]">
+              Client
+            </Body>
+            <Meta as="span" className="block mt-1 text-[var(--text-secondary)]">
+              Internal email for the firm, including {ORG.shortName}&apos;s exposure figures and negotiating
+              rationale. Never send this to the property.
+            </Meta>
+          </button>
 
-            <div className="mt-4 space-y-3">
-              <button
-                onClick={() => choose("client")}
-                className="w-full rounded border border-[var(--border-strong)] p-3 text-left hover:bg-[var(--surface-muted)]"
-              >
-                <span className="block text-xs font-medium text-[var(--text-primary)]">Client</span>
-                <span className="block mt-1 text-xs text-[var(--text-secondary)]">
-                  Internal email for the firm, including {ORG.shortName}&apos;s exposure figures and negotiating rationale.
-                  Never send this to the property.
-                </span>
-              </button>
-
-              <button
-                onClick={() => choose("property")}
-                className="w-full rounded border border-[var(--border-strong)] p-3 text-left hover:bg-[var(--surface-muted)]"
-              >
-                <span className="block text-xs font-medium text-[var(--text-primary)]">Property</span>
-                <span className="block mt-1 text-xs text-[var(--text-secondary)]">
-                  Cover email to the counterparty with the marked-up contract. Exposure figures and reasoning
-                  are excluded automatically.
-                </span>
-              </button>
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <Button variant="ghost" size="sm" onClick={() => setPickerOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
+          <button
+            onClick={() => choose("property")}
+            className="w-full rounded border border-[var(--border-strong)] p-3 text-left hover:bg-[var(--surface-muted)]"
+          >
+            <Body as="span" className="block font-medium text-[var(--text-primary)]">
+              Property
+            </Body>
+            <Meta as="span" className="block mt-1 text-[var(--text-secondary)]">
+              Cover email to the counterparty with the marked-up contract. Exposure figures and reasoning are
+              excluded automatically.
+            </Meta>
+          </button>
         </div>
-      )}
+      </DialogShell>
 
       <ClientEmailPanel analysisId={analysisId} open={activePanel === "client"} onClose={() => setActivePanel(null)} />
       <PropertyEmailPanel
