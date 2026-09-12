@@ -496,21 +496,28 @@ connection dropping mid-run supplied the fourth for free.
       failed fetch, and times the wait from the run's own start so a reload no longer
       resets the clock. Verified live: the stuck run recovered by clicking the button.
 
-**Open, in the order agreed with the user (2026-09-11).** Item 1 goes first and on its
-own. Items 2-12 follow it in this order, and none of them should be folded into the style
+**Open, in the order agreed with the user (2026-09-11).** Item 1 (the style pass) is
+done; items 2-12 follow it in this order, and none of them should be folded into that
 pass — a restyle that also changes behaviour cannot be reviewed by eye. Item 2 wants
 Opus 5, since extracting the export routes touches what reaches a hotel and the §1.6
-oracle wiring; items 1 and 3-12 are Sonnet 5 work under the CLAUDE.md table.
+oracle wiring; items 3-12 are Sonnet 5 work under the CLAUDE.md table.
 
-- [ ] **1. Visual style, raised by the user twice during the walkthrough. High
-      priority.** A finding card carries five type sizes, an italic block quote, three
-      button weights and four text colours, and the same inconsistency runs through the
-      export dialog, the email panels and the forms — the user's words were that it
-      "looks cheap". This is the screen CD sees first. The fix is a real typographic
-      pass, not a tweak: one type scale actually used, one field and card recipe, colour
-      reserved for severity and action rather than decoration. `components/ui/` already
-      holds the primitives to do it through. Deliberately deferred out of this pass by
-      the user so the walkthrough could finish.
+- [x] **1. Visual style, raised by the user twice during the walkthrough. High
+      priority. Fixed 2026-09-12 (4d67e3a), on `phase/ui-style-pass`.** A finding card
+      carried five type sizes, an italic block quote, three button weights and four
+      text colours, and the same inconsistency ran through the export dialog, the email
+      panels and the forms — the user's words were that it "looks cheap". Fixed with a
+      real typographic pass: five steps (`components/ui/typography.tsx`) applied
+      everywhere in scope, no card over three of them; one dialog shell
+      (`components/ui/dialog-shell.tsx`) replacing three different hand-rolled modal
+      headers; uppercase confined to `StatusPill`; no italics on quoted contract text
+      (a left rule and muted colour instead); Dismiss changed from secondary to ghost so
+      each card carries one filled button; em dashes removed from hardcoded UI copy.
+      Also fixed in passing: the export dialog's "Downloaded." confirmations were
+      rendering grey instead of green because a broken color fallback
+      (`--severity-low,#166534`) never fired — switched to the existing
+      `--status-success` token. Verified live against the dev database's 25-finding
+      Harborview analysis; `npm run lint`/`typecheck`/`test` all green (698/698).
 - [ ] **2. Selecting several exports at once silently loses files.** Four downloads fire
       from one click; the browser saved one and the picker reported "Downloaded." for
       all four, because `runMemo` and friends assert success straight after
