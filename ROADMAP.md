@@ -496,7 +496,11 @@ connection dropping mid-run supplied the fourth for free.
       failed fetch, and times the wait from the run's own start so a reload no longer
       resets the clock. Verified live: the stuck run recovered by clicking the button.
 
-**Open, in the order I'd take them:**
+**Open, in the order agreed with the user (2026-09-11).** Item 1 goes first and on its
+own. Items 2-12 follow it in this order, and none of them should be folded into the style
+pass — a restyle that also changes behaviour cannot be reviewed by eye. Item 2 wants
+Opus 5, since extracting the export routes touches what reaches a hotel and the §1.6
+oracle wiring; items 1 and 3-12 are Sonnet 5 work under the CLAUDE.md table.
 
 - [ ] **1. Visual style, raised by the user twice during the walkthrough. High
       priority.** A finding card carries five type sizes, an italic block quote, three
