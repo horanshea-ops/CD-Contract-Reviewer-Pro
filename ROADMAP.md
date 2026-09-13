@@ -626,8 +626,13 @@ was added later and outranks 5-12; see its own note on sequencing.
       for the thread picker, both using the shared `Field` wrapper in
       `components/ui/field.tsx`. `app/(app)/upload/page.tsx`. Verified live in both
       modes. 714/714 tests, lint and typecheck clean.
-- [ ] **10. "Client" is described as an "internal email for the firm."** It goes to CD's
-      customer. The warning it carries is right; the noun is wrong.
+- [x] **10. "Client" is described as an "internal email for the firm." Fixed 2026-09-12
+      (branch `phase/roadmap-10-client-email-noun`).** It goes to CD's customer, the
+      group or association negotiating the contract, not to the firm itself. The
+      warning about exposure figures and negotiating rationale, and never sending it
+      to the property, is unchanged and correct — only the noun describing the
+      recipient was wrong (`components/email-picker.tsx`). Verified live in the
+      "Who is this email for?" picker. 714/714 tests, lint and typecheck clean.
 - [ ] **11. The memo downloaded as `e.pdf` once**, though the route sets a correct
       `Content-Disposition`. Seen once under browser automation and not reproduced —
       check in a real browser before chasing it.
