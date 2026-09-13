@@ -7,7 +7,8 @@ import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/f
 import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { Meta, ReadingText, Subtitle } from "@/components/ui/typography";
-import { titleCase } from "@/lib/format";
+import { formatCurrency, titleCase } from "@/lib/format";
+import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 
 export interface Finding {
@@ -84,12 +85,15 @@ export default function FindingCard({
   onActionRecorded,
   onSelectFinding,
   locateMode = "pdf",
+  focused = false,
 }: {
   finding: Finding;
   onActionRecorded: (findingId: string, action: Finding["current_action"]) => void;
   onSelectFinding?: (finding: Finding) => void;
   /** "docx" for the HTML preview (no page concept — always offers to jump to the match). Defaults to "pdf". */
   locateMode?: "pdf" | "docx";
+  /** Keyboard-navigation target, per ROADMAP item 7 — distinct from severity's left border. */
+  focused?: boolean;
 }) {
   const [mode, setMode] = useState<"view" | "editing" | "dismissing">("view");
   const [editedLanguage, setEditedLanguage] = useState(finding.proposed_language);
@@ -143,7 +147,13 @@ export default function FindingCard({
   }
 
   return (
-    <Card style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}>
+    <Card
+      id={`finding-${finding.id}`}
+      tabIndex={-1}
+      aria-current={focused ? "true" : undefined}
+      style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
+      className={cn(focused && "ring-2 ring-[var(--cd-blue)]")}
+    >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <StatusPill label={style.label} style={{ background: style.bg, color: style.textColor }} />
@@ -190,7 +200,7 @@ export default function FindingCard({
 
       {finding.exposure_amount != null && (
         <Subtitle as="p" className="text-[var(--text-primary)] mb-1">
-          ${finding.exposure_amount.toLocaleString()}
+          {formatCurrency(finding.exposure_amount)}
           <Meta as="span" className="font-normal text-[var(--text-secondary)] ml-2">
             {finding.exposure_basis}
           </Meta>

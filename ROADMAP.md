@@ -601,9 +601,48 @@ was added later and outranks 5-12; see its own note on sequencing.
       the Harborview analysis (13 undecided of 25): the dialog reads "13 findings
       still need a decision and won't be in any of these exports." above the
       checkboxes. 714/714 tests, lint and typecheck clean.
-- [ ] **7. No overview of a review.** 25 findings arrive as a flat list with no counts
-      by severity, no total exposure, no filter, no way to hide the decided ones and no
-      keyboard path. An associate loses their place after ten decisions.
+- [x] **7. No overview of a review. Fixed 2026-09-12 (branch
+      `phase/roadmap-7-review-overview`).** A sticky bar now sits above the findings
+      list: severity-count chips that double as filter toggles, the undecided count,
+      a "hide decided" toggle, and a total-exposure figure — all whole-review totals,
+      not filtered readouts, so they stay honest even while some findings are hidden.
+      Arrow-key navigation moves a focus ring (`ring-2 ring-[var(--cd-blue)]`,
+      distinct from the severity left-border) through the currently visible findings
+      and scrolls each into view, reusing the existing `handleSelectFinding` so the
+      document-preview highlight stays in sync — no key takes an action, so a stray
+      keypress can't accept or dismiss anything, and the effect is ignored while a
+      finding's own edit/dismiss textarea or select has focus. Deciding the
+      currently-focused finding auto-advances to the next visible undecided one
+      (never wrapping) — this is what actually fixes "loses their place after ten
+      decisions."
+      `lib/findings-overview.ts` (new) holds `computeFindingsOverview` and the
+      severity ranking `SEVERITY_ORDER`, hoisted out of an inline object that used to
+      live only in `page.tsx`; `lib/format.ts` gained `formatCurrency`, also now used
+      by the per-finding exposure line in `finding-card.tsx` in place of an ad hoc
+      `.toLocaleString()`. New `findings-overview-bar.tsx` component;
+      `finding-card.tsx` gained a `focused` prop and a `finding-<uuid>` DOM id for the
+      scroll target. `page.tsx`'s `sortedFindings` is now memoized (previously
+      recomputed unmemoized on every 2s poll tick), and the header's old "N still
+      need a decision" line moved into the overview bar rather than appearing twice.
+      Scoped to structure and behavior only, reusing existing design tokens
+      (`SEVERITY_STYLE`, `StatusPill`, `Card`, typography) — item 13's visual
+      redesign of this same screen is separate and can reskin the new focus ring
+      without restructuring markup.
+      5 new tests in `tests/findings-overview.test.ts`. **Verified live** against the
+      Harborview fixture (25 findings, mixed severities): severity chips summed to
+      25 and matched a manual sum of `exposure_amount` ($621,120, checked against the
+      raw API response); toggling a severity chip changed the rendered card count by
+      exactly that severity's count; "Hide decided" dropped the list to the 13
+      undecided cards while the bar's counts stayed fixed; arrow keys moved the
+      focus ring through visible cards only and did nothing while a `FieldTextarea`
+      had focus; accepting the focused finding auto-advanced to the next undecided
+      one and the card count/undecided count both dropped by one. 719/719 tests
+      (5 new), lint and typecheck clean.
+      Verifying auto-advance required actually accepting one real finding in this
+      fixture (dev database), moving it from 10 to 11 accepted findings — left as-is
+      per the user's call (dev data, not a real deal), so **the fixture's baseline is
+      now 11 accepted / 12 undecided / 2 dismissed**, not 10/13/2 as noted elsewhere
+      in this file and in CLAUDE.md.
 - [x] **8. A wrong file type is only caught server-side. Fixed 2026-09-12 (branch
       `phase/roadmap-8-client-side-filetype`).** `hasAcceptedExtension` checks the
       filename against `.pdf`/`.docx`/`.doc` client-side, wired into both the file
