@@ -633,9 +633,16 @@ was added later and outranks 5-12; see its own note on sequencing.
       to the property, is unchanged and correct — only the noun describing the
       recipient was wrong (`components/email-picker.tsx`). Verified live in the
       "Who is this email for?" picker. 714/714 tests, lint and typecheck clean.
-- [ ] **11. The memo downloaded as `e.pdf` once**, though the route sets a correct
-      `Content-Disposition`. Seen once under browser automation and not reproduced —
-      check in a real browser before chasing it.
+- [x] **11. The memo downloaded as `e.pdf` once. Verified, not reopened, 2026-09-12
+      (branch `phase/roadmap-11-memo-filename-verify`, no code change).** Not
+      reproduced. The live `Content-Disposition` header off the memo route reads
+      `attachment; filename="requested-revisions-99fe1054.pdf";
+      filename*=UTF-8''requested-revisions-99fe1054.pdf`, and `lib/download.ts`
+      doesn't rely on the browser to parse it — `save()` reads the header itself
+      with its own regex and sets `a.download` explicitly before the blob-URL click,
+      which resolved correctly to `requested-revisions-99fe1054.pdf` in a real
+      download. The one `e.pdf` sighting looks like an artifact of the earlier
+      browser-automation environment, not this code path.
 - [ ] **12. Mobile — low priority, by the user's call (2026-09-11).** Associates are not
       expected to run this on a phone. Recorded so it isn't rediscovered: the dashboard
       table runs off-screen and hides the Status column, and the review header collapses
