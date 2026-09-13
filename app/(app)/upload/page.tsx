@@ -180,7 +180,8 @@ export default function UploadPage() {
             />
           </Field>
 
-          <Field label="Negotiation">
+          <div>
+            <p className="block text-sm font-medium text-[var(--text-primary)] mb-1">Negotiation</p>
             <div className="flex gap-2 mb-2">
               <Button
                 type="button"
@@ -201,31 +202,35 @@ export default function UploadPage() {
             </div>
 
             {negotiationMode === "new" ? (
-              <FieldInput
-                type="text"
-                value={propertyName}
-                onChange={(e) => setPropertyName(e.target.value)}
-                placeholder="e.g. Hilton Downtown Denver"
-                required
-              />
+              <Field label="Property name">
+                <FieldInput
+                  type="text"
+                  value={propertyName}
+                  onChange={(e) => setPropertyName(e.target.value)}
+                  placeholder="e.g. Hilton Downtown Denver"
+                  required
+                />
+              </Field>
             ) : threads.length > 0 ? (
-              <FieldSelect value={threadId} onChange={(e) => setThreadId(e.target.value)} required>
-                <option value="" disabled>
-                  Choose a negotiation…
-                </option>
-                {threads.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.propertyName}
-                    {t.clientName ? ` · ${t.clientName}` : ""} (round {t.roundCount} so far)
+              <Field label="Which negotiation">
+                <FieldSelect value={threadId} onChange={(e) => setThreadId(e.target.value)} required>
+                  <option value="" disabled>
+                    Choose a negotiation…
                   </option>
-                ))}
-              </FieldSelect>
+                  {threads.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.propertyName}
+                      {t.clientName ? ` · ${t.clientName}` : ""} (round {t.roundCount} so far)
+                    </option>
+                  ))}
+                </FieldSelect>
+              </Field>
             ) : (
               <Meta as="p" className="text-[var(--text-muted)]">
                 No open negotiations yet. Start one with &quot;New negotiation&quot; above.
               </Meta>
             )}
-          </Field>
+          </div>
 
           <Button
             type="submit"
