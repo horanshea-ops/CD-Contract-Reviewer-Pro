@@ -4,9 +4,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
-import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
-import { Meta, ReadingText, Subtitle } from "@/components/ui/typography";
+import { Meta, ReadingText } from "@/components/ui/typography";
 import { formatCurrency, titleCase } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
@@ -155,23 +154,24 @@ export default function FindingCard({
       style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
       className={cn(focused && "ring-2 ring-[var(--cd-blue)]")}
     >
-      <div className="flex items-start justify-between gap-3 pb-2 mb-2 border-b border-[var(--border)]">
-        <div className="flex items-center gap-2 flex-wrap">
-          <StatusPill label={style.label} style={{ background: style.bg, color: style.textColor }} />
-          <Meta as="span" className="text-[var(--text-muted)]">
+      <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-[var(--border)]">
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          <Meta as="span" className="font-semibold" style={{ color: style.textColor }}>
+            {style.label}
+          </Meta>
+          <Meta as="span" className="text-[var(--text-secondary)]">
             {titleCase(finding.clause_type)}
           </Meta>
           {finding.is_missing_clause && (
-            <Meta as="span" className="text-[var(--text-muted)]">
+            <Meta as="span" className="text-[var(--text-secondary)]">
               (missing from contract)
             </Meta>
           )}
         </div>
         {finding.current_action && (
-          <StatusPill
-            label={ACTION_LABEL[finding.current_action.action]}
-            className="shrink-0 bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]"
-          />
+          <Meta as="span" className="shrink-0 text-[var(--text-secondary)]">
+            {ACTION_LABEL[finding.current_action.action]}
+          </Meta>
         )}
       </div>
 
@@ -192,7 +192,7 @@ export default function FindingCard({
               Page {finding.location_page} →
             </button>
           ) : (
-            <span className="text-[var(--text-muted)]">
+            <span className="text-[var(--text-secondary)]">
               Location not pinpointed, so it won&apos;t be marked in place if exported
             </span>
           )}
@@ -200,24 +200,29 @@ export default function FindingCard({
       )}
 
       {finding.exposure_amount != null && (
-        <Subtitle as="p" className="text-[var(--text-primary)] mb-1">
-          {formatCurrency(finding.exposure_amount)}
-          <Meta as="span" className="font-normal text-[var(--text-secondary)] ml-2">
-            {finding.exposure_basis}
-          </Meta>
-        </Subtitle>
+        <ReadingText as="p" className="text-[var(--text-primary)] mb-2">
+          <span className="font-semibold [font-variant-numeric:tabular-nums]">
+            {formatCurrency(finding.exposure_amount)}
+          </span>
+          {finding.exposure_basis && (
+            <span className="text-[var(--text-secondary)]"> — {finding.exposure_basis}</span>
+          )}
+        </ReadingText>
       )}
 
       <ReadingText className="text-[var(--text-primary)] mb-2">{finding.finding_text}</ReadingText>
 
       {finding.quoted_text && (
-        <ReadingText as="blockquote" className="text-[var(--text-muted)] border-l-2 border-[var(--border)] pl-2 mb-2">
+        <ReadingText
+          as="blockquote"
+          className="text-[var(--text-secondary)] border-l-2 border-[var(--border-strong)] pl-2 mb-2"
+        >
           &ldquo;{finding.quoted_text}&rdquo;
         </ReadingText>
       )}
 
-      <div className="rounded-md bg-[var(--surface-muted)] p-2 mb-2">
-        <Meta as="p" className="font-medium text-[var(--text-secondary)] mb-1">
+      <div className="pt-2.5 mt-1 mb-2 border-t border-[var(--border)]">
+        <Meta as="p" className="font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1">
           Proposed language
         </Meta>
         <ReadingText className="text-[var(--text-primary)]">{finding.proposed_language}</ReadingText>
