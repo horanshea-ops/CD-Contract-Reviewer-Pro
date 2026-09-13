@@ -570,10 +570,15 @@ was added later and outranks 5-12; see its own note on sequencing.
       flow's pre-fill, and the API calls are untouched. Verified live against the dev
       database's Harborview analysis; `npm run lint`/`typecheck`/`test` all green
       (698/698).
-- [ ] **4. The thread view says exports were "sent".** They were downloaded. Nothing in
-      this app sends anything, deliberately, and this is the one line that says
-      otherwise. It also prints the raw duplicated format list ("sent pdf, docx, pdf,
-      memo, memo").
+- [x] **4. The thread view says exports were "sent". Fixed 2026-09-12 (491cf34), on
+      `phase/roadmap-4-exports-downloaded`.** Nothing in this app sends anything, and
+      the round timeline's one line saying otherwise now says "downloaded". It also
+      printed the raw duplicated format list ("sent pdf, docx, pdf, memo, memo") — the
+      `format` enum can't tell a marked-up PDF from a proposed contract apart, so both
+      are just "pdf". Replaced with a file count and the most recent download date
+      (`app/(app)/threads/[id]/page.tsx`). Verified live against the Harborview thread
+      in the dev database: reads "28 files downloaded 9/12/2026". 714/714 tests, lint
+      and typecheck clean.
 - [ ] **5. The edit box is four rows for a 600-character clause.** Editing contract
       language happens in a 98px window with no expand.
 - [ ] **6. Nothing warns at export time that 13 findings are still undecided.** The
