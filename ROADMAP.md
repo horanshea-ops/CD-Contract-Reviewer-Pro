@@ -617,8 +617,15 @@ was added later and outranks 5-12; see its own note on sequencing.
       Verified live: dropping a fake `.exe` shows the error immediately with no
       network request, and dropping a `.pdf` after clears it and registers the
       file. 714/714 tests, lint and typecheck clean.
-- [ ] **9. The property-name field on the upload form has no label of its own**, only
-      the group label "Negotiation" and a placeholder.
+- [x] **9. The property-name field on the upload form has no label of its own. Fixed
+      2026-09-12 (branch `phase/roadmap-9-property-name-label`).** It carried only the
+      group label "Negotiation" and a placeholder. The single `Field` wrapping the
+      whole negotiation section (toggle buttons plus the conditional input) is split
+      into a plain group label for the two buttons and a real `Field` around each
+      conditional branch — "Property name" for a new negotiation, "Which negotiation"
+      for the thread picker, both using the shared `Field` wrapper in
+      `components/ui/field.tsx`. `app/(app)/upload/page.tsx`. Verified live in both
+      modes. 714/714 tests, lint and typecheck clean.
 - [ ] **10. "Client" is described as an "internal email for the firm."** It goes to CD's
       customer. The warning it carries is right; the noun is wrong.
 - [ ] **11. The memo downloaded as `e.pdf` once**, though the route sets a correct
