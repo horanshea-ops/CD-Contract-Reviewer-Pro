@@ -543,12 +543,23 @@ eye. Item 4 is next; items 4-12 are Sonnet 5 work under the CLAUDE.md table.
       500'd on a single-file redline export. The header now carries RFC 5987's
       `filename*` beside a stripped ASCII fallback.
 
+      Follow-up in the same pass (280ae1f, `phase/export-build-cache`): the preflight
+      threw its build away and the download rebuilt it, so the redline engine and the
+      clean-contract build each ran twice for one click. Both now go through a
+      short-lived process-local cache (`lib/exports/build-cache.ts`), keyed by a
+      fingerprint of the inputs, so a decision changed between the two requests forces
+      a rebuild rather than serving a stale document. The redline preflight went from
+      8.8s to 1.2s warm. An export the associate cannot take is also now left out of
+      the dialog rather than shown greyed with an excuse.
+
       Verified live against the dev database: all four selected produced one
       `exports-99fe1054.zip` holding all four files (the redline with 10 `w:ins` and 10
       `w:del`, matching its 10 accepted findings) and exactly four `exports` rows;
-      each format standalone produced the same file as before; and on a PDF-sourced
+      each format standalone produced the same file as before; on a PDF-sourced
       analysis a refused format left its error on the row while the other two still
-      zipped. `npm run lint`/`typecheck`/`test` all green (706/706).
+      zipped; and dismissing one accepted finding dropped the next redline to 9
+      tracked changes, confirming the cache rebuilds on a changed decision.
+      `npm run lint`/`typecheck`/`test` all green (714/714).
 - [x] **3. The proposed language is hidden behind a disclosure while Accept sits in the
       open. Fixed 2026-09-12 (c2de4a9), on `phase/proposed-language-default`.** The
       replacement wording is the thing that reaches the hotel, and an associate could

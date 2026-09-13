@@ -1,12 +1,11 @@
 import { logAudit } from "../audit";
 import { getActionedFindings } from "../get-actioned-findings";
-import { getPositionedLines } from "../get-positioned-lines";
 import { generateCleanContractPdf, type CleanContractFinding } from "../clean-contract-pdf";
 import { recordExport } from "../export-log";
 import type { ExportContext } from "./context";
+import { positionedLinesFor } from "./positioned-lines";
+import { cachedBuild, fingerprint } from "./build-cache";
 import type { ExportBuildResult, ExportRefusalResult } from "./types";
-
-const STORAGE_BUCKET = "contracts";
 
 /**
  * §1.7.7 — the contract as it would read if the property agreed to every
@@ -20,33 +19,15 @@ const STORAGE_BUCKET = "contracts";
 export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuildResult> {
   const { admin, associate, analysis, analysisId } = ctx;
 
-  const { data: pdfBlob, error: pdfError } = await admin.storage
-    .from(STORAGE_BUCKET)
-    .download(analysis.storage_path);
-  if (pdfError || !pdfBlob) {
+  const source = await positionedLinesFor(ctx);
+  if (!source.ok) {
     return refusal(
       500,
-      { error: `Could not load the document: ${pdfError?.message}` },
-      "The proposed contract was not exported. The document could not be loaded."
+      { error: source.error },
+      "The proposed contract was not exported. The document could not be read."
     );
   }
-
-  let lines;
-  try {
-    lines = await getPositionedLines({
-      admin,
-      associateId: analysis.associate_id,
-      analysisId,
-      sourceFormat: analysis.source_format,
-      pdfBytes: new Uint8Array(await pdfBlob.arrayBuffer()),
-    });
-  } catch (err) {
-    return refusal(
-      500,
-      { error: err instanceof Error ? err.message : "Could not read this document's text." },
-      "The proposed contract was not exported. This document's text could not be read."
-    );
-  }
+  const { lines } = source;
 
   // The allowlist boundary. getActionedFindings carries severity, finding_text
   // and cd_standard; this document can reach the property, so only contract
@@ -80,9 +61,15 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
     if (thread?.property_name) title = `Proposed Amended Contract — ${thread.property_name}`;
   }
 
+  // The dialog preflights this format before it downloads it, so without the
+  // cache the document is built twice for one click.
   let result;
   try {
-    result = await generateCleanContractPdf({ lines, findings, title });
+    result = await cachedBuild(
+      `${associate.id}:${analysisId}:clean`,
+      fingerprint([analysis.storage_path, title, findings]),
+      () => generateCleanContractPdf({ lines, findings, title })
+    );
   } catch (err) {
     return refusal(
       500,

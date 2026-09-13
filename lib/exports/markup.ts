@@ -1,12 +1,10 @@
 import { logAudit } from "../audit";
 import { getActionedFindings } from "../get-actioned-findings";
 import { generateMarkupPdf } from "../redline-pdf";
-import { getPositionedLines } from "../get-positioned-lines";
 import { recordExport } from "../export-log";
 import type { ExportContext } from "./context";
+import { positionedLinesFor } from "./positioned-lines";
 import type { ExportBuildResult } from "./types";
-
-const STORAGE_BUCKET = "contracts";
 
 /**
  * The marked-up PDF — strikethrough and numbered margin markers on the
@@ -20,32 +18,11 @@ const STORAGE_BUCKET = "contracts";
 export async function buildMarkup(ctx: ExportContext): Promise<ExportBuildResult> {
   const { admin, associate, analysis, analysisId } = ctx;
 
-  const { data: pdfBlob, error: pdfError } = await admin.storage
-    .from(STORAGE_BUCKET)
-    .download(analysis.storage_path);
-  if (pdfError || !pdfBlob) {
-    return refusal(
-      `Could not load the document: ${pdfError?.message}`,
-      "The marked-up PDF was not exported. The document could not be loaded."
-    );
+  const source = await positionedLinesFor(ctx);
+  if (!source.ok) {
+    return refusal(source.error, "The marked-up PDF was not exported. The document could not be read.");
   }
-  const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
-
-  let lines;
-  try {
-    lines = await getPositionedLines({
-      admin,
-      associateId: analysis.associate_id,
-      analysisId,
-      sourceFormat: analysis.source_format,
-      pdfBytes,
-    });
-  } catch (err) {
-    return refusal(
-      err instanceof Error ? err.message : "Could not read this document's text.",
-      "The marked-up PDF was not exported. This document's text could not be read."
-    );
-  }
+  const { lines, pdfBytes } = source;
 
   const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
   const markupBytes = await generateMarkupPdf({ pdfBytes, lines, findings });

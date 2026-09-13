@@ -4,6 +4,7 @@ import { generateRedline } from "../redline-engine";
 import { UNAPPLIED_REASON_TEXT, validateRedline } from "../redline-validation";
 import { recordExport, recordResolutions } from "../export-log";
 import type { ExportContext } from "./context";
+import { cachedBuild, fingerprint } from "./build-cache";
 import type { ExportBuildResult, ExportRefusalResult } from "./types";
 
 const STORAGE_BUCKET = "contracts";
@@ -65,13 +66,23 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
   const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
   const originalBytes = new Uint8Array(await originalBlob.arrayBuffer());
 
-  let engineResult;
+  // The dialog preflights this format before it downloads it, so without the
+  // cache the engine and the oracle both run twice for one click.
+  let built;
   try {
-    engineResult = await generateRedline({
-      originalDocxBytes: originalBytes,
-      findings,
-      author: associate.name,
-    });
+    built = await cachedBuild(
+      `${associate.id}:${analysisId}:redline`,
+      fingerprint([analysis.original_storage_path, associate.name, findings]),
+      async () => {
+        const engineResult = await generateRedline({
+          originalDocxBytes: originalBytes,
+          findings,
+          author: associate.name,
+        });
+        const report = await validateRedline({ originalBytes, engineResult, author: associate.name });
+        return { engineResult, report };
+      }
+    );
   } catch (err) {
     return refusal(
       500,
@@ -80,7 +91,7 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
     );
   }
 
-  const report = await validateRedline({ originalBytes, engineResult, author: associate.name });
+  const { engineResult, report } = built;
   const unapplied = report.unapplied.map((u) => ({ ...u, explanation: UNAPPLIED_REASON_TEXT[u.reason] }));
 
   const preflight = {
