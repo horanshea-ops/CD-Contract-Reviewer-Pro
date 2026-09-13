@@ -102,6 +102,7 @@ export default function FindingCard({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [changingDecision, setChangingDecision] = useState(false);
+  const [standardOpen, setStandardOpen] = useState(false);
   const { showToast } = useToast();
 
   function cancelToView() {
@@ -154,7 +155,7 @@ export default function FindingCard({
       style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
       className={cn(focused && "ring-2 ring-[var(--cd-blue)]")}
     >
-      <div className="flex items-start justify-between gap-3 mb-2">
+      <div className="flex items-start justify-between gap-3 pb-2 mb-2 border-b border-[var(--border)]">
         <div className="flex items-center gap-2 flex-wrap">
           <StatusPill label={style.label} style={{ background: style.bg, color: style.textColor }} />
           <Meta as="span" className="text-[var(--text-muted)]">
@@ -215,15 +216,38 @@ export default function FindingCard({
         </ReadingText>
       )}
 
-      <Meta as="p" className="font-medium text-[var(--text-secondary)] mb-1">
-        Proposed language
-      </Meta>
-      <ReadingText className="text-[var(--text-primary)] mb-2">{finding.proposed_language}</ReadingText>
+      <div className="rounded-md bg-[var(--surface-muted)] p-2 mb-2">
+        <Meta as="p" className="font-medium text-[var(--text-secondary)] mb-1">
+          Proposed language
+        </Meta>
+        <ReadingText className="text-[var(--text-primary)]">{finding.proposed_language}</ReadingText>
+      </div>
 
-      <Meta as="details" className="mb-2">
-        <summary className="cursor-pointer text-[var(--text-secondary)]">{ORG.shortName} standard</summary>
-        <p className="mt-1 text-[var(--text-primary)]">{finding.cd_standard}</p>
-      </Meta>
+      <div className="mb-2">
+        <button
+          type="button"
+          onClick={() => setStandardOpen((v) => !v)}
+          aria-expanded={standardOpen}
+          className="flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--cd-navy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden="true"
+            className={cn("transition-transform shrink-0", standardOpen && "rotate-90")}
+          >
+            <path d="M6 4l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {ORG.shortName} standard
+        </button>
+        {standardOpen && (
+          <Meta as="p" className="mt-1 text-[var(--text-primary)]">
+            {finding.cd_standard}
+          </Meta>
+        )}
+      </div>
 
       {mode === "view" && finding.current_action && !changingDecision && (
         <div className="mt-3">

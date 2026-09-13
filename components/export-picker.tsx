@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import { Body, Meta } from "@/components/ui/typography";
 import { downloadFile } from "@/lib/download";
@@ -290,9 +291,8 @@ export function ExportPicker({
               aria-label="Requested-revisions memo (PDF)"
               className="flex items-start gap-2 cursor-pointer"
             >
-              <input
+              <Checkbox
                 id="export-memo"
-                type="checkbox"
                 className="mt-0.5"
                 checked={selected.has("memo")}
                 disabled={started}
@@ -318,9 +318,8 @@ export function ExportPicker({
               aria-label="Marked-up PDF"
               className="flex items-start gap-2 cursor-pointer"
             >
-              <input
+              <Checkbox
                 id="export-markup"
-                type="checkbox"
                 className="mt-0.5"
                 checked={selected.has("markup")}
                 disabled={started}
@@ -373,9 +372,8 @@ export function ExportPicker({
               aria-label="Tracked-changes DOCX"
               className="flex items-start gap-2 cursor-pointer"
             >
-              <input
+              <Checkbox
                 id="export-redline"
-                type="checkbox"
                 className="mt-0.5"
                 checked={selected.has("redline")}
                 disabled={started}
@@ -411,9 +409,8 @@ export function ExportPicker({
               aria-label="Proposed contract (clean copy)"
               className="flex items-start gap-2 cursor-pointer"
             >
-              <input
+              <Checkbox
                 id="export-clean"
-                type="checkbox"
                 className="mt-0.5"
                 checked={selected.has("clean")}
                 disabled={started}

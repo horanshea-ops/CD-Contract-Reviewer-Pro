@@ -10,7 +10,9 @@ const eslintConfig = defineConfig([
       // eslint-config-next bundles jsx-a11y but only enables rules that catch
       // misuse of aria/alt attributes already present — not this one, which
       // is the actual gap this codebase had (labels not wired to controls).
-      "jsx-a11y/label-has-associated-control": "warn",
+      // `controlComponents` tells it that `Checkbox` (components/ui/checkbox.tsx)
+      // renders a real `<input>`, so nesting it in a `<label>` counts as association.
+      "jsx-a11y/label-has-associated-control": ["warn", { controlComponents: ["Checkbox"] }],
     },
   },
   // Override default ignores of eslint-config-next.
