@@ -57,8 +57,8 @@ export function EmailPicker({ analysisId }: { analysisId: string }) {
               Client
             </Body>
             <Meta as="span" className="block mt-1 text-[var(--text-secondary)]">
-              Internal email for the firm, including {ORG.shortName}&apos;s exposure figures and negotiating
-              rationale. Never send this to the property.
+              Goes to {ORG.shortName}&apos;s client, the group or association negotiating this contract, including
+              exposure figures and negotiating rationale. Never send this to the property.
             </Meta>
           </button>
 
