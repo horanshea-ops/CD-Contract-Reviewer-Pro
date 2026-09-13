@@ -604,9 +604,19 @@ was added later and outranks 5-12; see its own note on sequencing.
 - [ ] **7. No overview of a review.** 25 findings arrive as a flat list with no counts
       by severity, no total exposure, no filter, no way to hide the decided ones and no
       keyboard path. An associate loses their place after ten decisions.
-- [ ] **8. A wrong file type is only caught server-side.** Clear message, but it costs a
-      full upload round trip — bad on a 30MB file over hotel wifi. Drag-and-drop also
-      bypasses the `accept` filter entirely.
+- [x] **8. A wrong file type is only caught server-side. Fixed 2026-09-12 (branch
+      `phase/roadmap-8-client-side-filetype`).** `hasAcceptedExtension` checks the
+      filename against `.pdf`/`.docx`/`.doc` client-side, wired into both the file
+      input's `onChange` and the drop handler, with the same message the server
+      already used ("Unsupported file type. Upload a PDF, DOCX, or DOC contract.").
+      Checking the extension rather than `file.type` is what makes drag-and-drop
+      work — a dropped file's MIME type can come back empty depending on OS/browser,
+      but the `accept` filter never even runs for a drop in the first place.
+      `app/(app)/upload/page.tsx`. The server-side check in
+      `app/api/analyses/route.ts` is untouched — it's still the one that counts.
+      Verified live: dropping a fake `.exe` shows the error immediately with no
+      network request, and dropping a `.pdf` after clears it and registers the
+      file. 714/714 tests, lint and typecheck clean.
 - [ ] **9. The property-name field on the upload form has no label of its own**, only
       the group label "Negotiation" and a placeholder.
 - [ ] **10. "Client" is described as an "internal email for the firm."** It goes to CD's
