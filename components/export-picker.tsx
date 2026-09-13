@@ -77,19 +77,6 @@ const IDLE_STATUSES: Record<ExportKey, RowStatus> = {
   clean: { kind: "idle" },
 };
 
-function redlineUnavailableReason(
-  sourceFormat: "pdf" | "docx" | "doc",
-  intakeRoute: "docx_native" | "pdf" | null
-): string | null {
-  if (sourceFormat !== "docx") {
-    return "Not available. This contract was reviewed as a PDF, so there's no Word file to mark up.";
-  }
-  if (intakeRoute === "pdf") {
-    return "Not available. This Word file couldn't be read cleanly enough to edit directly, so it was reviewed as a PDF instead.";
-  }
-  return null;
-}
-
 export function ExportPicker({
   analysisId,
   includedCount,
@@ -126,7 +113,12 @@ export function ExportPicker({
   };
   const zipName = `exports-${short}.zip`;
 
-  const redlineUnavailable = redlineUnavailableReason(sourceFormat, intakeRoute);
+  // An option the associate cannot take is left out of the list rather than shown
+  // greyed with an excuse. The review page already banners a DOCX that had to take
+  // the PDF path, and a contract uploaded as a PDF explains itself.
+  const redlineAvailable = sourceFormat === "docx" && intakeRoute !== "pdf";
+  const cleanAvailable = includedCount > 0;
+
   const forcedDowngrade = sourceFormat !== "pdf" && intakeRoute !== "docx_native";
   const zippedCount = Object.values(statuses).filter((s) => s.kind === "zipped").length;
 
@@ -365,18 +357,19 @@ export function ExportPicker({
           </div>
 
           {/* Tracked-changes DOCX */}
+          {redlineAvailable && (
           <div className="rounded border border-[var(--border)] p-3">
             <label
               htmlFor="export-redline"
               aria-label="Tracked-changes DOCX"
-              className={`flex items-start gap-2 ${redlineUnavailable ? "" : "cursor-pointer"}`}
+              className="flex items-start gap-2 cursor-pointer"
             >
               <input
                 id="export-redline"
                 type="checkbox"
                 className="mt-0.5"
                 checked={selected.has("redline")}
-                disabled={started || !!redlineUnavailable}
+                disabled={started}
                 onChange={() => toggle("redline")}
               />
               <span>
@@ -384,7 +377,7 @@ export function ExportPicker({
                   Tracked-changes DOCX
                 </Body>
                 <Meta as="span" className="block text-[var(--text-secondary)]">
-                  {redlineUnavailable ?? "Redlines as Word tracked changes, for a property that will negotiate in the document."}
+                  Redlines as Word tracked changes, for a property that will negotiate in the document.
                 </Meta>
               </span>
             </label>
@@ -399,8 +392,10 @@ export function ExportPicker({
               />
             )}
           </div>
+          )}
 
           {/* Proposed contract */}
+          {cleanAvailable && (
           <div className="rounded border border-[var(--border)] p-3">
             <label
               htmlFor="export-clean"
@@ -436,6 +431,7 @@ export function ExportPicker({
               />
             )}
           </div>
+          )}
         </div>
       </DialogShell>
     </>
