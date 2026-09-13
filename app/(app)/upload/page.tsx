@@ -16,6 +16,17 @@ interface OpenThread {
   roundCount: number;
 }
 
+const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".doc"];
+const UNSUPPORTED_TYPE_MESSAGE = "Unsupported file type. Upload a PDF, DOCX, or DOC contract.";
+
+// Drag-and-drop bypasses the file input's `accept` filter entirely, and a
+// dropped file's `type` can be empty depending on OS/browser — checking the
+// extension is what actually works for both paths.
+function hasAcceptedExtension(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -39,7 +50,29 @@ export default function UploadPage() {
     e.preventDefault();
     setDragActive(false);
     const dropped = e.dataTransfer.files?.[0];
-    if (dropped) setFile(dropped);
+    if (!dropped) return;
+    if (!hasAcceptedExtension(dropped.name)) {
+      setFile(null);
+      setStatus("error");
+      setErrorMessage(UNSUPPORTED_TYPE_MESSAGE);
+      return;
+    }
+    setStatus("idle");
+    setErrorMessage("");
+    setFile(dropped);
+  }
+
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = e.target.files?.[0] ?? null;
+    if (selected && !hasAcceptedExtension(selected.name)) {
+      setFile(null);
+      setStatus("error");
+      setErrorMessage(UNSUPPORTED_TYPE_MESSAGE);
+      return;
+    }
+    setStatus("idle");
+    setErrorMessage("");
+    setFile(selected);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -122,7 +155,7 @@ export default function UploadPage() {
                 type="file"
                 accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
                 required
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={handleFileInputChange}
               />
               <Meta as="p" className="text-[var(--text-muted)] mt-1">
                 PDF, DOCX, or DOC, up to 32MB.
