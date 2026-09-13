@@ -4,6 +4,7 @@ import { SEVERITY_STYLE } from "./finding-card";
 import type { FindingsOverview, FindingSeverity } from "@/lib/findings-overview";
 import { formatCurrency } from "@/lib/format";
 import { Body, Meta } from "@/components/ui/typography";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/cn";
 
 const SEVERITY_KEYS: FindingSeverity[] = ["high", "medium", "low", "note"];
@@ -65,7 +66,7 @@ export default function FindingsOverviewBar({
       )}
 
       <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
-        <input type="checkbox" checked={hideDecided} onChange={onToggleHideDecided} />
+        <Checkbox checked={hideDecided} onChange={onToggleHideDecided} />
         Hide decided
       </label>
 

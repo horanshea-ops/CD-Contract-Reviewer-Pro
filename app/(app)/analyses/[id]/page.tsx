@@ -369,26 +369,30 @@ export default function AnalysisPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-[var(--border)] bg-white px-6 py-3 flex items-center justify-between shrink-0">
-        <div>
+      <div className="border-b border-[var(--border)] bg-white px-6 py-3 flex items-center justify-between gap-4 shrink-0">
+        <div className="min-w-0">
           <Link href="/" className="text-xs text-[var(--text-muted)] hover:text-[var(--cd-navy)]">
             ← Back
           </Link>
-          <Title className="text-[var(--text-primary)]">{data.filename}</Title>
-          {data.thread_id && (
-            <Link
-              href={`/threads/${data.thread_id}`}
-              className="block text-xs text-[var(--cd-navy)] hover:underline mt-0.5"
-            >
-              Round {data.round_number} of {data.propertyName ?? "this negotiation"}
-            </Link>
-          )}
+          <Title className="text-[var(--text-primary)] truncate">{data.filename}</Title>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {data.thread_id && (
+              <>
+                <Link href={`/threads/${data.thread_id}`} className="text-xs text-[var(--cd-navy)] hover:underline">
+                  Round {data.round_number} of {data.propertyName ?? "this negotiation"}
+                </Link>
+                <span className="text-[var(--border-strong)]" aria-hidden="true">
+                  ·
+                </span>
+              </>
+            )}
+            <Meta as="span" className="text-[var(--text-muted)]">
+              {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"} · not legal advice, review each
+              one
+            </Meta>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Meta as="p" className="text-[var(--text-muted)]">
-            {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"} · not legal advice, review each
-            one
-          </Meta>
+        <div className="flex items-center gap-2 shrink-0">
           <ExportPicker
             analysisId={data.id}
             includedCount={overview.includedCount}
