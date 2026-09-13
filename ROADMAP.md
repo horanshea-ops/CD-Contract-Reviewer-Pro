@@ -579,8 +579,18 @@ was added later and outranks 5-12; see its own note on sequencing.
       (`app/(app)/threads/[id]/page.tsx`). Verified live against the Harborview thread
       in the dev database: reads "28 files downloaded 9/12/2026". 714/714 tests, lint
       and typecheck clean.
-- [ ] **5. The edit box is four rows for a 600-character clause.** Editing contract
-      language happens in a 98px window with no expand.
+- [x] **5. The edit box is four rows for a 600-character clause. Fixed 2026-09-12
+      (branch `phase/roadmap-5-textarea-height`).** `rows={4}` on the finding card's
+      edit textarea gave a 98px window for editing contract language.
+      `FieldTextarea` is shared with the standards admin screen and both email
+      panels, so the fix is at the finding-card call site only
+      (`app/(app)/analyses/[id]/finding-card.tsx`) — `rows={10}`. The component
+      already carries Tailwind's default `resize: vertical` with no override
+      disabling it, so the drag handle to expand further was already there; the
+      missing piece was real starting height. Verified live against the Harborview
+      analysis: an editable 600-character clause now shows in full with no
+      scrolling, `getComputedStyle(textarea).resize === "vertical"`. 714/714 tests,
+      lint and typecheck clean.
 - [ ] **6. Nothing warns at export time that 13 findings are still undecided.** The
       header says so, but the export dialog is where it matters, and undecided findings
       are silently excluded.

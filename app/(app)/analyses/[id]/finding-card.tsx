@@ -245,7 +245,7 @@ export default function FindingCard({
       {mode === "editing" && (
         <div className="mt-3 space-y-2">
           <Field label="Edited language">
-            <FieldTextarea value={editedLanguage} onChange={(e) => setEditedLanguage(e.target.value)} rows={4} />
+            <FieldTextarea value={editedLanguage} onChange={(e) => setEditedLanguage(e.target.value)} rows={10} />
           </Field>
           <div className="flex gap-2">
             <Button
