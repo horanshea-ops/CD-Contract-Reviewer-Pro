@@ -80,12 +80,14 @@ const IDLE_STATUSES: Record<ExportKey, RowStatus> = {
 export function ExportPicker({
   analysisId,
   includedCount,
+  undecidedCount,
   sourceFormat,
   intakeRoute,
   intakeHealthReason,
 }: {
   analysisId: string;
   includedCount: number;
+  undecidedCount: number;
   sourceFormat: "pdf" | "docx" | "doc";
   intakeRoute: "docx_native" | "pdf" | null;
   intakeHealthReason: string | null;
@@ -270,6 +272,13 @@ export function ExportPicker({
         {zippedCount > 0 && (
           <Body as="p" className="mb-3 rounded bg-[var(--surface-muted)] p-2 text-[var(--status-success)]">
             Downloaded {zipName} — {zippedCount} files.
+          </Body>
+        )}
+
+        {undecidedCount > 0 && (
+          <Body as="p" className="mb-3 rounded bg-[var(--surface-muted)] p-2 text-[var(--text-secondary)]">
+            {undecidedCount} finding{undecidedCount === 1 ? "" : "s"} still need{undecidedCount === 1 ? "s" : ""} a
+            decision and won&apos;t be in any of these exports.
           </Body>
         )}
 

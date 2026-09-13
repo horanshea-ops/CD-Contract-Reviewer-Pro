@@ -324,6 +324,7 @@ export default function AnalysisPage() {
           <ExportPicker
             analysisId={data.id}
             includedCount={includedCount}
+            undecidedCount={undecidedCount}
             sourceFormat={data.source_format}
             intakeRoute={data.intake_route}
             intakeHealthReason={data.intake_health?.reason ?? null}

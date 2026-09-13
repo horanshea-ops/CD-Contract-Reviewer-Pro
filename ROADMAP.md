@@ -591,9 +591,16 @@ was added later and outranks 5-12; see its own note on sequencing.
       analysis: an editable 600-character clause now shows in full with no
       scrolling, `getComputedStyle(textarea).resize === "vertical"`. 714/714 tests,
       lint and typecheck clean.
-- [ ] **6. Nothing warns at export time that 13 findings are still undecided.** The
-      header says so, but the export dialog is where it matters, and undecided findings
-      are silently excluded.
+- [x] **6. Nothing warns at export time that 13 findings are still undecided. Fixed
+      2026-09-12 (branch `phase/roadmap-6-undecided-warning`).** The header said so,
+      but the export dialog, where it matters, didn't. `undecidedCount` was already
+      computed in `app/(app)/analyses/[id]/page.tsx` and now passes into
+      `ExportPicker`, which renders one warning above the format list — not per row —
+      when it's greater than zero. `components/export-picker.tsx`'s two-phase
+      export flow (preflight settle, then zip) is untouched. Verified live against
+      the Harborview analysis (13 undecided of 25): the dialog reads "13 findings
+      still need a decision and won't be in any of these exports." above the
+      checkboxes. 714/714 tests, lint and typecheck clean.
 - [ ] **7. No overview of a review.** 25 findings arrive as a flat list with no counts
       by severity, no total exposure, no filter, no way to hide the decided ones and no
       keyboard path. An associate loses their place after ten decisions.
