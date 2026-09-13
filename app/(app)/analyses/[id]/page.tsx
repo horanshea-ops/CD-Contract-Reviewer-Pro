@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import FindingCard, { SEVERITY_STYLE, type Finding } from "./finding-card";
+import FindingsOverviewBar from "./findings-overview-bar";
 import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
+import { computeFindingsOverview, SEVERITY_ORDER, type FindingSeverity } from "@/lib/findings-overview";
 import { ExportPicker } from "@/components/export-picker";
 import { EmailPicker } from "@/components/email-picker";
 import { AiClauseReview } from "@/components/ai-clause-review";
@@ -87,6 +89,8 @@ export default function AnalysisPage() {
   const [offline, setOffline] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState("");
+  const [hiddenSeverities, setHiddenSeverities] = useState<Set<FindingSeverity>>(new Set());
+  const [hideDecided, setHideDecided] = useState(false);
   const pollNow = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -144,6 +148,72 @@ export default function AnalysisPage() {
     return () => clearInterval(interval);
   }, [data]);
 
+  const sortedFindings = useMemo(() => {
+    if (!data) return [];
+    return [...data.findings].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+  }, [data]);
+
+  const visibleFindings = useMemo(
+    () => sortedFindings.filter((f) => !hiddenSeverities.has(f.severity) && !(hideDecided && f.current_action)),
+    [sortedFindings, hiddenSeverities, hideDecided]
+  );
+
+  const handleSelectFinding = useCallback(
+    async (finding: Finding) => {
+      setSelectedFindingId(finding.id);
+      if (data?.intake_route === "docx_native") {
+        // DocxPreview resolves its own highlight from data it already has —
+        // no PDF page/coordinate concept applies here.
+        return;
+      }
+      setActivePage(finding.location_page);
+      if (finding.location_page == null || finding.id in highlightCache) return;
+      try {
+        const res = await fetch(`/api/findings/${finding.id}/highlight`);
+        const body = await res.json();
+        setHighlightCache((prev) => ({ ...prev, [finding.id]: res.ok ? (body.rects ?? null) : null }));
+      } catch {
+        setHighlightCache((prev) => ({ ...prev, [finding.id]: null }));
+      }
+    },
+    [data?.intake_route, highlightCache]
+  );
+
+  // Navigation only, per the user's call — no key takes an action, so a stray
+  // keypress can't accept or dismiss the wrong finding. Ignored while typing
+  // in a finding's own edit/dismiss controls.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+      if (visibleFindings.length === 0) return;
+      e.preventDefault();
+
+      const currentIndex = visibleFindings.findIndex((f) => f.id === selectedFindingId);
+      const nextIndex =
+        currentIndex === -1
+          ? 0
+          : e.key === "ArrowDown"
+            ? Math.min(currentIndex + 1, visibleFindings.length - 1)
+            : Math.max(currentIndex - 1, 0);
+
+      const next = visibleFindings[nextIndex];
+      if (next.id === selectedFindingId) return;
+      handleSelectFinding(next);
+      document.getElementById(`finding-${next.id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [visibleFindings, selectedFindingId, handleSelectFinding]);
+
   async function retryAnalysis() {
     setRetrying(true);
     setRetryError("");
@@ -163,24 +233,6 @@ export default function AnalysisPage() {
     }
   }
 
-  async function handleSelectFinding(finding: Finding) {
-    setSelectedFindingId(finding.id);
-    if (data?.intake_route === "docx_native") {
-      // DocxPreview resolves its own highlight from data it already has —
-      // no PDF page/coordinate concept applies here.
-      return;
-    }
-    setActivePage(finding.location_page);
-    if (finding.location_page == null || finding.id in highlightCache) return;
-    try {
-      const res = await fetch(`/api/findings/${finding.id}/highlight`);
-      const body = await res.json();
-      setHighlightCache((prev) => ({ ...prev, [finding.id]: res.ok ? (body.rects ?? null) : null }));
-    } catch {
-      setHighlightCache((prev) => ({ ...prev, [finding.id]: null }));
-    }
-  }
-
   function handleActionRecorded(findingId: string, action: Finding["current_action"]) {
     setData((prev) =>
       prev
@@ -190,6 +242,31 @@ export default function AnalysisPage() {
           }
         : prev
     );
+
+    // Advances to the next undecided finding still visible under the active
+    // filter, so deciding a run of findings doesn't strand the associate on a
+    // now-decided card. Never wraps — landing back at the top of a long list
+    // a moment after finishing it would be disorienting, not helpful.
+    if (findingId !== selectedFindingId) return;
+    const decidedIndex = visibleFindings.findIndex((f) => f.id === findingId);
+    if (decidedIndex === -1) return;
+    const next = visibleFindings.slice(decidedIndex + 1).find((f) => !f.current_action);
+    if (!next) return;
+    handleSelectFinding(next);
+    document.getElementById(`finding-${next.id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  function toggleSeverity(severity: FindingSeverity) {
+    setHiddenSeverities((prev) => {
+      const next = new Set(prev);
+      if (next.has(severity)) next.delete(severity);
+      else next.add(severity);
+      return next;
+    });
+  }
+
+  function toggleHideDecided() {
+    setHideDecided((prev) => !prev);
   }
 
   if (loadError) {
@@ -288,15 +365,7 @@ export default function AnalysisPage() {
     );
   }
 
-  const sortedFindings = [...data.findings].sort((a, b) => {
-    const order = { high: 0, medium: 1, low: 2, note: 3 };
-    return order[a.severity] - order[b.severity];
-  });
-
-  const includedCount = sortedFindings.filter(
-    (f) => f.current_action?.action === "accept" || f.current_action?.action === "edit"
-  ).length;
-  const undecidedCount = sortedFindings.filter((f) => !f.current_action).length;
+  const overview = computeFindingsOverview(sortedFindings);
 
   return (
     <div className="h-full flex flex-col">
@@ -317,14 +386,13 @@ export default function AnalysisPage() {
         </div>
         <div className="flex items-center gap-4">
           <Meta as="p" className="text-[var(--text-muted)]">
-            {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"}
-            {undecidedCount > 0 && ` · ${undecidedCount} still need a decision`}
-            {" · not legal advice, review each one"}
+            {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"} · not legal advice, review each
+            one
           </Meta>
           <ExportPicker
             analysisId={data.id}
-            includedCount={includedCount}
-            undecidedCount={undecidedCount}
+            includedCount={overview.includedCount}
+            undecidedCount={overview.undecidedCount}
             sourceFormat={data.source_format}
             intakeRoute={data.intake_route}
             intakeHealthReason={data.intake_health?.reason ?? null}
@@ -371,22 +439,40 @@ export default function AnalysisPage() {
           )}
         </div>
 
-        <div className="lg:w-1/2 overflow-y-auto px-4 py-4 space-y-3 bg-[var(--surface-muted)]">
-          {sortedFindings.length === 0 ? (
-            <Body as="p" className="text-[var(--text-secondary)]">
-              No findings. Nothing flagged against the standards library.
-            </Body>
-          ) : (
-            sortedFindings.map((f) => (
-              <FindingCard
-                key={f.id}
-                finding={f}
-                onActionRecorded={handleActionRecorded}
-                onSelectFinding={handleSelectFinding}
-                locateMode={data.intake_route === "docx_native" ? "docx" : "pdf"}
+        <div className="lg:w-1/2 overflow-y-auto bg-[var(--surface-muted)]">
+          {sortedFindings.length > 0 && (
+            <div className="sticky top-0 z-10 bg-[var(--surface-muted)] px-4 py-3 border-b border-[var(--border)]">
+              <FindingsOverviewBar
+                overview={overview}
+                hiddenSeverities={hiddenSeverities}
+                onToggleSeverity={toggleSeverity}
+                hideDecided={hideDecided}
+                onToggleHideDecided={toggleHideDecided}
               />
-            ))
+            </div>
           )}
+          <div className="px-4 py-4 space-y-3">
+            {sortedFindings.length === 0 ? (
+              <Body as="p" className="text-[var(--text-secondary)]">
+                No findings. Nothing flagged against the standards library.
+              </Body>
+            ) : visibleFindings.length === 0 ? (
+              <Body as="p" className="text-[var(--text-secondary)]">
+                No findings match this filter.
+              </Body>
+            ) : (
+              visibleFindings.map((f) => (
+                <FindingCard
+                  key={f.id}
+                  finding={f}
+                  focused={f.id === selectedFindingId}
+                  onActionRecorded={handleActionRecorded}
+                  onSelectFinding={handleSelectFinding}
+                  locateMode={data.intake_route === "docx_native" ? "docx" : "pdf"}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

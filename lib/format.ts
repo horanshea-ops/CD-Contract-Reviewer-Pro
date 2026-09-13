@@ -5,3 +5,7 @@ export function titleCase(s: string): string {
     .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : word))
     .join(" ");
 }
+
+export function formatCurrency(amount: number): string {
+  return `$${amount.toLocaleString()}`;
+}
