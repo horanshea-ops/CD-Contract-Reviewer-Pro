@@ -115,7 +115,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                         {findingCountByRound.get(round.id) ?? 0} finding
                         {(findingCountByRound.get(round.id) ?? 0) === 1 ? "" : "s"}
                         {sent.length > 0 &&
-                          ` · sent ${sent.map((s) => s.format).join(", ")} ${new Date(sent[0].created_at).toLocaleDateString()}`}
+                          ` · ${sent.length} file${sent.length === 1 ? "" : "s"} downloaded ${new Date(
+                            sent.reduce((latest, s) => (s.created_at > latest ? s.created_at : latest), sent[0].created_at)
+                          ).toLocaleDateString()}`}
                       </Meta>
                     </div>
                     <StatusPill
