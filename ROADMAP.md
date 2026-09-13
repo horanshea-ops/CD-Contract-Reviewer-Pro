@@ -499,7 +499,8 @@ connection dropping mid-run supplied the fourth for free.
 **Open, in the order agreed with the user (2026-09-11).** Items 1, 2 and 3 are done;
 items 4-12 follow in this order, and none of them should be folded into a finished pass
 — a restyle or a visibility change that also changes behaviour cannot be reviewed by
-eye. Item 4 is next; items 4-12 are Sonnet 5 work under the CLAUDE.md table.
+eye. Item 4 is next; items 4-12 are Sonnet 5 work under the CLAUDE.md table. Item 13
+was added later and outranks 5-12; see its own note on sequencing.
 
 - [x] **1. Visual style, raised by the user twice during the walkthrough. High
       priority. Fixed 2026-09-12 (4d67e3a), on `phase/ui-style-pass`.** A finding card
@@ -595,6 +596,24 @@ eye. Item 4 is next; items 4-12 are Sonnet 5 work under the CLAUDE.md table.
       expected to run this on a phone. Recorded so it isn't rediscovered: the dashboard
       table runs off-screen and hides the Status column, and the review header collapses
       into a cramped ribbon.
+- [ ] **13. A second style pass, beyond item 1's typography. Raised by the user
+      2026-09-12, fairly high priority — above items 5-12.** Item 1 fixed consistency,
+      not design. It applied a five-step type scale, collapsed three hand-rolled modal
+      headers into one dialog shell, confined uppercase to `StatusPill`, dropped
+      italics on quoted contract text and settled button weights. What it deliberately
+      did not touch is the look itself — colour, spacing, density, the shape of a
+      finding card, how a screen reads at a glance.
+
+      **Not yet scoped.** Before any work starts, pin down which screens read as wrong
+      and what "wrong" means on each — the review screen, the dashboard and the upload
+      form are different problems, and "looks cheap" was the whole brief last time.
+      Worth deciding up front whether this is a palette-and-spacing pass over the
+      existing layout or a genuine redesign of the review screen, because item 7 (no
+      overview of a review) is a layout change to that same screen and the two should
+      land together rather than fight each other.
+
+      Same rule as the rest of this list: a restyle must not carry a behaviour change,
+      or it cannot be reviewed by eye.
 
 **A redline was opened in real Word for the first time (2026-09-11).** The user opened
 this walkthrough's export in Word for Mac. Every previous claim about the redline rested
