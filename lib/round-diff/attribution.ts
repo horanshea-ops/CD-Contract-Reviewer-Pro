@@ -1,5 +1,5 @@
 import type { ExtractedPart, MarkupSpan, RevisionInfo } from "../docx/types";
-import type { DiffRegion, Range } from "./diff";
+import type { Range, RegionKind } from "./diff";
 
 /**
  * Who made a change, when the returned document still carries Word's revision
@@ -128,7 +128,7 @@ export interface OurChangeFate {
 export function fateOfOurChanges(
   baselineMarks: RevisionMark[],
   ours: string[],
-  regions: DiffRegion[]
+  regions: { kind: RegionKind; baseline: Range }[]
 ): OurChangeFate[] {
   const inserted = baselineMarks.filter(
     (mark) =>
