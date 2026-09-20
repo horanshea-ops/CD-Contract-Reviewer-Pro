@@ -13,11 +13,16 @@ loadEnvLocal();
 
 const clip = (s: string, n = 90) => (s.length <= n ? s : `${s.slice(0, n - 1)}…`);
 
-const KIND_LABEL: Record<string, string> = {
-  insert: "added",
-  delete: "removed",
-  replace: "changed",
-  move: "moved",
+/**
+ * Named by what happened and where, not by where alone. "added — Signatures"
+ * reads as though the signature clause changed, when a new clause was placed
+ * after it.
+ */
+const PHRASE: Record<string, (where: string) => string> = {
+  insert: (where) => `new text in ${where}`,
+  delete: (where) => `removed from ${where}`,
+  replace: (where) => `changed in ${where}`,
+  move: (where) => `moved — ${where}`,
 };
 
 async function main() {
@@ -66,7 +71,7 @@ async function main() {
       ? ` (was ${region.baselineSection.number})`
       : "";
 
-    console.log(`${String(i + 1).padStart(3)}. ${KIND_LABEL[region.kind]} — ${where}${moved}`);
+    console.log(`${String(i + 1).padStart(3)}. ${PHRASE[region.kind](where)}${moved}`);
     if (region.cell) console.log(`     in table ${region.cell.tableIndex + 1}, cell ${region.cell.cellIndex + 1}`);
     if (region.baselineText) console.log(`     was:  ${clip(region.baselineText)}`);
     if (region.returnedText) console.log(`     now:  ${clip(region.returnedText)}`);

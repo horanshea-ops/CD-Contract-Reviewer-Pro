@@ -43,11 +43,16 @@ interface RoundDiffResponse {
   regions?: Region[];
 }
 
-const KIND_LABEL: Record<Region["kind"], string> = {
-  insert: "Added",
-  delete: "Removed",
-  replace: "Changed",
-  move: "Moved",
+/**
+ * Named by what happened and where together. "Added — Signatures" reads as
+ * though the signature clause changed, when what happened is that a new clause
+ * was placed after it.
+ */
+const PHRASE: Record<Region["kind"], (where: string) => string> = {
+  insert: (where) => `New text in ${where}`,
+  delete: (where) => `Removed from ${where}`,
+  replace: (where) => `Changed in ${where}`,
+  move: (where) => `Moved — ${where}`,
 };
 
 const CONFIDENCE_NOTE: Record<"high" | "medium" | "low", string> = {
@@ -160,7 +165,7 @@ export function RoundChanges({ analysisId }: { analysisId: string }) {
               <div key={i} className="px-5 py-4">
                 <div className="flex items-baseline justify-between gap-3">
                   <Body as="p" className="font-medium text-[var(--text-primary)]">
-                    {KIND_LABEL[region.kind]} — {where(region)}
+                    {PHRASE[region.kind](where(region))}
                     <Renumbered region={region} />
                   </Body>
                   {region.authors.length > 0 && (
