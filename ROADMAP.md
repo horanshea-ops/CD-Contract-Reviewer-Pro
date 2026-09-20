@@ -889,9 +889,9 @@ changes applied, clean, including the reject-round-trip.
   `position`/`severity_default` have never been checked against a real deal outcome.
   That is what the answer key buys. It is not more clause types.
 
-- **Work that does not need CD — now §2.0.1/§2.0.2/§2.0.3/§2.1.1 (noted 2026-09-09,
-  not started).** Numbered into `MASTER_PLAN.md` on 2026-09-09 and marked ungated there;
-  90-140 hours in total. In leverage order:
+- **Work that does not need CD — §2.0.1/§2.0.2/§2.0.3/§2.1.1, all four now done, last
+  one 2026-09-20.** Numbered into `MASTER_PLAN.md` on 2026-09-09 and marked ungated
+  there; 90-140 hours in total, noted "not started" at the time. In leverage order:
   1. **The eval harness — §2.0.1, Opus 5 · high. DONE 2026-09-09.** Built against a
      synthetic answer key, so CD's real key arrives as a data swap rather than a build.
      `lib/eval/` never imports the synthetic key and a test asserts it.
@@ -943,10 +943,12 @@ changes applied, clean, including the reject-round-trip.
      dependent features (deadlines, what-if, savings, exec summaries) stay gated.
      **This was a deviation from "nothing in Part 2 starts until the gate clears";
      the user accepted it on 2026-09-09 and `MASTER_PLAN.md` now states it directly.**
-  3. **Diff mechanics — §2.1.1, Opus 5 · xhigh.** Diffing what we sent against what came
-     back is document work. The reconciliation into `finding_outcomes` is now §2.1.2 and
-     stays gated, because "the property rejected this finding" only means something once
-     the finding is known to be right.
+  3. **Diff mechanics — §2.1.1, Opus 5 · xhigh. DONE 2026-09-20.** See the full entry
+     above (Open items) for what it does and what it found. The reconciliation into
+     `finding_outcomes` is still §2.1.2 and stays gated, because "the property rejected
+     this finding" only means something once the finding is known to be right —
+     `finding_outcomes` itself turned out to already exist as a real table (migration
+     `002`), so §2.1.2 needs a writer, not a migration.
   4. **Deploy** — still local-only, needed regardless. A 2026-09-19 hosting audit
      found the app already returns 202 and polls for status (build brief §5) —
      the browser never holds a request open for the 3-5 minute review. The gap
