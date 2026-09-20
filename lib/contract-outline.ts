@@ -47,6 +47,17 @@ export function outlineOf(text: string): Section[] {
 }
 
 /**
+ * The section's name without its number, for showing next to the number.
+ * A heading keeps its number in the label, so printing both reads "2 2.
+ * Attrition".
+ */
+export function sectionTitle(section: Section): string {
+  if (!section.number) return section.label;
+  const stripped = section.label.replace(/^\s*\d+(?:\.\d+)*[.)]?\s*/, "").trim();
+  return stripped || section.label;
+}
+
+/**
  * The section an offset falls in, or null when it sits above the first heading —
  * a recitals block or a preamble, which belongs to no clause.
  */

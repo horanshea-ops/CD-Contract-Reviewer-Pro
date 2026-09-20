@@ -15,6 +15,7 @@
     "fixtures:generate": "tsx scripts/generate-docx-fixtures.ts",
     "pipeline:test": "tsx scripts/test-analysis.ts",
     "export:degradation-rate": "tsx scripts/degradation-rate.ts",
+    "diff:round": "tsx scripts/diff-round.ts",
     "standards:seed": "tsx scripts/seed-standards.ts",
     "standards:status": "tsx scripts/standards-status.ts",
     "associate:seed-test": "tsx scripts/seed-test-associate.ts",

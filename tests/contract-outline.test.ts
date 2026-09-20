@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leadingNumber, outlineOf, sectionAt } from "@/lib/contract-outline";
+import { leadingNumber, outlineOf, sectionAt, sectionTitle } from "@/lib/contract-outline";
 
 /**
  * The section outline §1.5 disambiguates with and §2.1.1 maps changed regions
@@ -57,6 +57,22 @@ describe("outlineOf", () => {
   it("ignores a number that is not the start of a clause", () => {
     // "within 30 days" opens no section; only a line-leading number does.
     expect(outlineOf("Payment is due within 30. days of invoice.")).toEqual([]);
+  });
+});
+
+describe("sectionTitle", () => {
+  it("drops a number the heading already carries", () => {
+    const [roomBlock, cutoff] = outlineOf(CONTRACT);
+    expect(sectionTitle(roomBlock)).toBe("Room Block");
+    expect(sectionTitle(cutoff)).toBe("Cutoff Date");
+  });
+
+  it("leaves an unnumbered heading alone", () => {
+    expect(sectionTitle(outlineOf("# Force Majeure\n\nText.")[0])).toBe("Force Majeure");
+  });
+
+  it("keeps the label when stripping would leave nothing", () => {
+    expect(sectionTitle(outlineOf("## 4.1\n\nText.")[0])).toBe("4.1");
   });
 });
 

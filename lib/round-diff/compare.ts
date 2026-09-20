@@ -1,4 +1,4 @@
-import { outlineOf, sectionAt, type Section } from "../contract-outline";
+import { outlineOf, sectionAt, sectionTitle, type Section } from "../contract-outline";
 import { isSynthetic, type ExtractedPart, type MapEntry, type SourceRef } from "../docx/types";
 import {
   fateOfOurChanges,
@@ -77,7 +77,10 @@ export interface VersionInput {
 
 export interface SectionRef {
   number: string | null;
+  /** The heading line as written, number and all. */
   label: string;
+  /** The heading without its number, for showing beside the number. */
+  title: string;
 }
 
 export interface ComparedRegion {
@@ -119,7 +122,7 @@ export interface ComparedVersions {
 }
 
 const asRef = (section: Section | null): SectionRef | null =>
-  section && { number: section.number, label: section.label };
+  section && { number: section.number, label: section.label, title: sectionTitle(section) };
 
 /**
  * The source reference nearest an offset, looking forward past the synthetic
