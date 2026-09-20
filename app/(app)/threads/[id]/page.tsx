@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { Card } from "@/components/ui/card";
+import { RoundChanges } from "@/components/round-changes";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Body, Meta, Subtitle, Title } from "@/components/ui/typography";
 
@@ -37,7 +38,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
 
   const { data: rounds } = await admin
     .from("analyses")
-    .select("id, filename, status, created_at, round_number")
+    .select("id, filename, status, created_at, round_number, parent_analysis_id")
     .eq("thread_id", id)
     .order("round_number", { ascending: true });
 
@@ -64,6 +65,12 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   }
 
   const clientName = (thread.clients as unknown as { name: string } | null)?.name ?? null;
+
+  // §2.1.1 — the most recent round that has a previous round to be read
+  // against. A first round has nothing to compare, so nothing is shown for it.
+  const comparable = [...(rounds ?? [])]
+    .reverse()
+    .find((round) => round.parent_analysis_id && round.status === "complete");
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -131,6 +138,8 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           )}
         </div>
       </Card>
+
+      {comparable && <RoundChanges analysisId={comparable.id} />}
     </div>
   );
 }
