@@ -289,9 +289,16 @@ need not.
       See `docs/eval-harness.md`, including how CD's real key swaps in.
 - [x] 3. Scaffold — Next.js, Supabase schema, own auth layer, and GitHub repo
       ([horanshea-ops/CD-Contract-Reviewer-Pro](https://github.com/horanshea-ops/CD-Contract-Reviewer-Pro))
-      all done; **Vercel deploy not started**, still local-only (`npm run dev`). Note
-      for later: real deploys need Vercel Pro ($20/mo) — Hobby's 60s function limit
-      is under our 300s analysis budget.
+      all done; **deploy not started**, still local-only (`npm run dev`).
+      **Superseded 2026-09-19 by a hosting audit** (see below): the earlier note
+      here said Vercel Pro ($20/mo) was needed because Hobby's 60s function limit
+      is under the 300s analysis budget. The audit found the actual fix is
+      cheaper and more robust than raising that ceiling — deploy to Render (or
+      another host running a real persistent Node process) instead, where
+      `after()` keeps running the same way it does in `npm run dev` with no
+      function-duration ceiling to fight at all, at zero required app-code
+      change. Vercel Pro's 300s cap was also uncomfortably close to a 5-minute
+      review to begin with, so this isn't just cheaper, it's less fragile.
 - [x] 4. Upload and analysis flow — async job via `after()`, status polling, real
       failure states (upload validation, malformed-model-output retry-then-fail)
 - [x] 4a. DOCX/DOC upload (added to scope, competitor parity) — converted
@@ -694,13 +701,33 @@ was added later and outranks 5-12; see its own note on sequencing.
       did not touch is the look itself — colour, spacing, density, the shape of a
       finding card, how a screen reads at a glance.
 
-      **Not yet scoped.** Before any work starts, pin down which screens read as wrong
-      and what "wrong" means on each — the review screen, the dashboard and the upload
-      form are different problems, and "looks cheap" was the whole brief last time.
-      Worth deciding up front whether this is a palette-and-spacing pass over the
-      existing layout or a genuine redesign of the review screen, because item 7 (no
-      overview of a review) is a layout change to that same screen and the two should
-      land together rather than fight each other.
+      **In progress. The review screen is scoped and two pieces have shipped;
+      the dashboard and upload form are still open.**
+
+      - [x] **Header hierarchy, finding-card grouping, styled checkboxes —
+            shipped 2026-09-12/13** (branch `ui/pre-demo-polish`, merged
+            1c6deaf). First pass at the review screen specifically: the
+            analysis header's visual hierarchy, how findings group on the
+            card, and replacing default checkbox styling with a real
+            component (`components/ui/checkbox.tsx`).
+      - [x] **Finding card cut down to a "quiet ledger" — shipped 2026-09-13**
+            (branch `ui/quiet-ledger-finding-card`, merged 5b42ec5). The card
+            still carried four type sizes and roughly eight distinct colours
+            for its own metadata and structure even after item 1's pass —
+            severity was a coloured pill, status was a second coloured pill,
+            and two near-identical greys (`--text-secondary`/`--text-muted`)
+            did the same job. Picked from three rendered alternatives (a
+            comparison artifact, not committed to the repo). Severity is now a
+            small dot instead of a pill; the quote and proposed-language
+            sections read at the same size as everything else, with a hairline
+            rule and a small-caps label carrying the structure instead of a
+            size jump or a tinted box. Down to two type sizes and four colours
+            on the card. `app/(app)/analyses/[id]/finding-card.tsx`.
+
+      **Still open: the dashboard and upload form.** Neither has had this pass
+      yet — "looks cheap" was about the review screen specifically, but the
+      original brief named all three as candidates. Worth deciding whether
+      they need the same treatment before calling item 13 done.
 
       Same rule as the rest of this list: a restyle must not carry a behaviour change,
       or it cannot be reviewed by eye.
@@ -868,8 +895,21 @@ changes applied, clean, including the reject-round-trip.
      back is document work. The reconciliation into `finding_outcomes` is now §2.1.2 and
      stays gated, because "the property rejected this finding" only means something once
      the finding is known to be right.
-  4. **Vercel deploy** — still local-only, needed regardless. Note Pro ($20/mo);
-     Hobby's 60s function limit is under the 300s analysis budget.
+  4. **Deploy** — still local-only, needed regardless. A 2026-09-19 hosting audit
+     found the app already returns 202 and polls for status (build brief §5) —
+     the browser never holds a request open for the 3-5 minute review. The gap
+     is that the background continuation runs via `after()` inside the same
+     serverless invocation that answered the request, so *any* platform's
+     function-duration ceiling becomes the review's ceiling. Vercel Pro ($20/mo)
+     would raise that ceiling to 300s — still uncomfortably close to a 5-minute
+     run. Recommendation: Render (or Fly/Railway), a real persistent Node
+     process with no such ceiling at all, at zero required app-code change.
+     Cloudflare Workers+Queues and Netlify Background Functions were both
+     evaluated and ruled out for now — Cloudflare's Node compatibility is a real
+     open risk given this app's document-processing dependencies
+     (`mammoth`/`pdf-lib`/`jszip`/`word-extractor`/`pdfjs-dist`), and Netlify's
+     background-function model needs the job-dispatch code restructured rather
+     than trusting `after()` to route there automatically.
   5. **The §1.5 table-quote follow-up** below — narrow, but tables carry the money.
 
 - **Portability: retooling for a different client — §2.0.3, DONE 2026-09-11.**
