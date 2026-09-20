@@ -93,3 +93,37 @@ export async function buildDocx(
     ...extra,
   });
 }
+
+/**
+ * A three-level numbering definition — "1.", "1.a", "1.a.i" — matching the one
+ * fixture 07 uses, so a test can exercise real resolved list numbers rather
+ * than the unnumbered fallback.
+ */
+export const NUMBERING_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering ${W_NS}>
+  <w:abstractNum w:abstractNumId="0">
+    <w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl>
+    <w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%1.%2"/></w:lvl>
+    <w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="lowerRoman"/><w:lvlText w:val="%1.%2.%3"/></w:lvl>
+  </w:abstractNum>
+  <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>
+</w:numbering>`;
+
+/** A paragraph in that list, at the given level. */
+export const numbered = (inner: string, level = 0) =>
+  para(inner, `<w:pPr><w:numPr><w:ilvl w:val="${level}"/><w:numId w:val="1"/></w:numPr></w:pPr>`);
+
+/** A package whose paragraphs can carry resolved list numbers. */
+export async function buildNumberedDocx(body: string): Promise<Uint8Array> {
+  return buildDocx(body, {
+    "[Content_Types].xml": CONTENT_TYPES.replace(
+      "</Types>",
+      `<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`
+    ),
+    "word/_rels/document.xml.rels": DOC_RELS.replace(
+      "</Relationships>",
+      `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>`
+    ),
+    "word/numbering.xml": NUMBERING_XML,
+  });
+}
