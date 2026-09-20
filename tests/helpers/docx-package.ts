@@ -49,9 +49,9 @@ export function table(rows: string[][]): string {
   return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr>${grid}${body}</w:tbl>`;
 }
 
-export function documentXml(body: string): string {
+export function documentXml(body: string, sectPrExtra = ""): string {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document ${W_NS}><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:body></w:document>`;
+<w:document ${W_NS}><w:body>${body}<w:sectPr>${sectPrExtra}<w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:body></w:document>`;
 }
 
 export function headerXml(body: string): string {
@@ -113,17 +113,40 @@ export const NUMBERING_XML = `<?xml version="1.0" encoding="UTF-8" standalone="y
 export const numbered = (inner: string, level = 0) =>
   para(inner, `<w:pPr><w:numPr><w:ilvl w:val="${level}"/><w:numId w:val="1"/></w:numPr></w:pPr>`);
 
+/** Relationships for the document part. DOC_RELS is self-closing, so build them. */
+export function docRelsXml(rels: { id: string; type: string; target: string }[]): string {
+  const entries = rels
+    .map((r) => `<Relationship Id="${r.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${r.type}" Target="${r.target}"/>`)
+    .join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${entries}</Relationships>`;
+}
+
+const contentTypesWith = (override: string) =>
+  CONTENT_TYPES.replace("</Types>", `${override}</Types>`);
+
 /** A package whose paragraphs can carry resolved list numbers. */
 export async function buildNumberedDocx(body: string): Promise<Uint8Array> {
   return buildDocx(body, {
-    "[Content_Types].xml": CONTENT_TYPES.replace(
-      "</Types>",
-      `<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`
+    "[Content_Types].xml": contentTypesWith(
+      `<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>`
     ),
-    "word/_rels/document.xml.rels": DOC_RELS.replace(
-      "</Relationships>",
-      `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>`
-    ),
+    "word/_rels/document.xml.rels": docRelsXml([
+      { id: "rId2", type: "numbering", target: "numbering.xml" },
+    ]),
     "word/numbering.xml": NUMBERING_XML,
+  });
+}
+
+/** A package with one header wired up, for terms that live outside the body. */
+export async function buildHeaderDocx(body: string, headerBody: string): Promise<Uint8Array> {
+  return zipParts({
+    "[Content_Types].xml": contentTypesWith(
+      `<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`
+    ),
+    "_rels/.rels": ROOT_RELS,
+    "word/document.xml": documentXml(body, `<w:headerReference w:type="default" r:id="rId2"/>`),
+    "word/_rels/document.xml.rels": docRelsXml([{ id: "rId2", type: "header", target: "header1.xml" }]),
+    "word/header1.xml": headerXml(headerBody),
   });
 }

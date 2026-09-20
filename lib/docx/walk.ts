@@ -34,6 +34,8 @@ interface Ctx {
   revision: RevisionInfo | null;
   /** True inside a table cell, where paragraphs separate with a space, not a blank line. */
   inCell: boolean;
+  /** Which views this content belongs to, after every revision enclosing it. */
+  views: { accepted: boolean; original: boolean };
 }
 
 /** Mutable per-paragraph state for the field-code machine. */
@@ -120,6 +122,17 @@ const REVISION_VIEWS: Record<RevisionKind, { accepted: boolean; original: boolea
 
 const REVISION_TAGS = new Set(["w:ins", "w:del", "w:moveTo", "w:moveFrom"]);
 
+/**
+ * Revisions compose by intersection. Wording the counterparty inserted and we
+ * then struck (§1.5.7 writes exactly that, a `w:del` inside their `w:ins`) is
+ * in neither view: it does not read in the contract as it now stands, and it
+ * was not in the contract as first drafted.
+ */
+const bothOf = (
+  outer: { accepted: boolean; original: boolean },
+  inner: { accepted: boolean; original: boolean }
+) => ({ accepted: outer.accepted && inner.accepted, original: outer.original && inner.original });
+
 function revisionFrom(node: Element): RevisionInfo {
   const kind = tag(node).replace("w:", "") as RevisionKind;
   return {
@@ -170,6 +183,7 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     insideField: false,
     revision: null,
     inCell: false,
+    views: { accepted: true, original: true },
   };
 
   /** Emits the run's text children, honouring the field-code state machine. */
@@ -292,13 +306,21 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       if (name === "w:p") { walkParagraph(child, ctx); continue; }
       if (name === "w:tbl") { walkTable(child, ctx); continue; }
       if (name === "w:r") {
-        walkRun(child, ctx, field ?? { inInstruction: false, inResult: false }, viewsFor(ctx));
+        walkRun(child, ctx, field ?? { inInstruction: false, inResult: false }, ctx.views);
         continue;
       }
       if (REVISION_TAGS.has(name)) {
         const rev = revisionFrom(child);
-        const inner: Ctx = { ...ctx, insideIns: ctx.insideIns || rev.kind === "ins" || rev.kind === "moveTo", revision: rev };
-        walkRevision(child, inner, rev, field);
+        const inner: Ctx = {
+          ...ctx,
+          insideIns: ctx.insideIns || rev.kind === "ins" || rev.kind === "moveTo",
+          revision: rev,
+          views: bothOf(ctx.views, REVISION_VIEWS[rev.kind]),
+        };
+        // Descending through the same dispatch keeps the views: a revision can
+        // wrap paragraphs, hyperlinks and further revisions, and each of those
+        // carries runs that belong to the enclosing revision, not to both views.
+        walkChildren(child, inner, field);
         continue;
       }
       if (name === "w:hyperlink") { walkChildren(child, { ...ctx, insideHyperlink: true }, field); continue; }
@@ -316,23 +338,6 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       }
       // bookmarkStart/End, proofErr, commentRangeStart/End, lastRenderedPageBreak: no text.
     }
-  }
-
-  function walkRevision(node: Element, ctx: Ctx, rev: RevisionInfo, field?: FieldState) {
-    const views = REVISION_VIEWS[rev.kind];
-    for (const child of childrenOf(node)) {
-      if (tag(child) === "w:r") {
-        walkRun(child, ctx, field ?? { inInstruction: false, inResult: false }, views);
-      } else {
-        // A revision can wrap paragraphs and nested revisions too.
-        walkChildren(child, ctx, field);
-      }
-    }
-  }
-
-  /** Plain content sits in both views; content inside a revision is handled by walkRevision. */
-  function viewsFor(_ctx: Ctx) {
-    return { accepted: true, original: true };
   }
 
   walkChildren(root as Element, baseCtx);

@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { extractDocx, isSynthetic, type MapEntry, type SourceRef } from "@/lib/docx";
+import { buildDocx, del, delRun, ins, para, run } from "../helpers/docx-package";
 
 const DIR = path.join("tests", "fixtures");
 const load = async (f: string) => extractDocx(await readFile(path.join(DIR, f)));
@@ -235,5 +236,48 @@ describe("extraction — intake health gate (§1.4.9)", () => {
     expect(r.health.route).toBe("pdf");
     // No XML jargon in something shown to an associate.
     expect(r.health.reason).not.toMatch(/xml|node|w:/i);
+  });
+});
+
+describe("extraction — revisions nested inside other revisions (§1.5.7)", () => {
+  /**
+   * §1.5's replaceSpan writes our `w:del` inside the counterparty's `w:ins`
+   * when the wording we strike is wording they added. That is what Word
+   * writes, and it is the common shape from round two of a negotiation on.
+   * Read it wrongly and the contract appears to still say something both
+   * sides have agreed to remove.
+   */
+  const nested = (outer: string, inner: string) =>
+    buildDocx(
+      para(
+        run("Group shall pay ") +
+          ins(1, outer, run("seventy ")) +
+          ins(2, outer, del(3, inner, delRun("percent "))) +
+          ins(4, outer, run("(70%)")) +
+          run(" of the shortfall.")
+      )
+    );
+
+  it("leaves wording struck inside an insertion out of the accepted view", async () => {
+    const { document } = await extractDocx(await nested("Hotel Counsel", "Jane Associate"));
+    expect(document.text).toContain("Group shall pay seventy (70%) of the shortfall.");
+    expect(document.text).not.toContain("percent");
+  });
+
+  it("leaves it out of the original view too, since it was never in the original", async () => {
+    const { document } = await extractDocx(await nested("Hotel Counsel", "Jane Associate"));
+    expect(document.originalText).toBe("Group shall pay  of the shortfall.\n\n");
+  });
+
+  it("credits the inner revision to the author who made it", async () => {
+    const { document } = await extractDocx(await nested("Hotel Counsel", "Jane Associate"));
+    const struck = document.markup.find((s) => s.text === "percent ");
+    expect(struck?.revision?.kind).toBe("del");
+    expect(struck?.revision?.author).toBe("Jane Associate");
+  });
+
+  it("keeps the map the same length as the text it describes", async () => {
+    const { document } = await extractDocx(await nested("Hotel Counsel", "Jane Associate"));
+    expect(document.map).toHaveLength(document.text.length);
   });
 });
