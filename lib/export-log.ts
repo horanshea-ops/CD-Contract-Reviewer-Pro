@@ -73,9 +73,9 @@ export async function recordResolutions(
  * convention.
  *
  * This is the only place an export's storage path is written, so the check
- * belongs here. Nothing uploads bytes yet; §1.9.4, which stores the file sent
- * in every round, inherits a writer that already refuses to clobber either the
- * uploaded document or the PDF rendered from it.
+ * belongs here. §1.9.4 stores the tracked-changes file sent in every round
+ * (lib/exports/sent-file.ts), and it goes through this writer, which refuses to
+ * clobber either the uploaded document or the PDF rendered from it.
  */
 function assertNotAnOriginal(storagePath: string, paths: RecordExportInput["analysisPaths"]) {
   if (storagePath === paths.original_storage_path) {

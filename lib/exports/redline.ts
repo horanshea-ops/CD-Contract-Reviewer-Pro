@@ -3,11 +3,13 @@ import { getActionedFindings } from "../get-actioned-findings";
 import { generateRedline } from "../redline-engine";
 import { UNAPPLIED_REASON_TEXT, validateRedline } from "../redline-validation";
 import { recordExport, recordResolutions } from "../export-log";
+import { storeSentFile } from "./sent-file";
 import type { ExportContext } from "./context";
 import { cachedBuild, fingerprint } from "./build-cache";
 import type { ExportBuildResult, ExportRefusalResult } from "./types";
 
 const STORAGE_BUCKET = "contracts";
+const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /**
  * The tracked-changes DOCX — real Word `w:ins`/`w:del` revision marks on the
@@ -102,8 +104,23 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
     markupPdfUrl,
   };
 
+  const filename = analysis.filename.replace(/\.docx$/i, "") + "-redline.docx";
+
   const commit = async () => {
     await recordResolutions(admin, engineResult.resolutions);
+
+    // §1.9.4 — keep what we sent, for the round that comes back. A discarded
+    // fallback was never sent, so there is nothing to keep.
+    const storagePath =
+      report.outcome === "fallback"
+        ? null
+        : await storeSentFile(admin, {
+            associateId: associate.id,
+            analysisId,
+            filename,
+            bytes: engineResult.docxBytes,
+            contentType: DOCX_CONTENT_TYPE,
+          });
 
     await recordExport(admin, {
       analysisId,
@@ -114,6 +131,7 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
       findingsApplied: report.appliedCount,
       findingsUnapplied: report.unapplied.length,
       unappliedDetail: report.unapplied.length ? report.unapplied : null,
+      storagePath,
       analysisPaths: analysis,
     });
 
@@ -154,8 +172,8 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
 
   return {
     kind: "file",
-    filename: analysis.filename.replace(/\.docx$/i, "") + "-redline.docx",
-    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    filename,
+    contentType: DOCX_CONTENT_TYPE,
     bytes: engineResult.docxBytes,
     outcome: report.outcome,
     preflight,
