@@ -9,7 +9,7 @@ import { Body, Meta, Subtitle } from "@/components/ui/typography";
 const STATUS_STYLE: Record<string, { label: string; className: string }> = {
   queued: { label: "Queued", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
   processing: { label: "Analyzing...", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
-  complete: { label: "Complete", className: "bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)]" },
+  complete: { label: "Complete", className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
   failed: { label: "Failed", className: "bg-[var(--severity-high-bg)] text-[var(--severity-high)]" },
 };
 
