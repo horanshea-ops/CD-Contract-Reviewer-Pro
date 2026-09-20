@@ -278,6 +278,58 @@ need not.
       invented detail. 307 tests, lint and typecheck clean. Test drafts and seeded
       rows cleaned up; audit entries left intact as a compliance record.
 
+- [x] **§2.1.1 Diff mechanics — the ungated half of the multi-round diff engine
+      (2026-09-20).** Answers what is different between the version CD sent and the
+      version the property returned, and which clause each difference sits in.
+      Produces a comparison and nothing else: no finding is read and none is
+      written, because turning a change into "they rejected this" is §2.1.2 and
+      that is gated.
+      **The plan's two paths collapse into one.** It describes a track-changes path
+      and a clean-document path as alternatives. Built that way it would lose
+      changes, because a property that accepts CD's edits before making its own
+      erases the marks on the accepted edits — a reader of marks alone calls them
+      untouched. The text diff always runs and is the authority on what changed;
+      revision marks add who and when on top.
+      **The renumbering trap.** §1.4's text carries list numbers, heading hashes and
+      table pipes as synthetic characters, so one inserted clause renumbers
+      everything below it and a naive diff reports a hundred changes for one edit.
+      Both sides are projected to wording only, using the source map where there is
+      one. The mapped and text-only projectors agree character for character on all
+      fifteen §1.11 fixtures.
+      **Alignment is patience diff over word tokens** — match the words appearing
+      exactly once on each side, take the longest non-crossing run, recurse into the
+      gaps, and fall to a bounded Myers pass where no unique word anchors a gap.
+      Anchoring on rare wording is what stops a changed percentage being reported
+      against the wrong copy of a clause that appears twice.
+      **A baseline ladder, with the rung reported.** What CD sent, best available:
+      the kept export, a rebuild of it, the property's own draft from that round,
+      the stored text, then the PDF's text. The third rung matters most — against
+      the property's own draft, a change CD asked for reads as a change they made,
+      which is true of the text and misleading about the negotiation, so the panel
+      and the CLI both say so.
+      **§1.9.4 had never been built.** `exports.storage_path` has been in the schema
+      since migration `002` and no caller ever passed one, so the redlined file an
+      associate emails to a hotel was discarded after serving. It is the one input
+      here that cannot be re-derived — a rebuild after a decision changed is a
+      document nobody ever saw. Now kept, one file per export, nothing kept for a
+      discarded validation fallback.
+      **Found and fixed a live §1.4 bug.** §1.5's `replaceSpan` deliberately writes
+      CD's `w:del` inside the counterparty's `w:ins` (§1.5.7). `walkRevision`
+      descended into a nested revision's children and walked the runs with the
+      enclosing views, losing the inner revision entirely: wording both sides had
+      agreed to remove still read as present, credited to the wrong author. From
+      round two of a negotiation onward that is the ordinary shape of a document.
+      Views now compose by intersection and travel in the walk context. No existing
+      test covered the case; all 818 now pass.
+      **Verified live** against the largest real contract on file — 43,600
+      characters, compared in 39ms, two simulated property edits both placed in the
+      right clause — and against the one real pair of rounds in the dev database,
+      which are byte-identical files and correctly report no changes.
+      `npm run diff:round -- <analysisId>` prints a round; the thread page carries a
+      read-only panel. §2.1.2 stays gated and untouched.
+      **Note for §2.1.2:** `finding_outcomes` already exists as a real table in
+      migration `002`, indexed and RLS-enabled. It needs no migration, only a writer.
+
 ## Build order progress (build brief §11)
 
 **Now, on personal accounts, no CD data:**

@@ -1,4 +1,6 @@
+import { outlineOf, leadingNumber, type Section } from "../contract-outline";
 import { normalizeText } from "../docx/normalize";
+import { similarityOf } from "../text-similarity";
 /**
  * Only the part's name and its text are read here — never the run elements —
  * so the parameter is this structural shape rather than WalkResult. A
@@ -85,30 +87,6 @@ interface Candidate {
   text: string;
 }
 
-/** Levenshtein distance, two rows rather than a full matrix. */
-function levenshtein(a: string, b: string): number {
-  if (a === b) return 0;
-  if (!a.length) return b.length;
-  if (!b.length) return a.length;
-
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-  let curr = new Array<number>(b.length + 1);
-
-  for (let i = 1; i <= a.length; i++) {
-    curr[0] = i;
-    const ca = a[i - 1];
-    for (let j = 1; j <= b.length; j++) {
-      const cost = ca === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
-    }
-    [prev, curr] = [curr, prev];
-  }
-  return prev[b.length];
-}
-
-const similarityOf = (a: string, b: string) =>
-  1 - levenshtein(a, b) / Math.max(a.length, b.length);
-
 /** Every place `needle` occurs in `haystack`. */
 function allOccurrences(haystack: string, needle: string): number[] {
   const out: number[] = [];
@@ -174,42 +152,11 @@ function dedupe(candidates: Candidate[]): Candidate[] {
   return kept;
 }
 
-/**
- * Where each section of the contract starts.
- *
- * §1.4 marks a heading with `#` and a numbered clause with its resolved number,
- * so both are visible in the extracted text. Matching a section reference
- * against these rather than against the raw text matters: searching a real
- * contract for "2" hits dates, dollar amounts and room counts, and the nearest
- * one wins, which is a confident answer to the wrong question.
- */
-interface SectionAnchor {
-  at: number;
-  label: string;
-  /** "5.2" from "5.2 Attrition", when the section is numbered. */
-  number: string | null;
-}
-
-function sectionAnchors(text: string): SectionAnchor[] {
-  const out: SectionAnchor[] = [];
-  // A heading, marked with the extractor's own hashes.
-  for (const m of text.matchAll(/^(#{1,6})[ \t]+(.+)$/gm)) {
-    out.push({ at: m.index!, label: m[2].trim(), number: leadingNumber(m[2]) });
-  }
-  // A numbered clause, which carries its number rather than a heading style.
-  for (const m of text.matchAll(/^[ \t]*(\d+(?:\.\d+)*)[.)][ \t]+(.+)$/gm)) {
-    out.push({ at: m.index!, label: m[2].trim(), number: m[1] });
-  }
-  return out.sort((a, b) => a.at - b.at);
-}
-
-const leadingNumber = (s: string) => s.match(/^\s*(\d+(?:\.\d+)*)/)?.[1] ?? null;
-
 const words = (s: string) =>
   project(normalizeText(s)).text.replace(/[^a-z0-9 ]+/g, " ").split(" ").filter((w) => w.length >= 3);
 
 /** Does this heading look like the section the finding names? */
-function anchorMatches(anchor: SectionAnchor, sectionNumber: string | null, sectionWords: string[]): boolean {
+function anchorMatches(anchor: Section, sectionNumber: string | null, sectionWords: string[]): boolean {
   if (sectionNumber && anchor.number === sectionNumber) return true;
   if (!sectionWords.length) return false;
   const anchorWords = new Set(words(anchor.label));
@@ -231,12 +178,9 @@ function disambiguate(candidates: Candidate[], locationSection: string | null): 
 
   const inSection: Candidate[] = [];
   for (const candidate of candidates) {
-    const anchors = sectionAnchors(candidate.text);
-    const index = anchors.findIndex((a) => anchorMatches(a, sectionNumber, sectionWords));
-    if (index === -1) continue;
-    const from = anchors[index].at;
-    const to = anchors[index + 1]?.at ?? candidate.text.length;
-    if (candidate.start >= from && candidate.start < to) inSection.push(candidate);
+    const section = outlineOf(candidate.text).find((a) => anchorMatches(a, sectionNumber, sectionWords));
+    if (!section) continue;
+    if (candidate.start >= section.start && candidate.start < section.end) inSection.push(candidate);
   }
 
   // More than one hit inside the same section is still ambiguous.
