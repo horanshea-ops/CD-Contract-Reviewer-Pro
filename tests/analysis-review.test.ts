@@ -124,11 +124,15 @@ describe("reconcileReview", () => {
 });
 
 describe("proposesNoChange", () => {
+  // The first five reached a saved eval run as findings.
   it.each([
-    "No change needed to the deposit amount; confirm the refund timeline.",
+    "No change needed to the deposit amount; confirm the $0.00 security deposit remains in the final executed agreement.",
+    "No change recommended; clause aligns with CD standard.",
+    "No change required.",
+    "No change necessary.",
+    "N/A",
     "No changes recommended.",
     "None.",
-    "N/A",
     "The clause is acceptable, so no change is required.",
   ])("catches %j", (language) => {
     expect(proposesNoChange(finding("attrition", language))).toBe(true);

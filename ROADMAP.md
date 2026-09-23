@@ -454,10 +454,14 @@ changing, and one that needs watching.
       reading the audit trail against the contracts that found it, which is the
       reason the trail is part of the report rather than a debugging aid.
 
-- [x] **4. DONE 2026-09-22 (branch `prompt/clause-checklist`).** `reconcileReview`
-      in `lib/analysis-review.ts` drops any finding whose proposed language declines
-      to change anything, inside `analyzeContract`, so the app and the eval both get
-      it. Dropped findings go to the audit log with a reason. Original item below.
+- [x] **4. DONE 2026-09-22 (branch `fix/drop-no-change-findings`).** `dropNonChanges`
+      in `lib/analysis-review.ts` runs inside `analyzeContract`, so the app and the
+      eval both get it. It drops any finding whose proposed language declines to
+      change anything, and the audit log keeps each one with a reason. Replayed on
+      every saved run for free: it dropped 2–3 findings per current run, all true
+      non-changes, with recall unchanged and precision up about a point. On the
+      Sept 10 run it would have caught all 53 "no change recommended" entries.
+      Original item below.
 
 - [ ] ~~**4. Downstream consumers assume every finding is actionable.**~~ Even once the
       prompt is fixed, nothing between the model and the redline/memo/email checks

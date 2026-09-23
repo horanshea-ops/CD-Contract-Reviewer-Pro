@@ -2,16 +2,18 @@ import type { Finding } from "./anthropic";
 import type { StandardEntry } from "./standards/types";
 
 /**
- * Checks a review's findings against its own per-clause verdicts.
+ * Drops findings that propose no change, and checks the rest against the
+ * review's own per-clause verdicts.
+ *
+ * Every consumer of findings (redline, memo, property email) reads a finding
+ * as a change to make, so one that says "no change needed" would reach the
+ * hotel as a proposed change to a clause that was already fine. Dropped
+ * findings are kept with a reason, so nothing vanishes silently.
  *
  * The model states a verdict for every clause type before writing findings.
  * The two should agree, and where they don't, the disagreement is recorded
  * rather than resolved. Which side is right is an eval question, not one this
  * code can answer.
- *
- * One kind of finding is dropped outright, because it proposes no change. Every
- * consumer of findings (redline, memo, property email) reads a finding as a
- * change to make.
  */
 
 export type ClauseVerdict = "meets" | "falls_short" | "missing";
@@ -40,8 +42,6 @@ export interface ReconciledReview {
   dropped_findings: DroppedFinding[];
 }
 
-const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
-
 // Matches wording that declines to change anything: a bare "None" or "N/A",
 // or "no change is needed" and its variants. A real change that mentions "no
 // change" in passing, such as "no changes to the block without consent",
@@ -53,16 +53,23 @@ export function proposesNoChange(finding: Finding): boolean {
   return NO_CHANGE.test(finding.proposed_language ?? "");
 }
 
-export function reconcileReview(
-  review: { findings: Finding[]; clause_review: ClauseReview[] },
-  standards: StandardEntry[]
-): ReconciledReview {
+export function dropNonChanges(findings: Finding[]): { findings: Finding[]; dropped_findings: DroppedFinding[] } {
   const dropped_findings: DroppedFinding[] = [];
-  const findings = review.findings.filter((finding) => {
+  const kept = findings.filter((finding) => {
     if (!proposesNoChange(finding)) return true;
     dropped_findings.push({ finding, reason: "proposes_no_change" });
     return false;
   });
+  return { findings: kept, dropped_findings };
+}
+
+const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+export function reconcileReview(
+  review: { findings: Finding[]; clause_review: ClauseReview[] },
+  standards: StandardEntry[]
+): ReconciledReview {
+  const { findings, dropped_findings } = dropNonChanges(review.findings);
 
   const verdicts = new Map(review.clause_review.map((entry) => [normalize(entry.clause_type), entry]));
   const flagged = new Set(findings.map((finding) => normalize(finding.clause_type)));
