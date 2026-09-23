@@ -23,6 +23,31 @@ import { StandardEntry } from "./types";
  * resale_mitigation_duty) were added because the source document covers them
  * substantively and they weren't previously checked for at all.
  *
+ * Revised again on 2026-09-22 against CD's current template ("CD Contract
+ * Template", last modified 2026-02-25), which supersedes the 2013 document.
+ * Seventeen entries changed where the template differs in substance, not just
+ * wording. The largest changes are a rewritten force majeure clause (a 20%
+ * attendee-cancellation trigger, travel advisories, and Group's right to
+ * invoke it for conditions known at signing), room-profit damages on the
+ * single net rate less allowable attrition, rebooking credits for any CD
+ * client, room block review dates, and mutual rather than group-only
+ * insurance. cutoff_date moved to "extracted" because the template now covers
+ * it, including a firm 21-day cutoff. labor_disputes, ada_compliance,
+ * governing_law_venue and exclusivity_vendors read the same in substance and
+ * are unchanged. damage_deposit, assignment_subcontracting, named_storm and
+ * attendee_data_handling stay industry_default because the template is silent
+ * on them. Nine clause types were added because the template covers them and
+ * nothing checked for them: commission, hotel_cancellation, function_space,
+ * facilities_services, future_rate_cap, nondiscrimination,
+ * reservation_procedures, banquet_service_levels and av_internet. Their
+ * severities are a judgement call, since the template states none.
+ *
+ * The user made two judgement calls on this revision. The template's
+ * attrition formula says 75% lost profit while its headline says 70%, so
+ * attrition keeps 70% and the inconsistency should go back to CD. The
+ * template's cancellation schedule runs from the date of signing, so the 2013
+ * twelve-month liability-free window is gone.
+ *
  * `version` is intentionally left unchanged even for revised entries: it's
  * the upsert conflict key in scripts/seed-standards.ts
  * (onConflict: "clause_type,segment,version"), so changing it would insert
@@ -38,9 +63,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "attrition",
     segment: "default",
     position:
-      "Attrition should be measured cumulatively across the entire room block, not night-by-night, with liability triggered only if pickup falls below 70% of the block — CD's own ideal contract language. Any night the hotel achieves 95% occupancy or higher should get full credit toward the block regardless of other nights' performance, and Group should have audit rights and a formula-based, not discretionary, damages calculation.",
+      "Attrition should be measured cumulatively across the entire room block, not night-by-night, with liability triggered only if pickup falls below 70% of the block — CD's own ideal contract language. Damages should be 70% lost profit on the group's single net group rate, counting only rooms the hotel actually failed to sell, and any night the hotel achieves 95% occupancy or higher should get full credit toward the block regardless of other nights' performance. Group should have audit rights and a formula-based, not discretionary, damages calculation; payment should settle all room-block damages, and damages paid should be credited back if a ConferenceDirect client later rebooks the hotel.",
     fallback_language:
-      "Attrition liability, if any, will be calculated on a cumulative (not night-by-night) basis, with liability triggered only if Group's actual pickup falls below seventy percent (70%) of the total contracted room block. For each unsold room night below that threshold, Group will pay an amount equal to seventy percent (70%) of the confirmed group room rate (plus applicable tax), calculated as the lesser of the number of unsold rooms in the Hotel that night or the shortfall between Group's minimum block and actual pickup. For any night the Hotel achieves 95% occupancy or higher, Group will receive full credit toward its block commitment for that night. At Group's request, Hotel will provide supporting occupancy records to verify the calculation. Any excess food and beverage revenue above Group's F&B minimum will be credited against room attrition damages, and vice versa.",
+      "Attrition liability, if any, will be calculated on a cumulative (not night-by-night) basis, with liability triggered only if Group's actual pickup falls below seventy percent (70%) of the total contracted room block. For each unsold room night below that threshold, Group will pay an amount equal to seventy percent (70%) (lost profit) of Group's single confirmed net group rate (plus tax, if required by applicable law), calculated as the lesser of the number of unsold rooms in the Hotel that night or the shortfall between Group's minimum block and actual pickup. For any night the Hotel achieves 95% occupancy or higher, Group will receive full credit toward its block commitment for that night. At Group's request, Hotel will provide a copy of its city ledger or daily report showing the information needed to verify the calculation. After receipt of this payment, Hotel will not seek additional damages from Group related to the room block commitment. Any excess food and beverage revenue above Group's F&B minimum will be credited dollar for dollar against room attrition damages, and vice versa. Should a ConferenceDirect client rebook the Hotel for another meeting within [X] years, Hotel will credit up to 100% of the attrition damages paid toward the new booking's room revenue, not to exceed the damages paid; if the rebooking group is not the group that paid, the credit will be refunded directly to the group that paid.",
     walk_away_condition: "",
     severity_default: "high",
     version: "v1-industry-default",
@@ -50,9 +75,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "cancellation",
     segment: "default",
     position:
-      "Cancellation damages should be a sliding scale tied to how close to the event the cancellation occurs, calculated against lost room profit (not gross revenue), with the hotel obligated to actively mitigate damages by reselling canceled rooms and crediting the proceeds, and a credit toward damages if Group rebooks the hotel within a reasonable window.",
+      "Cancellation damages should be a sliding scale tied to how close to the event the cancellation occurs, with the dollar amount of each tier disclosed, calculated against lost room profit (not gross revenue) — 70% of the single net group rate applied to the room block less allowable attrition. The hotel should be obligated to actively mitigate damages by reselling canceled rooms and crediting the proceeds, and damages paid should be credited back if a ConferenceDirect client later rebooks the hotel.",
     fallback_language:
-      "In the event of cancellation, liquidated damages will be calculated as a percentage of room profit — defined as seventy percent (70%) of the confirmed group room rate — on a sliding scale based on the number of days prior to arrival, with no liability for cancellation more than twelve (12) months prior to arrival. Hotel will undertake reasonable efforts to resell canceled rooms and food and beverage functions, and will credit those resale revenues, less substantiated transaction costs, against the cancellation fee. Should Group rebook the Hotel for another meeting within one (1) year of the cancellation, Hotel will credit 100% of the room revenue generated by that rebooking toward the damages owed, up to the amount of damages paid. Any award for breach of this Agreement is limited to actual damages; punitive damages will not apply.",
+      "In the event of cancellation, liquidated damages will be calculated as a percentage of room profit on a sliding scale based on the date written notice of cancellation is received, and the dollar amount owed at each tier will be stated in this Agreement. One hundred percent (100%) of room profit is defined as seventy percent (70%) of the confirmed single net group rate at the time of cancellation, multiplied by the final adjusted room block less allowable attrition. Hotel will undertake all reasonable efforts to resell canceled rooms and food and beverage functions, and will credit those revenues against the cancellation damages, not to exceed the full amount of such damages. Should a ConferenceDirect client rebook the Hotel for another meeting within [X] years, Hotel will credit up to 100% of the cancellation damages paid toward the new booking's room revenue, not to exceed the damages paid; if the rebooking group is not the group that paid, the credit will be refunded directly to the group that paid. Any award for breach of this Agreement is limited to actual damages; punitive damages will not apply.",
     walk_away_condition: "",
     severity_default: "high",
     version: "v1-industry-default",
@@ -62,9 +87,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "force_majeure",
     segment: "default",
     position:
-      "Force majeure language should allow either party to cancel without penalty when performance is made illegal, impossible, or commercially impracticable — explicitly including government-imposed travel restrictions or advisories, epidemics/pandemics, and events that make it unsafe or imprudent for attendees to travel or gather, in addition to the traditional list (acts of God, war, disaster, strikes, civil disorder, and transportation curtailment). Deposits should be refunded promptly.",
+      "Either party should be able to cancel without liability when a cause beyond its control would, in its reasonable judgment, make performance illegal, impossible, commercially impracticable, or inadvisable (including for health or safety reasons), or would cause — or lead Group to reasonably anticipate — cancellations by 20% or more of attendees. Qualifying causes should explicitly include terrorism, disease and epidemics, CDC and government travel advisories, government closures and emergency declarations, and government, corporate, and educational travel restrictions, alongside the traditional list. Group should keep this right even for conditions known at signing; if Group holds a smaller meeting instead, the hotel should waive attrition, F&B, and rental fees and offer the lowest rate it offers anyone. Deposits should be refunded promptly.",
     fallback_language:
-      "Either party may cancel this Agreement without liability if performance is rendered illegal, impossible, or commercially impracticable due to: acts of God; war; government regulation, advisory, or authority; disaster; strikes (excluding a strike solely involving the Hotel's own employees, which does not excuse the Hotel's performance); civil disorder within twenty (20) miles of the Hotel; curtailment of transportation facilities preventing fifty percent (50%) or more of Group's attendees from reaching the Hotel; epidemic or pandemic; or any other emergency, including circumstances that make it unsafe, illegal, or imprudent for attendees to travel to or assemble at the Hotel. Hotel will refund all deposits and prepayments made by Group within five (5) business days of the notice of termination.",
+      "Either party may cancel this Agreement without liability upon written notice to the other party should any cause beyond the control of Hotel or Group — including, but not limited to, acts of God; war; curtailment or interruption of transportation facilities; strikes (except those involving Hotel's employees) or the imminent threat thereof; threats or acts of terrorism; disease or epidemic; a CDC advisory, or a State Department or other governmental or international agency travel advisory; full or partial government closure; declaration of a national, state, or local emergency; prohibition or limitation of travel by any government employees; corporate or educational institution travel restrictions; civil disturbance; or any other cause beyond the parties' control — in that party's reasonable judgment: (a) make it commercially impracticable for either party or its members to perform; (b) make it inadvisable, including from a health or safety standpoint, for either party or its members to perform; (c) cause twenty percent (20%) or more of Group's attendees to cancel their attendance; (d) cause Group to reasonably anticipate that twenty percent (20%) or more of its attendees will cancel; (e) make it illegal for either party or its members to perform; or (f) make it impossible for either party or its members to perform. Notice of cancellation may be sent at any time before the Event, whether or not the circumstances remain in effect at the time of the Event. Group's right to invoke this clause is not limited by either party's awareness of the condition when this Agreement was signed. If Group elects to hold the Event despite such circumstances, Hotel will waive any fees related to a reduced-size Event, including room and food and beverage attrition and function space rental, and will offer Group's attendees any lower room rate offered to other guests over the contracted dates. Hotel will refund all deposits and prepayments made by Group within five (5) business days of the notice of termination.",
     walk_away_condition: "",
     severity_default: "high",
     version: "v1-industry-default",
@@ -74,9 +99,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "fb_minimum",
     segment: "default",
     position:
-      "Food and beverage minimums should lock in menu pricing no earlier than 12 months before the event, and any shortfall should be billed at a fraction of the gap, not the full difference — CD's own contract asks for 35% of the shortfall, well below a dollar-for-dollar penalty.",
+      "Food and beverage minimums should lock in menu pricing no earlier than 12 months before the event (or at a named year's pricing), and any shortfall should be billed at a fraction of the gap, not the full difference — CD's own contract asks for 35% of the shortfall, well below a dollar-for-dollar penalty. Food and beverage revenue from affiliate organizations and exhibitors should count toward the minimum.",
     fallback_language:
-      "Menu prices for the Event's food and beverage functions will not be established earlier than twelve (12) months prior to the Event. Group agrees to a food and beverage minimum of $[X] (exclusive of service charge and tax). If actual food and beverage revenue is less than the minimum, Group will pay Hotel thirty-five percent (35%) of the difference between actual revenue and the minimum, not the full shortfall. Revenue from all affiliate organizations meeting in conjunction with Group's event will count toward the minimum.",
+      "Menu prices for the Event's food and beverage functions will be confirmed at [year] pricing, or established not earlier than twelve (12) months prior to the Event. Group agrees to a food and beverage minimum of $[X] (exclusive of service charge and tax). If actual food and beverage revenue is less than the minimum, Group will pay Hotel thirty-five percent (35%) of the difference between actual revenue and the minimum, not the full shortfall. Food and beverage revenue from all affiliate organizations and exhibitors meeting in conjunction with Group's event will count toward the minimum.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -86,21 +111,21 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "cutoff_date",
     segment: "default",
     position:
-      "The room block cutoff date should be no earlier than 21-30 days prior to arrival, and reservations after cutoff should remain available at the group rate subject to availability rather than automatically reverting to rack rate.",
+      "The room block cutoff date should be no earlier than 21 days prior to arrival. After cutoff, attendees should still get the group rate for as long as the hotel is selling rooms to the general public — for the same room type once the block itself has sold — rather than reverting to rack rate or a narrower space-available test. Rooms still unassigned at cutoff should either be held for Group on prepayment, refunded if attendees later pay for them, or released for resale after consultation with Group to reduce Group's attrition damages.",
     fallback_language:
-      "The cutoff date for the room block will be twenty-one (21) days prior to the group's arrival date. After the cutoff date, the Hotel will continue to accept reservations at the group rate on a space-available basis.",
+      "The cutoff date for the room block will be twenty-one (21) days prior to Group's major arrival date. After the cutoff date, Hotel will continue to hold any rooms in Group's block not assigned to a specific attendee if Group pays for them in full at that time, and will refund those advance payments after the Event for any such rooms later paid for by Group attendees; alternatively, after consultation with Group, Hotel will offer unassigned rooms to other individuals or groups to reduce any damages Group may owe under the attrition clause. Group members may continue to reserve rooms at the group rate for as long as Hotel is selling rooms to the general public, regardless of room type; once the room block has sold, Hotel will honor the group rate for as long as it is selling the contracted room type to the general public.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
-    provenance: "industry_default",
+    provenance: "extracted",
   },
   {
     clause_type: "walk_relocation",
     segment: "default",
     position:
-      "If the hotel walks (relocates) a guaranteed reservation, it should provide comparable-or-better accommodations, round-trip transportation, message-forwarding, an upgrade and welcome amenity on return, and credit the relocated night toward Group's pickup and commission — with no attrition liability to Group for any relocated night.",
+      "The hotel should contact the group in advance of any walk, walk the group's attendees only after transient guests and other groups, and honor a do-not-walk list of key attendees. Any walked guest should get comparable-or-better accommodations, round-trip transportation, message-forwarding, and an upgrade and welcome amenity on return; the group should receive a per-room-night rebate and credit for the relocated night toward pickup and commission, with no attrition liability for any night a guest is walked — and additional compensation if the hotel walks 10 or more guests or 10% or more of the peak-night block.",
     fallback_language:
-      "If the Hotel is unable to accommodate any guest holding a confirmed reservation, the Hotel will, at its own expense: (a) provide accommodations at a comparable hotel as close as possible for each night the guest is displaced; (b) provide complimentary round-trip ground transportation between the Hotel and the alternate hotel; (c) forward the displaced guest's telephone messages and mail; and (d) upon the guest's return, provide upgraded accommodations if available and a welcome amenity from the General Manager. Each displaced room will be credited toward Group's final pickup and remain commissionable, and Group will not be liable for attrition damages for any night a guest is relocated.",
+      "If Hotel is unable to accommodate any member of Group holding a confirmed reservation, Hotel will contact Group in advance, will not walk members of Group before transient guests and other groups, and will review Group's attendee list with Group to identify those who cannot be walked under any circumstances. For each displaced guest, Hotel will, at its own expense: (a) provide accommodations at a comparable hotel as close as possible, at no charge to the guest, for each night the guest is displaced; (b) provide complimentary round-trip ground transportation between the Hotel and the alternate hotel for each day the guest is displaced; (c) forward the displaced guest's telephone messages, mail, and packages; and (d) when the guest returns, provide upgraded accommodations if available and a welcome amenity from the General Manager. Hotel will credit Group's master account $[X] for each night a guest is relocated, regardless of that guest's rate. Each displaced room will be credited toward Group's final pickup and remain commissionable at the group rate, and Group will not be liable for attrition damages if any guest is walked on any night. If Hotel walks ten (10) or more guests, or ten percent (10%) or more of the contracted peak-night block, Hotel will owe Group reasonable additional compensation.",
     walk_away_condition: "",
     severity_default: "high",
     version: "v1-industry-default",
@@ -110,9 +135,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "mandatory_fees",
     segment: "default",
     position:
-      "All mandatory fees, surcharges, and charges the hotel intends to bill (resort fees, shipping/delivery, telephone access, setup/rental charges, etc.) must be disclosed in writing before the contract is signed. Any charge not disclosed by signature should be waived outright, not just flagged after the fact.",
+      "All charges the hotel intends to bill — resort fees, surcharges, shipping and delivery, electrical, telephone access, porterage, rigging, signage and branding, meeting setup and rental, and similar — must be disclosed in writing before the contract is signed. Any charge not disclosed by signature should be waived outright, not just flagged after the fact, and later add-ons need the group's written approval before they are provided or posted. Resort fees should be waived for attendees with the resort-fee services still honored (fallback: a discounted or fixed fee), and attendees should not pay early check-in or checked-bag fees.",
     fallback_language:
-      "Hotel will disclose in writing, prior to execution of this Agreement, all charges that may be associated with the Event based on the meeting requirements provided by Group, including but not limited to resort fees, surcharges, shipping and delivery charges, telephone access charges, and meeting setup or rental charges. Any charge not disclosed to Group in writing prior to signature is waived. Should Group request additional services or equipment after signature, Hotel must obtain Group's approval before providing the service or posting the charge to the master account.",
+      "Hotel will disclose in writing, prior to execution of this Agreement, all charges that may be associated with the Event based on the meeting requirements provided by Group, including but not limited to resort fees, surcharges, shipping and delivery charges, electrical charges, telephone access charges, porterage, rigging, signage, sponsorship or conference branding and marketing, and meeting setup or rental charges. Any charge not disclosed to Group in writing prior to signature is waived. Should Group require additional services or equipment after signature, Hotel must obtain Group's written approval before providing the service and before posting the charge to the master account. Hotel will waive the resort fee for all attendees while continuing to honor the resort fee services. Hotel will not charge attendees an early check-in fee when their room type is available, and will waive checked-bag fees for attendees arriving before check-in time or departing after check-out time.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -122,9 +147,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "rebates",
     segment: "default",
     position:
-      "Complimentary rooms should be earned on a clear, cumulative formula tied to actual pickup — CD's own contract uses one complimentary room for every 40 occupied, revenue-producing room nights — not left to the hotel's discretion or forfeited due to attrition the hotel is already being compensated for elsewhere.",
+      "Complimentary rooms should be earned on a clear, cumulative formula tied to actual pickup — CD's own contract uses one complimentary room for every 40 occupied, revenue-producing room nights — not left to the hotel's discretion or forfeited due to attrition the hotel is already being compensated for elsewhere. Every occupied room should count toward pickup, including miscoded rooms and one room night for each no-show or cancellation fee charged, and attendees should get complimentary in-room internet regardless of loyalty-program status.",
     fallback_language:
-      "Group will receive one (1) complimentary room for every forty (40) occupied, revenue-producing room nights actualized, calculated cumulatively across the entire room block (total room nights divided by 40), regardless of whether the contracted block was otherwise met.",
+      "Group will receive one (1) complimentary room for every forty (40) occupied, revenue-producing room nights actualized, calculated cumulatively across the entire room block (total room nights divided by 40), regardless of whether the contracted block was otherwise met. All occupied rooms will be counted toward Group's pickup, including rooms credited to Group through a room block audit. Each no-show fee and each cancellation fee charged will be credited as one (1) room night toward Group's pickup and used in calculating complimentary rooms and rebates. Hotel will provide complimentary internet in attendees' guest rooms, regardless of brand loyalty program participation.",
     walk_away_condition: "",
     severity_default: "low",
     version: "v1-industry-default",
@@ -134,9 +159,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "construction_renovation",
     segment: "default",
     position:
-      "The hotel should represent it has no current renovation plans affecting the group's space, and commit to 30 days' written notice — including scope, schedule, expected impact, and a mitigation plan — of any renovation confirmed after signing. If it will interfere with the group's event, the group should be able to terminate without liability, with arbitration available if the parties disagree on whether it interferes.",
+      "The hotel should represent it has no current renovation plans affecting the group's space, promise that any later work will not interfere with the group's use of the hotel, and commit to 30 days' written notice — including scope, schedule, expected impact, and a mitigation plan — of any renovation confirmed after signing. The parties should negotiate in good faith, but if the group determines the work will interfere with its event, it should be able to terminate without liability. For a new build or a hotel reopening after closure, the hotel should commit to a fully-operational date, give 5 business days' notice of any change, let the group terminate without liability if the change affects its meeting, and cover the group's damages if no suitable alternative venue can be found.",
     fallback_language:
-      "As of the date of this Agreement, Hotel has no plans for renovation or remodeling of any facilities to be used by Group, other than ordinary maintenance. If Hotel later confirms any such plans, Hotel will notify Group in writing within thirty (30) days, describing: (a) the planned scope of the project; (b) the schedule for commencement and completion; (c) the anticipated impact on areas Group will use; and (d) Hotel's plan for minimizing that impact. If Group determines the construction or remodeling will interfere with its meeting, Group may terminate this Agreement without liability upon written notice given within thirty (30) days of receiving Hotel's notice. If the parties disagree whether the work will interfere, the dispute will be resolved by binding arbitration before the event dates.",
+      "As of the date of this Agreement, Hotel has no plans for renovation or remodeling of any facilities to be used by Group, other than ordinary maintenance. If Hotel later confirms any such plans, Hotel will notify Group in writing within thirty (30) days, describing: (a) the planned scope of the project; (b) the schedule for commencement and completion; (c) the anticipated impact on areas Group will use; and (d) Hotel's plan for minimizing that impact. Hotel promises that any such construction or remodeling will not interfere with Group's use of the Hotel, and the parties will negotiate in good faith to resolve any concerns and amend this Agreement as needed. If Group determines the construction or remodeling will interfere with its meeting, Group may terminate this Agreement without liability upon written notice given within thirty (30) days of receiving Hotel's plans. For a new build or a hotel reopening after closure, Hotel confirms that all facilities will be open and fully operational by [date], and will notify Group in writing within five (5) business days of any change to that date or to the project's planned scope. If Group, at its sole discretion, determines the change will interfere with its meeting or fail to meet its requirements, Group may terminate this Agreement without liability upon written notice given within thirty (30) days of receiving that notice; should Group be unable to find a suitable alternative location, Hotel will pay Group's direct, indirect, and consequential damages, expenses, attorney's fees, and costs arising from those circumstances.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -146,9 +171,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "master_account_billing",
     segment: "default",
     position:
-      "If Group's credit is approved, the master account should be payable upon receipt of invoice with a real dispute window before any finance charge applies, and any finance charge on a late, undisputed balance should be capped — CD's own contract caps it at 1% per month or the legal maximum, whichever is less. If credit isn't approved, prepayment should be a defined percentage, not open-ended.",
+      "If Group's credit is approved, the master account should be payable upon receipt of invoice with a real dispute window before any finance charge applies, and any finance charge on a late, undisputed balance should be capped — CD's own contract caps it at 1% per month or the legal maximum, whichever is less. If the hotel never sends or follows up on a credit application, credit should be extended automatically. If credit is denied, Group should pay on a staged deposit schedule — CD's contract uses 25% within 14 business days of the denial, 25% one month out, and 50% three days before the event — or, as a fallback, a defined prepayment percentage, not an open-ended one.",
     fallback_language:
-      "If Group's credit is approved, the master account is payable upon receipt of invoice. If payment of all undisputed charges is not received within thirty (30) days of the final invoice, a finance charge not to exceed one percent (1.0%) per month, or the maximum allowed by law, whichever is less, will apply to the unpaid, undisputed balance. Group will have thirty (30) days from receipt of the final itemized invoice to review and dispute any charge in good faith before any finance charge accrues on the disputed amount. If credit is not approved, prepayment of no more than [X]% of estimated charges will be required prior to arrival, with the balance due at departure.",
+      "Hotel will review its own credit files and credit reporting services to confirm Group's credit. If Hotel fails to send Group a credit application, or fails to send a written reminder to complete it, Hotel will extend credit to Group. If Group's credit is approved, the master account is payable upon receipt of invoice. If payment of all undisputed charges is not received within thirty (30) days of the final invoice, a finance charge not to exceed one percent (1.0%) per month, or the maximum allowed by law, whichever is less, will apply to the unpaid, undisputed balance. Group will have thirty (30) days from receipt of the final itemized invoice to review and dispute any charge in good faith before any finance charge accrues on the disputed amount. If credit is denied, Group will pay twenty-five percent (25%) of estimated charges within fourteen (14) business days of the denial, twenty-five percent (25%) one (1) month prior to the Event, and fifty percent (50%) three (3) days before the Event.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -158,9 +183,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "review_audit_dates",
     segment: "default",
     position:
-      "Group should get a weekly pickup report starting a set number of days before cutoff, a full post-event report (rooms actualized, pace, F&B recap) within 30 days of departure, and a no-cost room-block audit right — comparing the hotel's in-house guest list against Group's registration list, with any miscoded room credited to Group's pickup regardless of the rate paid.",
+      "The room block should be reviewed in writing about 24 and 12 months out, with Group free to raise or lower it by a set percentage each time at the group rate. Group should get a weekly pickup report starting a set number of days before cutoff, final pickup reports with supporting documentation within 10 days of departure, and a full post-event report (rooms actualized, pace, F&B, outlet, AV, bandwidth, and exhibitor spend) within 30 days, with late delivery allowed to delay master account payment. Group should also have a no-cost room-block audit right — run jointly or independently by ConferenceDirect or Group, comparing the hotel's in-house guest list against Group's registration list — with any miscoded room, including those at brand-associate or business rates, credited to Group's pickup regardless of the rate paid.",
     fallback_language:
-      "Hotel will provide Group a weekly guestroom pickup report starting [X] days prior to the cutoff date, and a full post-event report — including rooms actualized, a reservation pace report starting 90 days prior to cutoff, suite and double-occupancy usage, and a food and beverage revenue recap — within thirty (30) days of Group's departure. At Group's request, Hotel will conduct a face-to-face room block audit at no cost, comparing the Hotel's in-house guest list against Group's registration list. Any guest room occupied by an individual on Group's registration list but not coded to Group within Hotel's system will be credited to Group's final pickup regardless of the rate paid.",
+      "Hotel and Group will review the room block in writing by [date] (24 months prior to arrival) and again by [date] (12 months prior). At Group's sole discretion, Group may increase or decrease the room block by up to [X]% at each review and [X]% cumulatively, at the group rate; the resulting block becomes Group's room block commitment for purposes of the attrition clause. Hotel will provide Group a weekly guestroom pickup report starting [X] days prior to the cutoff date, and final room pickup reports with supporting documentation within ten (10) days of departure. Within thirty (30) days of departure, Hotel will provide a full post-event report, including rooms actualized, a reservation pace report starting 90 days prior to cutoff, suite and double-occupancy usage, a food and beverage revenue recap by Group and affiliate functions, outlet and other spend by attendees on room and master account charges, audio-visual spend, internet bandwidth usage, and exhibitor fees and revenue; failure to provide this report within thirty (30) days may delay payment of the master account. At Group's request and at no cost, Hotel will compare its in-house guest list against Group's registration list, either jointly with a representative of Group or by permitting a ConferenceDirect or Group representative to do so independently, and Group will keep the list confidential. Any guest room occupied by an individual on Group's registration list but not coded to Group within Hotel's system — including rooms booked at qualified brand-associate or business rates or through Internet distribution channels — will be credited to Group's pickup regardless of the rate paid or reservation method.",
     walk_away_condition: "",
     severity_default: "low",
     version: "v1-industry-default",
@@ -170,9 +195,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "insurance_indemnification",
     segment: "default",
     position:
-      "Indemnification should be mutual and limited to each party's own negligence or willful misconduct, including each party's reasonable attorney's fees — the group should never indemnify the hotel for the hotel's own negligence. Insurance requirements on the group should stay proportionate to the size of the event.",
+      "Indemnification should be mutual and limited to each party's own negligence or willful misconduct, including each party's reasonable attorney's fees, and should survive the end of the agreement — the group should never indemnify the hotel for the hotel's own negligence. Insurance should be a mutual obligation, with each party carrying adequate insurance to protect its own activities, rather than a requirement imposed on the group alone.",
     fallback_language:
-      "To the extent permitted by law, each party will protect, indemnify, defend, and hold harmless the other party and its employees, agents, and independent contractors against claims, losses, or damages to persons or property, governmental charges or fines, and costs (including reasonable attorney's fees), arising out of the negligence or willful misconduct of the indemnifying party in connection with the Event. Neither party indemnifies the other for that other party's own negligence. Group shall maintain commercial general liability insurance with limits appropriate to the size of the Event and shall name Hotel as an additional insured on a certificate of insurance provided prior to arrival.",
+      "To the extent permitted by law, each party will protect, indemnify, defend, and hold harmless the other party and its respective officers, directors, employees, agents, and independent contractors against all claims, losses, or damages to persons or property, governmental charges or fines, and costs (including reasonable attorney's fees), arising out of the negligence or willful misconduct of the indemnifying party, its employees, agents, or contractors. Neither party indemnifies the other for that other party's own negligence. This provision survives the termination or expiration of this Agreement. Hotel and Group will each carry adequate insurance to protect its own activities against claims arising out of the Event.",
     walk_away_condition: "",
     severity_default: "high",
     version: "v1-industry-default",
@@ -206,9 +231,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "termination_rights",
     segment: "default",
     position:
-      "Termination for cause — force majeure, a labor dispute affecting the hotel's workforce, a material change in the hotel's ownership, management, or brand, or renovation that interferes with the event — should let the group walk away with no liability and a prompt refund, entirely separate from and without triggering the cancellation clause's liquidated-damages scale.",
+      "Termination for cause should let the group walk away with no liability and a prompt refund, entirely separate from and without triggering the cancellation clause's liquidated-damages scale. Causes should include force majeure; the group's own judgment that an epidemic or pandemic is affecting its ability to hold the meeting as intended; a labor dispute affecting the hotel's workforce; a material change in the hotel's ownership, management, or brand; renovation that interferes with the event, or a change to a new build's opening date or scope; facility or service reductions the hotel fails to remedy; a convention center or overflow hotels the event relies on not being available; and state or local legislation permitting discrimination against attendees.",
     fallback_language:
-      "Group may terminate this Agreement without liability, and Hotel will refund all deposits and prepayments within five (5) business days, upon any of the following: (a) force majeure as defined in this Agreement; (b) a labor dispute involving Hotel's employees — including an expired collective bargaining agreement, picketing, strike, or lockout — arising within ninety (90) days of the Event; (c) a material change in Hotel's ownership, management company, or brand affiliation, or Hotel's bankruptcy or foreclosure, upon thirty (30) days' notice to Group; or (d) renovation or remodeling that Group determines will interfere with its meeting, per the construction/renovation provisions of this Agreement. None of the foregoing triggers the liquidated-damages calculation in the cancellation clause.",
+      "Group may terminate this Agreement without liability, and Hotel will refund all deposits and prepayments within five (5) days, upon any of the following: (a) force majeure as defined in this Agreement; (b) Group's determination that COVID-19 or any other infectious disease outbreak, epidemic, or pandemic is affecting Group's ability to hold the Event as intended; (c) a labor dispute involving Hotel's employees — including an expired collective bargaining agreement, picketing, strike, or lockout — arising within ninety (90) days of or during the Event; (d) a material change in Hotel's ownership, management company, or brand affiliation, or Hotel's bankruptcy or foreclosure, per the notice provisions of this Agreement; (e) renovation or remodeling that Group determines will interfere with its meeting, or a change to a new build's operational date or scope, per the construction/renovation provisions of this Agreement; (f) a reduction in Hotel's facilities or services for which no mutually agreeable alternative is reached within thirty (30) days; (g) the convention center or overflow hotels on which the Event depends not being open, available, and fully operational over the Event dates; or (h) the adoption of state or local legislation that permits discrimination against attendees on any basis protected under this Agreement. None of the foregoing triggers the liquidated-damages calculation in the cancellation clause.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -232,7 +257,7 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     position:
       "If the hotel changes brand, management company, or ownership — or files for bankruptcy or foreclosure — before the event, the hotel should be required to notify the group within 30 days, and the group should be able to terminate without liability within 30 days of that notice, with a prompt refund.",
     fallback_language:
-      "Should Hotel undergo a material change in ownership, management company, or brand affiliation, or file for bankruptcy, or have foreclosure occur, Hotel will inform Group in writing within thirty (30) days of such change or filing. Group may, at its sole discretion, terminate this Agreement without liability within thirty (30) days of receiving that notice. Hotel will refund all deposits and prepayments made by Group within five (5) business days of the notice of termination.",
+      "Should Hotel undergo a material change in ownership, management company, or brand affiliation, or file for bankruptcy, or have foreclosure occur, Hotel will inform Group in writing within thirty (30) days of such change or filing. Group may, at its sole discretion, terminate this Agreement without liability within thirty (30) days of receiving that notice. Hotel will refund all deposits and prepayments made by Group within five (5) days of the notice of termination.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -302,9 +327,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "rate_parity",
     segment: "default",
     position:
-      "The hotel should guarantee it won't sell rooms to the general public at a lower rate than the group's contracted rate during the event dates (aside from qualified rates like government or airline crew). If it does, the group's rate should be adjusted to match, including retroactively for reservations already made, without losing commission or pickup credit.",
+      "The hotel should guarantee it won't sell rooms at a lower rate than the group's contracted rate during the event dates (aside from qualified rates like government, airline, or contracted corporate rates). If it does, either the group's rate should be adjusted to match — including retroactively for reservations already made — or every room booked by the group's attendees should count in the block regardless of rate and the hotel should stop selling the lower rate immediately; either way the group keeps commission and pickup credit. The group's rate should also be no higher than any other group's rate within 7 days either side of the event.",
     fallback_language:
-      "Hotel guarantees it will not sell guestrooms at a rate lower than Group's contracted group rate during the Event dates, with the exception of qualified rates (e.g. government, airline crew, or contracted corporate negotiated rates). If Hotel offers a lower guestroom rate, Hotel will adjust the rate for all prior reservations in Group's block to match, and make the adjusted rate available to all Group attendees. Such rooms remain fully commissionable and creditable toward Group's pickup, complimentary-room credits, and any attrition calculation.",
+      "Hotel guarantees it will not sell guestrooms at a rate lower than Group's contracted group rate during the Event dates, with the exception of qualified rates (government, airline, and contracted corporate negotiated rates). If Hotel offers a lower guestroom rate, Hotel will adjust the rate for all prior reservations in Group's block to match and make the adjusted rate available to all Group attendees [alternative: Hotel will include all rooms booked by Group attendees in the room block regardless of rate paid, and will immediately cease selling rooms to transient or group guests at the lower rate]. Commission will be paid on the contracted rate regardless of any rate adjustment, and such rooms remain creditable toward Group's pickup, complimentary-room credits, attrition, and any other concession based on pickup. Hotel further agrees that Group's rate will be no higher than the group rate given to any other group over the period from seven (7) days before through seven (7) days after the room block dates.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -314,9 +339,9 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "gratuity_service_charge",
     segment: "default",
     position:
-      "Gratuity and service charge should be clearly and separately defined: gratuity should be fully distributed to the staff who worked the event, while any separate service charge — which is the hotel's own revenue, not staff pay — should be disclosed as such rather than left ambiguous or presented as a tip.",
+      "Gratuity and service charge should be clearly and separately defined, with both percentages confirmed in the contract: gratuity should be fully distributed to the staff who worked the event, while any separate service charge — which is the hotel's own revenue, not staff pay — should be disclosed as such rather than left ambiguous or presented as a tip. Neither should be added to meeting room rental or to equipment rentals that already carry a labor fee.",
     fallback_language:
-      "Any gratuity charged to Group's account will be fully distributed to the servers, and where applicable, bussers and bartenders assigned to the Event. Any service charge is separate from gratuity, is not distributed as a tip, and is retained by Hotel to cover the discretionary costs of the Event. Both charges, and their respective percentages, will be disclosed to Group in writing prior to the Event.",
+      "[X]% of the food and beverage total, plus applicable tax, will be added to Group's account as a gratuity and fully distributed to the servers, and where applicable, bussers and bartenders assigned to the Event. Any service charge of [X]%, plus applicable tax, is separate from gratuity, is not distributed as a tip, and is retained by Hotel to cover the discretionary costs of the Event. Both percentages are confirmed in this Agreement. Hotel will not add a gratuity or service charge to meeting room rental fees or to any rented equipment that also carries a labor fee.",
     walk_away_condition: "",
     severity_default: "medium",
     version: "v1-industry-default",
@@ -326,11 +351,119 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
     clause_type: "resale_mitigation_duty",
     segment: "default",
     position:
-      "Separate from how attrition or cancellation damages are calculated, the hotel should have an affirmative, documented duty to try to resell canceled rooms and functions, and credit those proceeds against whatever the group owes, with records available to the group to verify the effort actually happened.",
+      "Separate from how attrition or cancellation damages are calculated, the hotel should have an affirmative, documented duty to try to resell canceled rooms and functions — marketing the dates through all group and transient channels — and credit those proceeds against whatever the group owes, with records available to the group to verify the effort actually happened. Cancellation damages should not fall due until 30 days after the meeting dates, and only once the hotel shows reasonable evidence of its mitigation effort and that the rooms and space it held went unsold.",
     fallback_language:
-      "Hotel will undertake all reasonable efforts to resell canceled rooms and food and beverage functions, and will credit those revenues, less reasonable, substantiated transaction costs, against any cancellation or attrition damages owed by Group, not to exceed the full amount of such damages. Call reports, sales logs, and actual occupancy records documenting this mitigation effort will be made available to Group upon request. For purposes of this calculation, the last rooms blocked or sold by Hotel during the Event period after receiving notice of cancellation will be credited toward Group's unused block.",
+      "Hotel will undertake all reasonable efforts to resell canceled rooms and food and beverage functions, and will credit those revenues against any cancellation or attrition damages owed by Group, not to exceed the full amount of such damages. Hotel will document in writing its efforts to market the dates proactively through all group and transient channels, including offering the canceled rooms through Hotel's reservations department. Cancellation damages, if any, are due thirty (30) days after the meeting dates, provided Hotel supplies reasonable evidence of its mitigation efforts and that the rooms and space held for Group went unsold. All Hotel records relating to mitigation, including actual occupancy reports, will be made available to Group upon request. For purposes of this calculation, the last rooms contracted or sold by Hotel during the meeting period after receiving notice of cancellation will be credited toward Group's unused block.",
     walk_away_condition: "",
     severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "commission",
+    segment: "default",
+    position:
+      "The hotel should pay ConferenceDirect 10% commission on all actualized room revenue, regardless of the rate paid and including rooms booked outside the block, miscoded rooms found in a room block audit, walked rooms, and room nights credited from no-show or cancellation fees, within 30 days of the group's departure whether or not the master account has been paid. Commission should be non-cancelable and non-transferable, should rise if the hotel's or brand's standard commission rises before the event, should survive a change of management or brand, and should apply at no less than 10% to later additions. The hotel should also pay ConferenceDirect 10% of any cancellation damages it collects, and agree the group could not have negotiated better terms by booking direct.",
+    fallback_language:
+      "All rates confirmed in this Agreement are commissionable at ten percent (10%) to ConferenceDirect, LLC. Hotel will pay commission to ConferenceDirect on all actualized room revenue, regardless of rate paid and including all rooms outside the block, within thirty (30) days of Group's departure, whether or not the master account has been paid in full. Hotel agrees that Group could not have negotiated more favorable room rates, terms, and concessions had Group negotiated directly with Hotel rather than through ConferenceDirect, and Hotel and Group agree that commission for this booking is non-cancelable and non-transferable to another party or agency. Commission on any additional rooms or amendments will be no less than ten percent (10%) or the amount in this Agreement, whichever is higher, regardless of room rate paid. Should the standard hotel or brand commission percentage increase before the Event, the higher percentage will apply; should Hotel change management company or brand affiliation, the new management will honor the existing commission, or the new brand's commission if higher. Hotel will pay ConferenceDirect ten percent (10%) of any liquidated damages paid by Group within ten (10) days of receiving them. [Outside the USA: commission also applies to pre-planned group food and beverage and room hire revenue, is payable in local currency, and is not reduced by any fees, which are borne by Hotel.]",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "hotel_cancellation",
+    segment: "default",
+    position:
+      "If the hotel cancels the agreement without a right to do so under the contract, it should owe the group all direct, indirect, and consequential damages — including staff time and travel to find a new venue, room rate and airfare differences, function space rental, attorney's fees, and communication and printing costs — not just a refund of deposits.",
+    fallback_language:
+      "In the event Hotel cancels this Agreement other than as permitted under this Agreement, Hotel will pay Group for all direct, indirect, and consequential damages, expenses, attorney's fees, and costs incurred by Group on account of such cancellation, including but not limited to staff time and travel expenses to secure an alternate location for the Event, incremental room rate and airfare differentials, function space rental, and long distance telephone, postage, and printing costs.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "function_space",
+    segment: "default",
+    position:
+      "The contract should name each function room, with its minimum square footage and ceiling height, and the hotel should not change those assignments without both parties' written consent. Meeting space in the program agenda should be complimentary with room rental waived, and each meeting room should come with a wired microphone, podium, power, lighting, and HVAC at no charge.",
+    fallback_language:
+      "Hotel will hold the meeting and function space set out in this Agreement, with room rental charges waived, and will specify each function space assignment, minimum square footage, and ceiling height requirement in this Agreement. No change will be made to the function space assignments without the written consent of both parties. Meeting space outlined in Group's program agenda will be provided on a complimentary basis. Hotel will provide in each meeting room, at no charge, one wired microphone, a podium, power (including existing power outlets), proper lighting, and HVAC.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "facilities_services",
+    segment: "default",
+    position:
+      "If the hotel closes or limits any restaurant, spa, fitness facility, contracted meeting space, or other venue by more than 25% of its published capacity or offering, or materially reduces staffing ratios for housekeeping, food service, banquets, engineering, security, or similar services, it should first offer equal alternatives at its own expense. If no mutually agreeable alternative is reached within 30 days, the group should be able to cancel without liability or renegotiate terms.",
+    fallback_language:
+      "If Hotel closes or limits the hours of service of any current restaurant, health club, spa, fitness facility, contracted meeting space, or other hospitality venue or facility by more than twenty-five percent (25%) of its published capacity or full-service offering, or limits, restricts, or reduces the guest-to-staff service ratio of its housekeeping, restaurant, banquet, maintenance and engineering, safety and security, or any other service in a manner a hotel industry executive would agree is material, Hotel will first have the option to provide equal alternative facilities or services, mutually agreeable and solely at Hotel's expense. Should no mutually agreeable alternative be reached within thirty (30) days, Group may cancel this Agreement without liability upon written notice to Hotel, or the parties may instead modify this Agreement on mutually agreed terms.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "future_rate_cap",
+    segment: "default",
+    position:
+      "Where room rates for a future year are not yet confirmed, the contract should cap any increase at 2% per year over the quoted rates, lower the group rate by the same percentage if the market average rate for comparable hotels or the hotel's own published rate declines before arrival, and fix final rates in writing no later than 12 months before the event.",
+    fallback_language:
+      "Definite room rates will be confirmed in writing no later than twelve (12) months prior to arrival. Hotel guarantees a maximum yearly increase of two percent (2%) over the rates quoted in this Agreement. Should the market average rate for same-tier hotels, or Hotel's published transient rate over the same pattern, decline between the signing of this Agreement and Group's arrival, the group rate will be discounted by the same percentage. Hotel agrees to work in good faith to finalize a fair rate in light of any change in the local or national economy.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "nondiscrimination",
+    segment: "default",
+    position:
+      "The hotel should commit that it and its staff will not discriminate against any attendee on the basis of sex, gender identity or expression, age, race, color, religion, national or ethnic origin, disability, sexual orientation, genetic information, family, marital, or military status, or similar grounds, even where state or federal law would allow it. If the state or city adopts legislation that allows such discrimination or bars local nondiscrimination measures, the group should be able to terminate without liability.",
+    fallback_language:
+      "Hotel agrees that Hotel and its employees and agents will not discriminate against any of Group's attendees on the basis of sex, actual or perceived gender, age, race, color, religion, creed, national or ethnic origin, disability, sexual orientation, gender identity and expression, genetic information, or parental, marital, domestic partner, civil union, military, or veteran status, notwithstanding that such discrimination may be allowed under state or federal law. Should the state of [state] or the city of [city] adopt legislation that affirmatively allows discrimination on any of these bases, or prohibits the adoption of nondiscrimination measures on any of these bases, Group may terminate this Agreement without liability.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "reservation_procedures",
+    segment: "default",
+    position:
+      "Reservation handling should favor attendees. Confirmations should go out at no charge within 4 days (2 business days inside 30 days of arrival), name changes should be allowed at the group rate up to arrival, individual rooms should be cancellable without charge until 6 pm on the day of arrival (fallback: 24 hours before arrival, waived for a documented medical or personal emergency), and no-shows should be reinstated for the following night at the same rate. Individual deposits should be refundable with 3 working days' notice, and any individual cancellation money the hotel keeps should be credited against the group's attrition damages.",
+    fallback_language:
+      "Upon request, Hotel will send each registered guest confirmation of their reservation, and of any change to it, at no charge within four (4) days of receiving the information, or within two (2) business days if the request is received within thirty (30) days of arrival. The room block and reservation procedures will be loaded into Hotel's central reservation and property management systems. Name changes may be made to room reservations at the group rate at any time up to and including the arrival date. No cancellation fee will be assessed for any room cancelled before 6:00 p.m. on the day of arrival. Hotel will reinstate no-shows for the following night at the rate of their existing reservation unless Group directs otherwise. Any individual reservation deposit will be refunded if notice of cancellation is received at least three (3) working days before arrival, and any individual cancellation money Hotel receives will be credited toward any attrition damages owed by Group.",
+    walk_away_condition: "",
+    severity_default: "low",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "banquet_service_levels",
+    segment: "default",
+    position:
+      "The contract should guarantee minimum staffing at food and beverage functions — one server per 25 guests at plated breakfasts and 20 at plated lunches and dinners, one per 40 and 30 for buffets, and one bartender per 75 guests at hosted bars and 100 at cash bars — with no labor, bartender, or service fees for meeting those ratios, and a labor fee only for functions under 25 people.",
+    fallback_language:
+      "At all meal functions, Hotel will provide at least one server for every twenty-five (25) guests at a plated breakfast and every twenty (20) guests at a plated lunch or dinner, and one server for every forty (40) guests at a buffet breakfast and every thirty (30) guests at a buffet lunch or dinner, with no extra service or labor charge for these ratios. At all functions where alcohol is served, Hotel will provide no fewer than one (1) bartender for every seventy-five (75) guests at hosted bars and one (1) bartender for every one hundred (100) guests at cash bars, with no bartender or service fees. There will be no special labor or service fees for any Group food or beverage function, except that functions of fewer than twenty-five (25) people will incur a labor fee of $[X].",
+    walk_away_condition: "",
+    severity_default: "low",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "av_internet",
+    segment: "default",
+    position:
+      "The hotel should honor the audio-visual and internet bandwidth quotes attached at contracting — with bandwidth of at least 10 Mbps download and 1 Mbps upload — and give a stated discount on anything added later, whoever ends up providing the service. Using the in-house audio-visual provider should never be a condition for discounted or complimentary services such as internet.",
+    fallback_language:
+      "Hotel will honor the pricing of the attached audio-visual quote, prepared from Group's specifications at the time of contracting, and will apply a discount of [X]% to any additional audio-visual needs, regardless of which provider is in place during the Event. Hotel will likewise honor the attached internet bandwidth quote, which provides a minimum of 10 Mbps download and 1 Mbps upload speed, with a discount of [X]% on any additional needs. Use of Hotel's in-house audio-visual provider, exclusively or otherwise, will not be a condition of any discounted or complimentary service, such as internet.",
+    walk_away_condition: "",
+    severity_default: "low",
     version: "v1-industry-default",
     provenance: "extracted",
   },

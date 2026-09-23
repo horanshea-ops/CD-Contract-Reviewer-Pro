@@ -87,7 +87,7 @@ describe("deriveKeyItems", () => {
       terms: {
         ...spec.terms,
         attrition: { ...(spec.terms.attrition as Record<string, never>), threshold: 0.7 },
-        cutoff_date: { ...(spec.terms.cutoff_date as Record<string, never>), days_prior: 30 },
+        cutoff_date: { ...(spec.terms.cutoff_date as Record<string, never>), days_prior: 21 },
       },
     };
     expect(deriveKeyItems(clean, library)).toEqual([]);
@@ -192,7 +192,7 @@ describe("deriveKeyItems", () => {
   it("writes a rationale naming the term and CD's position", () => {
     const spec = EVAL_SPECS.find((s) => s.id === "eval-07-monarch")!;
     const cutoff = deriveKeyItems(spec, library).find((i) => i.clause_type === "cutoff_date")!;
-    expect(cutoff.rationale).toBe("room block cutoff date is 32, and CD's position is at most 30 days.");
+    expect(cutoff.rationale).toBe("room block cutoff date is 32, and CD's position is at most 21 days.");
   });
 });
 

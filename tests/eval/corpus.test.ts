@@ -10,6 +10,7 @@ import {
   readBackQuestions,
   normalizeClauseTypes,
   CorpusIntegrityError,
+  staleClauses,
   type DraftDeps,
 } from "@/lib/eval/corpus/draft";
 import type { ClauseDraftRequest, DraftedClauseResult } from "@/lib/anthropic";
@@ -357,6 +358,58 @@ describe("buildContract", () => {
     await expect(
       buildContract(spec, { draftClauses: compliantDrafter(), readBack: contrarian })
     ).rejects.toThrow(/the contract reads as "unstated"/);
+  });
+
+  describe("reusing a saved draft", () => {
+    const counting = () => {
+      const drafted: string[] = [];
+      let reads = 0;
+      const deps: DraftDeps = {
+        draftClauses: async (args) => {
+          drafted.push(...args.clauses.map((c) => c.clause_type));
+          return compliantDrafter()(args);
+        },
+        readBack: async (args) => {
+          reads++;
+          return agreeingReader(spec)(args);
+        },
+      };
+      return { deps, drafted, reads: () => reads };
+    };
+
+    const saved = async () => (await buildContract(spec, counting().deps)).drafted;
+
+    it("reuses a draft that still fits, with no drafting and no read-back", async () => {
+      const { deps, drafted, reads } = counting();
+      const result = await buildContract(spec, deps, { reuse: await saved(), redraftStale: true });
+
+      expect(drafted).toEqual([]);
+      expect(reads()).toBe(0);
+      expect(result.redrafted).toEqual([]);
+    });
+
+    it("redrafts only the clauses that are missing or whose dictated wording changed, then reads back", async () => {
+      const draft = (await saved()).filter((c) => c.clause_type !== "rate_parity");
+      const changed: EvalContractSpec = {
+        ...spec,
+        terms: { ...spec.terms, cutoff_date: { ...(spec.terms.cutoff_date as Record<string, never>), days_prior: 21 } },
+      };
+      expect(staleClauses(changed, draft)).toEqual(["cutoff_date", "rate_parity"]);
+
+      const { deps, drafted, reads } = counting();
+      const result = await buildContract(changed, deps, { reuse: draft, redraftStale: true });
+
+      expect(drafted.sort()).toEqual(["cutoff_date", "rate_parity"]);
+      expect(reads()).toBeGreaterThan(0);
+      expect(result.redrafted).toEqual(["cutoff_date", "rate_parity"]);
+    });
+
+    it("refuses a stale draft unless asked to redraft it", async () => {
+      const draft = (await saved()).filter((c) => c.clause_type !== "rate_parity");
+      await expect(buildContract(spec, counting().deps, { reuse: draft })).rejects.toThrow(
+        /no longer fits clause\(s\) rate_parity/
+      );
+    });
   });
 });
 

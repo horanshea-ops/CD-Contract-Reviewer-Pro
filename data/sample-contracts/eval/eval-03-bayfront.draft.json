@@ -46,6 +46,27 @@
     ]
   },
   {
+    "clause_type": "reservation_procedures",
+    "paragraphs": [
+      "Group attendees may change the name on any reservation at the group rate at any time prior to arrival without additional charge or fee. The Hotel will process all name changes requested by the Group contact or by individual attendees and will honor the agreed group rate for any revised reservation name through the event dates of June 2-5, 2027. An attendee who does not occupy a room on the first night of the reservation but arrives on a subsequent night shall have the remainder of the reservation honored at the same group rate and terms.",
+      "Group attendees may cancel individual room reservations without penalty or charge until 6:00 p.m. on June 2, 2027, the day of arrival. Any cancellation request received after that time and date will be subject to the Hotel's standard cancellation policy and applicable room charges. The Group contact shall notify the Hotel of all cancellations, and the Hotel will confirm cancellation in writing to the Group within one (1) business day of receipt."
+    ],
+    "anchors": [
+      {
+        "field": "name_changes_at_group_rate",
+        "sentence": "Group attendees may change the name on any reservation at the group rate at any time prior to arrival without additional charge or fee."
+      },
+      {
+        "field": "no_show_reinstated",
+        "sentence": "An attendee who does not occupy a room on the first night of the reservation but arrives on a subsequent night shall have the remainder of the reservation honored at the same group rate and terms."
+      },
+      {
+        "field": "same_day_cancellation",
+        "sentence": "Group attendees may cancel individual room reservations without penalty or charge until 6:00 p.m. on June 2, 2027, the day of arrival."
+      }
+    ]
+  },
+  {
     "clause_type": "cancellation",
     "paragraphs": [
       "If Group cancels this agreement, Group shall pay liquidated damages calculated as a percentage of lost room profit based on the timing of cancellation notice relative to the event dates. Damages vary by how far before arrival the cancellation notice is given: cancellation more than twelve (12) months before arrival carries no liability, cancellation between six (6) and twelve (12) months before arrival is subject to fifty percent (50%) of damages, and cancellation within six (6) months of arrival is subject to one hundred percent (100%) of damages.",
@@ -92,6 +113,23 @@
       {
         "field": "records_available",
         "sentence": "The Hotel makes its resale records available to Group on request within fifteen (15) business days, including dates of release, rates offered, dates of resale, rates achieved, and any associated booking details."
+      }
+    ]
+  },
+  {
+    "clause_type": "hotel_cancellation",
+    "paragraphs": [
+      "If the Hotel cancels this Agreement in violation of its material obligations and without legal right to do so, the Hotel shall indemnify and hold harmless the Group from all direct, indirect, and consequential damages arising from such wrongful cancellation, including but not limited to reasonable costs incurred in relocating the event to an alternative venue. The Hotel's liability shall be calculated by the Group and submitted to the Hotel within thirty (30) days of the wrongful cancellation with reasonable documentation of all claimed damages.",
+      "The Hotel's obligation to indemnify the Group for wrongful cancellation shall include all reasonable attorney's fees, court costs, and legal expenses incurred by the Group in enforcing its rights under this Agreement or mitigating damages. Payment of all indemnified amounts shall be due within thirty (30) days of the Group's written demand accompanied by appropriate invoices and documentation."
+    ],
+    "anchors": [
+      {
+        "field": "consequential_damages",
+        "sentence": "If the Hotel cancels this Agreement in violation of its material obligations and without legal right to do so, the Hotel shall indemnify and hold harmless the Group from all direct, indirect, and consequential damages arising from such wrongful cancellation, including but not limited to reasonable costs incurred in relocating the event to an alternative venue."
+      },
+      {
+        "field": "attorney_fees",
+        "sentence": "The Hotel's obligation to indemnify the Group for wrongful cancellation shall include all reasonable attorney's fees, court costs, and legal expenses incurred by the Group in enforcing its rights under this Agreement or mitigating damages."
       }
     ]
   },
@@ -197,6 +235,61 @@
     ]
   },
   {
+    "clause_type": "banquet_service_levels",
+    "paragraphs": [
+      "For all food and beverage functions held during the Group event, the Hotel shall maintain minimum staffing ratios as follows: one (1) server for every twenty (20) guests and one (1) bartender for every seventy-five (75) guests. These staffing minimums are incorporated into the Hotel's quoted pricing and represent a material obligation of the Hotel with respect to the quality and timing of service. Any function falling below the minimum attendee threshold shall be subject to adjusted staffing and applicable fees as provided in this Agreement.",
+      "No labor fees, service fees, or bartender charges shall be assessed to the Group for any food and beverage functions with twenty-five (25) or more attendees. Functions with fewer than twenty-five (25) attendees may incur labor, bartender, or service fees at rates established by the Hotel and communicated to the Group in writing prior to the Group's acceptance of this Agreement. All fees shall be detailed on the final billing statement provided to the Group within ten (10) days following the conclusion of the event."
+    ],
+    "anchors": [
+      {
+        "field": "server_ratios_stated",
+        "sentence": "For all food and beverage functions held during the Group event, the Hotel shall maintain minimum staffing ratios as follows: one (1) server for every twenty (20) guests and one (1) bartender for every seventy-five (75) guests."
+      },
+      {
+        "field": "no_labor_fees",
+        "sentence": "No labor fees, service fees, or bartender charges shall be assessed to the Group for any food and beverage functions with twenty-five (25) or more attendees."
+      }
+    ]
+  },
+  {
+    "clause_type": "function_space",
+    "paragraphs": [
+      "The Hotel assigns to Group the function spaces identified in Exhibit A, which specifies each room by name, minimum square footage, and ceiling height in feet. These assignments are made solely for Group's use during the Event dates of June 2-5, 2027, and Group shall use no other function space without prior written request. The Hotel shall not alter, reduce, or change Group's function space assignments without Group's prior written consent, which shall not be unreasonably withheld. Any changes requested by Group must be submitted in writing and approved by the Hotel's Director of Sales.",
+      "Meeting room rental charges are waived for Group in connection with the use of the assigned function spaces during the Event dates. This waiver applies only to the spaces listed in Exhibit A and only to standard rental fees; charges for setup, breakdown, or staffing remain the responsibility of Group unless separately waived in writing. The waiver is conditioned on Group's execution of this Agreement and compliance with all terms herein."
+    ],
+    "anchors": [
+      {
+        "field": "assignments_specified",
+        "sentence": "The Hotel assigns to Group the function spaces identified in Exhibit A, which specifies each room by name, minimum square footage, and ceiling height in feet."
+      },
+      {
+        "field": "changes_need_consent",
+        "sentence": "The Hotel shall not alter, reduce, or change Group's function space assignments without Group's prior written consent, which shall not be unreasonably withheld."
+      },
+      {
+        "field": "rental_waived",
+        "sentence": "Meeting room rental charges are waived for Group in connection with the use of the assigned function spaces during the Event dates."
+      }
+    ]
+  },
+  {
+    "clause_type": "av_internet",
+    "paragraphs": [
+      "The Hotel honors all audio-visual and internet pricing as quoted to Group at the time of contracting. Any audio-visual services or internet connectivity requested after the execution of this Agreement shall be provided at a discount to the Hotel's then-current standard rates.",
+      "The use of the Hotel's in-house audio-visual provider is not a condition to the availability or pricing of any complimentary service, discounted rate, or other benefit provided under this Agreement. Group may engage a third-party audio-visual vendor at Group's expense without affecting Group's entitlement to any such service or benefit."
+    ],
+    "anchors": [
+      {
+        "field": "quotes_honored",
+        "sentence": "The Hotel honors all audio-visual and internet pricing as quoted to Group at the time of contracting."
+      },
+      {
+        "field": "in_house_av_not_condition",
+        "sentence": "The use of the Hotel's in-house audio-visual provider is not a condition to the availability or pricing of any complimentary service, discounted rate, or other benefit provided under this Agreement."
+      }
+    ]
+  },
+  {
     "clause_type": "mandatory_fees",
     "paragraphs": [
       "The Hotel shall disclose in writing, before signature of this agreement, every mandatory fee and surcharge the Hotel intends to bill to Group for the event. This written disclosure shall itemize each charge, state its amount or method of calculation, and describe its application. Any mandatory charge not included in the pre-signature disclosure shall be deemed waived and the Hotel shall not bill Group for that charge.",
@@ -256,6 +349,48 @@
       {
         "field": "commission_preserved",
         "sentence": "Commission and room pickup credit shall remain unaffected by any rate adjustment and shall be recalculated on the adjusted rate to Group's benefit."
+      }
+    ]
+  },
+  {
+    "clause_type": "future_rate_cap",
+    "paragraphs": [
+      "The group room rate for the Event dates shall not increase by more than two percent (2%) per year in the event Group books a room block with the Hotel in any calendar year following 2027. This annual room rate increase cap applies only to the base room rate and does not limit increases in taxes, resort fees, or other charges imposed by local authority. The Hotel shall provide written notice of any rate increase to Group at least sixty (60) days prior to the arrival date of any subsequent event, and Group may decline to book rooms at the increased rate by written notice within thirty (30) days of receiving such notice.",
+      "If market room rates for comparable accommodations in Portland decline before Group's arrival on June 2, 2027, the negotiated group rate shall be reduced by the same percentage as the market decline, as measured by the Hotel's standard market survey. Group shall have the right to request documentation of the market decline. The group room rate shall be confirmed in final form no later than twelve (12) months prior to Group's arrival, and no changes to the rate shall be made after that confirmation except as provided in this clause."
+    ],
+    "anchors": [
+      {
+        "field": "max_annual_increase_pct",
+        "sentence": "The group room rate for the Event dates shall not increase by more than two percent (2%) per year in the event Group books a room block with the Hotel in any calendar year following 2027."
+      },
+      {
+        "field": "decline_adjustment",
+        "sentence": "If market room rates for comparable accommodations in Portland decline before Group's arrival on June 2, 2027, the negotiated group rate shall be reduced by the same percentage as the market decline, as measured by the Hotel's standard market survey."
+      },
+      {
+        "field": "rates_final_months",
+        "sentence": "The group room rate shall be confirmed in final form no later than twelve (12) months prior to Group's arrival, and no changes to the rate shall be made after that confirmation except as provided in this clause."
+      }
+    ]
+  },
+  {
+    "clause_type": "commission",
+    "paragraphs": [
+      "The Hotel shall be paid a commission equal to ten percent (10%) of all room revenue actualized during the event, including revenue from rooms booked outside the block. The commission shall be calculated by the Hotel from its records of room charges, and shall be due and payable within thirty (30) days of the event conclusion.",
+      "Group shall remit the commission directly to the Hotel upon receipt of the Hotel's invoice. Any dispute regarding the calculation of room revenue or commission owed shall be resolved through review of the Hotel's folio records for the event dates. This commission obligation shall survive any cancellation or modification of this Agreement."
+    ],
+    "anchors": [
+      {
+        "field": "commission_pct",
+        "sentence": "The Hotel shall be paid a commission equal to ten percent (10%) of all room revenue actualized during the event, including revenue from rooms booked outside the block."
+      },
+      {
+        "field": "outside_block_commissionable",
+        "sentence": "The Hotel shall be paid a commission equal to ten percent (10%) of all room revenue actualized during the event, including revenue from rooms booked outside the block."
+      },
+      {
+        "field": "paid_within_days",
+        "sentence": "The commission shall be calculated by the Hotel from its records of room charges, and shall be due and payable within thirty (30) days of the event conclusion."
       }
     ]
   },
@@ -344,6 +479,27 @@
       {
         "field": "termination_if_interferes",
         "sentence": "Should any renovation or construction project be scheduled to take place during or in the thirty (30) days preceding Group's event dates and materially interfere with Group's use and enjoyment of the Hotel, Group shall have the right to terminate this agreement without penalty, liability, or obligation to pay any cancellation fees."
+      }
+    ]
+  },
+  {
+    "clause_type": "facilities_services",
+    "paragraphs": [
+      "If the Hotel reduces its facilities or services by more than twenty-five percent (25%) from those described in this Agreement, the Hotel shall first offer to Group alternative facilities or services of substantially equal quality and utility at the Hotel's own expense. Group shall have ten (10) business days to evaluate whether any offered alternative is acceptable. Should Group and the Hotel be unable to agree on an acceptable alternative, Group may cancel this Agreement without penalty or liability of any kind.",
+      "The Hotel shall provide notice of any such reduction not later than sixty (60) days before the event, except in cases of emergency or force majeure, in which case notice shall be provided as soon as practicable. Group's right to cancel under this clause shall be Group's sole remedy for any reduction in facilities or services that cannot be remedied through acceptable alternatives."
+    ],
+    "anchors": [
+      {
+        "field": "reduction_threshold_pct",
+        "sentence": "If the Hotel reduces its facilities or services by more than twenty-five percent (25%) from those described in this Agreement, the Hotel shall first offer to Group alternative facilities or services of substantially equal quality and utility at the Hotel's own expense."
+      },
+      {
+        "field": "alternatives_at_hotel_expense",
+        "sentence": "If the Hotel reduces its facilities or services by more than twenty-five percent (25%) from those described in this Agreement, the Hotel shall first offer to Group alternative facilities or services of substantially equal quality and utility at the Hotel's own expense."
+      },
+      {
+        "field": "cancel_no_liability",
+        "sentence": "Should Group and the Hotel be unable to agree on an acceptable alternative, Group may cancel this Agreement without penalty or liability of any kind."
       }
     ]
   },
@@ -441,6 +597,23 @@
       {
         "field": "auxiliary_aids_split",
         "sentence": "The cost of any auxiliary aids or services requested by Group or its attendees, including but not limited to interpreters, transcription services, specialized audio equipment and accessible transportation, shall be divided between Group and the Hotel."
+      }
+    ]
+  },
+  {
+    "clause_type": "nondiscrimination",
+    "paragraphs": [
+      "The Hotel covenants that it shall not, and shall ensure that its staff do not, refuse service to, or otherwise discriminate against, any attendee of the event on the basis of race, color, religion, national origin, sex, sexual orientation, gender identity, disability, or any other legally protected status, regardless of whether such discrimination would be permissible under the laws of the State of Oregon or the City of Portland.",
+      "If the State of Oregon or the City of Portland enacts or enforces any law, ordinance, or regulation that would permit discrimination against Group's attendees on a protected basis, Group may terminate this Agreement immediately upon written notice to the Hotel, without liability and without payment of any cancellation fee. The Hotel waives any claim to compensation arising from such termination."
+    ],
+    "anchors": [
+      {
+        "field": "hotel_nondiscrimination",
+        "sentence": "The Hotel covenants that it shall not, and shall ensure that its staff do not, refuse service to, or otherwise discriminate against, any attendee of the event on the basis of race, color, religion, national origin, sex, sexual orientation, gender identity, disability, or any other legally protected status, regardless of whether such discrimination would be permissible under the laws of the State of Oregon or the City of Portland."
+      },
+      {
+        "field": "terminate_on_discriminatory_law",
+        "sentence": "If the State of Oregon or the City of Portland enacts or enforces any law, ordinance, or regulation that would permit discrimination against Group's attendees on a protected basis, Group may terminate this Agreement immediately upon written notice to the Hotel, without liability and without payment of any cancellation fee."
       }
     ]
   },

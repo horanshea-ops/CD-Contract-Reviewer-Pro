@@ -223,6 +223,78 @@ const BOOLEAN_MEANING: Record<string, { true: string; false: string }> = {
     true: "The Hotel makes its resale records available to Group on request.",
     false: "The Hotel's resale efforts and records are not open to Group.",
   },
+  "commission.outside_block_commissionable": {
+    true: "Commission is paid on all actualized room revenue, including rooms booked outside the block.",
+    false: "Commission is paid only on rooms booked within the group's block.",
+  },
+  "hotel_cancellation.consequential_damages": {
+    true: "If the Hotel cancels without a right to do so, it pays Group's direct, indirect and consequential damages, including the cost of moving the event.",
+    false: "If the Hotel cancels, its only obligation is to refund Group's deposits.",
+  },
+  "hotel_cancellation.attorney_fees": {
+    true: "The Hotel's liability for its own wrongful cancellation includes Group's attorney's fees and costs.",
+    false: "Group bears its own attorney's fees and costs even if the Hotel cancels wrongfully.",
+  },
+  "function_space.assignments_specified": {
+    true: "The Agreement names the function rooms assigned to Group, with their minimum square footage and ceiling height.",
+    false: "The Hotel assigns Group's function rooms at its discretion, and none are named in the Agreement.",
+  },
+  "function_space.changes_need_consent": {
+    true: "The Hotel may not change Group's function space assignments without Group's written consent.",
+    false: "The Hotel may reassign Group's function space at any time by giving notice.",
+  },
+  "function_space.rental_waived": {
+    true: "Meeting room rental charges are waived.",
+    false: "Group pays rental charges for its meeting rooms.",
+  },
+  "facilities_services.alternatives_at_hotel_expense": {
+    true: "If the Hotel reduces its facilities or services, it must first offer equal alternatives at its own expense.",
+    false: "The Hotel may reduce its facilities or services without offering any alternative.",
+  },
+  "facilities_services.cancel_no_liability": {
+    true: "If no acceptable alternative is agreed, Group may cancel without liability.",
+    false: "A reduction in the Hotel's facilities or services gives Group no right to cancel.",
+  },
+  "future_rate_cap.decline_adjustment": {
+    true: "If market room rates decline before arrival, the group rate is reduced by the same percentage.",
+    false: "The group rate stays as set even if market room rates decline before arrival.",
+  },
+  "nondiscrimination.hotel_nondiscrimination": {
+    true: "The Hotel commits that neither it nor its staff will discriminate against any attendee on a protected basis, even where local law would allow it.",
+    false: "The Hotel commits to nothing on discrimination beyond what applicable law requires.",
+  },
+  "nondiscrimination.terminate_on_discriminatory_law": {
+    true: "Group may terminate without liability if the state or city adopts legislation permitting discrimination against attendees.",
+    false: "A change in state or local law on discrimination gives Group no right to terminate.",
+  },
+  "reservation_procedures.name_changes_at_group_rate": {
+    true: "Attendees may change the name on a reservation at the group rate at any time up to arrival.",
+    false: "A name change is treated as a new reservation at the Hotel's prevailing rate.",
+  },
+  "reservation_procedures.no_show_reinstated": {
+    true: "An attendee who misses the first night keeps the rest of the reservation at the same rate.",
+    false: "The Hotel cancels the whole remaining reservation of an attendee who misses the first night.",
+  },
+  "reservation_procedures.same_day_cancellation": {
+    true: "Attendees may cancel individual reservations without charge until 6:00 p.m. on the day of arrival.",
+    false: "Individual reservations cancelled within seventy-two hours of arrival are charged one night's room and tax.",
+  },
+  "banquet_service_levels.server_ratios_stated": {
+    true: "The Agreement sets a minimum number of servers and bartenders per guest at food and beverage functions.",
+    false: "Staffing at food and beverage functions is at the Hotel's discretion.",
+  },
+  "banquet_service_levels.no_labor_fees": {
+    true: "No labor, bartender or service fees apply to Group's food and beverage functions, except for functions of fewer than 25 people.",
+    false: "The Hotel charges labor and bartender fees on Group's food and beverage functions.",
+  },
+  "av_internet.quotes_honored": {
+    true: "The Hotel honors the audio-visual and internet pricing quoted at contracting, with a discount on anything added later.",
+    false: "Audio-visual and internet services are priced at the Hotel's rates in effect at the time of the Event.",
+  },
+  "av_internet.in_house_av_not_condition": {
+    true: "Using the Hotel's in-house audio-visual provider is not a condition of any complimentary or discounted service.",
+    false: "Complimentary internet and other concessions apply only if Group uses the Hotel's in-house audio-visual provider.",
+  },
 };
 
 /** Enum values, dictated word for word — these carry the key's phrase assertions. */
@@ -246,11 +318,12 @@ const ENUM_WORDING: Record<string, Record<string, string>> = {
 };
 
 /** Fields whose value is a bare figure the clause states in passing. */
-const STATED_UNITS: Record<string, "usd" | "pct"> = {
+const STATED_UNITS: Record<string, "usd" | "pct" | "months"> = {
   "mandatory_fees.resort_fee_usd": "usd",
   "damage_deposit.deposit_usd": "usd",
   "gratuity_service_charge.service_charge_pct": "pct",
   "cancellation.top_tier_pct": "pct",
+  "cancellation.liability_free_months": "months",
 };
 
 /**
@@ -339,6 +412,12 @@ export function buildDirectives(clauseType: string, terms: ClauseTerms): ClauseF
     const unit = STATED_UNITS[key];
     if (!unit) throw new Error(`No unit declared for stated field ${key}.`);
     if (typeof value !== "number") throw new Error(`${key} must be a number, got ${typeof value}.`);
+
+    const zeroMeaning = value === 0 ? ZERO_DURATION_MEANING[key] : undefined;
+    if (zeroMeaning) {
+      out.push({ field, label: field, directive: `Say, in your own words, that ${zeroMeaning}.` });
+      continue;
+    }
 
     // A zero here means the contract has no such charge, which is a fact about
     // the clause and has to be stated rather than left out.
