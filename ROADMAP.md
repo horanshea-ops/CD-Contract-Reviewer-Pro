@@ -798,6 +798,15 @@ was added later and outranks 5-12; see its own note on sequencing.
             every pill starts on the same line. The user kept the pills over a dot.
             "High-severity findings" became "Reviews needing decisions", which
             counts complete reviews with at least one undecided finding.
+      - [x] **Standards library screen — shipped 2026-09-23** (branch
+            `ui/standards-library-restyle`). The user found it long and clunky
+            at 34 entries, with too many font sizes. The 34 stacked cards
+            became collapsible two-line rows, grouped under HIGH, MEDIUM and
+            LOW headings, and the page roughly halved in length. The review
+            screen's severity toggles filter it, now shared as
+            `components/severity-toggles.tsx`, and a search box matches clause
+            names and positions. The page uses three text sizes (20, 14 and
+            12px), and editing is unchanged.
 
       Same rule as the rest of this list: a restyle must not carry a behaviour change,
       or it cannot be reviewed by eye.

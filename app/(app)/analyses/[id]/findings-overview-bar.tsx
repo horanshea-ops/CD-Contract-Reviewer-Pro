@@ -1,13 +1,10 @@
 "use client";
 
-import { SEVERITY_STYLE } from "./finding-card";
 import type { FindingsOverview, FindingSeverity } from "@/lib/findings-overview";
 import { formatCurrency } from "@/lib/format";
 import { Body, Meta } from "@/components/ui/typography";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/cn";
-
-const SEVERITY_KEYS: FindingSeverity[] = ["high", "medium", "low", "note"];
+import { SeverityToggles } from "@/components/severity-toggles";
 
 /**
  * Sticky strip above the findings list — severity counts doubling as filter
@@ -37,27 +34,7 @@ export default function FindingsOverviewBar({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-1.5">
-        {SEVERITY_KEYS.map((severity) => {
-          const style = SEVERITY_STYLE[severity];
-          const hidden = hiddenSeverities.has(severity);
-          return (
-            <button
-              key={severity}
-              type="button"
-              onClick={() => onToggleSeverity(severity)}
-              aria-pressed={!hidden}
-              style={hidden ? undefined : { background: style.bg, color: style.textColor }}
-              className={cn(
-                "text-xs font-semibold rounded-md px-3 py-1 border transition-colors",
-                hidden ? "border-[var(--border)] text-[var(--text-muted)] bg-transparent" : "border-transparent"
-              )}
-            >
-              {overview.bySeverity[severity]} {style.label}
-            </button>
-          );
-        })}
-      </div>
+      <SeverityToggles counts={overview.bySeverity} hidden={hiddenSeverities} onToggle={onToggleSeverity} />
 
       {overview.undecidedCount > 0 && (
         <Meta as="span" className="text-[var(--text-muted)]">
