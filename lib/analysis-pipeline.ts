@@ -259,6 +259,7 @@ export async function processAnalysis(analysisId: string) {
       metadata: {
         findings_count: result.findings.length,
         clauses_checked: result.clauses_checked,
+        dropped_findings: result.dropped_findings,
         standards_source: standards.source,
         standards_hash: standards.hash,
       },
