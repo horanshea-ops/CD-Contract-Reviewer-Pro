@@ -63,16 +63,19 @@ export default async function DashboardPage() {
         <Button href="/upload">Review a new contract</Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {stats.map((s) => (
-          <Card key={s.label} padding="sm" elevated>
-            <Display className="text-[var(--cd-navy)]">{s.value}</Display>
-            <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
-              {s.label}
-            </Meta>
-          </Card>
-        ))}
-      </div>
+      {/* The 1px gap over a border-coloured background draws the dividers, whichever way the grid wraps. */}
+      <Card padding="none" className="mb-6 overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--border)]">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-white px-5 py-4">
+              <Display className="text-[var(--cd-navy)]">{s.value}</Display>
+              <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
+                {s.label}
+              </Meta>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <RecentAnalysesCard
         analyses={(recentAnalyses ?? []).map((a) => ({
