@@ -194,7 +194,11 @@ export async function analyzeContract({
   async function attempt(): Promise<AnalysisResult> {
     const response = await client.messages.create({
       model: modelId,
-      max_tokens: 16000,
+
+      // Each finding carries full replacement language, so output grows with
+      // the library. 21,000 is the most the SDK allows without streaming.
+      max_tokens: 21000,
+
       system: buildSystemPrompt(standards, standardsVersion, org),
       tools: [findingsToolSchema(org)],
       tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
