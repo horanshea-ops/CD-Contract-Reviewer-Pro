@@ -111,7 +111,7 @@ async function main() {
       documents.push({ contract: entry.contract, analysis, error: null, elapsed_ms: elapsed });
       console.log(
         `${analysis.findings.length} findings, ${analysis.clauses_checked.length} clauses checked, ` +
-          `${(elapsed / 1000).toFixed(0)}s`
+          `${analysis.dropped_findings.length} dropped, ${(elapsed / 1000).toFixed(0)}s`
       );
     } catch (err) {
       // A failed document is recorded, never dropped. Scoring counts its key

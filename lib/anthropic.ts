@@ -3,6 +3,7 @@ import type { StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
+import { dropNonChanges, type DroppedFinding } from "./analysis-review";
 import type { TermCatalog, TermDefinition } from "./terms/types";
 
 /**
@@ -31,6 +32,7 @@ export interface Finding {
 export interface AnalysisResult {
   findings: Finding[];
   clauses_checked: string[];
+  dropped_findings: DroppedFinding[];
   document_notes: string;
   model_id: string;
   standards_library_version: string;
@@ -246,7 +248,7 @@ export async function analyzeContract({
     const usage = response.usage;
 
     return {
-      findings: parsed.findings,
+      ...dropNonChanges(parsed.findings),
       clauses_checked: parsed.clauses_checked,
       document_notes: parsed.document_notes ?? "",
       model_id: modelId,
