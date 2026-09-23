@@ -88,7 +88,7 @@ export function RecentAnalysesCard({ analyses }: { analyses: RecentAnalysisRow[]
               <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)]">
                 Date
               </Meta>
-              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)] text-right">
+              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)]">
                 Status
               </Meta>
             </tr>
@@ -107,7 +107,8 @@ export function RecentAnalysesCard({ analyses }: { analyses: RecentAnalysisRow[]
                   <td className="px-5 py-3 text-[var(--text-secondary)]">
                     {new Date(a.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-5 py-3 text-right">
+                  {/* Left-aligned so every status label starts on the same line. */}
+                  <td className="px-5 py-3 whitespace-nowrap">
                     <StatusPill label={style.label} className={style.className} />
                   </td>
                 </tr>
