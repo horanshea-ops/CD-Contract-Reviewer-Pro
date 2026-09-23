@@ -847,8 +847,28 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       not exist. See CLAUDE.md's Agreed deviations item 7 for the full
       reasoning and the explicit scope limit — this does not extend past this
       one presentation.
-- [ ] **8. Next, separately: update the standards library from a newly
-      received revised ideal contract** (raised 2026-09-22, Opus 5). CD sent an
+- [x] **8. DONE 2026-09-22 (branch `standards/2026-revision`, 1c267f9 and
+      58078b7).** Revised against "CD Contract Template" (modified
+      2026-02-25). 17 entries changed, 9 clause types added (34 total), and
+      the live table was updated through the audited admin PATCH route plus
+      the seed script. `standards:status` confirms the live table matches
+      `v1.ts`. The eval corpus was rebuilt for about $0.41–0.82, redrafting 19
+      clauses in 4 contracts. Open follow-ups:
+      - The eval's standards-mismatch guard compares version strings, which
+        never change, so it cannot detect a library edit. It should compare
+        `standards_hash`.
+      - Committed eval runs and terms runs predate the new key. A fresh eval
+        run (7 contracts) is needed before quoting scores.
+      - Eval checks cover a subset of each position's prose. New prose on
+        existing entries (walk rebates, the 20% force majeure trigger, the
+        resort fee waiver) can surface as "spurious" findings until checks
+        exist for it.
+      - The template's attrition formula says 75% while its headline says
+        70%. The library keeps 70%, and the question should go back to CD.
+      - Commission findings appear in client memos and emails like any
+        other finding.
+      Original item: update the standards library from a newly
+      received revised ideal contract (raised 2026-09-22, Opus 5). CD sent an
       updated ideal/standard contract since `lib/standards/v1.ts` was last
       written. A new session needs to read it and update `position`,
       `severity_default`, and (where stated) `walk_away_condition` wherever the
