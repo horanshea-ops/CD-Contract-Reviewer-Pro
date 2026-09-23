@@ -111,8 +111,10 @@ async function main() {
       documents.push({ contract: entry.contract, analysis, error: null, elapsed_ms: elapsed });
       console.log(
         `${analysis.findings.length} findings, ${analysis.clauses_checked.length} clauses checked, ` +
+          `${analysis.review_gaps.length} gaps, ${analysis.dropped_findings.length} dropped, ` +
           `${(elapsed / 1000).toFixed(0)}s`
       );
+      for (const gap of analysis.review_gaps) console.log(`    gap: ${gap.kind} ${gap.clause_type}`);
     } catch (err) {
       // A failed document is recorded, never dropped. Scoring counts its key
       // items as missed, because a pipeline that cannot read a contract finds

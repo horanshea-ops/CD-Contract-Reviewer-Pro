@@ -3,6 +3,7 @@ import type { StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
+import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap } from "./analysis-review";
 import type { TermCatalog, TermDefinition } from "./terms/types";
 
 /**
@@ -30,7 +31,10 @@ export interface Finding {
 
 export interface AnalysisResult {
   findings: Finding[];
+  clause_review: ClauseReview[];
   clauses_checked: string[];
+  review_gaps: ReviewGap[];
+  dropped_findings: DroppedFinding[];
   document_notes: string;
   model_id: string;
   standards_library_version: string;
@@ -44,13 +48,29 @@ const FINDINGS_TOOL_NAME = "record_analysis";
 
 export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) => ({
   name: FINDINGS_TOOL_NAME,
-  description: `Record a review of this hotel/venue contract against ${name}'s standards library: the deviations found, and separately the full list of clause types examined.`,
+  description: `Record a review of this hotel/venue contract against ${name}'s standards library: a verdict on every clause type examined, then the deviations found.`,
   input_schema: {
     type: "object" as const,
     properties: {
+      clause_review: {
+        type: "array",
+        description: "One entry for every clause type in the standards library, written before findings.",
+        items: {
+          type: "object",
+          properties: {
+            clause_type: { type: "string" },
+            verdict: { type: "string", enum: ["meets", "falls_short", "missing"] },
+            basis: {
+              type: "string",
+              description: `One line. Each term ${firm}'s position requires, and what this contract says about it. Write "silent" where it says nothing.`,
+            },
+          },
+          required: ["clause_type", "verdict", "basis"],
+        },
+      },
       findings: {
         type: "array",
-        description: `Deviations only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — it belongs in clauses_checked.`,
+        description: `Deviations only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — its meets verdict in clause_review says so.`,
         items: {
           type: "object",
           properties: {
@@ -88,17 +108,12 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           ],
         },
       },
-      clauses_checked: {
-        type: "array",
-        items: { type: "string" },
-        description: "Every clause type from the standards library that was checked, found or not.",
-      },
       document_notes: {
         type: "string",
         description: "Anything about the document itself worth flagging (illegible pages, unusual structure, etc.)",
       },
     },
-    required: ["findings", "clauses_checked", "document_notes"],
+    required: ["clause_review", "findings", "document_notes"],
   },
 });
 
@@ -113,16 +128,18 @@ export function buildSystemPrompt(standards: StandardEntry[], standardsVersion: 
 
 Rules:
 - This is a negotiating aid, not legal advice. Do not describe any finding as a legal opinion, and do not state or imply that a contract is "safe" or "cleared."
-- For every clause type in the standards library, check whether the contract's language matches ${firm}'s position. Record a finding only where it does not, or where a clause ${firm}'s standards call for is missing entirely.
-- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clauses_checked is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
+- Review every clause type in the standards library before recording any findings. Give each one entry in clause_review, with a verdict of meets, falls_short or missing and the basis for it.
+- Check every term ${firm}'s position requires, not only the terms the contract's clause happens to mention. A clause that says nothing about a term ${firm}'s position requires falls short of it.
+- A clause type with no corresponding language anywhere in the contract is missing, and its finding sets is_missing_clause to true.
+- Record a finding for every clause whose verdict is falls_short or missing, and for no other.
+- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clause_review is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
 - Never write "compliant", "no change recommended", "matches ${firm}'s standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
 - A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of ${firm}'s position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
-- Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and listing it in clauses_checked with no finding says the same thing. Never say that about a clause that falls short by any margin at all.
+- Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and a meets verdict in clause_review says the same thing. Never say that about a clause that falls short by any margin at all.
 - severity comes from that clause's severity_default in the standards library. Depart from it only where this contract's own facts justify it — an unusually large block, a term that compounds another — and say why in finding_text. Calling everything high is the same as calling nothing high. A narrow margin is not a reason to lower the severity, and never a reason to leave the finding out.
 - quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
-- List every clause type you checked in clauses_checked, whether or not it produced a finding — this is how the reviewer knows what was actually reviewed.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
@@ -195,14 +212,18 @@ export async function analyzeContract({
     const response = await client.messages.create({
       model: modelId,
 
-      // Each finding carries full replacement language, so output grows with
-      // the library. 21,000 is the most the SDK allows without streaming.
-      max_tokens: 21000,
+      // Each finding carries full replacement language, and clause_review adds
+      // a line per clause type, so output grows with the library.
+      max_tokens: 32000,
 
       system: buildSystemPrompt(standards, standardsVersion, org),
       tools: [findingsToolSchema(org)],
       tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
       messages: [{ role: "user", content: userContent }],
+    }, {
+      // An explicit timeout lifts the SDK's non-streaming cap on max_tokens.
+      // It sits under the analysis route's 300s maxDuration.
+      timeout: 280_000,
     });
 
     const toolUseBlock = response.content.find(
@@ -214,8 +235,8 @@ export async function analyzeContract({
     }
 
     const parsed = toolUseBlock.input as {
+      clause_review?: ClauseReview[];
       findings?: Finding[];
-      clauses_checked?: string[];
       document_notes?: string;
     };
 
@@ -223,17 +244,18 @@ export async function analyzeContract({
     // omit a required field. Validate the shape rather than trusting it, per
     // build brief §5: "model returned invalid JSON (retry once, then fail
     // visibly)".
-    if (!Array.isArray(parsed.findings) || !Array.isArray(parsed.clauses_checked)) {
+    if (!Array.isArray(parsed.findings) || !Array.isArray(parsed.clause_review)) {
       throw new Error(
-        `Model returned malformed JSON (missing findings or clauses_checked array). stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
+        `Model returned malformed JSON (missing findings or clause_review array). stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
       );
     }
 
     const usage = response.usage;
 
+    const reviewed = reconcileReview({ findings: parsed.findings, clause_review: parsed.clause_review }, standards);
+
     return {
-      findings: parsed.findings,
-      clauses_checked: parsed.clauses_checked,
+      ...reviewed,
       document_notes: parsed.document_notes ?? "",
       model_id: modelId,
       standards_library_version: standardsVersion,

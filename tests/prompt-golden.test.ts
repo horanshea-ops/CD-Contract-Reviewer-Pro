@@ -35,7 +35,7 @@ beforeEach(() => {
 
 describe("request goldens", () => {
   it("analysis", async () => {
-    create.mockResolvedValue(toolResponse({ findings: [], clauses_checked: [], document_notes: "" }));
+    create.mockResolvedValue(toolResponse({ clause_review: [], findings: [], document_notes: "" }));
 
     await analyzeContract({
       document: { kind: "text", text: "CONTRACT BODY" },

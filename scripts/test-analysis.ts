@@ -46,6 +46,8 @@ async function main() {
   );
 
   console.log(`\nClauses checked: ${result.clauses_checked.join(", ")}`);
+  for (const gap of result.review_gaps) console.log(`Review gap: ${gap.kind} ${gap.clause_type}`);
+  for (const { finding } of result.dropped_findings) console.log(`Dropped (proposes no change): ${finding.clause_type}`);
   if (result.document_notes) {
     console.log(`Document notes: ${result.document_notes}`);
   }

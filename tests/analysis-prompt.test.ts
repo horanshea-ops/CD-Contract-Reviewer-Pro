@@ -45,10 +45,10 @@ describe("the analysis system prompt", () => {
       expect(prompt()).toContain("A clause that already matches CD's position is NOT a finding");
     });
 
-    it("names clauses_checked as where coverage is recorded instead", () => {
+    it("names clause_review as where coverage is recorded instead", () => {
       const text = prompt();
-      expect(text).toContain("clauses_checked is what shows that");
-      expect(text).toContain("List every clause type you checked in clauses_checked");
+      expect(text).toContain("clause_review is what shows that");
+      expect(text).toContain("Review every clause type in the standards library before recording any findings");
     });
 
     it("says what a spurious finding costs downstream", () => {
@@ -92,6 +92,27 @@ describe("the analysis system prompt", () => {
     });
   });
 
+  describe("every clause gets a verdict", () => {
+    // The Sept 22 run listed all 34 clause types as checked on every contract
+    // and still missed 19 items. Nine were clauses silent on a required term,
+    // and five were clauses the contract left out entirely.
+    it("asks for one clause_review entry per clause type", () => {
+      expect(prompt()).toContain("Give each one entry in clause_review");
+    });
+
+    it("says silence on a required term falls short", () => {
+      expect(prompt()).toContain("A clause that says nothing about a term CD's position requires falls short of it");
+    });
+
+    it("says an absent clause is missing and gets a missing-clause finding", () => {
+      expect(prompt()).toContain("is missing, and its finding sets is_missing_clause to true");
+    });
+
+    it("ties findings to verdicts", () => {
+      expect(prompt()).toContain("Record a finding for every clause whose verdict is falls_short or missing, and for no other");
+    });
+  });
+
   describe("severity", () => {
     it("anchors severity to the library rather than leaving it free", () => {
       expect(prompt()).toContain("severity comes from that clause's severity_default");
@@ -123,7 +144,7 @@ describe("the findings tool schema", () => {
 
   it("tells the model what belongs in findings", () => {
     expect(properties.findings.description).toContain("Deviations only");
-    expect(properties.findings.description).toContain("belongs in clauses_checked");
+    expect(properties.findings.description).toContain("meets verdict in clause_review");
   });
 
   it("says proposed_language is always an actual change", () => {
@@ -133,7 +154,7 @@ describe("the findings tool schema", () => {
 
   it("describes the tool as deviations plus coverage, not as everything found", () => {
     expect(schema.description).toContain("deviations found");
-    expect(schema.description).toContain("clause types examined");
+    expect(schema.description).toContain("verdict on every clause type examined");
   });
 
   it("still requires the fields the pipeline depends on", () => {
@@ -141,7 +162,16 @@ describe("the findings tool schema", () => {
       expect.arrayContaining(["clause_type", "is_missing_clause", "severity", "proposed_language"])
     );
     expect(schema.input_schema.required).toEqual(
-      expect.arrayContaining(["findings", "clauses_checked"])
+      expect.arrayContaining(["clause_review", "findings"])
     );
+  });
+
+  it("puts clause_review before findings, so the model writes verdicts first", () => {
+    const order = Object.keys(properties);
+    expect(order.indexOf("clause_review")).toBeLessThan(order.indexOf("findings"));
+  });
+
+  it("limits a verdict to meets, falls_short or missing", () => {
+    expect(properties.clause_review.items.properties.verdict.enum).toEqual(["meets", "falls_short", "missing"]);
   });
 });
