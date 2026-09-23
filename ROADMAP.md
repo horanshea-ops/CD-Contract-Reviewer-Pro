@@ -807,6 +807,23 @@ was added later and outranks 5-12; see its own note on sequencing.
             `components/severity-toggles.tsx`, and a search box matches clause
             names and positions. The page uses three text sizes (20, 14 and
             12px), and editing is unchanged.
+      - [x] **Finding card, "change first" — shipped 2026-09-23** (branch
+            `ui/finding-card-sections`). The user found the card read as one
+            paragraph in several sizes, and picked option B of three rendered
+            layouts. The card now has:
+            - a header line
+            - a one-line headline
+            - an exposure box
+            - the contract's current wording above the proposed wording, in one box
+            - the reasoning beneath
+
+            It uses 16, 14 and 12px. The model writes the headline (new
+            required schema field, prompt rule, `findings.headline` from
+            migration 007, applied 2026-09-23). Older findings fall back to
+            `finding_text`, and the property email allowlist test asserts the
+            headline never reaches a hotel. **The headline prompt is
+            unmeasured.** One eval run (about $1.20) waits on the user's
+            approval.
 
       Same rule as the rest of this list: a restyle must not carry a behaviour change,
       or it cannot be reviewed by eye.
