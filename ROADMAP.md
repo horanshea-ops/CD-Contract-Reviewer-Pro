@@ -869,6 +869,7 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       vars from `.env.local` in Render's dashboard. Verify `postinstall`
       (`scripts/copy-pdf-worker.mjs`) runs in Render's build. Supersedes the
       Vercel-Pro note elsewhere in this file — see the 2026-09-19 hosting audit.
+      Node is pinned to 24 in `.node-version`, which Render and CI both read.
 - [ ] **2. Starter tier ($7/mo), not Free.** Free spins down after 15 minutes
       idle with a 30-60s cold-start wake on the next request — a real risk if
       the app is opened cold in front of the client.
