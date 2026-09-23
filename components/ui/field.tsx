@@ -42,7 +42,7 @@ export function Field({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+      <label htmlFor={id} className={FIELD_LABEL_CLASSES}>
         {label}
         {hint && (
           <span id={hintId} className="text-[var(--text-muted)] font-normal ml-1">
@@ -60,8 +60,14 @@ export function Field({
   );
 }
 
+/** Shared with labels that aren't a `<label>`, such as a fieldset legend. */
+export const FIELD_LABEL_CLASSES = "block text-sm font-medium text-[var(--text-primary)] mb-1.5";
+
 const CONTROL_CLASSES =
   "w-full rounded-md border border-[var(--border-strong)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--cd-blue)]";
+
+// Single-line controls share one height with buttons of size "lg".
+const SINGLE_LINE_CLASSES = "h-10";
 
 // Native file inputs can't take the same border/padding treatment as a text
 // control (their visible surface is the `file:*` pseudo-element "button"),
@@ -71,7 +77,7 @@ const FILE_CONTROL_CLASSES =
 
 export function FieldInput({ className, type, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   const { id, describedBy } = useFieldContext("FieldInput");
-  const base = type === "file" ? FILE_CONTROL_CLASSES : CONTROL_CLASSES;
+  const base = type === "file" ? FILE_CONTROL_CLASSES : cn(CONTROL_CLASSES, SINGLE_LINE_CLASSES);
   return <input id={id} type={type} aria-describedby={describedBy} className={cn(base, className)} {...rest} />;
 }
 
@@ -83,7 +89,7 @@ export function FieldTextarea({ className, ...rest }: TextareaHTMLAttributes<HTM
 export function FieldSelect({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   const { id, describedBy } = useFieldContext("FieldSelect");
   return (
-    <select id={id} aria-describedby={describedBy} className={cn(CONTROL_CLASSES, className)} {...rest}>
+    <select id={id} aria-describedby={describedBy} className={cn(CONTROL_CLASSES, SINGLE_LINE_CLASSES, className)} {...rest}>
       {children}
     </select>
   );

@@ -785,10 +785,45 @@ was added later and outranks 5-12; see its own note on sequencing.
             size jump or a tinted box. Down to two type sizes and four colours
             on the card. `app/(app)/analyses/[id]/finding-card.tsx`.
 
-      **Still open: the dashboard and upload form.** Neither has had this pass
-      yet — "looks cheap" was about the review screen specifically, but the
-      original brief named all three as candidates. Worth deciding whether
-      they need the same treatment before calling item 13 done.
+      - [x] **Dashboard and upload form — shipped 2026-09-22** (branch
+            `ui/dashboard-upload-restyle`). The user called the upload screen
+            chaotic, with many different sizes. It had four control heights
+            (34–38px), a file picker indented 14px from everything else, and a
+            half-width negotiation switch with 12px text. Every control is now
+            full width at one left edge, 40px tall and 14px text, with 6px from
+            label to control and 20px between fields. The file picker is a drop
+            zone that shows the chosen file, and the switch is a shared
+            `SegmentedControl`. On the dashboard, the four stat cards became one
+            strip with hairline dividers, and the status column is left-aligned so
+            every pill starts on the same line. The user kept the pills over a dot.
+            "High-severity findings" became "Reviews needing decisions", which
+            counts complete reviews with at least one undecided finding.
+      - [x] **Standards library screen — shipped 2026-09-23** (branch
+            `ui/standards-library-restyle`). The user found it long and clunky
+            at 34 entries, with too many font sizes. The 34 stacked cards
+            became collapsible two-line rows, grouped under HIGH, MEDIUM and
+            LOW headings, and the page roughly halved in length. The review
+            screen's severity toggles filter it, now shared as
+            `components/severity-toggles.tsx`, and a search box matches clause
+            names and positions. The page uses three text sizes (20, 14 and
+            12px), and editing is unchanged.
+      - [x] **Finding card, "change first" — shipped 2026-09-23** (branch
+            `ui/finding-card-sections`). The user found the card read as one
+            paragraph in several sizes, and picked option B of three rendered
+            layouts. The card now has:
+            - a header line
+            - a one-line headline
+            - an exposure box
+            - the contract's current wording above the proposed wording, in one box
+            - the reasoning beneath
+
+            It uses 16, 14 and 12px. The model writes the headline (new
+            required schema field, prompt rule, `findings.headline` from
+            migration 007, applied 2026-09-23). Older findings fall back to
+            `finding_text`, and the property email allowlist test asserts the
+            headline never reaches a hotel. **The headline prompt is
+            unmeasured.** One eval run (about $1.20) waits on the user's
+            approval.
 
       Same rule as the rest of this list: a restyle must not carry a behaviour change,
       or it cannot be reviewed by eye.
@@ -834,6 +869,7 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       vars from `.env.local` in Render's dashboard. Verify `postinstall`
       (`scripts/copy-pdf-worker.mjs`) runs in Render's build. Supersedes the
       Vercel-Pro note elsewhere in this file — see the 2026-09-19 hosting audit.
+      Node is pinned to 24 in `.node-version`, which Render and CI both read.
 - [ ] **2. Starter tier ($7/mo), not Free.** Free spins down after 15 minutes
       idle with a 30-60s cold-start wake on the next request — a real risk if
       the app is opened cold in front of the client.
@@ -850,6 +886,14 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       field allowlist, the "not legal advice" disclaimer, and audit logging all
       apply regardless of which Anthropic account processes the call — no new
       engineering expected here, just worth checking once live.
+      Checked locally on 2026-09-23:
+      - The allowlist tests pass and cover the new `headline` field.
+      - The disclaimer shows on the upload form and the review screen, and on
+        every page of a 10-page memo.
+      - Every audit action the code writes has rows in `audit_log`.
+      - The signature route was the one write without an audit entry. It now
+        logs `signature_updated`.
+      Still to do: repeat these checks on Render once it's deployed.
 - [ ] **7. A redacted real CD contract will be processed on the personal
       Anthropic account for this presentation, ahead of the build brief's own
       gate** (decided by the user, 2026-09-22). CD's Anthropic org still does

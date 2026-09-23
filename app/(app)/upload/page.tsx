@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Field, FieldInput, FieldSelect } from "@/components/ui/field";
+import { FIELD_LABEL_CLASSES, Field, FieldInput, FieldSelect } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Body, Meta, Title } from "@/components/ui/typography";
 import { cn } from "@/lib/cn";
 
@@ -27,6 +28,11 @@ function hasAcceptedExtension(filename: string): boolean {
   return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -38,6 +44,7 @@ export default function UploadPage() {
   const [status, setStatus] = useState<"idle" | "uploading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/threads")
@@ -46,7 +53,7 @@ export default function UploadPage() {
       .catch(() => setThreads([]));
   }, []);
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+  function handleDrop(e: React.DragEvent<HTMLLabelElement>) {
     e.preventDefault();
     setDragActive(false);
     const dropped = e.dataTransfer.files?.[0];
@@ -60,6 +67,10 @@ export default function UploadPage() {
     setStatus("idle");
     setErrorMessage("");
     setFile(dropped);
+
+    // Keep the input in step with a dropped file, or its `required` check
+    // would block a submit the page itself considers ready.
+    if (fileInput.current) fileInput.current.files = e.dataTransfer.files;
   }
 
   function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -132,9 +143,22 @@ export default function UploadPage() {
           property.
         </Body>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Contract">
-            <div
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="contract-file" className={FIELD_LABEL_CLASSES}>
+              Contract
+            </label>
+            <input
+              ref={fileInput}
+              id="contract-file"
+              type="file"
+              accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
+              required
+              onChange={handleFileInputChange}
+              className="peer sr-only"
+            />
+            <label
+              htmlFor="contract-file"
               onDragOver={(e) => {
                 e.preventDefault();
                 setDragActive(true);
@@ -145,31 +169,77 @@ export default function UploadPage() {
               }}
               onDrop={handleDrop}
               className={cn(
-                "rounded-md border-2 border-dashed p-3 transition-colors",
+                "flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed px-4 py-5 text-center transition-colors",
+                "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--cd-blue)]",
                 dragActive
-                  ? "border-[var(--cd-blue)] bg-[var(--cd-blue)]/5"
-                  : "border-[var(--border-strong)]"
+                  ? "border-[var(--cd-blue)] bg-[var(--cd-blue-pale)]"
+                  : "border-[var(--border-strong)] hover:bg-[var(--surface-muted)]"
               )}
             >
-              <FieldInput
-                type="file"
-                accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
-                required
-                onChange={handleFileInputChange}
-              />
-              <Meta as="p" className="text-[var(--text-muted)] mt-1">
-                PDF, DOCX, or DOC, up to 32MB.
-              </Meta>
-              <Meta as="p" className="text-[var(--text-muted)] mt-2">
-                Drag and drop a file here, or use the button above.
-              </Meta>
-              {file && (
-                <Meta as="p" className="text-[var(--text-secondary)] mt-1">
-                  Selected: <span className="font-medium">{file.name}</span>
-                </Meta>
+              {file ? (
+                <>
+                  <Body as="span" className="font-medium text-[var(--text-primary)] break-all">
+                    {file.name}
+                  </Body>
+                  <Meta as="span" className="text-[var(--text-muted)]">
+                    {formatFileSize(file.size)} · <span className="text-[var(--cd-navy)] underline">Change</span>
+                  </Meta>
+                </>
+              ) : (
+                <>
+                  <Body as="span" className="text-[var(--text-primary)]">
+                    Drop a contract here, or <span className="font-medium text-[var(--cd-navy)] underline">browse</span>
+                  </Body>
+                  <Meta as="span" className="text-[var(--text-muted)]">
+                    PDF, DOCX or DOC, up to 32MB
+                  </Meta>
+                </>
               )}
-            </div>
-          </Field>
+            </label>
+          </div>
+
+          <fieldset>
+            <legend className={FIELD_LABEL_CLASSES}>Negotiation</legend>
+            <SegmentedControl
+              label="Negotiation"
+              options={[
+                { value: "new", label: "New negotiation" },
+                { value: "continuing", label: "Continuing one" },
+              ]}
+              value={negotiationMode}
+              onChange={setNegotiationMode}
+            />
+          </fieldset>
+
+          {negotiationMode === "new" ? (
+            <Field label="Property name">
+              <FieldInput
+                type="text"
+                value={propertyName}
+                onChange={(e) => setPropertyName(e.target.value)}
+                placeholder="e.g. Hilton Downtown Denver"
+                required
+              />
+            </Field>
+          ) : threads.length > 0 ? (
+            <Field label="Which negotiation">
+              <FieldSelect value={threadId} onChange={(e) => setThreadId(e.target.value)} required>
+                <option value="" disabled>
+                  Choose a negotiation…
+                </option>
+                {threads.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.propertyName}
+                    {t.clientName ? ` · ${t.clientName}` : ""} (round {t.roundCount} so far)
+                  </option>
+                ))}
+              </FieldSelect>
+            </Field>
+          ) : (
+            <Meta as="p" className="text-[var(--text-muted)]">
+              No open negotiations yet. Start one with &quot;New negotiation&quot; above.
+            </Meta>
+          )}
 
           <Field label="Client name" hint="(optional)">
             <FieldInput
@@ -180,78 +250,9 @@ export default function UploadPage() {
             />
           </Field>
 
-          <div>
-            <p className="block text-sm font-medium text-[var(--text-primary)] mb-1">Negotiation</p>
-            <div
-              role="radiogroup"
-              aria-label="Negotiation"
-              className="inline-flex rounded-md border border-[var(--border-strong)] p-0.5 mb-2"
-            >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={negotiationMode === "new"}
-                onClick={() => setNegotiationMode("new")}
-                className={cn(
-                  "rounded-[5px] px-3 py-1.5 text-xs font-medium transition-colors",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]",
-                  negotiationMode === "new"
-                    ? "bg-[var(--cd-navy)] text-white"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                )}
-              >
-                New negotiation
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={negotiationMode === "continuing"}
-                onClick={() => setNegotiationMode("continuing")}
-                className={cn(
-                  "rounded-[5px] px-3 py-1.5 text-xs font-medium transition-colors",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]",
-                  negotiationMode === "continuing"
-                    ? "bg-[var(--cd-navy)] text-white"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                )}
-              >
-                Continuing one
-              </button>
-            </div>
-
-            {negotiationMode === "new" ? (
-              <Field label="Property name">
-                <FieldInput
-                  type="text"
-                  value={propertyName}
-                  onChange={(e) => setPropertyName(e.target.value)}
-                  placeholder="e.g. Hilton Downtown Denver"
-                  required
-                />
-              </Field>
-            ) : threads.length > 0 ? (
-              <Field label="Which negotiation">
-                <FieldSelect value={threadId} onChange={(e) => setThreadId(e.target.value)} required>
-                  <option value="" disabled>
-                    Choose a negotiation…
-                  </option>
-                  {threads.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.propertyName}
-                      {t.clientName ? ` · ${t.clientName}` : ""} (round {t.roundCount} so far)
-                    </option>
-                  ))}
-                </FieldSelect>
-              </Field>
-            ) : (
-              <Meta as="p" className="text-[var(--text-muted)]">
-                No open negotiations yet. Start one with &quot;New negotiation&quot; above.
-              </Meta>
-            )}
-          </div>
-
           <Button
             type="submit"
+            size="lg"
             fullWidth
             disabled={!file}
             loading={status === "uploading"}

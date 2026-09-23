@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logAudit } from "@/lib/audit";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -28,6 +29,14 @@ export async function PATCH(request: Request) {
   if (error) {
     return NextResponse.json({ error: `Could not save your signature: ${error.message}` }, { status: 500 });
   }
+
+  await logAudit({
+    actorId: associate.id,
+    action: "signature_updated",
+    entityType: "associate",
+    entityId: associate.id,
+    metadata: {},
+  });
 
   return NextResponse.json({ ok: true });
 }

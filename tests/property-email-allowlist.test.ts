@@ -15,6 +15,7 @@ import { buildPropertyEmailPayload } from "@/lib/anthropic";
 const RATIONALE = "Cancellation fee is well above market and CD should push back hard.";
 const CD_STANDARD = "CD standard is 50%; CD will not go above 60% without sign-off.";
 const EXPOSURE_BASIS = "difference between 75% and 50% of projected room revenue";
+const HEADLINE = "Fee far above market with no mitigation duty";
 
 /**
  * Deliberately polluted. Every excluded field is present, as it would be if a
@@ -32,6 +33,7 @@ function pollutedRow(overrides: Record<string, unknown> = {}): PropertyFindingRo
     exposure_amount: 42000,
     exposure_basis: EXPOSURE_BASIS,
     finding_text: RATIONALE,
+    headline: HEADLINE,
     cd_standard: CD_STANDARD,
     quoted_text: "seventy-five percent (75%) of anticipated revenue",
     walk_away: "Do not sign above 65%.",
@@ -69,6 +71,11 @@ describe("property email allowlist", () => {
     expect(payload).not.toContain(RATIONALE);
     expect(payload).not.toMatch(/above market/i);
     expect(payload).not.toMatch(/push back/i);
+  });
+
+  it("drops the headline, which summarises CD's rationale", () => {
+    expect(payload).not.toContain(HEADLINE);
+    expect(payload).not.toMatch(/mitigation duty/i);
   });
 
   it("drops CD's internal standard and fallback position", () => {

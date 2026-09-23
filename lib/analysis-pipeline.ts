@@ -174,6 +174,7 @@ export async function processAnalysis(analysisId: string) {
         exposure_amount: f.exposure_amount,
         exposure_basis: f.exposure_basis,
         location_section: f.location_section,
+        headline: f.headline ?? null,
         quoted_text: f.quoted_text,
         finding_text: f.finding_text,
         cd_standard: f.cd_standard,

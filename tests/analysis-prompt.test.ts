@@ -113,6 +113,19 @@ describe("the analysis system prompt", () => {
     });
   });
 
+  describe("headline", () => {
+    // The review card leads with it, so it has to stand alone in one line.
+    it("asks for one short, plain line that doesn't repeat the clause name", () => {
+      const text = prompt();
+      expect(text).toContain("headline is the one line a reviewer reads first");
+      expect(text).toContain("Don't repeat the clause name");
+    });
+
+    it("forbids a figure the finding doesn't state", () => {
+      expect(prompt()).toContain("don't use a figure the finding doesn't state");
+    });
+  });
+
   describe("severity", () => {
     it("anchors severity to the library rather than leaving it free", () => {
       expect(prompt()).toContain("severity comes from that clause's severity_default");
@@ -159,7 +172,7 @@ describe("the findings tool schema", () => {
 
   it("still requires the fields the pipeline depends on", () => {
     expect(properties.findings.items.required).toEqual(
-      expect.arrayContaining(["clause_type", "is_missing_clause", "severity", "proposed_language"])
+      expect.arrayContaining(["clause_type", "is_missing_clause", "severity", "headline", "proposed_language"])
     );
     expect(schema.input_schema.required).toEqual(
       expect.arrayContaining(["clause_review", "findings"])

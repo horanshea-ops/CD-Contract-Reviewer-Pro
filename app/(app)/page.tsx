@@ -17,7 +17,7 @@ export default async function DashboardPage() {
 
   const admin = createAdminClient();
 
-  const [{ count: totalCount }, { count: inProgressCount }, { count: completedThisMonth }, { count: highSeverityCount }, { data: recentAnalyses }] =
+  const [{ count: totalCount }, { count: inProgressCount }, { count: completedThisMonth }, { count: needingDecisions }, { data: recentAnalyses }] =
     await Promise.all([
       admin.from("analyses").select("id", { count: "exact", head: true }).eq("associate_id", associate.id),
       admin
@@ -31,11 +31,13 @@ export default async function DashboardPage() {
         .eq("associate_id", associate.id)
         .eq("status", "complete")
         .gte("created_at", startOfMonthISO()),
+      // Complete reviews with at least one finding that has no decision yet.
       admin
-        .from("findings")
-        .select("id, analyses!inner(associate_id)", { count: "exact", head: true })
-        .eq("analyses.associate_id", associate.id)
-        .eq("severity", "high"),
+        .from("analyses")
+        .select("id, findings!inner(id, finding_actions(id))", { count: "exact", head: true })
+        .eq("associate_id", associate.id)
+        .eq("status", "complete")
+        .is("findings.finding_actions", null),
       admin
         .from("analyses")
         .select("id, filename, status, created_at, clients(name)")
@@ -48,7 +50,7 @@ export default async function DashboardPage() {
     { label: "Total reviews", value: totalCount ?? 0 },
     { label: "In progress", value: inProgressCount ?? 0 },
     { label: "Completed this month", value: completedThisMonth ?? 0 },
-    { label: "High-severity findings", value: highSeverityCount ?? 0 },
+    { label: "Reviews needing decisions", value: needingDecisions ?? 0 },
   ];
 
   return (
@@ -63,16 +65,19 @@ export default async function DashboardPage() {
         <Button href="/upload">Review a new contract</Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {stats.map((s) => (
-          <Card key={s.label} padding="sm" elevated>
-            <Display className="text-[var(--cd-navy)]">{s.value}</Display>
-            <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
-              {s.label}
-            </Meta>
-          </Card>
-        ))}
-      </div>
+      {/* The 1px gap over a border-coloured background draws the dividers, whichever way the grid wraps. */}
+      <Card padding="none" className="mb-6 overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--border)]">
+          {stats.map((s) => (
+            <div key={s.label} className="bg-white px-5 py-4">
+              <Display className="text-[var(--cd-navy)]">{s.value}</Display>
+              <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
+                {s.label}
+              </Meta>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <RecentAnalysesCard
         analyses={(recentAnalyses ?? []).map((a) => ({

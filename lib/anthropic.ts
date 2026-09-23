@@ -23,6 +23,8 @@ export interface Finding {
   quoted_text: string | null;
   exposure_amount: number | null;
   exposure_basis: string | null;
+  /** Absent on findings recorded before the model was asked for one. */
+  headline?: string | null;
   finding_text: string;
   cd_standard: string;
   proposed_language: string;
@@ -88,6 +90,11 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
               description: "Dollar exposure if calculable. Null if not quantifiable — never invent a number.",
             },
             exposure_basis: { type: ["string", "null"] },
+            headline: {
+              type: "string",
+              description:
+                "One line, at most about 12 words, saying what is wrong in plain terms. Don't repeat the clause name, which the reviewer already sees. Don't use a figure the finding doesn't state.",
+            },
             finding_text: { type: "string" },
             cd_standard: { type: "string" },
             proposed_language: {
@@ -101,6 +108,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             "clause_type",
             "is_missing_clause",
             "severity",
+            "headline",
             "finding_text",
             "cd_standard",
             "proposed_language",
@@ -137,6 +145,7 @@ Rules:
 - A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of ${firm}'s position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
 - Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and a meets verdict in clause_review says the same thing. Never say that about a clause that falls short by any margin at all.
 - severity comes from that clause's severity_default in the standards library. Depart from it only where this contract's own facts justify it — an unusually large block, a term that compounds another — and say why in finding_text. Calling everything high is the same as calling nothing high. A narrow margin is not a reason to lower the severity, and never a reason to leave the finding out.
+- headline is the one line a reviewer reads first: at most about 12 words, saying what is wrong in plain terms. Don't repeat the clause name, and don't use a figure the finding doesn't state. finding_text carries the full reasoning.
 - quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
