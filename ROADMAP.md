@@ -454,7 +454,12 @@ changing, and one that needs watching.
       reading the audit trail against the contracts that found it, which is the
       reason the trail is part of the report rather than a debugging aid.
 
-- [ ] **4. Downstream consumers assume every finding is actionable.** Even once the
+- [x] **4. DONE 2026-09-22 (branch `prompt/clause-checklist`).** `reconcileReview`
+      in `lib/analysis-review.ts` drops any finding whose proposed language declines
+      to change anything, inside `analyzeContract`, so the app and the eval both get
+      it. Dropped findings go to the audit log with a reason. Original item below.
+
+- [ ] ~~**4. Downstream consumers assume every finding is actionable.**~~ Even once the
       prompt is fixed, nothing between the model and the redline/memo/email checks
       that a finding proposes an actual change. A defensive filter is cheap insurance
       against a regression reaching a hotel. Decide whether to add one, or to rely on
@@ -862,7 +867,13 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         $0.90), and the findings key has no correction mechanism for
         drafted text that says more than its spec.
       - The model flags silence on the newer terms inconsistently. Recall
-        is 88.7% against the new key.
+        is 88.7% against the new key. A repeat run (`baseline-repeat-2026-09-22`)
+        scored 88.1%, but only 8 of its 20 misses were also missed the first
+        time, so most misses are chance rather than fixed blind spots.
+      - Branch `prompt/clause-checklist` asks for a verdict on every clause
+        type before findings, and records disagreements between verdicts and
+        findings as `review_gaps`. It needs one paid run (about $1.20) to
+        measure. A drop of two or three misses is within run-to-run noise.
       - The template's attrition formula says 75% while its headline says
         70%. The library keeps 70%, and the question should go back to CD.
       - Commission findings appear in client memos and emails like any
