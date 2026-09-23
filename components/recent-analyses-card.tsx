@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { StatusPill } from "@/components/ui/status-pill";
 import { Body, Meta, Subtitle } from "@/components/ui/typography";
 
-const STATUS_STYLE: Record<string, { label: string; color: string }> = {
-  queued: { label: "Queued", color: "var(--cd-blue)" },
-  processing: { label: "Analyzing...", color: "var(--cd-blue)" },
-  complete: { label: "Complete", color: "var(--status-success)" },
-  failed: { label: "Failed", color: "var(--severity-high)" },
+const STATUS_STYLE: Record<string, { label: string; className: string }> = {
+  queued: { label: "Queued", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
+  processing: { label: "Analyzing...", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
+  complete: { label: "Complete", className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
+  failed: { label: "Failed", className: "bg-[var(--severity-high-bg)] text-[var(--severity-high)]" },
 };
 
 export interface RecentAnalysisRow {
@@ -87,7 +88,7 @@ export function RecentAnalysesCard({ analyses }: { analyses: RecentAnalysisRow[]
               <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)]">
                 Date
               </Meta>
-              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)] text-right">
+              <Meta as="th" className="px-5 py-2 font-medium text-[var(--text-muted)]">
                 Status
               </Meta>
             </tr>
@@ -106,11 +107,9 @@ export function RecentAnalysesCard({ analyses }: { analyses: RecentAnalysisRow[]
                   <td className="px-5 py-3 text-[var(--text-secondary)]">
                     {new Date(a.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-5 py-3 text-right whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
-                      <span aria-hidden="true" className="size-1.5 rounded-full" style={{ background: style.color }} />
-                      {style.label}
-                    </span>
+                  {/* Left-aligned so every status label starts on the same line. */}
+                  <td className="px-5 py-3 whitespace-nowrap">
+                    <StatusPill label={style.label} className={style.className} />
                   </td>
                 </tr>
               );
