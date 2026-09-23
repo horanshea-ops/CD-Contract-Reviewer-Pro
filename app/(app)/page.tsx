@@ -17,7 +17,7 @@ export default async function DashboardPage() {
 
   const admin = createAdminClient();
 
-  const [{ count: totalCount }, { count: inProgressCount }, { count: completedThisMonth }, { count: highSeverityCount }, { data: recentAnalyses }] =
+  const [{ count: totalCount }, { count: inProgressCount }, { count: completedThisMonth }, { count: needingDecisions }, { data: recentAnalyses }] =
     await Promise.all([
       admin.from("analyses").select("id", { count: "exact", head: true }).eq("associate_id", associate.id),
       admin
@@ -31,11 +31,13 @@ export default async function DashboardPage() {
         .eq("associate_id", associate.id)
         .eq("status", "complete")
         .gte("created_at", startOfMonthISO()),
+      // Complete reviews with at least one finding that has no decision yet.
       admin
-        .from("findings")
-        .select("id, analyses!inner(associate_id)", { count: "exact", head: true })
-        .eq("analyses.associate_id", associate.id)
-        .eq("severity", "high"),
+        .from("analyses")
+        .select("id, findings!inner(id, finding_actions(id))", { count: "exact", head: true })
+        .eq("associate_id", associate.id)
+        .eq("status", "complete")
+        .is("findings.finding_actions", null),
       admin
         .from("analyses")
         .select("id, filename, status, created_at, clients(name)")
@@ -48,7 +50,7 @@ export default async function DashboardPage() {
     { label: "Total reviews", value: totalCount ?? 0 },
     { label: "In progress", value: inProgressCount ?? 0 },
     { label: "Completed this month", value: completedThisMonth ?? 0 },
-    { label: "High-severity findings", value: highSeverityCount ?? 0 },
+    { label: "Reviews needing decisions", value: needingDecisions ?? 0 },
   ];
 
   return (

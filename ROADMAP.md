@@ -785,10 +785,19 @@ was added later and outranks 5-12; see its own note on sequencing.
             size jump or a tinted box. Down to two type sizes and four colours
             on the card. `app/(app)/analyses/[id]/finding-card.tsx`.
 
-      **Still open: the dashboard and upload form.** Neither has had this pass
-      yet — "looks cheap" was about the review screen specifically, but the
-      original brief named all three as candidates. Worth deciding whether
-      they need the same treatment before calling item 13 done.
+      - [x] **Dashboard and upload form — shipped 2026-09-22** (branch
+            `ui/dashboard-upload-restyle`). The user called the upload screen
+            chaotic, with many different sizes. It had four control heights
+            (34–38px), a file picker indented 14px from everything else, and a
+            half-width negotiation switch with 12px text. Every control is now
+            full width at one left edge, 40px tall and 14px text, with 6px from
+            label to control and 20px between fields. The file picker is a drop
+            zone that shows the chosen file, and the switch is a shared
+            `SegmentedControl`. On the dashboard, the four stat cards became one
+            strip with hairline dividers, and the status column is left-aligned so
+            every pill starts on the same line. The user kept the pills over a dot.
+            "High-severity findings" became "Reviews needing decisions", which
+            counts complete reviews with at least one undecided finding.
 
       Same rule as the rest of this list: a restyle must not carry a behaviour change,
       or it cannot be reviewed by eye.
