@@ -60,6 +60,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     bool("cancellation.rebook_credit", "True when revenue from a later rebooking at the hotel is credited against cancellation damages. False when rebooking earns no credit."),
     num("cancellation.liability_free_months", "months", "How many months after signing the group may cancel without damages. 0 when damages apply from signature with no liability-free window."),
     num("cancellation.top_tier_pct", "pct", "The damages percentage in the schedule tier closest to arrival, which is the most the group can owe."),
+    bool("cancellation.net_rate_basis", "True when room profit is defined on the net group rate applied to the block less allowable attrition. False when damages use the full rate across the whole block."),
     {
       key: "cancellation.schedule",
       kind: "schedule",
@@ -81,6 +82,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     bool("force_majeure.covers_epidemic", "True when epidemics or pandemics count as force majeure. False when they are excluded."),
     bool("force_majeure.covers_unsafe_travel", "True when conditions making it unsafe or imprudent for attendees to travel or gather count as force majeure. False when attendee safety concerns do not excuse performance."),
     bool("force_majeure.deposit_refund", "True when deposits are refunded if the agreement ends for force majeure. False when the hotel keeps them."),
+    bool("force_majeure.attendee_cancellation_trigger", "True when Group may invoke force majeure because an event causes, or is reasonably expected to cause, a stated share of attendees to cancel. False when attendee cancellations are not a ground."),
 
     // Food and beverage
     num("fb_minimum.menu_price_lock_months", "months", "How many months before the event the hotel sets menus and pricing for the group."),
@@ -95,6 +97,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     bool("walk_relocation.transportation", "True when the hotel pays transportation between the alternative hotel and the event. False when that is the guest's responsibility."),
     bool("walk_relocation.return_upgrade", "True when a relocated guest returns to an upgraded room or receives an amenity. False when they return to a standard room with nothing extra."),
     bool("walk_relocation.counts_toward_pickup", "True when a relocated night still counts toward the group's pickup and commission. False when it does not."),
+    bool("walk_relocation.per_night_credit", "True when the hotel credits the group a stated amount for each night a guest is relocated. False when relocation earns the group no payment."),
 
     // Mandatory fees
     bool("mandatory_fees.disclosed_before_signature", "True when every mandatory fee or surcharge must be disclosed in writing before signature. False when the hotel may add fees after signature."),
@@ -105,6 +108,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     num("rebates.comp_room_ratio", "rooms", "Paid room nights needed to earn one complimentary room night. 40 means one complimentary room per 40 paid."),
     bool("rebates.formula_based", "True when complimentary rooms accrue automatically from a stated ratio. False when the ratio is only a guideline or complimentary rooms are at the hotel's discretion."),
     bool("rebates.forfeited_on_attrition", "True when complimentary room credit is forfeited if the group falls short of its block. False when credit already earned survives a shortfall."),
+    bool("rebates.fee_nights_count", "True when rooms charged a no-show or cancellation fee count as room nights toward pickup and complimentary rooms. False when they do not."),
 
     // Construction and renovation
     bool("construction_renovation.no_current_plans_warranty", "True when the hotel warrants it has no renovation planned that would affect the group. False when it makes no such representation."),
@@ -120,11 +124,13 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     bool("review_audit_dates.weekly_pickup_reports", "True when the hotel sends the group a written pickup report every week before cutoff. False when pickup information comes only on request."),
     num("review_audit_dates.post_event_report_days", "days", "How many days after the event the hotel must deliver its post-event report."),
     bool("review_audit_dates.block_audit_right", "True when the group may audit the room block, comparing the hotel's in-house guest list with its own registration list to find attendees booked outside it. False when it has no such right. Checking occupancy records behind an attrition charge is attrition.audit_rights, not this."),
+    bool("review_audit_dates.block_review_rights", "True when the agreement sets review dates at which the group may raise or lower the room block by a stated percentage. False when the block is fixed at signing."),
 
     // Insurance and indemnification
     bool("insurance_indemnification.mutual", "True when each party indemnifies the other on the same terms. False when only the group gives an indemnity."),
     bool("insurance_indemnification.own_negligence_only", "True when each party's indemnity is limited to its own negligence or misconduct. False when the group's indemnity covers the hotel's own negligence."),
     num("insurance_indemnification.group_liability_limit_usd", "usd", "The general liability insurance limit the group must carry."),
+    bool("insurance_indemnification.mutual_insurance", "True when each party must carry insurance for its own activities. False when only the group is required to."),
 
     // Damage deposit
     num("damage_deposit.refund_window_days", "days", "How many days after the event the hotel must refund the damage deposit."),
@@ -138,6 +144,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     // Termination
     bool("termination_rights.for_cause_no_liability", "True when the group may terminate for cause without liability. False when damages still apply after termination for cause."),
     bool("termination_rights.separate_from_cancellation_scale", "True when termination for cause does not trigger the cancellation damages scale. False when any termination is treated as a cancellation."),
+    bool("termination_rights.pandemic_termination", "True when Group may terminate without liability on its own judgment that an epidemic or pandemic is affecting the event. False when it has no such right."),
 
     // Assignment
     bool("assignment_subcontracting.assignable_to_successor", "True when the group may assign the agreement to a successor or affiliated entity. False when it may not assign it."),
@@ -181,6 +188,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     bool("rate_parity.guaranteed", "True when the hotel will not offer the public a lower rate than the group's during the event dates. False when it may."),
     bool("rate_parity.retroactive_adjustment", "True when a lower public rate triggers a matching adjustment, including for reservations already made. False when an adjustment applies only to later reservations."),
     bool("rate_parity.commission_preserved", "True when commission and pickup credit survive a rate adjustment. False when an adjusted rate is non-commissionable or does not count toward pickup."),
+    bool("rate_parity.lowest_group_rate", "True when Group's rate may be no higher than any other group's rate over a stated period around the event. False when the hotel may give other groups a lower rate."),
 
     // Gratuity and service charge
     bool("gratuity_service_charge.separately_defined", "True when gratuity and service charge are defined separately, each with its own purpose. False when the terms are used interchangeably."),
@@ -192,6 +200,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     bool("resale_mitigation_duty.affirmative_duty", "True when the hotel must actively try to resell released rooms or function space. False when it has no such obligation."),
     bool("resale_mitigation_duty.proceeds_credited", "True when resale proceeds are credited against what the group owes. False when the hotel keeps them as well."),
     bool("resale_mitigation_duty.records_available", "True when the hotel makes its resale records available to the group. False when they are closed to it."),
+    bool("resale_mitigation_duty.damages_due_after_event", "True when cancellation damages fall due only after the event dates, once the hotel evidences its resale efforts. False when they fall due earlier."),
 
     // Commission
     num("commission.commission_pct", "pct", "The commission rate the hotel pays the booking agency on room revenue."),
@@ -233,6 +242,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     // Audio-visual and internet
     bool("av_internet.quotes_honored", "True when the hotel honors the audio-visual and internet pricing quoted at contracting. False when those services are priced at its rates in effect at the time of the event."),
     bool("av_internet.in_house_av_not_condition", "True when using the hotel's in-house audio-visual provider is not a condition of any complimentary or discounted service. False when concessions such as internet depend on using it."),
+    bool("av_internet.bandwidth_specified", "True when the agreement guarantees a minimum internet bandwidth. False when it guarantees none."),
   ],
 };
 

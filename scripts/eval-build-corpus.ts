@@ -162,6 +162,7 @@ async function main() {
       version: "synthetic-v1",
       source: "synthetic",
       standards_version: standards.version,
+      standards_hash: standards.hash,
       generated_at: new Date().toISOString(),
       contracts,
     };

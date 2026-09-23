@@ -328,6 +328,28 @@ function byClauseTypeOf(key: AnswerKey, contracts: ContractResult[]): ClauseType
   });
 }
 
+/**
+ * Says whether the key and the run were built against different libraries.
+ *
+ * The key encodes CD's positions as of one library. Scoring a run taken against
+ * another compares the model to expectations it was never given, so the
+ * mismatch is stated rather than left to be noticed. The content hash decides
+ * when both sides carry one, because an admin edit leaves the version alone.
+ */
+export function standardsMismatch(
+  key: Pick<AnswerKey, "standards_version" | "standards_hash">,
+  run: Pick<RunRecord, "standards_version" | "standards_hash">
+): string | null {
+  if (key.standards_hash && run.standards_hash) {
+    return key.standards_hash === run.standards_hash
+      ? null
+      : `the key was derived against library ${key.standards_hash.slice(0, 16)} and the run used ${run.standards_hash.slice(0, 16)}`;
+  }
+  return key.standards_version === run.standards_version
+    ? null
+    : `the key was derived against ${key.standards_version} and the run used ${run.standards_version}`;
+}
+
 export function scoreRun({ key, run, documents }: ScoreRunArgs): ScoreReport {
   const allClauseTypes = [...new Set(key.contracts.flatMap((c) => c.items.map((i) => i.clause_type)))].sort();
   const contracts = key.contracts.map((entry) => scoreContract(entry, run, documents, allClauseTypes));
@@ -357,13 +379,7 @@ export function scoreRun({ key, run, documents }: ScoreRunArgs): ScoreReport {
     run_created_at: run.created_at,
     model_id: run.model_id,
     standards_version: run.standards_version,
-    // The key encodes CD's positions as of one library version. Scoring a run
-    // taken against a different one compares the model to expectations it was
-    // never given, so the mismatch is stated rather than left to be noticed.
-    standards_mismatch:
-      key.standards_version === run.standards_version
-        ? null
-        : `the key was derived against ${key.standards_version} and the run used ${run.standards_version}`,
+    standards_mismatch: standardsMismatch(key, run),
     scored_at: new Date().toISOString(),
     detection: detectionOf(contracts, items.length),
     by_severity: bySeverityOf(key, contracts),

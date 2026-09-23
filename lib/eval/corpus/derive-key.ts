@@ -1,6 +1,6 @@
 import type { Severity, StandardEntry } from "../../standards/types";
 import type { AnchorSpan, ExposureExpectation, KeyItem, KeyItemKind, LanguageAssertion } from "../types";
-import type { EvalContractSpec, TermCheck, TermValue } from "./spec";
+import { isNotStated, type EvalContractSpec, type TermCheck, type TermValue } from "./spec";
 import { CD_POSITIONS, POSITION_BY_CLAUSE, clauseFields } from "./positions";
 
 /**
@@ -106,6 +106,7 @@ function assertionsFor(check: TermCheck, contractValue: TermValue): LanguageAsse
 }
 
 function describe(check: TermCheck, value: TermValue): string {
+  if (isNotStated(value)) return `${check.label} is not stated, and CD's position requires it`;
   if (check.kind === "number") {
     const bound = { lte: "at most", lt: "under", eq: "exactly", gte: "at least", gt: "over" }[check.comparator];
     return `${check.label} is ${value}, and CD's position is ${bound} ${check.value} ${check.unit}`;
