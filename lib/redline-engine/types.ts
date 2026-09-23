@@ -17,6 +17,15 @@ export interface RevisionFinding extends MemoFinding {
   location_section: string | null;
 }
 
+/**
+ * How a replacement is laid out as tracked changes.
+ *
+ *   whole            strike the whole passage, then insert the whole proposal
+ *   insertion_first  the same, with the proposal placed before the struck passage
+ *   changed_words    strike and insert only the words that change
+ */
+export type RedlineLayout = "whole" | "insertion_first" | "changed_words";
+
 /** How confidently the wording was found. Written to `findings.span_resolution`. */
 export type SpanResolution = "exact" | "normalized" | "fuzzy" | "unresolved";
 

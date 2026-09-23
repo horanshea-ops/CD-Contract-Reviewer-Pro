@@ -1,11 +1,15 @@
 import type { RevisionIds } from "./ids";
+import { replaceRun, runText, splitRun } from "./runs";
+import type { RedlineLayout } from "./types";
+import { wordChanges, type WordChange } from "./word-diff";
 
 /**
  * Emitting a tracked change (MASTER_PLAN.md §1.5.5–§1.5.7).
  *
  * The runs a span covers are wrapped in a `w:del`, their text converted to
- * `w:delText`, and the replacement follows in a `w:ins` whose run clones the
- * formatting of the first deleted run.
+ * `w:delText`, and the replacement goes beside it in a `w:ins` whose run clones
+ * the formatting of the first deleted run. In the changed-words layout this
+ * happens once per changed stretch, and shared words stay as they were.
  *
  * §1.5.7's nested case falls out of doing this on the tree rather than on a
  * string. When the wording being struck is text the counterparty inserted, the
@@ -76,22 +80,48 @@ export interface ReplaceOptions {
   author: string;
   date: string;
   ids: RevisionIds;
+  layout?: RedlineLayout;
+}
+
+type Stamp = Pick<ReplaceOptions, "author" | "date" | "ids">;
+
+/**
+ * Replaces the covered runs with the replacement, as tracked changes laid out
+ * the way `layout` asks.
+ *
+ * The changed-words layout needs every covered run to be plain text that still
+ * reads in the contract. Anything else (a tab, a field, wording someone already
+ * struck) takes the whole-passage change instead.
+ */
+export function replaceSpan({ covered, replacement, layout = "whole", ...stamp }: ReplaceOptions): void {
+  if (covered.length === 0) return;
+
+  if (layout === "changed_words" && covered.every(isPlainLiveText)) {
+    const passage = covered.map(runText).join("");
+    const changes = wordChanges(passage, replacement);
+    const whole = changes.length === 1 && changes[0].from === 0 && changes[0].to === passage.length;
+    if (!whole) {
+      applyWordChanges(covered, changes, stamp);
+      return;
+    }
+  }
+
+  strikeAndInsert(covered, replacement, stamp, layout === "insertion_first");
 }
 
 /**
- * Strikes the covered runs and inserts the replacement immediately after.
+ * Strikes the covered runs and inserts the replacement beside them.
  *
  * The covered runs can sit under different parents — part inside a hyperlink
  * and part outside, say — so each run of adjacent siblings gets its own
  * wrapper. One wrapper spanning two parents is not something XML can express,
  * and reaching for it is how the old engine produced files Word would not open.
  */
-export function replaceSpan({ covered, replacement, author, date, ids }: ReplaceOptions): void {
-  if (covered.length === 0) return;
+function strikeAndInsert(covered: Element[], replacement: string, { author, date, ids }: Stamp, insertionFirst: boolean) {
   const doc = covered[0].ownerDocument!;
   const formatLike = covered[0];
 
-  let lastDeletion: Element | null = null;
+  const deletions: Element[] = [];
   for (const group of siblingGroups(covered)) {
     const parent = group[0].parentNode!;
     const deletion = revisionElement(doc, "w:del", ids, author, date);
@@ -101,15 +131,87 @@ export function replaceSpan({ covered, replacement, author, date, ids }: Replace
       toDeletedText(run);
       deletion.appendChild(run);
     }
-    lastDeletion = deletion;
+    deletions.push(deletion);
   }
 
   if (!replacement) return;
   const insertion = revisionElement(doc, "w:ins", ids, author, date);
   insertion.appendChild(insertedRun(doc, replacement, formatLike));
-  // Directly after the deletion, so the new wording reads where the old one
-  // was. Inside the counterparty's insertion when that is where the old
-  // wording lived, which keeps the position exact.
-  const anchor = lastDeletion!;
-  anchor.parentNode!.insertBefore(insertion, anchor.nextSibling);
+
+  // Beside the deletion, so the new wording reads where the old one was.
+  // Inside the counterparty's insertion when that is where the old wording
+  // lived, which keeps the position exact.
+  if (insertionFirst) {
+    const anchor = deletions[0];
+    anchor.parentNode!.insertBefore(insertion, anchor);
+  } else {
+    const anchor = deletions[deletions.length - 1];
+    anchor.parentNode!.insertBefore(insertion, anchor.nextSibling);
+  }
+}
+
+/** A run of ordinary text, not inside anyone's deletion. */
+function isPlainLiveText(run: Element): boolean {
+  if (!childElements(run).every((c) => c.nodeName === "w:rPr" || c.nodeName === "w:t")) return false;
+  for (let node = run.parentNode; node && node.nodeType === 1; node = node.parentNode) {
+    const name = (node as Element).nodeName;
+    if (name === "w:del" || name === "w:moveFrom") return false;
+  }
+  return true;
+}
+
+/** Where each run starts in the passage, and where it ends. */
+function extents(pieces: Element[]): { run: Element; start: number; end: number }[] {
+  let start = 0;
+  return pieces.map((run) => {
+    const end = start + runText(run).length;
+    const out = { run, start, end };
+    start = end;
+    return out;
+  });
+}
+
+/** Splits the run that `offset` falls inside, so a run boundary sits there. */
+function cutAt(pieces: Element[], offset: number): Element[] {
+  const hit = extents(pieces).findIndex(({ start, end }) => start < offset && offset < end);
+  if (hit === -1) return pieces;
+
+  const { run, start, end } = extents(pieces)[hit];
+  const { before, middle } = splitRun(run, offset - start, end - start);
+  replaceRun(run, [before, middle]);
+  return [...pieces.slice(0, hit), before!, middle, ...pieces.slice(hit + 1)];
+}
+
+/**
+ * Makes each change as its own tracked change, last first.
+ *
+ * Working from the end keeps every earlier offset valid. Struck runs keep
+ * their text as `w:delText`, which `runText` still counts.
+ */
+function applyWordChanges(covered: Element[], changes: WordChange[], stamp: Stamp) {
+  let pieces = covered;
+  for (const change of [...changes].reverse()) {
+    pieces = cutAt(pieces, change.to);
+    pieces = cutAt(pieces, change.from);
+    const struck = extents(pieces)
+      .filter(({ start, end }) => start < end && change.from <= start && end <= change.to)
+      .map(({ run }) => run);
+
+    if (struck.length) strikeAndInsert(struck, change.text, stamp, false);
+    else insertAt(pieces, change.from, change.text, stamp);
+  }
+}
+
+/** A pure insertion, after the word it follows or before the passage's first. */
+function insertAt(pieces: Element[], offset: number, text: string, { author, date, ids }: Stamp) {
+  if (!text) return;
+  const withText = extents(pieces).filter(({ start, end }) => start < end);
+  const previous = withText.find(({ end }) => end === offset)?.run ?? null;
+  const next = previous ? null : withText[0].run;
+
+  const doc = pieces[0].ownerDocument!;
+  const insertion = revisionElement(doc, "w:ins", ids, author, date);
+  insertion.appendChild(insertedRun(doc, text, previous ?? next));
+  if (previous) previous.parentNode!.insertBefore(insertion, previous.nextSibling);
+  else next!.parentNode!.insertBefore(insertion, next);
 }

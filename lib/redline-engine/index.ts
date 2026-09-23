@@ -8,7 +8,7 @@ import { replaceSpan } from "./revise";
 import { runsForSpan } from "./runs";
 import { replaceTable } from "./tables";
 import { serializePart } from "./serialize";
-import { isLocated, type Applicability, type RevisionFinding, type SpanResolution } from "./types";
+import { isLocated, type Applicability, type RedlineLayout, type RevisionFinding, type SpanResolution } from "./types";
 
 export * from "./types";
 
@@ -62,11 +62,13 @@ export async function generateRedline({
   findings,
   author,
   now = new Date(),
+  layout = "whole",
 }: {
   originalDocxBytes: Uint8Array;
   findings: RevisionFinding[];
   author: string;
   now?: Date;
+  layout?: RedlineLayout;
 }): Promise<RedlineOutcome> {
   const pkg = await loadDocx(originalDocxBytes);
   const ids = new RevisionIds(pkg.textParts);
@@ -203,7 +205,7 @@ export async function generateRedline({
       continue;
     }
 
-    replaceSpan({ covered, replacement: finding.language, author, date, ids });
+    replaceSpan({ covered, replacement: finding.language, author, date, ids, layout });
     editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
     walked = null; // the document changed
     appliedCount++;

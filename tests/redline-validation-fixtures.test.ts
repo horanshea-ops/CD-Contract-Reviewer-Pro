@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateRedline } from "@/lib/redline-engine";
+import { generateRedline, type RedlineLayout } from "@/lib/redline-engine";
 import { validateRedline } from "@/lib/redline-validation";
 import { FIXTURE_AUTHOR, FIXTURE_CORPUS, readFixture } from "./helpers/fixture-corpus";
 
@@ -12,36 +12,39 @@ import { FIXTURE_AUTHOR, FIXTURE_CORPUS, readFixture } from "./helpers/fixture-c
  * to be zero before the pilot rate means anything.
  */
 
-async function runFixture(index: number) {
+const LAYOUTS: RedlineLayout[] = ["whole", "insertion_first", "changed_words"];
+
+async function runFixture(index: number, layout: RedlineLayout) {
   const { file, findings } = FIXTURE_CORPUS[index];
   const originalBytes = new Uint8Array(await readFixture(file));
   const engineResult = await generateRedline({
     originalDocxBytes: originalBytes,
     findings,
     author: FIXTURE_AUTHOR,
+    layout,
   });
   const report = await validateRedline({ originalBytes, engineResult, author: FIXTURE_AUTHOR });
   return { file, report };
 }
 
-describe("the fixture corpus through the oracle", () => {
+describe.each(LAYOUTS)("the fixture corpus through the oracle, %s layout", (layout) => {
   it.each(FIXTURE_CORPUS.map((c, i) => [i, c.file] as const))(
     "%i %s validates without falling back",
     async (index) => {
-      const { report } = await runFixture(index);
+      const { report } = await runFixture(index, layout);
       expect(report.checks.filter((c) => !c.passed)).toEqual([]);
       expect(report.outcome).not.toBe("fallback");
     }
   );
 
   it("has a zero fallback rate across the whole corpus", async () => {
-    const reports = await Promise.all(FIXTURE_CORPUS.map((_, i) => runFixture(i)));
+    const reports = await Promise.all(FIXTURE_CORPUS.map((_, i) => runFixture(i, layout)));
     const fallbacks = reports.filter((r) => r.report.outcome === "fallback");
     expect(fallbacks.map((r) => r.file)).toEqual([]);
   });
 
   it("still reaches Partial, so the degraded path is exercised and not assumed", async () => {
-    const reports = await Promise.all(FIXTURE_CORPUS.map((_, i) => runFixture(i)));
+    const reports = await Promise.all(FIXTURE_CORPUS.map((_, i) => runFixture(i, layout)));
     const partial = reports.filter((r) => r.report.outcome === "partial");
     expect(partial.length).toBeGreaterThan(0);
     for (const r of partial) {
