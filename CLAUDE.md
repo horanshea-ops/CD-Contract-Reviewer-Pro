@@ -83,7 +83,18 @@ override it.
    §1.8.3: CD's internal position is negotiating leverage and must not reach the
    property by accident. The redline carries the changes and nothing else.
 
-# Response Style
+7. **A redacted real CD contract will be processed on the personal Anthropic
+   account, ahead of the build brief's own gate** (decided by the user,
+   2026-09-22, for one specific upcoming client presentation). The gate says
+   CD's own Anthropic org must exist "before the first real (even redacted)
+   CD contract is processed" (ROADMAP.md, build brief §4.1/§15 item 1) —
+   deliberately worded that way because the open question is which
+   organization's agreement with Anthropic governs the data, not whether a
+   name is visible in the text, so redaction alone doesn't resolve it. The
+   user was told this directly and chose to proceed anyway for the
+   presentation. CD's Anthropic org still does not exist as of this writing;
+   this deviation does not change that, and does not extend to any other
+   real CD contract beyond what's needed for this one presentation.
 
 Read this as binding, not advisory. Claude's default house style in recent iterations — the announcing, the colon-hinged sentences, the stacked abstraction, the unspecified density — is a dramatic sink on my productivity and my joy in using Claude. When responses follow this guide, Claude is genuinely useful and pleasant to me. When they drift, every response costs me decoding and editing. Drift happens most in long, abstract conversations, so re-check these rules/focus on them/keep them in mind exactly when the material turns philosophical or dense or the thread runs long. If a rule here conflicts with your instinct for how smart prose sounds, the rule wins. These are instructions for better communications with humans. 
 
