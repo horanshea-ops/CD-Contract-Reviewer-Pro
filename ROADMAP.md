@@ -886,6 +886,14 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       field allowlist, the "not legal advice" disclaimer, and audit logging all
       apply regardless of which Anthropic account processes the call — no new
       engineering expected here, just worth checking once live.
+      Checked locally on 2026-09-23:
+      - The allowlist tests pass and cover the new `headline` field.
+      - The disclaimer shows on the upload form and the review screen, and on
+        every page of a 10-page memo.
+      - Every audit action the code writes has rows in `audit_log`.
+      - The signature route was the one write without an audit entry. It now
+        logs `signature_updated`.
+      Still to do: repeat these checks on Render once it's deployed.
 - [ ] **7. A redacted real CD contract will be processed on the personal
       Anthropic account for this presentation, ahead of the build brief's own
       gate** (decided by the user, 2026-09-22). CD's Anthropic org still does
