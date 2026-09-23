@@ -13,9 +13,10 @@ export const STALE_ANALYSIS_MINUTES = 6;
 
 /**
  * How long the model call may run, counted from the start of processAnalysis.
- * The route stops at 300s. The rest covers the upload before and the saves
- * after, so a slow review fails with an error rather than being cut off
- * mid-run and left at "processing".
+ * It ends well before the stall check above, so a slow review fails with an
+ * error instead of sitting at "processing" until the associate retries. It
+ * also fits the 300s route limit on serverless hosts, with room for the upload
+ * before and the saves after.
  */
 export const MODEL_CALL_BUDGET_MS = 240_000;
 
