@@ -1,6 +1,6 @@
 import type { ClauseFieldDirective } from "../../anthropic";
 import { phrase } from "../../quantities";
-import type { ClauseTerms, TermCheck } from "./spec";
+import { isNotStated, type ClauseTerms, type TermCheck } from "./spec";
 import { POSITION_BY_CLAUSE } from "./positions";
 import { isTableOnly } from "./layout";
 
@@ -295,6 +295,46 @@ const BOOLEAN_MEANING: Record<string, { true: string; false: string }> = {
     true: "Using the Hotel's in-house audio-visual provider is not a condition of any complimentary or discounted service.",
     false: "Complimentary internet and other concessions apply only if Group uses the Hotel's in-house audio-visual provider.",
   },
+  "force_majeure.attendee_cancellation_trigger": {
+    true: "Group may cancel for force majeure if the event causes, or Group reasonably expects it to cause, twenty percent or more of attendees to cancel.",
+    false: "Attendee cancellations, however many, are not a ground for force majeure.",
+  },
+  "termination_rights.pandemic_termination": {
+    true: "Group may terminate without liability if it decides an epidemic or pandemic is affecting its ability to hold the Event as intended.",
+    false: "An epidemic or pandemic gives Group no right to terminate unless performance becomes impossible.",
+  },
+  "rate_parity.lowest_group_rate": {
+    true: "Group's rate is no higher than the rate given to any other group in the seven days before or after the Event.",
+    false: "The Hotel may give other groups over the same period a lower rate than Group's.",
+  },
+  "walk_relocation.per_night_credit": {
+    true: "The Hotel credits Group's master account a stated amount for each night a guest is relocated.",
+    false: "The Hotel pays Group nothing for a night on which a guest is relocated.",
+  },
+  "rebates.fee_nights_count": {
+    true: "Each no-show or cancellation fee charged counts as a room night toward Group's pickup and complimentary rooms.",
+    false: "Rooms charged a no-show or cancellation fee do not count toward Group's pickup.",
+  },
+  "review_audit_dates.block_review_rights": {
+    true: "The room block is reviewed in writing at set dates before the Event, and Group may raise or lower it by a stated percentage at each review.",
+    false: "The room block is fixed at signing and Group may not adjust it before the Event.",
+  },
+  "insurance_indemnification.mutual_insurance": {
+    true: "Each party carries adequate insurance to protect its own activities during the Event.",
+    false: "Only Group is required to carry insurance.",
+  },
+  "resale_mitigation_duty.damages_due_after_event": {
+    true: "Cancellation damages fall due only after the Event dates, once the Hotel shows evidence of its resale efforts and of the rooms left unsold.",
+    false: "Cancellation damages fall due before the Event dates, whether or not the Hotel has resold the rooms.",
+  },
+  "cancellation.net_rate_basis": {
+    true: "Room profit is seventy percent of the single net group rate, applied to the room block less allowable attrition.",
+    false: "Damages are calculated on the full group rate across the entire contracted room block.",
+  },
+  "av_internet.bandwidth_specified": {
+    true: "The internet quote guarantees a minimum bandwidth of 10 Mbps download and 1 Mbps upload.",
+    false: "The Agreement guarantees no minimum internet bandwidth.",
+  },
 };
 
 /** Enum values, dictated word for word — these carry the key's phrase assertions. */
@@ -319,7 +359,6 @@ const ENUM_WORDING: Record<string, Record<string, string>> = {
 
 /** Fields whose value is a bare figure the clause states in passing. */
 const STATED_UNITS: Record<string, "usd" | "pct" | "months"> = {
-  "mandatory_fees.resort_fee_usd": "usd",
   "damage_deposit.deposit_usd": "usd",
   "gratuity_service_charge.service_charge_pct": "pct",
   "cancellation.top_tier_pct": "pct",
@@ -327,14 +366,15 @@ const STATED_UNITS: Record<string, "usd" | "pct" | "months"> = {
 };
 
 /**
- * A duration of zero is a meaning, not a figure.
+ * A zero is a meaning, not a figure.
  *
  * "State the liability-free cancellation window as zero (0) months" produces a
  * sentence no contract would contain. What the term actually says is that there
  * is no such window, so that is what the drafter is asked for — and the field
  * loses its dictated wording, which the read-back pass covers instead.
  */
-const ZERO_DURATION_MEANING: Record<string, string> = {
+const ZERO_MEANING: Record<string, string> = {
+  "mandatory_fees.resort_fee_usd": "the Hotel charges no resort fee",
   "cancellation.liability_free_months":
     "liquidated damages apply to a cancellation at any time after signature, with no liability-free window",
   "construction_renovation.notice_days":
@@ -352,7 +392,7 @@ function numericDirective(
   check: Extract<TermCheck, { kind: "number" }>,
   value: number
 ): string {
-  const zeroMeaning = value === 0 ? ZERO_DURATION_MEANING[key] : undefined;
+  const zeroMeaning = value === 0 ? ZERO_MEANING[key] : undefined;
   if (zeroMeaning) return `Say, in your own words, that ${zeroMeaning}.`;
   return `State the ${check.label} as "${phrase(value, check.unit)}". Reproduce that wording verbatim.`;
 }
@@ -374,6 +414,7 @@ export function buildDirectives(clauseType: string, terms: ClauseTerms): ClauseF
   for (const check of position.checks) {
     if (isTableOnly(clauseType, check.field)) continue;
     const value = terms[check.field];
+    if (isNotStated(value)) continue;
     const key = `${clauseType}.${check.field}`;
 
     if (check.kind === "number") {
@@ -413,7 +454,7 @@ export function buildDirectives(clauseType: string, terms: ClauseTerms): ClauseF
     if (!unit) throw new Error(`No unit declared for stated field ${key}.`);
     if (typeof value !== "number") throw new Error(`${key} must be a number, got ${typeof value}.`);
 
-    const zeroMeaning = value === 0 ? ZERO_DURATION_MEANING[key] : undefined;
+    const zeroMeaning = value === 0 ? ZERO_MEANING[key] : undefined;
     if (zeroMeaning) {
       out.push({ field, label: field, directive: `Say, in your own words, that ${zeroMeaning}.` });
       continue;
@@ -448,11 +489,12 @@ export function requiredWording(clauseType: string, field: string, terms: Clause
   const position = POSITION_BY_CLAUSE.get(clauseType)!;
   const key = `${clauseType}.${field}`;
   const value = terms[field];
+  if (isNotStated(value)) return null;
 
   const check = position.checks.find((c) => c.field === field);
   if (check?.kind === "number" && typeof value === "number") {
     // A zero duration was drafted as meaning, so there is no wording to check.
-    if (value === 0 && ZERO_DURATION_MEANING[key]) return null;
+    if (value === 0 && ZERO_MEANING[key]) return null;
     return phrase(value, check.unit);
   }
   if (check?.kind === "enum") return ENUM_WORDING[key]?.[String(value)] ?? null;
@@ -476,7 +518,7 @@ export function meaningNote(clauseType: string, field: string, terms: ClauseTerm
   const meaning = BOOLEAN_MEANING[key];
   if (meaning) return value === true ? meaning.true : meaning.false;
 
-  if (value === 0 && ZERO_DURATION_MEANING[key]) return ZERO_DURATION_MEANING[key];
+  if (value === 0 && ZERO_MEANING[key]) return ZERO_MEANING[key];
   return null;
 }
 

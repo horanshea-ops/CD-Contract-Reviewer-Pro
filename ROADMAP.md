@@ -509,7 +509,7 @@ changing, and one that needs watching.
       prepayment), a correct finding scores as a false positive. That's more of the
       depressed precision item 6 describes.
 
-- [ ] **7. The findings eval reads slightly different text than production. New,
+- [x] **7. DONE 2026-09-22: `eval-capture` now uses `contractText`.** The findings eval reads slightly different text than production. New,
       2026-09-11.** `scripts/eval-capture.ts` joins a DOCX's parts plainly.
       `processAnalysis` flattens them with `contractText` (now
       `lib/docx/contract-text.ts`), which labels header and footer text as part of the
@@ -854,15 +854,15 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       the seed script. `standards:status` confirms the live table matches
       `v1.ts`. The eval corpus was rebuilt for about $0.41–0.82, redrafting 19
       clauses in 4 contracts. Open follow-ups:
-      - The eval's standards-mismatch guard compares version strings, which
-        never change, so it cannot detect a library edit. It should compare
-        `standards_hash`.
-      - Committed eval runs and terms runs predate the new key. A fresh eval
-        run (7 contracts) is needed before quoting scores.
-      - Eval checks cover a subset of each position's prose. New prose on
-        existing entries (walk rebates, the 20% force majeure trigger, the
-        resort fee waiver) can surface as "spurious" findings until checks
-        exist for it.
+      - DONE: the mismatch guard compares `standards_hash`, and the eval ran
+        fresh (runs `standards-2026-09-22` and `checker-2026-09-22`, results
+        in `docs/eval-harness.md`). 11 checks cover the new positions.
+      - Still open: checks cover part of each position, the ADA check
+        contradicts CD's position (redrafting six contracts costs about
+        $0.90), and the findings key has no correction mechanism for
+        drafted text that says more than its spec.
+      - The model flags silence on the newer terms inconsistently. Recall
+        is 88.7% against the new key.
       - The template's attrition formula says 75% while its headline says
         70%. The library keeps 70%, and the question should go back to CD.
       - Commission findings appear in client memos and emails like any

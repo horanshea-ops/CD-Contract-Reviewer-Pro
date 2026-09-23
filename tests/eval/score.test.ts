@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { AnalysisResult, Finding } from "@/lib/anthropic";
 import type { AnswerKey, KeyItem, RunRecord } from "@/lib/eval/types";
-import { scoreRun } from "@/lib/eval/score";
+import { scoreRun, standardsMismatch } from "@/lib/eval/score";
 import { renderReport } from "@/lib/eval/report";
 
 /**
@@ -256,6 +256,21 @@ describe("scoreRun", () => {
     const report = scoreRun({ key: key([ATTRITION]), run: mismatched, documents });
     expect(report.standards_mismatch).toContain("v1");
     expect(report.standards_mismatch).toContain("v2");
+  });
+
+  it("detects an edited library by its hash, since an edit leaves the version alone", () => {
+    const same = { standards_version: "v1", standards_hash: "a".repeat(64) };
+    expect(standardsMismatch(same, same)).toBeNull();
+
+    const edited = { standards_version: "v1", standards_hash: "b".repeat(64) };
+    expect(standardsMismatch(same, edited)).toContain("aaaaaaaaaaaaaaaa");
+    expect(standardsMismatch(same, edited)).toContain("bbbbbbbbbbbbbbbb");
+  });
+
+  it("falls back to the version for a key written before hashes were recorded", () => {
+    const legacy = { standards_version: "v1" };
+    expect(standardsMismatch(legacy, { standards_version: "v1", standards_hash: "c".repeat(64) })).toBeNull();
+    expect(standardsMismatch(legacy, { standards_version: "v2", standards_hash: "c".repeat(64) })).toContain("v2");
   });
 
   it("refuses to score a contract whose text it was not given", () => {

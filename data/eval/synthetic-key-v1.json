@@ -2,7 +2,8 @@
   "version": "synthetic-v1",
   "source": "synthetic",
   "standards_version": "v1-industry-default",
-  "generated_at": "2026-09-23T02:28:52.390Z",
+  "standards_hash": "daf90a77f30c511ded11409db1d5fbe2af159c7f078c23b4b675aca67973f409",
+  "generated_at": "2026-09-23T03:22:12.482Z",
   "contracts": [
     {
       "contract": "eval-01-harborview.docx",
@@ -136,7 +137,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true."
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true; room profit on the net rate is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:force_majeure",
@@ -179,7 +180,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; government travel restrictions is false, and CD's position is true; epidemic and pandemic coverage is false, and CD's position is true; unsafe or imprudent travel is false, and CD's position is true; deposit refund on force majeure is false, and CD's position is true."
+          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; government travel restrictions is false, and CD's position is true; epidemic and pandemic coverage is false, and CD's position is true; unsafe or imprudent travel is false, and CD's position is true; deposit refund on force majeure is false, and CD's position is true; attendee cancellation trigger is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:fb_minimum",
@@ -298,7 +299,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "comparable relocation accommodation is false, and CD's position is true; round-trip transportation on relocation is false, and CD's position is true; upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true."
+          "rationale": "comparable relocation accommodation is false, and CD's position is true; round-trip transportation on relocation is false, and CD's position is true; upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true; relocation credit per night is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:mandatory_fees",
@@ -328,13 +329,21 @@
             "Group waives any claim that undisclosed charges are unenforceable or that such charges constitute a material modification of the Agreement.",
             "A resort fee of $35.00 per occupied room per night shall be charged to all rooms in the block."
           ],
-          "expected_language": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "resort fee",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 0
+            }
+          ],
           "exposure": {
             "mode": "required",
             "amount": 47600,
             "tolerance": 0.25
           },
-          "rationale": "written fee disclosure before signature is false, and CD's position is true; undisclosed charges waived is false, and CD's position is true."
+          "rationale": "written fee disclosure before signature is false, and CD's position is true; undisclosed charges waived is false, and CD's position is true; resort fee is 35, and CD's position is at most 0 usd."
         },
         {
           "id": "eval-01-harborview:rebates",
@@ -376,7 +385,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "complimentary room ratio is 75, and CD's position is at most 40 rooms; formula-based comp calculation is false, and CD's position is true; comp rooms forfeited on attrition is true, and CD's position is false."
+          "rationale": "complimentary room ratio is 75, and CD's position is at most 40 rooms; formula-based comp calculation is false, and CD's position is true; comp rooms forfeited on attrition is true, and CD's position is false; fee nights credited to pickup is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:construction_renovation",
@@ -509,7 +518,7 @@
           "exposure": {
             "mode": "forbidden"
           },
-          "rationale": "weekly pickup reports is false, and CD's position is true; post-event report deadline is 90, and CD's position is at most 30 days; room block audit right is false, and CD's position is true."
+          "rationale": "weekly pickup reports is false, and CD's position is true; post-event report deadline is 90, and CD's position is at most 30 days; room block audit right is false, and CD's position is true; room block review dates is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:insurance_indemnification",
@@ -551,7 +560,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "mutual indemnification is false, and CD's position is true; indemnity limited to own negligence is false, and CD's position is true; group general liability requirement is 5000000, and CD's position is at most 2000000 usd."
+          "rationale": "mutual indemnification is false, and CD's position is true; indemnity limited to own negligence is false, and CD's position is true; group general liability requirement is 5000000, and CD's position is at most 2000000 usd; mutual insurance obligation is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:damage_deposit",
@@ -657,7 +666,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "termination for cause without liability is false, and CD's position is true; termination separate from cancellation damages is false, and CD's position is true."
+          "rationale": "termination for cause without liability is false, and CD's position is true; termination separate from cancellation damages is false, and CD's position is true; termination for an epidemic or pandemic is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:assignment_subcontracting",
@@ -937,7 +946,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "rate parity guarantee is false, and CD's position is true; retroactive rate adjustment is false, and CD's position is true; commission on adjusted rates is false, and CD's position is true."
+          "rationale": "rate parity guarantee is false, and CD's position is true; retroactive rate adjustment is false, and CD's position is true; commission on adjusted rates is false, and CD's position is true; lowest group rate is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:gratuity_service_charge",
@@ -1011,7 +1020,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true."
+          "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true; damages due after the event is not stated, and CD's position requires it."
         },
         {
           "id": "eval-01-harborview:commission",
@@ -1271,7 +1280,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "audio-visual and internet quotes honored is false, and CD's position is true; in-house audio-visual as a condition is false, and CD's position is true."
+          "rationale": "audio-visual and internet quotes honored is false, and CD's position is true; in-house audio-visual as a condition is false, and CD's position is true; minimum internet bandwidth is not stated, and CD's position requires it."
         }
       ]
     },
@@ -1491,7 +1500,41 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true."
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true; room profit on the net rate is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-05-riverwalk:force_majeure",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "present",
+          "clause_type": "force_majeure",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 4944,
+              "end": 5104
+            },
+            {
+              "part": "document",
+              "start": 5105,
+              "end": 5352
+            },
+            {
+              "part": "document",
+              "start": 5572,
+              "end": 5722
+            }
+          ],
+          "anchor_texts": [
+            "When performance of this agreement becomes illegal, impossible or commercially impracticable due to force majeure, either party may terminate without liability.",
+            "Force majeure includes government-imposed travel restrictions and advisories that affect attendee movement, epidemics and pandemics that prevent safe gathering, and conditions that render it unsafe or imprudent for attendees to travel or assemble.",
+            "Upon termination for force majeure, all deposits paid by Group shall be refunded promptly in accordance with the timeline specified in this agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attendee cancellation trigger is not stated, and CD's position requires it."
         },
         {
           "id": "eval-05-riverwalk:walk_relocation",
@@ -1506,6 +1549,40 @@
             "mode": "unspecified"
           },
           "rationale": "The contract has no walk relocation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:rebates",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "present",
+          "clause_type": "rebates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 9241,
+              "end": 9380
+            },
+            {
+              "part": "document",
+              "start": 9381,
+              "end": 9573
+            },
+            {
+              "part": "document",
+              "start": 9745,
+              "end": 9941
+            }
+          ],
+          "anchor_texts": [
+            "Group shall receive one (1) complimentary room for every forty (40) rooms the Hotel occupies during the event dates of October 19-21, 2027.",
+            "The complimentary room ratio of forty (40) accrues automatically as paid rooms are booked and occupied, and Group is entitled to those rooms without further request or approval from the Hotel.",
+            "Complimentary room credit earned under the formula set forth above shall not be forfeited or reduced in the event that Group's room count falls short of the number of rooms originally anticipated."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "fee nights credited to pickup is not stated, and CD's position requires it."
         },
         {
           "id": "eval-05-riverwalk:construction_renovation",
@@ -1550,6 +1627,68 @@
             "mode": "forbidden"
           },
           "rationale": "The contract has no review audit dates clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:insurance_indemnification",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "present",
+          "clause_type": "insurance_indemnification",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 13809,
+              "end": 14072
+            },
+            {
+              "part": "document",
+              "start": 14073,
+              "end": 14274
+            },
+            {
+              "part": "document",
+              "start": 14276,
+              "end": 14438
+            }
+          ],
+          "anchor_texts": [
+            "Hotel shall similarly indemnify, defend, and hold harmless Group, its officers, members, and agents from and against all such claims arising out of or resulting from Hotel's negligence, willful misconduct, breach of this Agreement, or violation of applicable law.",
+            "Each party's indemnification obligation is limited to claims arising solely from that party's own negligence or willful misconduct and shall not extend to claims arising from the other party's conduct.",
+            "Group shall procure and maintain general liability insurance with limits of not less than $1,000,000.00 per occurrence, with Hotel named as an additional insured."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "mutual insurance obligation is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-05-riverwalk:termination_rights",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "present",
+          "clause_type": "termination_rights",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 6009,
+              "end": 6317
+            },
+            {
+              "part": "document",
+              "start": 6637,
+              "end": 6790
+            }
+          ],
+          "anchor_texts": [
+            "When either party terminates this agreement for cause — due to material breach by the other party that remains uncured for ten (10) business days after written notice — the breaching party shall have no right to make a claim for damages, and the terminating party shall receive prompt refund of all deposits.",
+            "Termination for cause operates as a separate contractual remedy and does not invoke the cancellation damages scale set forth elsewhere in this agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "termination for an epidemic or pandemic is not stated, and CD's position requires it."
         },
         {
           "id": "eval-05-riverwalk:assignment_subcontracting",
@@ -1947,6 +2086,104 @@
           "rationale": "attrition threshold is 0.75, and CD's position is at most 0.7 pct; attrition liability rate is 0.75, and CD's position is at most 0.7 pct."
         },
         {
+          "id": "eval-07-monarch:cancellation",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "cancellation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 3637,
+              "end": 4024
+            },
+            {
+              "part": "document",
+              "start": 4025,
+              "end": 4217
+            },
+            {
+              "part": "document",
+              "start": 4442,
+              "end": 4615
+            },
+            {
+              "part": "document",
+              "start": 4750,
+              "end": 5078
+            },
+            {
+              "part": "document",
+              "start": 5080,
+              "end": 5332
+            },
+            {
+              "part": "document",
+              "start": 6031,
+              "end": 6071
+            }
+          ],
+          "anchor_texts": [
+            "Should Group cancel the Event, Group shall pay liquidated damages to the Hotel, which the parties acknowledge are not penalties but a reasonable pre-estimate of harm, calculated as a percentage of lost room profit based on the average daily room rate for the negotiated block, the number of room nights in the block, and the number of days' notice given prior to the Event's opening day.",
+            "Damages shall vary by how far before arrival the cancellation notice is given, with damages assessed on a sliding scale that declines as the cancellation notice moves closer to the Event date.",
+            "The Hotel shall credit against Group's liquidated damages payment all revenue earned by the Hotel from reselling any rooms released from the block to other guests or groups.",
+            "Additionally, should Group execute a definitive agreement with the Hotel to book another event at the Hotel at any time within twelve (12) months of the cancellation, the revenue the Hotel generates from Group's rebooking shall be credited against the damages paid, up to the full amount of damages owed for the cancelled Event.",
+            "Group shall remain liable for all cancellation damages unless the cancellation occurs more than twelve (12) months prior to the Event's opening day, in which case Group shall have no liability and the block shall be released with no further obligation.",
+            "30 days or fewer prior to arrival  | 70%"
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room profit on the net rate is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-07-monarch:force_majeure",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "force_majeure",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 7524,
+              "end": 7857
+            },
+            {
+              "part": "document",
+              "start": 8078,
+              "end": 8387
+            },
+            {
+              "part": "document",
+              "start": 8568,
+              "end": 8783
+            },
+            {
+              "part": "document",
+              "start": 8987,
+              "end": 9349
+            },
+            {
+              "part": "document",
+              "start": 9505,
+              "end": 9773
+            }
+          ],
+          "anchor_texts": [
+            "Notwithstanding any other provision of this Agreement, neither party shall be held in breach or default where delays or defaults in performance result from acts or events beyond the reasonable control of that party, including but not limited to circumstances that render performance illegal, impossible or commercially impracticable.",
+            "Force majeure events covered by this clause shall expressly include government-imposed travel restrictions, travel advisories, or other governmental directives that prohibit, restrict, or materially discourage travel to or from New York or the New York metropolitan area during the dates of the Group's event.",
+            "Epidemics and pandemics, whether declared by the World Health Organization, United States government agencies, or state or local public health authorities, shall constitute force majeure events under this Agreement.",
+            "Conditions that render it unsafe or imprudent for the Group's attendees to travel to New York or to gather in person at the Hotel, whether arising from public health directives, governmental restrictions, or other circumstances beyond the parties' reasonable control, shall constitute a force majeure event relieving the affected party's performance obligations.",
+            "In the event this Agreement is terminated as a result of a force majeure event, all deposits paid by Group to the Hotel shall be refunded promptly without deduction, provided that Group has complied with all notice and cooperation obligations set forth in this clause."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attendee cancellation trigger is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-07-monarch:fb_minimum",
           "contract": "eval-07-monarch.docx",
           "kind": "present",
@@ -2026,6 +2263,46 @@
           "rationale": "room block cutoff date is 32, and CD's position is at most 21 days."
         },
         {
+          "id": "eval-07-monarch:walk_relocation",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "walk_relocation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 27975,
+              "end": 28147
+            },
+            {
+              "part": "document",
+              "start": 28451,
+              "end": 28668
+            },
+            {
+              "part": "document",
+              "start": 29018,
+              "end": 29311
+            },
+            {
+              "part": "document",
+              "start": 29448,
+              "end": 29751
+            }
+          ],
+          "anchor_texts": [
+            "the Hotel shall relocate any affected guest to comparable or better accommodations at a Hotel property or an alternative establishment at the Hotel's sole cost and expense.",
+            "The Hotel shall arrange and pay for round-trip ground transportation between the alternative hotel and The Monarch on Fifth for the relocated guest, including all transfer logistics for the duration of the relocation.",
+            "Upon the guest's return to The Monarch on Fifth on the final night of the reservation, the Hotel shall upgrade the guest to a premium room category above the original reservation at no additional charge and shall provide a welcome amenity of appropriate value to acknowledge the inconvenience.",
+            "Any night spent at the alternative accommodation shall be credited to Group's room pickup and shall count toward all occupancy and pickup thresholds stated in this Agreement, and shall be credited to all commissions or rebates calculated on the basis of room pickup, occupancy, or other similar metrics."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "relocation credit per night is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-07-monarch:rebates",
           "contract": "eval-07-monarch.docx",
           "kind": "present",
@@ -2065,7 +2342,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "complimentary room ratio is 45, and CD's position is at most 40 rooms."
+          "rationale": "complimentary room ratio is 45, and CD's position is at most 40 rooms; fee nights credited to pickup is not stated, and CD's position requires it."
         },
         {
           "id": "eval-07-monarch:master_account_billing",
@@ -2117,6 +2394,40 @@
           "rationale": "invoice dispute window is 12, and CD's position is at least 15 days; monthly finance charge is 0.0125, and CD's position is at most 0.01 pct."
         },
         {
+          "id": "eval-07-monarch:review_audit_dates",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "review_audit_dates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 41017,
+              "end": 41426
+            },
+            {
+              "part": "document",
+              "start": 41428,
+              "end": 41744
+            },
+            {
+              "part": "document",
+              "start": 41746,
+              "end": 42107
+            }
+          ],
+          "anchor_texts": [
+            "Beginning eight (8) weeks prior to the Event and continuing weekly through the cutoff date established in this Agreement, the Hotel shall provide Group with a written pickup report setting forth the number of rooms booked under the room block, the number of rooms released, the number of rooms picked up by attendees, the rate breakdown by room type, and any changes to rooming arrangements or billing status.",
+            "Within thirty (30) days following the conclusion of the Event, the Hotel shall deliver to Group a comprehensive post-event report detailing final room pickup, actual revenue generated, all charges assessed against Group's folio, and reconciliation of any deposits, credits, or adjustments applied to Group's account.",
+            "Group shall have the right, at its own expense and upon reasonable notice to the Hotel, to engage an independent auditor to audit the room block records, billing records, and attendance records maintained by the Hotel in connection with this Agreement, and Group may conduct such audit at no cost to the Hotel beyond providing reasonable access to such records."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "room block review dates is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-07-monarch:insurance_indemnification",
           "contract": "eval-07-monarch.docx",
           "kind": "present",
@@ -2156,7 +2467,35 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "group general liability requirement is 2500000, and CD's position is at most 2000000 usd."
+          "rationale": "group general liability requirement is 2500000, and CD's position is at most 2000000 usd; mutual insurance obligation is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-07-monarch:termination_rights",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "termination_rights",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 11537,
+              "end": 11911
+            },
+            {
+              "part": "document",
+              "start": 11913,
+              "end": 12131
+            }
+          ],
+          "anchor_texts": [
+            "Upon such termination for cause, Group shall incur no further liability to the Hotel beyond payment of charges accrued through the effective date of termination, and the Hotel shall refund promptly to Group all deposits previously made, less any charges for room nights occupied, catering actually provided, or other services actually rendered prior to the termination date.",
+            "Termination for cause pursuant to this clause shall operate independently of and shall not trigger the cancellation damages, liquidated damages, or other remedies set forth in the cancellation clause of this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "termination for an epidemic or pandemic is not stated, and CD's position requires it."
         },
         {
           "id": "eval-07-monarch:brand_ownership_change",
@@ -2285,6 +2624,74 @@
             "mode": "unspecified"
           },
           "rationale": "collective bargaining expiry notice is 9, and CD's position is at least 12 months; labor dispute cancellation window is 75, and CD's position is at least 90 days."
+        },
+        {
+          "id": "eval-07-monarch:rate_parity",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "rate_parity",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 19529,
+              "end": 19878
+            },
+            {
+              "part": "document",
+              "start": 20111,
+              "end": 20613
+            },
+            {
+              "part": "document",
+              "start": 20833,
+              "end": 21237
+            }
+          ],
+          "anchor_texts": [
+            "the Hotel shall not advertise, offer, book, or sell any room accommodations to the general public, any individual guest, any tour operator, any travel agent, any online travel agency, any corporate account, or any other third party at a nightly rate lower than the rate extended to the Institute of Certified Actuarial Analysts under this Agreement.",
+            "Should the Hotel discover, or should Group bring to the Hotel's attention through written notice, that a lower nightly rate has been offered or made available to any person or entity during the Event period, the Hotel shall retroactively adjust Group's negotiated nightly rate to equal or fall below the lower public rate, effective for all room reservations made on or before the date the lower rate was first offered, as well as for all room reservations made thereafter through the end of the Event.",
+            "The commission payable to Group's travel agent or booking agent, and any pickup credit or other room revenue rebate accrued by Group under separate provisions of this Agreement, shall be calculated on the basis of Group's room revenue as originally stated and shall not be recalculated, reduced, or adjusted downward as a result of any retroactive rate adjustment made pursuant to the rate parity clause."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "lowest group rate is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-07-monarch:resale_mitigation_duty",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "resale_mitigation_duty",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 6113,
+              "end": 6389
+            },
+            {
+              "part": "document",
+              "start": 6620,
+              "end": 6861
+            },
+            {
+              "part": "document",
+              "start": 7042,
+              "end": 7365
+            }
+          ],
+          "anchor_texts": [
+            "Upon any release of guest rooms or function space by Group, the Hotel shall undertake active and good faith efforts to resell such released accommodations and facilities at prevailing market rates for The Monarch on Fifth during the Group's event dates of November 9-12, 2027.",
+            "All proceeds derived from the resale of released inventory shall be credited directly against the amounts owing by Group under this Agreement, and such credits shall be applied to any outstanding balance on the invoice date specified herein.",
+            "The Hotel shall make available to Group, upon reasonable written request and no more frequently than once per calendar month, a detailed statement of all resale activity for released inventory, including the dates of resale, rates charged, and gross revenue received for each resold room-night or function space engagement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "damages due after the event is not stated, and CD's position requires it."
         },
         {
           "id": "eval-07-monarch:commission",
@@ -2644,7 +3051,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true."
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true; room profit on the net rate is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:force_majeure",
@@ -2699,7 +3106,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; government travel restrictions is false, and CD's position is true; deposit refund on force majeure is false, and CD's position is true."
+          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; government travel restrictions is false, and CD's position is true; deposit refund on force majeure is false, and CD's position is true; attendee cancellation trigger is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:fb_minimum",
@@ -2818,7 +3225,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "comparable relocation accommodation is false, and CD's position is true; round-trip transportation on relocation is false, and CD's position is true; upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true."
+          "rationale": "comparable relocation accommodation is false, and CD's position is true; round-trip transportation on relocation is false, and CD's position is true; upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true; relocation credit per night is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:mandatory_fees",
@@ -2848,13 +3255,21 @@
             "Group remains liable for all charges assessed by Hotel, whether or not such charges were disclosed in writing prior to execution of this Agreement.",
             "Group shall pay a resort fee in the amount of $35.00 per occupied room per night for the duration of the Event."
           ],
-          "expected_language": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "resort fee",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 0
+            }
+          ],
           "exposure": {
             "mode": "required",
             "amount": 28875,
             "tolerance": 0.25
           },
-          "rationale": "written fee disclosure before signature is false, and CD's position is true; undisclosed charges waived is false, and CD's position is true."
+          "rationale": "written fee disclosure before signature is false, and CD's position is true; undisclosed charges waived is false, and CD's position is true; resort fee is 35, and CD's position is at most 0 usd."
         },
         {
           "id": "eval-10-crossroads:rebates",
@@ -2896,7 +3311,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "complimentary room ratio is 80, and CD's position is at most 40 rooms; formula-based comp calculation is false, and CD's position is true; comp rooms forfeited on attrition is true, and CD's position is false."
+          "rationale": "complimentary room ratio is 80, and CD's position is at most 40 rooms; formula-based comp calculation is false, and CD's position is true; comp rooms forfeited on attrition is true, and CD's position is false; fee nights credited to pickup is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:construction_renovation",
@@ -3029,7 +3444,7 @@
           "exposure": {
             "mode": "forbidden"
           },
-          "rationale": "weekly pickup reports is false, and CD's position is true; post-event report deadline is 90, and CD's position is at most 30 days; room block audit right is false, and CD's position is true."
+          "rationale": "weekly pickup reports is false, and CD's position is true; post-event report deadline is 90, and CD's position is at most 30 days; room block audit right is false, and CD's position is true; room block review dates is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:insurance_indemnification",
@@ -3071,7 +3486,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "mutual indemnification is false, and CD's position is true; indemnity limited to own negligence is false, and CD's position is true; group general liability requirement is 5000000, and CD's position is at most 2000000 usd."
+          "rationale": "mutual indemnification is false, and CD's position is true; indemnity limited to own negligence is false, and CD's position is true; group general liability requirement is 5000000, and CD's position is at most 2000000 usd; mutual insurance obligation is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:damage_deposit",
@@ -3177,7 +3592,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "termination for cause without liability is false, and CD's position is true; termination separate from cancellation damages is false, and CD's position is true."
+          "rationale": "termination for cause without liability is false, and CD's position is true; termination separate from cancellation damages is false, and CD's position is true; termination for an epidemic or pandemic is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:assignment_subcontracting",
@@ -3429,7 +3844,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "rate parity guarantee is false, and CD's position is true; retroactive rate adjustment is false, and CD's position is true; commission on adjusted rates is false, and CD's position is true."
+          "rationale": "rate parity guarantee is false, and CD's position is true; retroactive rate adjustment is false, and CD's position is true; commission on adjusted rates is false, and CD's position is true; lowest group rate is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:gratuity_service_charge",
@@ -3503,7 +3918,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true."
+          "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true; damages due after the event is not stated, and CD's position requires it."
         },
         {
           "id": "eval-10-crossroads:commission",
@@ -3676,6 +4091,104 @@
       "exhaustive": true,
       "items": [
         {
+          "id": "eval-12-granite-bay:cancellation",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "cancellation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 2970,
+              "end": 3231
+            },
+            {
+              "part": "document",
+              "start": 3465,
+              "end": 3691
+            },
+            {
+              "part": "document",
+              "start": 3693,
+              "end": 3868
+            },
+            {
+              "part": "document",
+              "start": 3869,
+              "end": 4130
+            },
+            {
+              "part": "document",
+              "start": 4310,
+              "end": 4510
+            },
+            {
+              "part": "document",
+              "start": 5102,
+              "end": 5142
+            }
+          ],
+          "anchor_texts": [
+            "In the event Group cancels this Agreement, liquidated damages shall be assessed and calculated as a percentage of lost room profit based on the number of committed room nights that will not be occupied and the average daily room rate applicable to those nights.",
+            "Damages vary by how far before arrival the cancellation notice is given, with the schedule set forth in Exhibit A, such that earlier notice results in lower assessed damages and later notice results in higher assessed damages.",
+            "Revenue the Hotel earns reselling cancelled rooms to other guests is credited against what Group owes in damages, thereby reducing Group's overall liability dollar-for-dollar.",
+            "If Group books another event at the Hotel within a year following the original Event dates, the revenue earned by the Hotel from such rebooking shall be credited against the damages paid pursuant to this clause, applied first against any remaining balance owed.",
+            "Group may cancel this Agreement without any liability for liquidated damages if written notice of cancellation is received by the Hotel at least twelve (12) months prior to the first day of the Event.",
+            "30 days or fewer prior to arrival  | 70%"
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room profit on the net rate is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-12-granite-bay:force_majeure",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "force_majeure",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 6883,
+              "end": 7262
+            },
+            {
+              "part": "document",
+              "start": 7263,
+              "end": 7435
+            },
+            {
+              "part": "document",
+              "start": 7436,
+              "end": 7641
+            },
+            {
+              "part": "document",
+              "start": 7643,
+              "end": 7902
+            },
+            {
+              "part": "document",
+              "start": 8104,
+              "end": 8262
+            }
+          ],
+          "anchor_texts": [
+            "Notwithstanding any other provision of this Agreement, neither party shall be liable for any failure or delay in performance under this Agreement when such failure or delay results from causes beyond the reasonable control of that party, including but not limited to acts of God, war, terrorism, civil unrest, or events that are illegal, impossible or commercially impracticable.",
+            "Force majeure events shall include government-imposed travel restrictions, quarantine orders, or travel advisories issued by any federal, state, or local government entity.",
+            "For purposes of this Agreement, epidemics and pandemics, including those declared or recognized by the World Health Organization or any governmental health authority, shall constitute force majeure events.",
+            "Force majeure events shall also include conditions that render it unsafe or imprudent for meeting attendees to travel to or gather at the Hotel, whether due to health risks, infrastructure damage, or other circumstances beyond the parties' reasonable control.",
+            "If this Agreement is terminated or substantially performed by reason of a force majeure event, any Deposits paid by Group shall be refunded promptly to Group."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "attendee cancellation trigger is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-12-granite-bay:cutoff_date",
           "contract": "eval-12-granite-bay.docx",
           "kind": "present",
@@ -3716,6 +4229,80 @@
             "mode": "unspecified"
           },
           "rationale": "room block cutoff date is 30, and CD's position is at most 21 days."
+        },
+        {
+          "id": "eval-12-granite-bay:walk_relocation",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "walk_relocation",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 19123,
+              "end": 19459
+            },
+            {
+              "part": "document",
+              "start": 19814,
+              "end": 20018
+            },
+            {
+              "part": "document",
+              "start": 20334,
+              "end": 20592
+            },
+            {
+              "part": "document",
+              "start": 20721,
+              "end": 20927
+            }
+          ],
+          "anchor_texts": [
+            "In the event the Hotel is unable to provide accommodations to any Group member holding a guaranteed reservation due to an operational, maintenance, or occupancy situation, the Hotel shall secure alternative accommodations at a comparable or superior hotel within the San Francisco metropolitan area at the Hotel's sole cost and expense.",
+            "The Hotel shall provide round-trip ground transportation between Granite Bay Hotel and Spa and the alternative hotel for each relocated Group member, with transportation costs borne entirely by the Hotel.",
+            "Upon the relocated Group member's return to Granite Bay Hotel and Spa, the guest shall be assigned an upgraded room category, complimentary for the returned nights, and shall receive a welcome amenity valued at not less than fifty dollars ($50.00) per night.",
+            "All nights stayed at the alternative hotel and all nights returned to Granite Bay Hotel and Spa shall be fully credited toward Group's room pickup and commission calculations for purposes of this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "relocation credit per night is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-12-granite-bay:rebates",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "rebates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 13415,
+              "end": 13587
+            },
+            {
+              "part": "document",
+              "start": 13588,
+              "end": 13819
+            },
+            {
+              "part": "document",
+              "start": 14242,
+              "end": 14452
+            }
+          ],
+          "anchor_texts": [
+            "Group shall receive complimentary rooms based on a ratio of one (1) complimentary room for every forty (40) paid rooms occupied during the event dates of April 26-29, 2027.",
+            "The complimentary room ratio of forty (40) shall be applied to all paid room nights achieved by Group, regardless of room type or rate tier, and shall accrue automatically as rooms are occupied and payment is received by the Hotel.",
+            "Complimentary room credit already earned and accrued by Group shall remain available and shall not be forfeited or reduced in the event that Group's actual room pickup falls below the original block commitment."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "fee nights credited to pickup is not stated, and CD's position requires it."
         },
         {
           "id": "eval-12-granite-bay:construction_renovation",
@@ -3809,6 +4396,74 @@
           "rationale": "invoice dispute window is 7, and CD's position is at least 15 days; monthly finance charge is 0.02, and CD's position is at most 0.01 pct."
         },
         {
+          "id": "eval-12-granite-bay:review_audit_dates",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "review_audit_dates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 28796,
+              "end": 28973
+            },
+            {
+              "part": "document",
+              "start": 29299,
+              "end": 29576
+            },
+            {
+              "part": "document",
+              "start": 29577,
+              "end": 29822
+            }
+          ],
+          "anchor_texts": [
+            "the Hotel shall provide the Group with a written pickup report each week showing current room reservations, cancellations, and projected occupancy against the agreed room block.",
+            "Within thirty (30) days following the conclusion of the Event, the Hotel shall deliver to the Group a comprehensive post-event report containing final rooming data, actual room revenue, attendance figures, and an accounting of all charges applied to the Group's master account.",
+            "The Group may audit the room block and all related charges at no cost to the Group, and the Hotel shall provide access to all supporting documentation, including folio records and registration logs, within five (5) business days of such request."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "room block review dates is not stated, and CD's position requires it."
+        },
+        {
+          "id": "eval-12-granite-bay:insurance_indemnification",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "insurance_indemnification",
+          "severity": "high",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 25496,
+              "end": 25773
+            },
+            {
+              "part": "document",
+              "start": 25775,
+              "end": 26085
+            },
+            {
+              "part": "document",
+              "start": 26086,
+              "end": 26334
+            }
+          ],
+          "anchor_texts": [
+            "The indemnification obligations imposed upon Group and the Hotel shall be reciprocal and shall apply on identical terms to both parties, with neither party enjoying greater protection or bearing greater responsibility than the other under the indemnification provisions hereof.",
+            "Notwithstanding the foregoing, each party's indemnity obligation shall be limited to losses and claims arising solely from such indemnifying party's own negligence or willful misconduct, and shall not extend to claims arising from the sole or comparative negligence of the indemnified party or any third party.",
+            "Group shall maintain general liability insurance with minimum limits of $1,000,000.00 per occurrence, with the Hotel named as additional insured, and shall provide certificates of insurance to the Hotel at least thirty (30) days prior to the Event."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "mutual insurance obligation is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-12-granite-bay:exclusivity_vendors",
           "contract": "eval-12-granite-bay.docx",
           "kind": "present",
@@ -3843,6 +4498,34 @@
             "mode": "unspecified"
           },
           "rationale": "outside vendor choice is false, and CD's position is true; outside vendor surcharge is 3200, and CD's position is at most 0 usd."
+        },
+        {
+          "id": "eval-12-granite-bay:termination_rights",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "termination_rights",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 9467,
+              "end": 9566
+            },
+            {
+              "part": "document",
+              "start": 9703,
+              "end": 9881
+            }
+          ],
+          "anchor_texts": [
+            "If Group terminates for cause, Group shall receive prompt refund of all deposits held by the Hotel.",
+            "Exercise of termination rights for cause shall not trigger or activate the sliding scale of cancellation damages applicable to other forms of cancellation or withdrawal by Group."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "termination for an epidemic or pandemic is not stated, and CD's position requires it."
         },
         {
           "id": "eval-12-granite-bay:labor_disputes",
@@ -3894,6 +4577,40 @@
           "rationale": "collective bargaining expiry notice is 0, and CD's position is at least 12 months; labor dispute cancellation window is 30, and CD's position is at least 90 days; labor dispute cancellation liability is false, and CD's position is true."
         },
         {
+          "id": "eval-12-granite-bay:rate_parity",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "rate_parity",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 14683,
+              "end": 14880
+            },
+            {
+              "part": "document",
+              "start": 15289,
+              "end": 15561
+            },
+            {
+              "part": "document",
+              "start": 15831,
+              "end": 16010
+            }
+          ],
+          "anchor_texts": [
+            "During the event dates of April 26-29, 2027, the Hotel shall not offer to the general public any nightly room rate that is lower than the rate offered to Group for the same room type and occupancy.",
+            "If the Hotel offers or makes available to the general public a nightly rate lower than Group's rate at any time during the event dates or the booking period preceding the event, Group's rate shall be automatically and retroactively adjusted to equal the lower public rate.",
+            "Group's eligibility for commissions, pickup credit, and other incentives shall not be diminished, reduced, or otherwise affected by any rate adjustment required under this clause."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "lowest group rate is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-12-granite-bay:gratuity_service_charge",
           "contract": "eval-12-granite-bay.docx",
           "kind": "present",
@@ -3932,6 +4649,40 @@
             "mode": "unspecified"
           },
           "rationale": "gratuity and service charge defined separately is false, and CD's position is true; gratuity distributed to staff is false, and CD's position is true; service charge disclosed as hotel revenue is false, and CD's position is true."
+        },
+        {
+          "id": "eval-12-granite-bay:resale_mitigation_duty",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "resale_mitigation_duty",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 5184,
+              "end": 5345
+            },
+            {
+              "part": "document",
+              "start": 5787,
+              "end": 6073
+            },
+            {
+              "part": "document",
+              "start": 6254,
+              "end": 6456
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall undertake diligent and good faith efforts to resell any Guest Rooms and function space released by Group pursuant to the terms of this Agreement.",
+            "Any revenues realized from the resale of Guest Rooms and function space released by Group shall be credited dollar-for-dollar against the charges and fees otherwise due from Group under this Agreement, thereby reducing Group's financial obligation to the extent of such resale proceeds.",
+            "Group shall have the right, upon reasonable notice and during normal business hours, to inspect and obtain copies of the Hotel's resale records pertaining to the released inventory for the Event period."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "damages due after the event is not stated, and CD's position requires it."
         },
         {
           "id": "eval-12-granite-bay:commission",
@@ -4224,7 +4975,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; rebooking credit is false, and CD's position is true."
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; rebooking credit is false, and CD's position is true; room profit on the net rate is not stated, and CD's position requires it."
         },
         {
           "id": "eval-15-vantage:force_majeure",
@@ -4273,7 +5024,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; unsafe or imprudent travel is false, and CD's position is true."
+          "rationale": "force majeure standard is \"impossible\", and CD's position allows only \"impracticable\"; unsafe or imprudent travel is false, and CD's position is true; attendee cancellation trigger is not stated, and CD's position requires it."
         },
         {
           "id": "eval-15-vantage:cutoff_date",
@@ -4355,7 +5106,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true."
+          "rationale": "upgrade and amenity on return is false, and CD's position is true; relocated night credited to pickup is false, and CD's position is true; relocation credit per night is not stated, and CD's position requires it."
         },
         {
           "id": "eval-15-vantage:mandatory_fees",
@@ -4379,13 +5130,55 @@
             "Any charge or surcharge not specifically disclosed in writing to Group prior to the execution of this Agreement shall be deemed waived and shall not be collected from Group or its attendees.",
             "The nightly resort fee for all room reservations under this Agreement shall be $26.00 per room."
           ],
-          "expected_language": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "resort fee",
+              "unit": "usd",
+              "comparator": "lte",
+              "value": 0
+            }
+          ],
           "exposure": {
             "mode": "required",
             "amount": 60450,
             "tolerance": 0.25
           },
-          "rationale": "written fee disclosure before signature is false, and CD's position is true."
+          "rationale": "written fee disclosure before signature is false, and CD's position is true; resort fee is 26, and CD's position is at most 0 usd."
+        },
+        {
+          "id": "eval-15-vantage:rebates",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "rebates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 16582,
+              "end": 16884
+            },
+            {
+              "part": "document",
+              "start": 16885,
+              "end": 17084
+            },
+            {
+              "part": "document",
+              "start": 17479,
+              "end": 17790
+            }
+          ],
+          "anchor_texts": [
+            "In consideration of Group's room commitment and projected economic value to the Hotel, Group shall receive complimentary room credit accruing at the ratio of one (1) complimentary room for every forty (40) paid rooms reserved and occupied by Group attendees during the Event Period of August 2-7, 2027.",
+            "This complimentary room ratio accrues automatically upon each booking confirmation, and Group is entitled to such complimentary rooms as of right without further application or approval by the Hotel.",
+            "Complimentary room credit already earned and accrued prior to the discovery of any attrition shortfall shall not be affected by or subject to reduction, forfeiture, or recalculation based on Group's failure to meet any minimum room commitment or due to any other attrition provision elsewhere in this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "fee nights credited to pickup is not stated, and CD's position requires it."
         },
         {
           "id": "eval-15-vantage:master_account_billing",
@@ -4430,6 +5223,40 @@
           "rationale": "monthly finance charge is 0.015, and CD's position is at most 0.01 pct."
         },
         {
+          "id": "eval-15-vantage:review_audit_dates",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "review_audit_dates",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 33863,
+              "end": 34007
+            },
+            {
+              "part": "document",
+              "start": 34421,
+              "end": 34755
+            },
+            {
+              "part": "document",
+              "start": 34980,
+              "end": 35156
+            }
+          ],
+          "anchor_texts": [
+            "the Hotel shall provide Group with a written pickup report detailing current room block reservations, cancellations, and room type distribution.",
+            "Within thirty (30) days following the conclusion of the event, the Hotel shall deliver to Group a comprehensive post-event report containing final room block statistics, including total rooms occupied, total revenue generated, applicable attrition charges if any, and a full accounting of all charges assessed against the group folio.",
+            "Group shall have the right to conduct an audit of the room block records and reservations maintained by the Hotel at Group's sole cost and expense, without charge to the Hotel."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "room block review dates is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-15-vantage:insurance_indemnification",
           "contract": "eval-15-vantage.docx",
           "kind": "present",
@@ -4469,7 +5296,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "group general liability requirement is 3000000, and CD's position is at most 2000000 usd."
+          "rationale": "group general liability requirement is 3000000, and CD's position is at most 2000000 usd; mutual insurance obligation is not stated, and CD's position requires it."
         },
         {
           "id": "eval-15-vantage:damage_deposit",
@@ -4514,6 +5341,34 @@
           "rationale": "damage deposit refund window is 45, and CD's position is at most 30 days."
         },
         {
+          "id": "eval-15-vantage:termination_rights",
+          "contract": "eval-15-vantage.docx",
+          "kind": "present",
+          "clause_type": "termination_rights",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 10587,
+              "end": 10844
+            },
+            {
+              "part": "document",
+              "start": 10846,
+              "end": 11035
+            }
+          ],
+          "anchor_texts": [
+            "Termination for cause shall relieve the Group of all liability with respect to the remainder of the Event, and the Hotel shall refund promptly to the Group all deposits and prepayments made hereunder within ten (10) business days of such termination notice.",
+            "Termination for cause as described in this provision operates independently of and shall not invoke the cancellation damages schedule set forth in the Cancellation clause of this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "termination for an epidemic or pandemic is not stated, and CD's position requires it."
+        },
+        {
           "id": "eval-15-vantage:rate_parity",
           "contract": "eval-15-vantage.docx",
           "kind": "present",
@@ -4545,7 +5400,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "retroactive rate adjustment is false, and CD's position is true."
+          "rationale": "retroactive rate adjustment is false, and CD's position is true; lowest group rate is not stated, and CD's position requires it."
         },
         {
           "id": "eval-15-vantage:resale_mitigation_duty",
@@ -4579,7 +5434,7 @@
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "resale records available to group is false, and CD's position is true."
+          "rationale": "resale records available to group is false, and CD's position is true; damages due after the event is not stated, and CD's position requires it."
         },
         {
           "id": "eval-15-vantage:commission",

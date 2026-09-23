@@ -37,6 +37,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "sliding_scale", label: "sliding damages scale", kind: "boolean", expected: true },
       { field: "resale_credit", label: "resale credit against damages", kind: "boolean", expected: true },
       { field: "rebook_credit", label: "rebooking credit", kind: "boolean", expected: true },
+      { field: "net_rate_basis", label: "room profit on the net rate", kind: "boolean", expected: true },
     ],
     stated: ["top_tier_pct", "liability_free_months"],
   },
@@ -49,6 +50,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "covers_epidemic", label: "epidemic and pandemic coverage", kind: "boolean", expected: true },
       { field: "covers_unsafe_travel", label: "unsafe or imprudent travel", kind: "boolean", expected: true },
       { field: "deposit_refund", label: "deposit refund on force majeure", kind: "boolean", expected: true },
+      { field: "attendee_cancellation_trigger", label: "attendee cancellation trigger", kind: "boolean", expected: true },
     ],
   },
   {
@@ -75,6 +77,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "transportation", label: "round-trip transportation on relocation", kind: "boolean", expected: true },
       { field: "return_upgrade", label: "upgrade and amenity on return", kind: "boolean", expected: true },
       { field: "counts_toward_pickup", label: "relocated night credited to pickup", kind: "boolean", expected: true },
+      { field: "per_night_credit", label: "relocation credit per night", kind: "boolean", expected: true },
     ],
   },
   {
@@ -83,8 +86,8 @@ export const CD_POSITIONS: ClausePosition[] = [
     checks: [
       { field: "disclosed_before_signature", label: "written fee disclosure before signature", kind: "boolean", expected: true },
       { field: "undisclosed_waived", label: "undisclosed charges waived", kind: "boolean", expected: true },
+      { field: "resort_fee_usd", label: "resort fee", kind: "number", comparator: "lte", value: 0, unit: "usd" },
     ],
-    stated: ["resort_fee_usd"],
   },
   {
     clause_type: "rebates",
@@ -93,6 +96,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "comp_room_ratio", label: "complimentary room ratio", kind: "number", comparator: "lte", value: 40, unit: "rooms" },
       { field: "formula_based", label: "formula-based comp calculation", kind: "boolean", expected: true },
       { field: "forfeited_on_attrition", label: "comp rooms forfeited on attrition", kind: "boolean", expected: false },
+      { field: "fee_nights_count", label: "fee nights credited to pickup", kind: "boolean", expected: true },
     ],
   },
   {
@@ -120,6 +124,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "weekly_pickup_reports", label: "weekly pickup reports", kind: "boolean", expected: true },
       { field: "post_event_report_days", label: "post-event report deadline", kind: "number", comparator: "lte", value: 30, unit: "days" },
       { field: "block_audit_right", label: "room block audit right", kind: "boolean", expected: true },
+      { field: "block_review_rights", label: "room block review dates", kind: "boolean", expected: true },
     ],
   },
   {
@@ -129,6 +134,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "mutual", label: "mutual indemnification", kind: "boolean", expected: true },
       { field: "own_negligence_only", label: "indemnity limited to own negligence", kind: "boolean", expected: true },
       { field: "group_liability_limit_usd", label: "group general liability requirement", kind: "number", comparator: "lte", value: 2000000, unit: "usd" },
+      { field: "mutual_insurance", label: "mutual insurance obligation", kind: "boolean", expected: true },
     ],
   },
   {
@@ -154,6 +160,7 @@ export const CD_POSITIONS: ClausePosition[] = [
     checks: [
       { field: "for_cause_no_liability", label: "termination for cause without liability", kind: "boolean", expected: true },
       { field: "separate_from_cancellation_scale", label: "termination separate from cancellation damages", kind: "boolean", expected: true },
+      { field: "pandemic_termination", label: "termination for an epidemic or pandemic", kind: "boolean", expected: true },
     ],
   },
   {
@@ -225,6 +232,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "guaranteed", label: "rate parity guarantee", kind: "boolean", expected: true },
       { field: "retroactive_adjustment", label: "retroactive rate adjustment", kind: "boolean", expected: true },
       { field: "commission_preserved", label: "commission on adjusted rates", kind: "boolean", expected: true },
+      { field: "lowest_group_rate", label: "lowest group rate", kind: "boolean", expected: true },
     ],
   },
   {
@@ -244,6 +252,7 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "affirmative_duty", label: "affirmative duty to resell", kind: "boolean", expected: true },
       { field: "proceeds_credited", label: "resale proceeds credited", kind: "boolean", expected: true },
       { field: "records_available", label: "resale records available to group", kind: "boolean", expected: true },
+      { field: "damages_due_after_event", label: "damages due after the event", kind: "boolean", expected: true },
     ],
   },
   {
@@ -321,6 +330,7 @@ export const CD_POSITIONS: ClausePosition[] = [
     checks: [
       { field: "quotes_honored", label: "audio-visual and internet quotes honored", kind: "boolean", expected: true },
       { field: "in_house_av_not_condition", label: "in-house audio-visual as a condition", kind: "boolean", expected: true },
+      { field: "bandwidth_specified", label: "minimum internet bandwidth", kind: "boolean", expected: true },
     ],
   },
 ];

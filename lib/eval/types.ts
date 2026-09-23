@@ -117,6 +117,12 @@ export interface AnswerKey {
   source: "synthetic" | "cd_review";
   /** The standards library the key was derived against. */
   standards_version: string;
+  /**
+   * The content hash of that library. The version string never changes when an
+   * admin edits an entry, so this is what detects a library revision. Absent on
+   * keys written before it was recorded.
+   */
+  standards_hash?: string;
   generated_at: string;
   contracts: AnswerKeyContract[];
 }

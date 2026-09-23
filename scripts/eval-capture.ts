@@ -5,6 +5,8 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { analyzeContract } from "../lib/anthropic";
 import { extractDocx } from "../lib/docx";
+import { contractText } from "../lib/docx/contract-text";
+import { standardsMismatch } from "../lib/eval/score";
 import { loadStandardsLibrary } from "../lib/standards/load";
 import type { AnswerKey, RunDocument, RunRecord } from "../lib/eval/types";
 import { withRetry } from "./with-retry";
@@ -57,9 +59,10 @@ async function main() {
     }
   }
 
-  if (standards.version !== key.standards_version) {
+  const mismatch = standardsMismatch(key, { standards_version: standards.version, standards_hash: standards.hash });
+  if (mismatch) {
     console.warn(
-      `WARNING: the key was derived against ${key.standards_version} and this run will use ${standards.version}.\n` +
+      `WARNING: ${mismatch}.\n` +
         `         The report will say so, but the comparison measures the model against positions it was not given.\n`
     );
   }
@@ -93,7 +96,7 @@ async function main() {
     try {
       const bytes = await readFile(path.join(CORPUS_DIR, entry.contract));
       const extracted = await extractDocx(new Uint8Array(bytes));
-      const text = extracted.parts.map((p) => p.text).join("\n\n");
+      const text = contractText(extracted);
 
       const analysis = await withRetry(() =>
         analyzeContract({

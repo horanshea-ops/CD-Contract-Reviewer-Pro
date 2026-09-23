@@ -5,7 +5,7 @@ import { isLocated } from "../../redline-engine/types";
 import type { ClauseDraftRequest, DraftedClauseResult, TermQuestion } from "../../anthropic";
 import type { draftEvalClauses, readBackEvalTerms } from "../../anthropic";
 import type { AnchorSpan } from "../types";
-import type { ClauseTerms, EvalContractSpec } from "./spec";
+import { isNotStated, type ClauseTerms, type EvalContractSpec } from "./spec";
 import { POSITION_BY_CLAUSE } from "./positions";
 import { buildDirectives, requiredWording, meaningNote, BOOLEAN_MEANING, ENUM_WORDING } from "./directives";
 import { clausesToDraft, layOutContract, SECTION_TITLE, type DraftedClause } from "./layout";
@@ -249,6 +249,10 @@ export function readBackQuestions(spec: EvalContractSpec): Array<TermQuestion & 
 
     for (const check of position.checks) {
       const key = `${clauseType}.${check.field}`;
+
+      // Nothing was drafted for a term the clause is silent on, so there is
+      // nothing to read back.
+      if (isNotStated(clause[check.field])) continue;
 
       if (check.kind === "boolean") {
         const meaning = BOOLEAN_MEANING[key];

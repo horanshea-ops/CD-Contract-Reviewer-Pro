@@ -1,4 +1,5 @@
 import type { Comparator, ExposureMode, NumericUnit } from "../types";
+import { NOT_STATED } from "../terms/types";
 
 /**
  * The eval corpus, as data (MASTER_PLAN.md §2.0.1).
@@ -13,8 +14,17 @@ import type { Comparator, ExposureMode, NumericUnit } from "../types";
  * check — which is exactly the dependency §2.0.1 exists to remove.
  */
 
-/** What a term field can hold. Deliberately narrow, because every value is checked. */
+/**
+ * What a term field can hold. Deliberately narrow, because every value is checked.
+ *
+ * NOT_STATED means the clause is present but says nothing about the term. It
+ * fails every check, because silence does not meet a CD position, and it is
+ * never drafted, so a draft written before the term existed stays valid.
+ */
 export type TermValue = number | string | boolean;
+
+export { NOT_STATED };
+export const isNotStated = (value: unknown): value is typeof NOT_STATED => value === NOT_STATED;
 
 /** One clause's terms, keyed by field name. A clause the contract omits is "absent". */
 export type ClauseTerms = Record<string, TermValue>;

@@ -178,6 +178,36 @@ swap:
   its own arithmetic.
 - **Header and footer terms are keyed for one clause type.** `cutoff_date` is restated in
   the footer of contracts whose style carries terms there. Other clauses are body-only.
+- **Checks cover part of each position.** A position's prose names more terms than its
+  checks test. A correct finding on an unchecked term scores as spurious, so precision
+  reads low. Even eval-03, the compliant control, draws such findings.
+- **Silence is a deviation.** A field marked `not_stated` means the clause is present
+  but says nothing about the term, and it fails the check. Contracts drafted before a
+  term existed carry `not_stated` for it, which keeps their drafts valid without paying
+  to redraft them.
+- **ADA's check contradicts CD's position.** `auxiliary_aids_split` is drafted as costs
+  "shared", while CD wants a division by space. The model correctly flags "shared"
+  clauses, and they score as spurious. Fixing it means redrafting ADA in six contracts.
+- **The findings key has no correction mechanism.** Where a drafter wrote more than the
+  spec (for example, an F&B shortfall of 35% of room revenue), a correct finding scores as
+  spurious. The terms key has `corrected` for this. The findings key does not.
+
+## 2026 library, 2026-09-22
+
+`claude-sonnet-5`, 34 clause types. Run `checker-2026-09-22` reuses six reviews from
+`standards-2026-09-22` and re-analyses eval-03 against its redrafted text.
+
+| | Old checks (145 items) | New checks (168 items) |
+|---|---|---|
+| Recall | 93.1% | 88.7% |
+| Precision | 74.2% | 81.4% |
+| High-severity recall | 85.7% | 80.0% |
+| Spurious | 44 | 28 |
+
+Precision rose because 11 new checks turned correct findings into matches. Recall fell
+because the model flags silence on the newer terms inconsistently. It caught eval-03's
+missing attendee trigger but passed eval-12's net-rate basis, walk credit and group-rate
+parity.
 
 ## First baseline, 2026-09-10
 
