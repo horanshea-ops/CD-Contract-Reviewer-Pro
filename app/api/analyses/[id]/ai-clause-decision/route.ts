@@ -5,6 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { processAnalysis } from "@/lib/analysis-pipeline";
 
+// "Proceed" runs the full review, so it needs the same ceiling as upload.
+export const maxDuration = 300;
+
 /**
  * Records an associate's §1.10.3 decision on a document the AI-use pre-check
  * blocked before any network call, and either resumes or stops the analysis.

@@ -9,6 +9,7 @@ import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
 import { findMatchingLineIndices } from "./locate-text";
 import { scanForAiUseTerms, scanForAdjacentTerms } from "./ai-use-scan";
+import { MODEL_CALL_BUDGET_MS } from "./analysis-status";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -19,6 +20,7 @@ const STORAGE_BUCKET = "contracts";
  * (build brief §5) rather than holding a request open for 30-90+ seconds.
  */
 export async function processAnalysis(analysisId: string) {
+  const deadline = Date.now() + MODEL_CALL_BUDGET_MS;
   const admin = createAdminClient();
 
   const { data: analysis, error: fetchError } = await admin
@@ -160,6 +162,7 @@ export async function processAnalysis(analysisId: string) {
       document,
       standards: standards.entries,
       standardsVersion: standards.version,
+      deadline,
     });
 
     if (result.findings.length > 0) {
