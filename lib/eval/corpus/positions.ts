@@ -37,9 +37,8 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "sliding_scale", label: "sliding damages scale", kind: "boolean", expected: true },
       { field: "resale_credit", label: "resale credit against damages", kind: "boolean", expected: true },
       { field: "rebook_credit", label: "rebooking credit", kind: "boolean", expected: true },
-      { field: "liability_free_months", label: "liability-free cancellation window", kind: "number", comparator: "gte", value: 12, unit: "months" },
     ],
-    stated: ["top_tier_pct"],
+    stated: ["top_tier_pct", "liability_free_months"],
   },
   {
     clause_type: "force_majeure",
@@ -64,7 +63,7 @@ export const CD_POSITIONS: ClausePosition[] = [
     clause_type: "cutoff_date",
     exposure: "unspecified",
     checks: [
-      { field: "days_prior", label: "room block cutoff date", kind: "number", comparator: "lte", value: 30, unit: "days" },
+      { field: "days_prior", label: "room block cutoff date", kind: "number", comparator: "lte", value: 21, unit: "days" },
       { field: "post_cutoff_group_rate", label: "group rate after cutoff", kind: "boolean", expected: true },
     ],
   },
@@ -245,6 +244,83 @@ export const CD_POSITIONS: ClausePosition[] = [
       { field: "affirmative_duty", label: "affirmative duty to resell", kind: "boolean", expected: true },
       { field: "proceeds_credited", label: "resale proceeds credited", kind: "boolean", expected: true },
       { field: "records_available", label: "resale records available to group", kind: "boolean", expected: true },
+    ],
+  },
+  {
+    clause_type: "commission",
+    exposure: "unspecified",
+    checks: [
+      { field: "commission_pct", label: "commission rate", kind: "number", comparator: "gte", value: 0.1, unit: "pct" },
+      { field: "outside_block_commissionable", label: "commission on rooms outside the block", kind: "boolean", expected: true },
+      { field: "paid_within_days", label: "commission payment deadline", kind: "number", comparator: "lte", value: 30, unit: "days" },
+    ],
+  },
+  {
+    clause_type: "hotel_cancellation",
+    exposure: "unspecified",
+    checks: [
+      { field: "consequential_damages", label: "hotel liability for wrongful cancellation", kind: "boolean", expected: true },
+      { field: "attorney_fees", label: "attorney's fees on hotel cancellation", kind: "boolean", expected: true },
+    ],
+  },
+  {
+    clause_type: "function_space",
+    exposure: "unspecified",
+    checks: [
+      { field: "assignments_specified", label: "named function room assignments", kind: "boolean", expected: true },
+      { field: "changes_need_consent", label: "consent to function space changes", kind: "boolean", expected: true },
+      { field: "rental_waived", label: "meeting room rental waived", kind: "boolean", expected: true },
+    ],
+  },
+  {
+    clause_type: "facilities_services",
+    exposure: "unspecified",
+    checks: [
+      { field: "reduction_threshold_pct", label: "facility reduction threshold", kind: "number", comparator: "lte", value: 0.25, unit: "pct" },
+      { field: "alternatives_at_hotel_expense", label: "alternatives at the hotel's expense", kind: "boolean", expected: true },
+      { field: "cancel_no_liability", label: "cancellation right for reduced facilities", kind: "boolean", expected: true },
+    ],
+  },
+  {
+    clause_type: "future_rate_cap",
+    exposure: "unspecified",
+    checks: [
+      { field: "max_annual_increase_pct", label: "annual room rate increase cap", kind: "number", comparator: "lte", value: 0.02, unit: "pct" },
+      { field: "decline_adjustment", label: "rate reduction on market decline", kind: "boolean", expected: true },
+      { field: "rates_final_months", label: "final rate confirmation", kind: "number", comparator: "gte", value: 12, unit: "months" },
+    ],
+  },
+  {
+    clause_type: "nondiscrimination",
+    exposure: "forbidden",
+    checks: [
+      { field: "hotel_nondiscrimination", label: "hotel nondiscrimination commitment", kind: "boolean", expected: true },
+      { field: "terminate_on_discriminatory_law", label: "termination on discriminatory legislation", kind: "boolean", expected: true },
+    ],
+  },
+  {
+    clause_type: "reservation_procedures",
+    exposure: "unspecified",
+    checks: [
+      { field: "name_changes_at_group_rate", label: "name changes at the group rate", kind: "boolean", expected: true },
+      { field: "no_show_reinstated", label: "no-show reinstatement", kind: "boolean", expected: true },
+      { field: "same_day_cancellation", label: "individual cancellation until arrival day", kind: "boolean", expected: true },
+    ],
+  },
+  {
+    clause_type: "banquet_service_levels",
+    exposure: "unspecified",
+    checks: [
+      { field: "server_ratios_stated", label: "minimum banquet staffing ratios", kind: "boolean", expected: true },
+      { field: "no_labor_fees", label: "banquet labor fees", kind: "boolean", expected: true },
+    ],
+  },
+  {
+    clause_type: "av_internet",
+    exposure: "unspecified",
+    checks: [
+      { field: "quotes_honored", label: "audio-visual and internet quotes honored", kind: "boolean", expected: true },
+      { field: "in_house_av_not_condition", label: "in-house audio-visual as a condition", kind: "boolean", expected: true },
     ],
   },
 ];

@@ -47,6 +47,28 @@
     ]
   },
   {
+    "clause_type": "reservation_procedures",
+    "paragraphs": [
+      "Group shall submit all room reservations for the National Association of Coastal Engineers event scheduled for April 12-16, 2027 at Harborview Grand Hotel, Baltimore, Maryland through the Hotel's group reservations department. Each individual attendee's reservation shall be held at the rate negotiated for the Group, provided that the reservation remains in the attendee's original name. A name change on any individual reservation shall be treated as a new reservation at the Hotel's prevailing rate for comparable accommodations on the relevant dates, and the attendee shall be responsible for any rate difference between the Group rate and the prevailing rate.",
+      "An attendee who fails to arrive on the first night of his or her reservation shall be deemed to have no-showed, and the Hotel shall cancel the whole remaining reservation for that attendee without further notice or obligation to the attendee or the Group. Such cancellation shall release all rooms reserved for that attendee for the balance of the event period and shall eliminate any further claim by that attendee or the Group to those rooms.",
+      "Individual reservations may be cancelled by the attendee or by the Group, without penalty or charge, only if written notice of cancellation is received by the Hotel's group reservations department more than seventy-two hours prior to the scheduled arrival date of the attendee. Individual reservations cancelled within seventy-two hours of arrival are charged one night's room and tax, which charge shall be non-refundable and shall be the sole remedy available to the Hotel for such late cancellation."
+    ],
+    "anchors": [
+      {
+        "field": "name_changes_at_group_rate",
+        "sentence": "A name change on any individual reservation shall be treated as a new reservation at the Hotel's prevailing rate for comparable accommodations on the relevant dates, and the attendee shall be responsible for any rate difference between the Group rate and the prevailing rate."
+      },
+      {
+        "field": "no_show_reinstated",
+        "sentence": "An attendee who fails to arrive on the first night of his or her reservation shall be deemed to have no-showed, and the Hotel shall cancel the whole remaining reservation for that attendee without further notice or obligation to the attendee or the Group."
+      },
+      {
+        "field": "same_day_cancellation",
+        "sentence": "Individual reservations cancelled within seventy-two hours of arrival are charged one night's room and tax, which charge shall be non-refundable and shall be the sole remedy available to the Hotel for such late cancellation."
+      }
+    ]
+  },
+  {
     "clause_type": "cancellation",
     "paragraphs": [
       "Should Group cancel this agreement at any time after execution by the parties, Group shall be liable to the Hotel for liquidated damages calculated as a percentage of gross room revenue that would have been earned by the Hotel for all guest rooms for all nights within the event period of April 12-16, 2027, based upon the negotiated room rate and the full room block size. These damages are genuinely pre-estimated by the parties as a reasonable forecast of the harm the Hotel would suffer in the event of cancellation, and Group acknowledges that actual damages would be difficult or impossible to calculate with precision. The Hotel shall provide Group with a detailed invoice of damages within forty-five (45) days following the cancellation notice, itemizing the calculation of gross room revenue and the applicable percentage to be assessed.",
@@ -95,6 +117,24 @@
       {
         "field": "records_available",
         "sentence": "The Hotel's resale efforts, the terms at which resale accommodations are offered to other customers, the identity of parties to whom space is resold, the rate at which such space is resold, and the complete records related to all resale transactions shall not be open to Group for inspection, audit, or verification of any kind."
+      }
+    ]
+  },
+  {
+    "clause_type": "hotel_cancellation",
+    "paragraphs": [
+      "The Hotel reserves the right to cancel this Agreement in its sole discretion upon thirty (30) days' written notice to the Group, provided that such cancellation shall occur only in the event of an unforeseen circumstance that materially impairs the Hotel's ability to perform its obligations hereunder, including but not limited to force majeure, casualty, or a substantial decrease in the Hotel's room availability due to operational necessity.",
+      "In the event the Hotel wrongfully cancels this Agreement, the Hotel's sole obligation and the Group's exclusive remedy shall be the refund of any deposits paid by the Group to the Hotel, without interest and without liability for any other costs, losses, or damages incurred by the Group in connection with the event. The Hotel shall not be liable for any consequential, incidental, indirect, or special damages, including but not limited to lost profits, reputational harm, or costs associated with event rescheduling or venue relocation.",
+      "In any dispute arising from cancellation by the Hotel, whether lawful or wrongful, the Group shall bear its own attorney's fees, court costs, and other legal expenses, and the Group waives any right to recover such fees or costs from the Hotel notwithstanding the outcome of any proceeding. This allocation of fees shall apply regardless of whether the Hotel's cancellation is determined to be authorized under this Agreement or contrary to its terms."
+    ],
+    "anchors": [
+      {
+        "field": "consequential_damages",
+        "sentence": "In the event the Hotel wrongfully cancels this Agreement, the Hotel's sole obligation and the Group's exclusive remedy shall be the refund of any deposits paid by the Group to the Hotel, without interest and without liability for any other costs, losses, or damages incurred by the Group in connection with the event."
+      },
+      {
+        "field": "attorney_fees",
+        "sentence": "In any dispute arising from cancellation by the Hotel, whether lawful or wrongful, the Group shall bear its own attorney's fees, court costs, and other legal expenses, and the Group waives any right to recover such fees or costs from the Hotel notwithstanding the outcome of any proceeding."
       }
     ]
   },
@@ -199,6 +239,62 @@
       {
         "field": "service_charge_pct",
         "sentence": "The combined gratuity and service charge shall be automatically applied at the rate of twenty-four percent (24%) of the subtotal of all covered charges before tax."
+      }
+    ]
+  },
+  {
+    "clause_type": "banquet_service_levels",
+    "paragraphs": [
+      "The Hotel shall provide food and beverage service for all Group functions scheduled during the event period in accordance with the Hotel's published service standards and menus selected by the Group. The Hotel's Executive Chef and Banquet Director shall have discretion to determine all matters relating to the execution, presentation, and service of banquets, including but not limited to plate composition, portion sizes, service timing, and temperature of food at the point of service, subject only to the Hotel's commitment to maintain quality consistent with its standing as a premium hospitality venue.",
+      "Staffing at food and beverage functions, including the assignment of servers, bartenders, runners, and other service personnel, is at the Hotel's discretion and shall be determined by the Hotel based on the number of attendees, the complexity of the menu, the duration of the function, and the Hotel's operational requirements. The Hotel shall ensure adequate staffing to provide professional service, but the Hotel's determination of adequate staffing levels shall not be subject to challenge by the Group and shall be final.",
+      "The Hotel charges labor and bartender fees on Group's food and beverage functions, calculated on the basis of estimated attendance, the scope of service, and the Hotel's then-current labor rates, which fees shall be itemized separately on the Group's invoice and shall be payable as part of the total food and beverage charges due under this Agreement. Labor fees shall include compensation for all service staff, supervisory personnel, and setup and breakdown labor, and the Group shall have no right to engage outside service providers or to reduce these fees by providing its own staff."
+    ],
+    "anchors": [
+      {
+        "field": "server_ratios_stated",
+        "sentence": "Staffing at food and beverage functions, including the assignment of servers, bartenders, runners, and other service personnel, is at the Hotel's discretion and shall be determined by the Hotel based on the number of attendees, the complexity of the menu, the duration of the function, and the Hotel's operational requirements."
+      },
+      {
+        "field": "no_labor_fees",
+        "sentence": "The Hotel charges labor and bartender fees on Group's food and beverage functions, calculated on the basis of estimated attendance, the scope of service, and the Hotel's then-current labor rates, which fees shall be itemized separately on the Group's invoice and shall be payable as part of the total food and beverage charges due under this Agreement."
+      }
+    ]
+  },
+  {
+    "clause_type": "function_space",
+    "paragraphs": [
+      "The Hotel shall assign all function space for the Group's use during the Event at the Hotel's sole discretion, and no function room is named or reserved in this Agreement. The Group acknowledges that the Hotel retains the right to change any function space assignment at any time by written notice to the Group's authorized representative, provided that such reassignment shall not materially diminish the aggregate square footage or suitability of space made available to the Group. Any audio-visual, catering, or other services contracted for a particular function space shall transfer to the reassigned space, and the Group shall not be entitled to any reduction in charges, waiver of fees, or claim for damages by reason of any such change.",
+      "The Group shall pay all applicable rental charges for meeting rooms and function space utilized during the Event, calculated according to the Hotel's standard pricing schedule in effect at the time of booking. Such charges shall be stated separately on the Group's master account and shall be due and payable in accordance with the billing and payment terms set forth elsewhere in this Agreement. The Hotel shall provide no credit, reduction, or waiver of function space rental fees regardless of Group's use of in-house audio-visual services, catering packages, or other Hotel services."
+    ],
+    "anchors": [
+      {
+        "field": "assignments_specified",
+        "sentence": "The Hotel shall assign all function space for the Group's use during the Event at the Hotel's sole discretion, and no function room is named or reserved in this Agreement."
+      },
+      {
+        "field": "changes_need_consent",
+        "sentence": "The Hotel retains the right to change any function space assignment at any time by written notice to the Group's authorized representative, provided that such reassignment shall not materially diminish the aggregate square footage or suitability of space made available to the Group."
+      },
+      {
+        "field": "rental_waived",
+        "sentence": "The Group shall pay all applicable rental charges for meeting rooms and function space utilized during the Event, calculated according to the Hotel's standard pricing schedule in effect at the time of booking."
+      }
+    ]
+  },
+  {
+    "clause_type": "av_internet",
+    "paragraphs": [
+      "All audio-visual equipment, services, and technology provided by the Hotel or contracted through the Hotel's approved vendors shall be priced according to the Hotel's standard rates and pricing schedule in effect at the time of the Event. The Group shall have no entitlement to pricing quoted prior to the date of this Agreement, and any quotation for audio-visual or internet services shall be deemed valid only for the date on which it was provided. The Hotel reserves the right to adjust pricing for audio-visual equipment, technical support, bandwidth, and all related services up to the time of the Event.",
+      "Complimentary internet access and any discounted or complimentary services relating to audio-visual provision, including concessions, upgrades, or technical support at no charge, shall be conditioned upon the Group's exclusive use of the Hotel's in-house audio-visual provider for all function space during the Event. Should the Group elect to contract with an outside audio-visual vendor or bring its own equipment into any function room, the Group shall forfeit all complimentary internet services, discounted rates, and any other concessions the Hotel has offered in connection with in-house provision, and the Group shall pay the Hotel's then-current rate for internet access and technical support."
+    ],
+    "anchors": [
+      {
+        "field": "quotes_honored",
+        "sentence": "All audio-visual equipment, services, and technology provided by the Hotel or contracted through the Hotel's approved vendors shall be priced according to the Hotel's standard rates and pricing schedule in effect at the time of the Event."
+      },
+      {
+        "field": "in_house_av_not_condition",
+        "sentence": "Complimentary internet access and any discounted or complimentary services relating to audio-visual provision, including concessions, upgrades, or technical support at no charge, shall be conditioned upon the Group's exclusive use of the Hotel's in-house audio-visual provider for all function space during the Event."
       }
     ]
   },
@@ -460,6 +556,23 @@
       {
         "field": "auxiliary_aids_split",
         "sentence": "Should Group require auxiliary aids, services, modifications, or accommodations to make any portion of the Hotel accessible or usable by Group's attendees, Group shall fund and arrange for all such auxiliary aids and accommodations, including but not limited to interpreters, readers, accessible transportation, specialized signage, or technology enhancements, regardless of where within the Hotel such aids or accommodations are required or how they are deployed."
+      }
+    ]
+  },
+  {
+    "clause_type": "nondiscrimination",
+    "paragraphs": [
+      "The Hotel's obligations with respect to nondiscrimination, equal treatment, and protected-class accommodations shall be limited to compliance with all applicable federal, state, and local civil rights laws and public accommodations statutes in effect at the time of the Event. The Hotel makes no commitment to any standard, policy, or practice beyond what such applicable law expressly requires, and the Group shall not be entitled to invoke any nondiscrimination clause, covenant, or principle not grounded in enforceable legal requirement. The Group acknowledges that the Hotel's provision of goods and services to the Group does not constitute, and shall not be construed as, any affirmative or voluntary nondiscrimination pledge or commitment extending beyond legal obligation.",
+      "In the event that any change, amendment, or new enactment of state or local law relating to discrimination, equal treatment, or the provision of services occurs after the date of this Agreement and before or during the Event, the Group shall have no right to cancel this Agreement, terminate the group block, reduce the room block commitment, or claim any modification to the terms hereof. The Group's sole remedy for any change in law affecting nondiscrimination obligations shall be to request, in writing and subject to the Hotel's sole discretion, such operational modifications as the Hotel may, in its discretion, agree to implement; provided that no such request shall entitle the Group to any reduction in charges, waiver of fees, or other economic concession."
+    ],
+    "anchors": [
+      {
+        "field": "hotel_nondiscrimination",
+        "sentence": "The Hotel's obligations with respect to nondiscrimination, equal treatment, and protected-class accommodations shall be limited to compliance with all applicable federal, state, and local civil rights laws and public accommodations statutes in effect at the time of the Event."
+      },
+      {
+        "field": "terminate_on_discriminatory_law",
+        "sentence": "In the event that any change, amendment, or new enactment of state or local law relating to discrimination, equal treatment, or the provision of services occurs after the date of this Agreement and before or during the Event, the Group shall have no right to cancel this Agreement, terminate the group block, reduce the room block commitment, or claim any modification to the terms hereof."
       }
     ]
   },

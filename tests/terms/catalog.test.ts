@@ -67,7 +67,7 @@ describe("the catalog against the eval corpus's fields", () => {
         const term = byKey.get(`${position.clause_type}.${field}`);
         expect(term, `${position.clause_type}.${field}`).toBeDefined();
         expect(term!.kind).toBe("number");
-        expect(term!.unit).toBe(field.endsWith("_usd") ? "usd" : "pct");
+        expect(term!.unit).toBe(field.endsWith("_usd") ? "usd" : field.endsWith("_months") ? "months" : "pct");
       }
     }
   });

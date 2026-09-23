@@ -271,6 +271,49 @@
     ]
   },
   {
+    "clause_type": "future_rate_cap",
+    "paragraphs": [
+      "The Hotel shall not increase the group room rates from year to year by more than three percent (3%) on an annual basis. Should the Hotel offer lower rates to its transient guests in the market in which The Monarch on Fifth, New York, New York is located before the arrival of the Institute of Certified Actuarial Analysts, the group rate shall be adjusted downward by the same percentage reduction applied to such market rates. The Group shall confirm all room rates as final eleven (11) months prior to the event dates of November 9-12, 2027, at which time no further modifications to pricing shall be permitted except as expressly set forth in this Agreement.",
+      "For purposes of determining whether a rate reduction applies, the Hotel shall provide the Group with documentation of the prevailing transient rates for comparable room categories during the same period. The Group's election to reduce rates in response to market conditions shall be communicated in writing to the Hotel, and the adjusted rate shall become effective upon such notice. The Hotel and the Group acknowledge that rate certainty following the eleven (11) month confirmation date is essential to the Group's budgeting and financial planning for the event."
+    ],
+    "anchors": [
+      {
+        "field": "max_annual_increase_pct",
+        "sentence": "The Hotel shall not increase the group room rates from year to year by more than three percent (3%) on an annual basis."
+      },
+      {
+        "field": "decline_adjustment",
+        "sentence": "Should the Hotel offer lower rates to its transient guests in the market in which The Monarch on Fifth, New York, New York is located before the arrival of the Institute of Certified Actuarial Analysts, the group rate shall be adjusted downward by the same percentage reduction applied to such market rates."
+      },
+      {
+        "field": "rates_final_months",
+        "sentence": "The Group shall confirm all room rates as final eleven (11) months prior to the event dates of November 9-12, 2027, at which time no further modifications to pricing shall be permitted except as expressly set forth in this Agreement."
+      }
+    ]
+  },
+  {
+    "clause_type": "commission",
+    "paragraphs": [
+      "The Hotel shall pay to Group a sales commission equal to nine percent (9%) of all room revenue actualized in connection with the Event, whether such rooms are booked as part of the blocked allocation or otherwise procured by Group members through independent channels. Commission shall be calculated on the gross room rate charged to the guest, including all taxes, service charges, and mandatory resort fees, and shall be based on the Hotel's actual folio records for the Event dates.",
+      "The Hotel shall remit the commission payment within thirty-five (35) days following the completion of the Event. Payment shall be made by wire transfer to the account designated in writing by Group, accompanied by a detailed statement reconciling all room revenue to the commission calculation. Should Group dispute the Hotel's calculation, Group shall provide written notice within ten (10) days of receipt of the statement, and the parties shall cooperate to resolve any discrepancy through examination of the Hotel's records.",
+      "Commission payments are earned in full upon the guest's stay and are not subject to forfeiture or offset against any damages, claims, or liabilities arising during or after the Event, except as expressly provided in this Agreement. The Hotel's obligation to pay commission shall survive the termination of this Agreement with respect to revenue attributed to stays completed prior to such termination."
+    ],
+    "anchors": [
+      {
+        "field": "commission_pct",
+        "sentence": "The Hotel shall pay to Group a sales commission equal to nine percent (9%) of all room revenue actualized in connection with the Event, whether such rooms are booked as part of the blocked allocation or otherwise procured by Group members through independent channels."
+      },
+      {
+        "field": "outside_block_commissionable",
+        "sentence": "Commission shall be calculated on the gross room rate charged to the guest, including all taxes, service charges, and mandatory resort fees, and shall be based on the Hotel's actual folio records for the Event dates."
+      },
+      {
+        "field": "paid_within_days",
+        "sentence": "The Hotel shall remit the commission payment within thirty-five (35) days following the completion of the Event."
+      }
+    ]
+  },
+  {
     "clause_type": "master_account_billing",
     "paragraphs": [
       "All charges incurred by the Institute of Certified Actuarial Analysts in connection with its event at The Monarch on Fifth during November 9–12, 2027, including room accommodations, food and beverage, and ancillary services, shall be consolidated on a single master account and billed to the Group upon completion of the event, unless otherwise agreed in writing by The Monarch's Chief Financial Officer. The Group shall remit payment within thirty (30) days of invoice. Any invoice dispute must be submitted in writing to The Monarch's Accounting Department within twelve (12) days of invoice receipt; disputes submitted after such period shall be deemed waived.",
@@ -361,6 +404,28 @@
       {
         "field": "termination_if_interferes",
         "sentence": "If any renovation, construction, or capital project undertaken by the Hotel will materially interfere with the Group's ability to conduct its Event as contemplated by this Agreement, the Group may terminate this Agreement without penalty, liability, or further obligation, provided that the Group furnishes written notice of termination to the Hotel within ten (10) business days of receiving notice of the interfering project."
+      }
+    ]
+  },
+  {
+    "clause_type": "facilities_services",
+    "paragraphs": [
+      "The Hotel represents that all facilities and services described in the Event Proposal shall be available and operational throughout the Event dates. In the event that circumstances beyond the Hotel's reasonable control necessitate the temporary or permanent reduction, limitation, or discontinuation of any facility or service by more than thirty percent (30%) of its stated capacity or scope, the Hotel shall immediately notify Group in writing and propose alternative facilities or services of substantially equal quality, functionality, and utility, such alternatives to be provided at no additional charge to Group.",
+      "Group shall have ten (10) business days from receipt of the Hotel's notice to review and respond to any proposed alternative. The Hotel shall use commercially reasonable efforts to accommodate Group's preferences in selecting alternatives and shall not unreasonably withhold the provision of such alternatives. If the parties cannot mutually agree on an acceptable alternative within thirty (30) days from the date of the Hotel's initial notice, Group shall have the right to terminate this Agreement without penalty, liability, or forfeiture of any deposits paid to date.",
+      "For the avoidance of doubt, cancellation by Group pursuant to this clause shall result in the Hotel's full refund of all monies paid by or on behalf of Group, including room deposits, food and beverage prepayments, and other service charges, within fourteen (14) days of the effective termination date. The Hotel shall not be obligated to offer alternatives or accept cancellation if the reduction is attributable to Group's own conduct or failure to comply with this Agreement."
+    ],
+    "anchors": [
+      {
+        "field": "reduction_threshold_pct",
+        "sentence": "In the event that circumstances beyond the Hotel's reasonable control necessitate the temporary or permanent reduction, limitation, or discontinuation of any facility or service by more than thirty percent (30%) of its stated capacity or scope, the Hotel shall immediately notify Group in writing and propose alternative facilities or services of substantially equal quality, functionality, and utility, such alternatives to be provided at no additional charge to Group."
+      },
+      {
+        "field": "alternatives_at_hotel_expense",
+        "sentence": "The Hotel shall use commercially reasonable efforts to accommodate Group's preferences in selecting alternatives and shall not unreasonably withhold the provision of such alternatives."
+      },
+      {
+        "field": "cancel_no_liability",
+        "sentence": "If the parties cannot mutually agree on an acceptable alternative within thirty (30) days from the date of the Hotel's initial notice, Group shall have the right to terminate this Agreement without penalty, liability, or forfeiture of any deposits paid to date."
       }
     ]
   },

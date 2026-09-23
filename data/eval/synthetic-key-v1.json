@@ -2,7 +2,7 @@
   "version": "synthetic-v1",
   "source": "synthetic",
   "standards_version": "v1-industry-default",
-  "generated_at": "2026-09-10T20:18:11.651Z",
+  "generated_at": "2026-09-23T02:28:52.390Z",
   "contracts": [
     {
       "contract": "eval-01-harborview.docx",
@@ -86,33 +86,33 @@
           "anchors": [
             {
               "part": "document",
-              "start": 4071,
-              "end": 4444
+              "start": 5716,
+              "end": 6089
             },
             {
               "part": "document",
-              "start": 4920,
-              "end": 5335
+              "start": 6565,
+              "end": 6980
             },
             {
               "part": "document",
-              "start": 5551,
-              "end": 5858
+              "start": 7196,
+              "end": 7503
             },
             {
               "part": "document",
-              "start": 5860,
-              "end": 6177
+              "start": 7505,
+              "end": 7822
             },
             {
               "part": "document",
-              "start": 6178,
-              "end": 6551
+              "start": 7823,
+              "end": 8196
             },
             {
               "part": "document",
-              "start": 6826,
-              "end": 6867
+              "start": 8471,
+              "end": 8512
             }
           ],
           "anchor_texts": [
@@ -131,19 +131,12 @@
             {
               "kind": "absent_phrase",
               "phrase": "gross room revenue"
-            },
-            {
-              "kind": "numeric_bound",
-              "label": "liability-free cancellation window",
-              "unit": "months",
-              "comparator": "gte",
-              "value": 12
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true; liability-free cancellation window is 0, and CD's position is at least 12 months."
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true."
         },
         {
           "id": "eval-01-harborview:force_majeure",
@@ -154,18 +147,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 8950,
-              "end": 9272
+              "start": 12064,
+              "end": 12386
             },
             {
               "part": "document",
-              "start": 9851,
-              "end": 10364
+              "start": 12965,
+              "end": 13478
             },
             {
               "part": "document",
-              "start": 10555,
-              "end": 10809
+              "start": 13669,
+              "end": 13923
             }
           ],
           "anchor_texts": [
@@ -197,13 +190,13 @@
           "anchors": [
             {
               "part": "document",
-              "start": 14223,
-              "end": 14362
+              "start": 17339,
+              "end": 17478
             },
             {
               "part": "document",
-              "start": 14995,
-              "end": 15129
+              "start": 18111,
+              "end": 18245
             }
           ],
           "anchor_texts": [
@@ -259,13 +252,13 @@
               "label": "room block cutoff date",
               "unit": "days",
               "comparator": "lte",
-              "value": 30
+              "value": 21
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "room block cutoff date is 45, and CD's position is at most 30 days; group rate after cutoff is false, and CD's position is true."
+          "rationale": "room block cutoff date is 45, and CD's position is at most 21 days; group rate after cutoff is false, and CD's position is true."
         },
         {
           "id": "eval-01-harborview:walk_relocation",
@@ -276,23 +269,23 @@
           "anchors": [
             {
               "part": "document",
-              "start": 24822,
-              "end": 25067
+              "start": 32403,
+              "end": 32648
             },
             {
               "part": "document",
-              "start": 25348,
-              "end": 25608
+              "start": 32929,
+              "end": 33189
             },
             {
               "part": "document",
-              "start": 25687,
-              "end": 25958
+              "start": 33268,
+              "end": 33539
             },
             {
               "part": "document",
-              "start": 26073,
-              "end": 26400
+              "start": 33654,
+              "end": 33981
             }
           ],
           "anchor_texts": [
@@ -316,18 +309,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 17029,
-              "end": 17208
+              "start": 24610,
+              "end": 24789
             },
             {
               "part": "document",
-              "start": 17797,
-              "end": 17936
+              "start": 25378,
+              "end": 25517
             },
             {
               "part": "document",
-              "start": 18034,
-              "end": 18128
+              "start": 25615,
+              "end": 25709
             }
           ],
           "anchor_texts": [
@@ -352,18 +345,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 18407,
-              "end": 18585
+              "start": 25988,
+              "end": 26166
             },
             {
               "part": "document",
-              "start": 18997,
-              "end": 19124
+              "start": 26578,
+              "end": 26705
             },
             {
               "part": "document",
-              "start": 19576,
-              "end": 19746
+              "start": 27157,
+              "end": 27327
             }
           ],
           "anchor_texts": [
@@ -394,18 +387,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 26437,
-              "end": 26742
+              "start": 34018,
+              "end": 34323
             },
             {
               "part": "document",
-              "start": 26961,
-              "end": 27268
+              "start": 34542,
+              "end": 34849
             },
             {
               "part": "document",
-              "start": 27381,
-              "end": 27891
+              "start": 34962,
+              "end": 35472
             }
           ],
           "anchor_texts": [
@@ -436,18 +429,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 21948,
-              "end": 22154
+              "start": 29529,
+              "end": 29735
             },
             {
               "part": "document",
-              "start": 22473,
-              "end": 22710
+              "start": 30054,
+              "end": 30291
             },
             {
               "part": "document",
-              "start": 22830,
-              "end": 23048
+              "start": 30411,
+              "end": 30629
             }
           ],
           "anchor_texts": [
@@ -485,18 +478,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 37909,
-              "end": 38188
+              "start": 47068,
+              "end": 47347
             },
             {
               "part": "document",
-              "start": 38581,
-              "end": 38861
+              "start": 47740,
+              "end": 48020
             },
             {
               "part": "document",
-              "start": 39078,
-              "end": 39340
+              "start": 48237,
+              "end": 48499
             }
           ],
           "anchor_texts": [
@@ -527,18 +520,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 33266,
-              "end": 33548
+              "start": 40847,
+              "end": 41129
             },
             {
               "part": "document",
-              "start": 32771,
-              "end": 33265
+              "start": 40352,
+              "end": 40846
             },
             {
               "part": "document",
-              "start": 34011,
-              "end": 34234
+              "start": 41592,
+              "end": 41815
             }
           ],
           "anchor_texts": [
@@ -569,18 +562,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 23247,
-              "end": 23648
+              "start": 30828,
+              "end": 31229
             },
             {
               "part": "document",
-              "start": 23770,
-              "end": 24173
+              "start": 31351,
+              "end": 31754
             },
             {
               "part": "document",
-              "start": 24328,
-              "end": 24597
+              "start": 31909,
+              "end": 32178
             }
           ],
           "anchor_texts": [
@@ -611,13 +604,13 @@
           "anchors": [
             {
               "part": "document",
-              "start": 31279,
-              "end": 31690
+              "start": 38860,
+              "end": 39271
             },
             {
               "part": "document",
-              "start": 31691,
-              "end": 31820
+              "start": 39272,
+              "end": 39401
             }
           ],
           "anchor_texts": [
@@ -647,13 +640,13 @@
           "anchors": [
             {
               "part": "document",
-              "start": 12973,
-              "end": 13183
+              "start": 16088,
+              "end": 16298
             },
             {
               "part": "document",
-              "start": 13385,
-              "end": 13646
+              "start": 16500,
+              "end": 16761
             }
           ],
           "anchor_texts": [
@@ -675,13 +668,13 @@
           "anchors": [
             {
               "part": "document",
-              "start": 39593,
-              "end": 39868
+              "start": 48752,
+              "end": 49027
             },
             {
               "part": "document",
-              "start": 40115,
-              "end": 40303
+              "start": 49274,
+              "end": 49462
             }
           ],
           "anchor_texts": [
@@ -703,18 +696,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 28077,
-              "end": 28514
+              "start": 35658,
+              "end": 36095
             },
             {
               "part": "document",
-              "start": 28644,
-              "end": 28938
+              "start": 36225,
+              "end": 36519
             },
             {
               "part": "document",
-              "start": 29111,
-              "end": 29409
+              "start": 36692,
+              "end": 36990
             }
           ],
           "anchor_texts": [
@@ -752,8 +745,8 @@
           "anchors": [
             {
               "part": "document",
-              "start": 11255,
-              "end": 11784
+              "start": 14369,
+              "end": 14898
             }
           ],
           "anchor_texts": [
@@ -782,13 +775,13 @@
           "anchors": [
             {
               "part": "document",
-              "start": 36443,
-              "end": 36754
+              "start": 45602,
+              "end": 45913
             },
             {
               "part": "document",
-              "start": 36877,
-              "end": 37210
+              "start": 46036,
+              "end": 46369
             }
           ],
           "anchor_texts": [
@@ -810,13 +803,13 @@
           "anchors": [
             {
               "part": "document",
-              "start": 34564,
-              "end": 34896
+              "start": 42145,
+              "end": 42477
             },
             {
               "part": "document",
-              "start": 35146,
-              "end": 35610
+              "start": 42727,
+              "end": 43191
             }
           ],
           "anchor_texts": [
@@ -838,18 +831,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 41209,
-              "end": 41592
+              "start": 50368,
+              "end": 50751
             },
             {
               "part": "document",
-              "start": 41766,
-              "end": 42111
+              "start": 50925,
+              "end": 51270
             },
             {
               "part": "document",
-              "start": 42262,
-              "end": 42660
+              "start": 51421,
+              "end": 51819
             }
           ],
           "anchor_texts": [
@@ -872,18 +865,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 29625,
-              "end": 29881
+              "start": 37206,
+              "end": 37462
             },
             {
               "part": "document",
-              "start": 30196,
-              "end": 30544
+              "start": 37777,
+              "end": 38125
             },
             {
               "part": "document",
-              "start": 30688,
-              "end": 31030
+              "start": 38269,
+              "end": 38611
             }
           ],
           "anchor_texts": [
@@ -921,18 +914,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 20433,
-              "end": 20567
+              "start": 28014,
+              "end": 28148
             },
             {
               "part": "document",
-              "start": 20794,
-              "end": 21068
+              "start": 28375,
+              "end": 28649
             },
             {
               "part": "document",
-              "start": 21367,
-              "end": 21559
+              "start": 28948,
+              "end": 29140
             }
           ],
           "anchor_texts": [
@@ -955,23 +948,23 @@
           "anchors": [
             {
               "part": "document",
-              "start": 15552,
-              "end": 15783
+              "start": 18668,
+              "end": 18899
             },
             {
               "part": "document",
-              "start": 16090,
-              "end": 16227
+              "start": 19206,
+              "end": 19343
             },
             {
               "part": "document",
-              "start": 16383,
-              "end": 16537
+              "start": 19499,
+              "end": 19653
             },
             {
               "part": "document",
-              "start": 15784,
-              "end": 15947
+              "start": 18900,
+              "end": 19063
             }
           ],
           "anchor_texts": [
@@ -995,18 +988,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 6909,
-              "end": 7305
+              "start": 8554,
+              "end": 8950
             },
             {
               "part": "document",
-              "start": 7779,
-              "end": 8132
+              "start": 9424,
+              "end": 9777
             },
             {
               "part": "document",
-              "start": 8344,
-              "end": 8672
+              "start": 9989,
+              "end": 10317
             }
           ],
           "anchor_texts": [
@@ -1019,6 +1012,266 @@
             "mode": "unspecified"
           },
           "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:commission",
+          "contract": "eval-01-harborview.docx",
+          "kind": "absent",
+          "clause_type": "commission",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "commission rate",
+              "unit": "pct",
+              "comparator": "gte",
+              "value": 0.1
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "commission payment deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no commission clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-01-harborview:hotel_cancellation",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "hotel_cancellation",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 11050,
+              "end": 11367
+            },
+            {
+              "part": "document",
+              "start": 11591,
+              "end": 11881
+            }
+          ],
+          "anchor_texts": [
+            "In the event the Hotel wrongfully cancels this Agreement, the Hotel's sole obligation and the Group's exclusive remedy shall be the refund of any deposits paid by the Group to the Hotel, without interest and without liability for any other costs, losses, or damages incurred by the Group in connection with the event.",
+            "In any dispute arising from cancellation by the Hotel, whether lawful or wrongful, the Group shall bear its own attorney's fees, court costs, and other legal expenses, and the Group waives any right to recover such fees or costs from the Hotel notwithstanding the outcome of any proceeding."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "hotel liability for wrongful cancellation is false, and CD's position is true; attorney's fees on hotel cancellation is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:function_space",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "function_space",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 21889,
+              "end": 22060
+            },
+            {
+              "part": "document",
+              "start": 22089,
+              "end": 22372
+            },
+            {
+              "part": "document",
+              "start": 22635,
+              "end": 22844
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall assign all function space for the Group's use during the Event at the Hotel's sole discretion, and no function room is named or reserved in this Agreement.",
+            "the Hotel retains the right to change any function space assignment at any time by written notice to the Group's authorized representative, provided that such reassignment shall not materially diminish the aggregate square footage or suitability of space made available to the Group.",
+            "The Group shall pay all applicable rental charges for meeting rooms and function space utilized during the Event, calculated according to the Hotel's standard pricing schedule in effect at the time of booking."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "named function room assignments is false, and CD's position is true; consent to function space changes is false, and CD's position is true; meeting room rental waived is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:facilities_services",
+          "contract": "eval-01-harborview.docx",
+          "kind": "absent",
+          "clause_type": "facilities_services",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "facility reduction threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.25
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no facilities services clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-01-harborview:future_rate_cap",
+          "contract": "eval-01-harborview.docx",
+          "kind": "absent",
+          "clause_type": "future_rate_cap",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "annual room rate increase cap",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.02
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "final rate confirmation",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no future rate cap clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-01-harborview:nondiscrimination",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "nondiscrimination",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 43834,
+              "end": 44110
+            },
+            {
+              "part": "document",
+              "start": 44617,
+              "end": 45006
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel's obligations with respect to nondiscrimination, equal treatment, and protected-class accommodations shall be limited to compliance with all applicable federal, state, and local civil rights laws and public accommodations statutes in effect at the time of the Event.",
+            "In the event that any change, amendment, or new enactment of state or local law relating to discrimination, equal treatment, or the provision of services occurs after the date of this Agreement and before or during the Event, the Group shall have no right to cancel this Agreement, terminate the group block, reduce the room block commitment, or claim any modification to the terms hereof."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "hotel nondiscrimination commitment is false, and CD's position is true; termination on discriminatory legislation is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:reservation_procedures",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "reservation_procedures",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 4447,
+              "end": 4722
+            },
+            {
+              "part": "document",
+              "start": 4724,
+              "end": 4979
+            },
+            {
+              "part": "document",
+              "start": 5448,
+              "end": 5672
+            }
+          ],
+          "anchor_texts": [
+            "A name change on any individual reservation shall be treated as a new reservation at the Hotel's prevailing rate for comparable accommodations on the relevant dates, and the attendee shall be responsible for any rate difference between the Group rate and the prevailing rate.",
+            "An attendee who fails to arrive on the first night of his or her reservation shall be deemed to have no-showed, and the Hotel shall cancel the whole remaining reservation for that attendee without further notice or obligation to the attendee or the Group.",
+            "Individual reservations cancelled within seventy-two hours of arrival are charged one night's room and tax, which charge shall be non-refundable and shall be the sole remedy available to the Hotel for such late cancellation."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "name changes at the group rate is false, and CD's position is true; no-show reinstatement is false, and CD's position is true; individual cancellation until arrival day is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:banquet_service_levels",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "banquet_service_levels",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 20748,
+              "end": 21075
+            },
+            {
+              "part": "document",
+              "start": 21276,
+              "end": 21628
+            }
+          ],
+          "anchor_texts": [
+            "Staffing at food and beverage functions, including the assignment of servers, bartenders, runners, and other service personnel, is at the Hotel's discretion and shall be determined by the Hotel based on the number of attendees, the complexity of the menu, the duration of the function, and the Hotel's operational requirements.",
+            "The Hotel charges labor and bartender fees on Group's food and beverage functions, calculated on the basis of estimated attendance, the scope of service, and the Hotel's then-current labor rates, which fees shall be itemized separately on the Group's invoice and shall be payable as part of the total food and beverage charges due under this Agreement."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "minimum banquet staffing ratios is false, and CD's position is true; banquet labor fees is false, and CD's position is true."
+        },
+        {
+          "id": "eval-01-harborview:av_internet",
+          "contract": "eval-01-harborview.docx",
+          "kind": "present",
+          "clause_type": "av_internet",
+          "severity": "low",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 23257,
+              "end": 23495
+            },
+            {
+              "part": "document",
+              "start": 23869,
+              "end": 24186
+            }
+          ],
+          "anchor_texts": [
+            "All audio-visual equipment, services, and technology provided by the Hotel or contracted through the Hotel's approved vendors shall be priced according to the Hotel's standard rates and pricing schedule in effect at the time of the Event.",
+            "Complimentary internet access and any discounted or complimentary services relating to audio-visual provision, including concessions, upgrades, or technical support at no charge, shall be conditioned upon the Group's exclusive use of the Hotel's in-house audio-visual provider for all function space during the Event."
+          ],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "audio-visual and internet quotes honored is false, and CD's position is true; in-house audio-visual as a condition is false, and CD's position is true."
         }
       ]
     },
@@ -1102,13 +1355,13 @@
               "label": "room block cutoff date",
               "unit": "days",
               "comparator": "lte",
-              "value": 30
+              "value": 21
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "room block cutoff date is 35, and CD's position is at most 30 days."
+          "rationale": "room block cutoff date is 35, and CD's position is at most 21 days."
         }
       ]
     },
@@ -1188,33 +1441,33 @@
           "anchors": [
             {
               "part": "document",
-              "start": 3279,
-              "end": 3592
+              "start": 2769,
+              "end": 3082
             },
             {
               "part": "document",
-              "start": 3593,
-              "end": 3826
+              "start": 3083,
+              "end": 3316
             },
             {
               "part": "document",
-              "start": 4205,
-              "end": 4410
+              "start": 3695,
+              "end": 3900
             },
             {
               "part": "document",
-              "start": 4411,
-              "end": 4604
+              "start": 3901,
+              "end": 4094
             },
             {
               "part": "document",
-              "start": 4605,
-              "end": 4879
+              "start": 4095,
+              "end": 4369
             },
             {
               "part": "document",
-              "start": 5387,
-              "end": 5427
+              "start": 4877,
+              "end": 4917
             }
           ],
           "anchor_texts": [
@@ -1461,6 +1714,170 @@
             "mode": "unspecified"
           },
           "rationale": "The contract has no resale mitigation duty clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:commission",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "commission",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "commission rate",
+              "unit": "pct",
+              "comparator": "gte",
+              "value": 0.1
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "commission payment deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no commission clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:hotel_cancellation",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "hotel_cancellation",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no hotel cancellation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:function_space",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "function_space",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no function space clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:facilities_services",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "facilities_services",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "facility reduction threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.25
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no facilities services clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:future_rate_cap",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "future_rate_cap",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "annual room rate increase cap",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.02
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "final rate confirmation",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no future rate cap clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:nondiscrimination",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "nondiscrimination",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no nondiscrimination clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:reservation_procedures",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "reservation_procedures",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no reservation procedures clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:banquet_service_levels",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "banquet_service_levels",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no banquet service levels clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-05-riverwalk:av_internet",
+          "contract": "eval-05-riverwalk.docx",
+          "kind": "absent",
+          "clause_type": "av_internet",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no av internet clause. CD's standard calls for one."
         }
       ]
     },
@@ -1600,13 +2017,13 @@
               "label": "room block cutoff date",
               "unit": "days",
               "comparator": "lte",
-              "value": 30
+              "value": 21
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "room block cutoff date is 32, and CD's position is at most 30 days."
+          "rationale": "room block cutoff date is 32, and CD's position is at most 21 days."
         },
         {
           "id": "eval-07-monarch:rebates",
@@ -1659,18 +2076,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 21950,
-              "end": 22142
+              "start": 24643,
+              "end": 24835
             },
             {
               "part": "document",
-              "start": 22144,
-              "end": 22311
+              "start": 24837,
+              "end": 25004
             },
             {
               "part": "document",
-              "start": 22677,
-              "end": 23010
+              "start": 25370,
+              "end": 25703
             }
           ],
           "anchor_texts": [
@@ -1708,18 +2125,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 32890,
-              "end": 33372
+              "start": 37295,
+              "end": 37777
             },
             {
               "part": "document",
-              "start": 33374,
-              "end": 33516
+              "start": 37779,
+              "end": 37921
             },
             {
               "part": "document",
-              "start": 33840,
-              "end": 34110
+              "start": 38245,
+              "end": 38515
             }
           ],
           "anchor_texts": [
@@ -1750,18 +2167,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 28908,
-              "end": 29255
+              "start": 33313,
+              "end": 33660
             },
             {
               "part": "document",
-              "start": 29457,
-              "end": 29763
+              "start": 33862,
+              "end": 34168
             },
             {
               "part": "document",
-              "start": 30037,
-              "end": 30423
+              "start": 34442,
+              "end": 34828
             }
           ],
           "anchor_texts": [
@@ -1829,18 +2246,18 @@
           "anchors": [
             {
               "part": "document",
-              "start": 30448,
-              "end": 30735
+              "start": 34853,
+              "end": 35140
             },
             {
               "part": "document",
-              "start": 30946,
-              "end": 31362
+              "start": 35351,
+              "end": 35767
             },
             {
               "part": "document",
-              "start": 31514,
-              "end": 31910
+              "start": 35919,
+              "end": 36315
             }
           ],
           "anchor_texts": [
@@ -1868,6 +2285,230 @@
             "mode": "unspecified"
           },
           "rationale": "collective bargaining expiry notice is 9, and CD's position is at least 12 months; labor dispute cancellation window is 75, and CD's position is at least 90 days."
+        },
+        {
+          "id": "eval-07-monarch:commission",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "commission",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 22718,
+              "end": 22986
+            },
+            {
+              "part": "document",
+              "start": 22987,
+              "end": 23203
+            },
+            {
+              "part": "document",
+              "start": 23205,
+              "end": 23317
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall pay to Group a sales commission equal to nine percent (9%) of all room revenue actualized in connection with the Event, whether such rooms are booked as part of the blocked allocation or otherwise procured by Group members through independent channels.",
+            "Commission shall be calculated on the gross room rate charged to the guest, including all taxes, service charges, and mandatory resort fees, and shall be based on the Hotel's actual folio records for the Event dates.",
+            "The Hotel shall remit the commission payment within thirty-five (35) days following the completion of the Event."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "commission rate",
+              "unit": "pct",
+              "comparator": "gte",
+              "value": 0.1
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "commission payment deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "commission rate is 0.09, and CD's position is at least 0.1 pct; commission payment deadline is 35, and CD's position is at most 30 days."
+        },
+        {
+          "id": "eval-07-monarch:hotel_cancellation",
+          "contract": "eval-07-monarch.docx",
+          "kind": "absent",
+          "clause_type": "hotel_cancellation",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no hotel cancellation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-07-monarch:function_space",
+          "contract": "eval-07-monarch.docx",
+          "kind": "absent",
+          "clause_type": "function_space",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no function space clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-07-monarch:facilities_services",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "facilities_services",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 31739,
+              "end": 32209
+            },
+            {
+              "part": "document",
+              "start": 32337,
+              "end": 32521
+            },
+            {
+              "part": "document",
+              "start": 32522,
+              "end": 32783
+            }
+          ],
+          "anchor_texts": [
+            "In the event that circumstances beyond the Hotel's reasonable control necessitate the temporary or permanent reduction, limitation, or discontinuation of any facility or service by more than thirty percent (30%) of its stated capacity or scope, the Hotel shall immediately notify Group in writing and propose alternative facilities or services of substantially equal quality, functionality, and utility, such alternatives to be provided at no additional charge to Group.",
+            "The Hotel shall use commercially reasonable efforts to accommodate Group's preferences in selecting alternatives and shall not unreasonably withhold the provision of such alternatives.",
+            "If the parties cannot mutually agree on an acceptable alternative within thirty (30) days from the date of the Hotel's initial notice, Group shall have the right to terminate this Agreement without penalty, liability, or forfeiture of any deposits paid to date."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "facility reduction threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.25
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "facility reduction threshold is 0.3, and CD's position is at most 0.25 pct."
+        },
+        {
+          "id": "eval-07-monarch:future_rate_cap",
+          "contract": "eval-07-monarch.docx",
+          "kind": "present",
+          "clause_type": "future_rate_cap",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 21470,
+              "end": 21589
+            },
+            {
+              "part": "document",
+              "start": 21590,
+              "end": 21897
+            },
+            {
+              "part": "document",
+              "start": 21898,
+              "end": 22131
+            }
+          ],
+          "anchor_texts": [
+            "The Hotel shall not increase the group room rates from year to year by more than three percent (3%) on an annual basis.",
+            "Should the Hotel offer lower rates to its transient guests in the market in which The Monarch on Fifth, New York, New York is located before the arrival of the Institute of Certified Actuarial Analysts, the group rate shall be adjusted downward by the same percentage reduction applied to such market rates.",
+            "The Group shall confirm all room rates as final eleven (11) months prior to the event dates of November 9-12, 2027, at which time no further modifications to pricing shall be permitted except as expressly set forth in this Agreement."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "annual room rate increase cap",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.02
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "final rate confirmation",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "annual room rate increase cap is 0.03, and CD's position is at most 0.02 pct; final rate confirmation is 11, and CD's position is at least 12 months."
+        },
+        {
+          "id": "eval-07-monarch:nondiscrimination",
+          "contract": "eval-07-monarch.docx",
+          "kind": "absent",
+          "clause_type": "nondiscrimination",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no nondiscrimination clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-07-monarch:reservation_procedures",
+          "contract": "eval-07-monarch.docx",
+          "kind": "absent",
+          "clause_type": "reservation_procedures",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no reservation procedures clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-07-monarch:banquet_service_levels",
+          "contract": "eval-07-monarch.docx",
+          "kind": "absent",
+          "clause_type": "banquet_service_levels",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no banquet service levels clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-07-monarch:av_internet",
+          "contract": "eval-07-monarch.docx",
+          "kind": "absent",
+          "clause_type": "av_internet",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no av internet clause. CD's standard calls for one."
         }
       ]
     },
@@ -1998,19 +2639,12 @@
             {
               "kind": "absent_phrase",
               "phrase": "gross room revenue"
-            },
-            {
-              "kind": "numeric_bound",
-              "label": "liability-free cancellation window",
-              "unit": "months",
-              "comparator": "gte",
-              "value": 12
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true; liability-free cancellation window is 0, and CD's position is at least 12 months."
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; resale credit against damages is false, and CD's position is true; rebooking credit is false, and CD's position is true."
         },
         {
           "id": "eval-10-crossroads:force_majeure",
@@ -2138,13 +2772,13 @@
               "label": "room block cutoff date",
               "unit": "days",
               "comparator": "lte",
-              "value": 30
+              "value": 21
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "room block cutoff date is 45, and CD's position is at most 30 days; group rate after cutoff is false, and CD's position is true."
+          "rationale": "room block cutoff date is 45, and CD's position is at most 21 days; group rate after cutoff is false, and CD's position is true."
         },
         {
           "id": "eval-10-crossroads:walk_relocation",
@@ -2870,6 +3504,170 @@
             "mode": "unspecified"
           },
           "rationale": "affirmative duty to resell is false, and CD's position is true; resale proceeds credited is false, and CD's position is true; resale records available to group is false, and CD's position is true."
+        },
+        {
+          "id": "eval-10-crossroads:commission",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "commission",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "commission rate",
+              "unit": "pct",
+              "comparator": "gte",
+              "value": 0.1
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "commission payment deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no commission clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:hotel_cancellation",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "hotel_cancellation",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no hotel cancellation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:function_space",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "function_space",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no function space clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:facilities_services",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "facilities_services",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "facility reduction threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.25
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no facilities services clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:future_rate_cap",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "future_rate_cap",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "annual room rate increase cap",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.02
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "final rate confirmation",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no future rate cap clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:nondiscrimination",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "nondiscrimination",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no nondiscrimination clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:reservation_procedures",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "reservation_procedures",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no reservation procedures clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:banquet_service_levels",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "banquet_service_levels",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no banquet service levels clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-10-crossroads:av_internet",
+          "contract": "eval-10-crossroads.docx",
+          "kind": "absent",
+          "clause_type": "av_internet",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no av internet clause. CD's standard calls for one."
         }
       ]
     },
@@ -2877,6 +3675,48 @@
       "contract": "eval-12-granite-bay.docx",
       "exhaustive": true,
       "items": [
+        {
+          "id": "eval-12-granite-bay:cutoff_date",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "present",
+          "clause_type": "cutoff_date",
+          "severity": "medium",
+          "anchors": [
+            {
+              "part": "document",
+              "start": 1865,
+              "end": 2067
+            },
+            {
+              "part": "document",
+              "start": 2408,
+              "end": 2603
+            },
+            {
+              "part": "footer1",
+              "start": 0,
+              "end": 118
+            }
+          ],
+          "anchor_texts": [
+            "Reservations for rooms within the Block must be submitted no later than thirty (30) days prior to the arrival date of April 26, 2027, unless a later deadline is expressly agreed in writing by the Hotel.",
+            "Reservations requested after the cutoff date remain available at the Group rate, subject to availability, provided that the Hotel makes no commitment to hold inventory beyond the stated deadline.",
+            "Reservations must be received no later than 30 days prior to arrival; the room block is released in full at that time."
+          ],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "room block cutoff date",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 21
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "room block cutoff date is 30, and CD's position is at most 21 days."
+        },
         {
           "id": "eval-12-granite-bay:construction_renovation",
           "contract": "eval-12-granite-bay.docx",
@@ -3092,6 +3932,170 @@
             "mode": "unspecified"
           },
           "rationale": "gratuity and service charge defined separately is false, and CD's position is true; gratuity distributed to staff is false, and CD's position is true; service charge disclosed as hotel revenue is false, and CD's position is true."
+        },
+        {
+          "id": "eval-12-granite-bay:commission",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "commission",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "commission rate",
+              "unit": "pct",
+              "comparator": "gte",
+              "value": 0.1
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "commission payment deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no commission clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:hotel_cancellation",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "hotel_cancellation",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no hotel cancellation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:function_space",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "function_space",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no function space clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:facilities_services",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "facilities_services",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "facility reduction threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.25
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no facilities services clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:future_rate_cap",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "future_rate_cap",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "annual room rate increase cap",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.02
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "final rate confirmation",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no future rate cap clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:nondiscrimination",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "nondiscrimination",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no nondiscrimination clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:reservation_procedures",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "reservation_procedures",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no reservation procedures clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:banquet_service_levels",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "banquet_service_levels",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no banquet service levels clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-12-granite-bay:av_internet",
+          "contract": "eval-12-granite-bay.docx",
+          "kind": "absent",
+          "clause_type": "av_internet",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no av internet clause. CD's standard calls for one."
         }
       ]
     },
@@ -3215,19 +4219,12 @@
             {
               "kind": "absent_phrase",
               "phrase": "gross room revenue"
-            },
-            {
-              "kind": "numeric_bound",
-              "label": "liability-free cancellation window",
-              "unit": "months",
-              "comparator": "gte",
-              "value": 12
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; rebooking credit is false, and CD's position is true; liability-free cancellation window is 6, and CD's position is at least 12 months."
+          "rationale": "cancellation damages basis is \"gross_revenue\", and CD's position allows only \"room_profit\"; rebooking credit is false, and CD's position is true."
         },
         {
           "id": "eval-15-vantage:force_majeure",
@@ -3312,13 +4309,13 @@
               "label": "room block cutoff date",
               "unit": "days",
               "comparator": "lte",
-              "value": 30
+              "value": 21
             }
           ],
           "exposure": {
             "mode": "unspecified"
           },
-          "rationale": "room block cutoff date is 40, and CD's position is at most 30 days."
+          "rationale": "room block cutoff date is 40, and CD's position is at most 21 days."
         },
         {
           "id": "eval-15-vantage:walk_relocation",
@@ -3583,6 +4580,170 @@
             "mode": "unspecified"
           },
           "rationale": "resale records available to group is false, and CD's position is true."
+        },
+        {
+          "id": "eval-15-vantage:commission",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "commission",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "commission rate",
+              "unit": "pct",
+              "comparator": "gte",
+              "value": 0.1
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "commission payment deadline",
+              "unit": "days",
+              "comparator": "lte",
+              "value": 30
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no commission clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:hotel_cancellation",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "hotel_cancellation",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no hotel cancellation clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:function_space",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "function_space",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no function space clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:facilities_services",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "facilities_services",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "facility reduction threshold",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.25
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no facilities services clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:future_rate_cap",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "future_rate_cap",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [
+            {
+              "kind": "numeric_bound",
+              "label": "annual room rate increase cap",
+              "unit": "pct",
+              "comparator": "lte",
+              "value": 0.02
+            },
+            {
+              "kind": "numeric_bound",
+              "label": "final rate confirmation",
+              "unit": "months",
+              "comparator": "gte",
+              "value": 12
+            }
+          ],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no future rate cap clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:nondiscrimination",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "nondiscrimination",
+          "severity": "medium",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "forbidden"
+          },
+          "rationale": "The contract has no nondiscrimination clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:reservation_procedures",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "reservation_procedures",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no reservation procedures clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:banquet_service_levels",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "banquet_service_levels",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no banquet service levels clause. CD's standard calls for one."
+        },
+        {
+          "id": "eval-15-vantage:av_internet",
+          "contract": "eval-15-vantage.docx",
+          "kind": "absent",
+          "clause_type": "av_internet",
+          "severity": "low",
+          "anchors": [],
+          "anchor_texts": [],
+          "expected_language": [],
+          "exposure": {
+            "mode": "unspecified"
+          },
+          "rationale": "The contract has no av internet clause. CD's standard calls for one."
         }
       ]
     }

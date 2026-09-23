@@ -36,7 +36,11 @@ import { StandardEntry } from "./types";
  * governing_law_venue and exclusivity_vendors read the same in substance and
  * are unchanged. damage_deposit, assignment_subcontracting, named_storm and
  * attendee_data_handling stay industry_default because the template is silent
- * on them.
+ * on them. Nine clause types were added because the template covers them and
+ * nothing checked for them: commission, hotel_cancellation, function_space,
+ * facilities_services, future_rate_cap, nondiscrimination,
+ * reservation_procedures, banquet_service_levels and av_internet. Their
+ * severities are a judgement call, since the template states none.
  *
  * The user made two judgement calls on this revision. The template's
  * attrition formula says 75% lost profit while its headline says 70%, so
@@ -352,6 +356,114 @@ export const STANDARDS_LIBRARY: StandardEntry[] = [
       "Hotel will undertake all reasonable efforts to resell canceled rooms and food and beverage functions, and will credit those revenues against any cancellation or attrition damages owed by Group, not to exceed the full amount of such damages. Hotel will document in writing its efforts to market the dates proactively through all group and transient channels, including offering the canceled rooms through Hotel's reservations department. Cancellation damages, if any, are due thirty (30) days after the meeting dates, provided Hotel supplies reasonable evidence of its mitigation efforts and that the rooms and space held for Group went unsold. All Hotel records relating to mitigation, including actual occupancy reports, will be made available to Group upon request. For purposes of this calculation, the last rooms contracted or sold by Hotel during the meeting period after receiving notice of cancellation will be credited toward Group's unused block.",
     walk_away_condition: "",
     severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "commission",
+    segment: "default",
+    position:
+      "The hotel should pay ConferenceDirect 10% commission on all actualized room revenue, regardless of the rate paid and including rooms booked outside the block, miscoded rooms found in a room block audit, walked rooms, and room nights credited from no-show or cancellation fees, within 30 days of the group's departure whether or not the master account has been paid. Commission should be non-cancelable and non-transferable, should rise if the hotel's or brand's standard commission rises before the event, should survive a change of management or brand, and should apply at no less than 10% to later additions. The hotel should also pay ConferenceDirect 10% of any cancellation damages it collects, and agree the group could not have negotiated better terms by booking direct.",
+    fallback_language:
+      "All rates confirmed in this Agreement are commissionable at ten percent (10%) to ConferenceDirect, LLC. Hotel will pay commission to ConferenceDirect on all actualized room revenue, regardless of rate paid and including all rooms outside the block, within thirty (30) days of Group's departure, whether or not the master account has been paid in full. Hotel agrees that Group could not have negotiated more favorable room rates, terms, and concessions had Group negotiated directly with Hotel rather than through ConferenceDirect, and Hotel and Group agree that commission for this booking is non-cancelable and non-transferable to another party or agency. Commission on any additional rooms or amendments will be no less than ten percent (10%) or the amount in this Agreement, whichever is higher, regardless of room rate paid. Should the standard hotel or brand commission percentage increase before the Event, the higher percentage will apply; should Hotel change management company or brand affiliation, the new management will honor the existing commission, or the new brand's commission if higher. Hotel will pay ConferenceDirect ten percent (10%) of any liquidated damages paid by Group within ten (10) days of receiving them. [Outside the USA: commission also applies to pre-planned group food and beverage and room hire revenue, is payable in local currency, and is not reduced by any fees, which are borne by Hotel.]",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "hotel_cancellation",
+    segment: "default",
+    position:
+      "If the hotel cancels the agreement without a right to do so under the contract, it should owe the group all direct, indirect, and consequential damages — including staff time and travel to find a new venue, room rate and airfare differences, function space rental, attorney's fees, and communication and printing costs — not just a refund of deposits.",
+    fallback_language:
+      "In the event Hotel cancels this Agreement other than as permitted under this Agreement, Hotel will pay Group for all direct, indirect, and consequential damages, expenses, attorney's fees, and costs incurred by Group on account of such cancellation, including but not limited to staff time and travel expenses to secure an alternate location for the Event, incremental room rate and airfare differentials, function space rental, and long distance telephone, postage, and printing costs.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "function_space",
+    segment: "default",
+    position:
+      "The contract should name each function room, with its minimum square footage and ceiling height, and the hotel should not change those assignments without both parties' written consent. Meeting space in the program agenda should be complimentary with room rental waived, and each meeting room should come with a wired microphone, podium, power, lighting, and HVAC at no charge.",
+    fallback_language:
+      "Hotel will hold the meeting and function space set out in this Agreement, with room rental charges waived, and will specify each function space assignment, minimum square footage, and ceiling height requirement in this Agreement. No change will be made to the function space assignments without the written consent of both parties. Meeting space outlined in Group's program agenda will be provided on a complimentary basis. Hotel will provide in each meeting room, at no charge, one wired microphone, a podium, power (including existing power outlets), proper lighting, and HVAC.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "facilities_services",
+    segment: "default",
+    position:
+      "If the hotel closes or limits any restaurant, spa, fitness facility, contracted meeting space, or other venue by more than 25% of its published capacity or offering, or materially reduces staffing ratios for housekeeping, food service, banquets, engineering, security, or similar services, it should first offer equal alternatives at its own expense. If no mutually agreeable alternative is reached within 30 days, the group should be able to cancel without liability or renegotiate terms.",
+    fallback_language:
+      "If Hotel closes or limits the hours of service of any current restaurant, health club, spa, fitness facility, contracted meeting space, or other hospitality venue or facility by more than twenty-five percent (25%) of its published capacity or full-service offering, or limits, restricts, or reduces the guest-to-staff service ratio of its housekeeping, restaurant, banquet, maintenance and engineering, safety and security, or any other service in a manner a hotel industry executive would agree is material, Hotel will first have the option to provide equal alternative facilities or services, mutually agreeable and solely at Hotel's expense. Should no mutually agreeable alternative be reached within thirty (30) days, Group may cancel this Agreement without liability upon written notice to Hotel, or the parties may instead modify this Agreement on mutually agreed terms.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "future_rate_cap",
+    segment: "default",
+    position:
+      "Where room rates for a future year are not yet confirmed, the contract should cap any increase at 2% per year over the quoted rates, lower the group rate by the same percentage if the market average rate for comparable hotels or the hotel's own published rate declines before arrival, and fix final rates in writing no later than 12 months before the event.",
+    fallback_language:
+      "Definite room rates will be confirmed in writing no later than twelve (12) months prior to arrival. Hotel guarantees a maximum yearly increase of two percent (2%) over the rates quoted in this Agreement. Should the market average rate for same-tier hotels, or Hotel's published transient rate over the same pattern, decline between the signing of this Agreement and Group's arrival, the group rate will be discounted by the same percentage. Hotel agrees to work in good faith to finalize a fair rate in light of any change in the local or national economy.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "nondiscrimination",
+    segment: "default",
+    position:
+      "The hotel should commit that it and its staff will not discriminate against any attendee on the basis of sex, gender identity or expression, age, race, color, religion, national or ethnic origin, disability, sexual orientation, genetic information, family, marital, or military status, or similar grounds, even where state or federal law would allow it. If the state or city adopts legislation that allows such discrimination or bars local nondiscrimination measures, the group should be able to terminate without liability.",
+    fallback_language:
+      "Hotel agrees that Hotel and its employees and agents will not discriminate against any of Group's attendees on the basis of sex, actual or perceived gender, age, race, color, religion, creed, national or ethnic origin, disability, sexual orientation, gender identity and expression, genetic information, or parental, marital, domestic partner, civil union, military, or veteran status, notwithstanding that such discrimination may be allowed under state or federal law. Should the state of [state] or the city of [city] adopt legislation that affirmatively allows discrimination on any of these bases, or prohibits the adoption of nondiscrimination measures on any of these bases, Group may terminate this Agreement without liability.",
+    walk_away_condition: "",
+    severity_default: "medium",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "reservation_procedures",
+    segment: "default",
+    position:
+      "Reservation handling should favor attendees. Confirmations should go out at no charge within 4 days (2 business days inside 30 days of arrival), name changes should be allowed at the group rate up to arrival, individual rooms should be cancellable without charge until 6 pm on the day of arrival (fallback: 24 hours before arrival, waived for a documented medical or personal emergency), and no-shows should be reinstated for the following night at the same rate. Individual deposits should be refundable with 3 working days' notice, and any individual cancellation money the hotel keeps should be credited against the group's attrition damages.",
+    fallback_language:
+      "Upon request, Hotel will send each registered guest confirmation of their reservation, and of any change to it, at no charge within four (4) days of receiving the information, or within two (2) business days if the request is received within thirty (30) days of arrival. The room block and reservation procedures will be loaded into Hotel's central reservation and property management systems. Name changes may be made to room reservations at the group rate at any time up to and including the arrival date. No cancellation fee will be assessed for any room cancelled before 6:00 p.m. on the day of arrival. Hotel will reinstate no-shows for the following night at the rate of their existing reservation unless Group directs otherwise. Any individual reservation deposit will be refunded if notice of cancellation is received at least three (3) working days before arrival, and any individual cancellation money Hotel receives will be credited toward any attrition damages owed by Group.",
+    walk_away_condition: "",
+    severity_default: "low",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "banquet_service_levels",
+    segment: "default",
+    position:
+      "The contract should guarantee minimum staffing at food and beverage functions — one server per 25 guests at plated breakfasts and 20 at plated lunches and dinners, one per 40 and 30 for buffets, and one bartender per 75 guests at hosted bars and 100 at cash bars — with no labor, bartender, or service fees for meeting those ratios, and a labor fee only for functions under 25 people.",
+    fallback_language:
+      "At all meal functions, Hotel will provide at least one server for every twenty-five (25) guests at a plated breakfast and every twenty (20) guests at a plated lunch or dinner, and one server for every forty (40) guests at a buffet breakfast and every thirty (30) guests at a buffet lunch or dinner, with no extra service or labor charge for these ratios. At all functions where alcohol is served, Hotel will provide no fewer than one (1) bartender for every seventy-five (75) guests at hosted bars and one (1) bartender for every one hundred (100) guests at cash bars, with no bartender or service fees. There will be no special labor or service fees for any Group food or beverage function, except that functions of fewer than twenty-five (25) people will incur a labor fee of $[X].",
+    walk_away_condition: "",
+    severity_default: "low",
+    version: "v1-industry-default",
+    provenance: "extracted",
+  },
+  {
+    clause_type: "av_internet",
+    segment: "default",
+    position:
+      "The hotel should honor the audio-visual and internet bandwidth quotes attached at contracting — with bandwidth of at least 10 Mbps download and 1 Mbps upload — and give a stated discount on anything added later, whoever ends up providing the service. Using the in-house audio-visual provider should never be a condition for discounted or complimentary services such as internet.",
+    fallback_language:
+      "Hotel will honor the pricing of the attached audio-visual quote, prepared from Group's specifications at the time of contracting, and will apply a discount of [X]% to any additional audio-visual needs, regardless of which provider is in place during the Event. Hotel will likewise honor the attached internet bandwidth quote, which provides a minimum of 10 Mbps download and 1 Mbps upload speed, with a discount of [X]% on any additional needs. Use of Hotel's in-house audio-visual provider, exclusively or otherwise, will not be a condition of any discounted or complimentary service, such as internet.",
+    walk_away_condition: "",
+    severity_default: "low",
     version: "v1-industry-default",
     provenance: "extracted",
   },

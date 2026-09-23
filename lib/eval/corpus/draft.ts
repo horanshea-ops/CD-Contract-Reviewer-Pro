@@ -76,6 +76,8 @@ export interface BuildContractResult {
   tokens: { input: number; output: number };
   /** Gate failures that were retried past, kept so a weak contract is visible. */
   retries: string[];
+  /** Clauses drafted fresh on a reuse build because the saved ones no longer fit the spec. */
+  redrafted: string[];
 }
 
 export class CorpusIntegrityError extends Error {
@@ -438,6 +440,25 @@ export interface BuildContractOptions {
    * should not mean paying to redraft the six that succeeded.
    */
   reuse?: DraftedClause[];
+  /**
+   * With `reuse`, draft whatever no longer fits the spec instead of failing.
+   *
+   * Saved clauses that still pass the drafting gate are kept. Missing clauses,
+   * and clauses whose dictated wording no longer matches, are drafted fresh,
+   * and the finished contract then goes through the full read-back. The gate
+   * checks wording, not meaning, so a changed boolean on its own is not
+   * detected. Delete that clause from the saved draft to force a redraft.
+   */
+  redraftStale?: boolean;
+}
+
+/** Clause types the spec wants that a saved draft is missing or no longer satisfies. */
+export function staleClauses(spec: EvalContractSpec, saved: DraftedClause[]): string[] {
+  const byClause = new Map(saved.map((c) => [c.clause_type, c]));
+  return clausesToDraft(spec).filter((clauseType) => {
+    const clause = byClause.get(clauseType);
+    return !clause || checkDraftBatch(spec, draftRequests(spec, [clauseType]), [clause]).length > 0;
+  });
 }
 
 export async function buildContract(
@@ -450,27 +471,35 @@ export async function buildContract(
   const retries: string[] = [];
   const drafted = new Map<string, DraftedClause>();
 
-  if (options.reuse) {
-    for (const clause of options.reuse) drafted.set(clause.clause_type, clause);
+  let redrafted: string[] = [];
 
-    const missing = clauseTypes.filter((c) => !drafted.has(c));
-    if (missing.length) {
+  if (options.reuse) {
+    const stale = staleClauses(spec, options.reuse);
+    const fresh = new Set(clauseTypes.filter((c) => !stale.includes(c)));
+    for (const clause of options.reuse) if (fresh.has(clause.clause_type)) drafted.set(clause.clause_type, clause);
+
+    if (stale.length === 0) {
+      const ordered = clauseTypes.map((c) => drafted.get(c)!);
+      const { document, anchors: placed } = layOutContract(spec, ordered);
+      const bytes = await buildContractDocx(document);
+      const extracted = await extractDocx(bytes);
+      const { anchors, failures } = resolveAnchors(extracted, placed);
+      if (failures.length) throw new CorpusIntegrityError(spec.id, failures);
+
+      return { spec, bytes, extracted, anchors, drafted: ordered, attempts: 0, tokens, retries, redrafted };
+    }
+
+    if (!options.redraftStale) {
       throw new CorpusIntegrityError(spec.id, [
-        `reused draft is missing clause(s) ${missing.join(", ")} — the spec changed since it was written, so redraft it`,
+        `reused draft no longer fits clause(s) ${stale.join(", ")} — the spec changed since it was written, so redraft them`,
       ]);
     }
 
-    const ordered = clauseTypes.map((c) => drafted.get(c)!);
-    const { document, anchors: placed } = layOutContract(spec, ordered);
-    const bytes = await buildContractDocx(document);
-    const extracted = await extractDocx(bytes);
-    const { anchors, failures } = resolveAnchors(extracted, placed);
-    if (failures.length) throw new CorpusIntegrityError(spec.id, failures);
-
-    return { spec, bytes, extracted, anchors, drafted: ordered, attempts: 0, tokens, retries };
+    redrafted = stale;
+    await draftInto(spec, stale, drafted, deps, tokens, retries);
+  } else {
+    await draftInto(spec, clauseTypes, drafted, deps, tokens, retries);
   }
-
-  await draftInto(spec, clauseTypes, drafted, deps, tokens, retries);
 
   /**
    * Assemble, then check what came out, then fix what did not survive.
@@ -521,7 +550,7 @@ export async function buildContract(
       .map((q) => `${q.id}: spec says "${q.expected}", the contract reads as "${answered.get(q.id) ?? "no answer"}"`);
 
     if (disagreements.length === 0) {
-      return { spec, bytes, extracted, anchors, drafted: ordered, attempts: round, tokens, retries };
+      return { spec, bytes, extracted, anchors, drafted: ordered, attempts: round, tokens, retries, redrafted };
     }
     if (round === MAX_ATTEMPTS) throw new CorpusIntegrityError(spec.id, disagreements);
     retries.push(`round ${round} read-back: ${disagreements.join("; ")}`);

@@ -31,17 +31,17 @@
   {
     "clause_type": "cutoff_date",
     "paragraphs": [
-      "All room reservations for the Group must be made and confirmed through the Hotel's group reservations department on or before thirty (30) days prior to the Event arrival date. Reservations requested after this cutoff date shall not be added to the Group's block and shall be treated as individual reservations. The Hotel shall make reasonable efforts to accommodate reservations submitted after the cutoff at the group rate, subject to availability, but the Group may not rely upon room availability at the group rate for reservations made after this deadline.",
-      "The Group is responsible for communicating the cutoff date to all anticipated attendees and for managing its own reservation process to ensure timely submission. Any rooms reserved after the cutoff date remain the sole responsibility of the individual attendee or alternative booking entity, and such reservations shall not be credited against the Group's block commitment for purposes of attrition calculation. The Hotel's confirmation of any post-cutoff reservation shall not constitute a waiver of the cutoff deadline for any other member of the Group."
+      "The room block for the Texas Municipal Clerks Association is held through twenty-one (21) days prior to the event date of October 19, 2027. After this cutoff date has passed, the hotel makes no guarantee that rooms will remain available at the negotiated group rate.",
+      "Reservations submitted after the cutoff date will be accommodated at the group rate if rooms in the block remain available at the time of booking. The availability of rooms and the continued application of the group rate are not guaranteed after the cutoff date, and the guest accepts the risk that only standard rack rates may be offered."
     ],
     "anchors": [
       {
         "field": "days_prior",
-        "sentence": "All room reservations for the Group must be made and confirmed through the Hotel's group reservations department on or before thirty (30) days prior to the Event arrival date."
+        "sentence": "The room block for the Texas Municipal Clerks Association is held through twenty-one (21) days prior to the event date of October 19, 2027."
       },
       {
         "field": "post_cutoff_group_rate",
-        "sentence": "The Hotel shall make reasonable efforts to accommodate reservations submitted after the cutoff at the group rate, subject to availability, but the Group may not rely upon room availability at the group rate for reservations made after this deadline."
+        "sentence": "Reservations submitted after the cutoff date will be accommodated at the group rate if rooms in the block remain available at the time of booking."
       }
     ]
   },

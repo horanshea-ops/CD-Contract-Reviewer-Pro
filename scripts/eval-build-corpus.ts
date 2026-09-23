@@ -6,7 +6,7 @@ import path from "node:path";
 import { draftEvalClauses, readBackEvalTerms } from "../lib/anthropic";
 import { loadStandardsLibrary } from "../lib/standards/load";
 import { EVAL_SPECS } from "../lib/eval/corpus/specs";
-import { buildContract, CorpusIntegrityError } from "../lib/eval/corpus/draft";
+import { buildContract, CorpusIntegrityError, staleClauses } from "../lib/eval/corpus/draft";
 import type { DraftedClause } from "../lib/eval/corpus/layout";
 import { deriveKeyItems, resolveKeyItems } from "../lib/eval/corpus/derive-key";
 import type { AnswerKey, AnswerKeyContract } from "../lib/eval/types";
@@ -21,11 +21,16 @@ import type { AnswerKey, AnswerKeyContract } from "../lib/eval/types";
  * to build one — worth doing first, to look at the prose before paying for the
  * rest.
  *
- * `--resume` reuses any contract whose drafted clauses are already on disk,
- * redrafting only what is missing. Each successful build writes those clauses
- * beside its DOCX for exactly that purpose: one contract failing at the end of
- * seven should not mean paying to redraft the six that succeeded. A reused
- * contract skips the read-back, which it already passed when it was written.
+ * `--resume` reuses the drafted clauses already on disk, redrafting only the
+ * clauses that are missing or no longer match the spec. Each successful build
+ * writes those clauses beside its DOCX for exactly that purpose: one contract
+ * failing at the end of seven should not mean paying to redraft the six that
+ * succeeded, and a spec change should not mean redrafting whole contracts. A
+ * contract reused whole skips the read-back, which it already passed when it
+ * was written. A contract with any redrafted clause is read back in full.
+ *
+ * `--plan` makes no calls. It lists, per contract, which clauses `--resume`
+ * would redraft, so the cost is known before anything is spent.
  */
 
 const CORPUS_DIR = path.join("data", "sample-contracts", "eval");
@@ -55,12 +60,22 @@ function costOf(model: string, input: number, output: number): number | null {
 
 async function main() {
   const resume = process.argv.includes("--resume");
+  const planOnly = process.argv.includes("--plan");
   const onlyAt = process.argv.indexOf("--only");
   const only = onlyAt === -1 ? null : process.argv[onlyAt + 1];
   const specs = only ? EVAL_SPECS.filter((s) => s.id === only) : EVAL_SPECS;
 
   if (specs.length === 0) {
     throw new Error(`No spec matches "${only}". Known ids: ${EVAL_SPECS.map((s) => s.id).join(", ")}`);
+  }
+
+  if (planOnly) {
+    for (const spec of specs) {
+      const saved = await readDraft(path.join(CORPUS_DIR, `${spec.id}.draft.json`));
+      const stale = saved ? staleClauses(spec, saved) : ["(no saved draft: every clause)"];
+      console.log(`${spec.id.padEnd(22)} ${stale.length ? `redraft ${stale.join(", ")}` : "reuse whole"}`);
+    }
+    return;
   }
 
   const standards = await loadStandardsLibrary();
@@ -86,7 +101,7 @@ async function main() {
       const built = await buildContract(
         spec,
         { draftClauses: draftEvalClauses, readBack: readBackEvalTerms },
-        reuse ? { reuse } : {}
+        reuse ? { reuse, redraftStale: true } : {}
       );
 
       const file = `${spec.id}.docx`;
@@ -104,7 +119,7 @@ async function main() {
 
       const words = built.extracted.parts.reduce((n, p) => n + p.text.split(/\s+/).length, 0);
       console.log(
-        `${reuse ? "reused" : "ok"} — ${(built.bytes.length / 1024).toFixed(0)}KB, ~${Math.round(words / 450)} pages, ` +
+        `${!reuse ? "ok" : built.redrafted.length ? `redrafted ${built.redrafted.join(", ")}` : "reused"} — ${(built.bytes.length / 1024).toFixed(0)}KB, ~${Math.round(words / 450)} pages, ` +
           `${built.anchors.length} anchors, ${items.length} key items, ${((Date.now() - started) / 1000).toFixed(0)}s`
       );
       for (const retry of built.retries) console.log(`     retried: ${retry}`);

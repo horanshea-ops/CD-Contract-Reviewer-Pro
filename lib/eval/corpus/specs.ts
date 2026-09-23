@@ -44,6 +44,15 @@ const ADVERSE: Record<string, ClauseTerms> = {
   rate_parity: { guaranteed: false, retroactive_adjustment: false, commission_preserved: false },
   gratuity_service_charge: { separately_defined: false, gratuity_to_staff: false, service_charge_disclosed: false, service_charge_pct: 0.24 },
   resale_mitigation_duty: { affirmative_duty: false, proceeds_credited: false, records_available: false },
+  commission: { commission_pct: 0.08, outside_block_commissionable: false, paid_within_days: 90 },
+  hotel_cancellation: { consequential_damages: false, attorney_fees: false },
+  function_space: { assignments_specified: false, changes_need_consent: false, rental_waived: false },
+  facilities_services: { reduction_threshold_pct: 0.5, alternatives_at_hotel_expense: false, cancel_no_liability: false },
+  future_rate_cap: { max_annual_increase_pct: 0.05, decline_adjustment: false, rates_final_months: 6 },
+  nondiscrimination: { hotel_nondiscrimination: false, terminate_on_discriminatory_law: false },
+  reservation_procedures: { name_changes_at_group_rate: false, no_show_reinstated: false, same_day_cancellation: false },
+  banquet_service_levels: { server_ratios_stated: false, no_labor_fees: false },
+  av_internet: { quotes_honored: false, in_house_av_not_condition: false },
 };
 
 /** Passes every check CD makes. A contract built from this alone keys to nothing. */
@@ -52,7 +61,7 @@ const COMPLIANT: Record<string, ClauseTerms> = {
   cancellation: { damages_basis: "room_profit", sliding_scale: true, resale_credit: true, rebook_credit: true, liability_free_months: 12, top_tier_pct: 0.7 },
   force_majeure: { standard: "impracticable", covers_government_restrictions: true, covers_epidemic: true, covers_unsafe_travel: true, deposit_refund: true },
   fb_minimum: { menu_price_lock_months: 12, shortfall_rate: 0.35 },
-  cutoff_date: { days_prior: 30, post_cutoff_group_rate: true },
+  cutoff_date: { days_prior: 21, post_cutoff_group_rate: true },
   walk_relocation: { comparable_accommodation: true, transportation: true, return_upgrade: true, counts_toward_pickup: true },
   mandatory_fees: { disclosed_before_signature: true, undisclosed_waived: true, resort_fee_usd: 0 },
   rebates: { comp_room_ratio: 40, formula_based: true, forfeited_on_attrition: false },
@@ -73,9 +82,37 @@ const COMPLIANT: Record<string, ClauseTerms> = {
   rate_parity: { guaranteed: true, retroactive_adjustment: true, commission_preserved: true },
   gratuity_service_charge: { separately_defined: true, gratuity_to_staff: true, service_charge_disclosed: true, service_charge_pct: 0.22 },
   resale_mitigation_duty: { affirmative_duty: true, proceeds_credited: true, records_available: true },
+  commission: { commission_pct: 0.1, outside_block_commissionable: true, paid_within_days: 30 },
+  hotel_cancellation: { consequential_damages: true, attorney_fees: true },
+  function_space: { assignments_specified: true, changes_need_consent: true, rental_waived: true },
+  facilities_services: { reduction_threshold_pct: 0.25, alternatives_at_hotel_expense: true, cancel_no_liability: true },
+  future_rate_cap: { max_annual_increase_pct: 0.02, decline_adjustment: true, rates_final_months: 12 },
+  nondiscrimination: { hotel_nondiscrimination: true, terminate_on_discriminatory_law: true },
+  reservation_procedures: { name_changes_at_group_rate: true, no_show_reinstated: true, same_day_cancellation: true },
+  banquet_service_levels: { server_ratios_stated: true, no_labor_fees: true },
+  av_internet: { quotes_honored: true, in_house_av_not_condition: true },
 };
 
 type Patch = Record<string, Partial<ClauseTerms> | "absent">;
+
+/**
+ * The nine clause types added from CD's 2026 template, marked absent.
+ *
+ * Most contracts carry this patch, so their key expects a missing-clause
+ * finding for each. eval-03 states all nine compliantly, eval-01 deviates on
+ * six, and eval-07 misses narrowly on the three with figures.
+ */
+const WITHOUT_2026_ADDITIONS: Patch = {
+  commission: "absent",
+  hotel_cancellation: "absent",
+  function_space: "absent",
+  facilities_services: "absent",
+  future_rate_cap: "absent",
+  nondiscrimination: "absent",
+  reservation_procedures: "absent",
+  banquet_service_levels: "absent",
+  av_internet: "absent",
+};
 
 /**
  * Applies per-clause overrides to a profile.
@@ -116,7 +153,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     fb_minimum: 185000,
     style: { voice: "verbose", tables: "many", exhibits: true, header_footer_terms: false },
     intent: "Aggressive big-city convention hotel. Nearly every clause deviates, so recall has a wide base.",
-    terms: from(ADVERSE, {}),
+    terms: from(ADVERSE, { commission: "absent", facilities_services: "absent", future_rate_cap: "absent" }),
   },
   {
     id: "eval-02-cedarcrest",
@@ -132,6 +169,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     style: { voice: "terse", tables: "few", exhibits: false, header_footer_terms: false },
     intent: "Middle-of-the-road regional property. Roughly half the clauses deviate, half do not.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
       attrition: { basis: "night_by_night", threshold: 0.85 },
       cancellation: { damages_basis: "gross_revenue", resale_credit: false },
       fb_minimum: { shortfall_rate: 1.0 },
@@ -176,6 +214,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     intent:
       "Table-heavy. The cancellation schedule and attrition scale are grids, which is where §1.4.5 says the model was previously blind.",
     terms: from(ADVERSE, {
+      ...WITHOUT_2026_ADDITIONS,
       force_majeure: { covers_government_restrictions: true, deposit_refund: true },
       ada_compliance: { hotel_warranty: true, auxiliary_aids_split: true },
       attendee_data_handling: { marketing_use_barred: true, third_party_sale_barred: true },
@@ -196,6 +235,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     style: { voice: "terse", tables: "few", exhibits: false, header_footer_terms: false },
     intent: "A thin contract. Twelve clause types are simply not there, so missing-clause detection carries the weight.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
       attrition: { basis: "night_by_night", threshold: 0.9, liability_rate: 0.9 },
       cancellation: { damages_basis: "gross_revenue", resale_credit: false, rebook_credit: false },
       named_storm: "absent",
@@ -226,6 +266,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     style: { voice: "brand_boilerplate", tables: "few", exhibits: false, header_footer_terms: true },
     intent: "Carries binding terms in the running header and footer, as hotels routinely do.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
       cutoff_date: { days_prior: 60, post_cutoff_group_rate: false },
       mandatory_fees: { disclosed_before_signature: false, undisclosed_waived: false, resort_fee_usd: 29 },
       damage_deposit: { refund_window_days: 60, offsets_other_charges: true, deposit_usd: 15000 },
@@ -248,6 +289,15 @@ const ALL_SPECS: EvalContractSpec[] = [
     intent:
       "Every deviation is marginal rather than flagrant. Measures whether near-misses are caught at all, not whether obvious ones are.",
     terms: from(COMPLIANT, {
+      hotel_cancellation: "absent",
+      function_space: "absent",
+      nondiscrimination: "absent",
+      reservation_procedures: "absent",
+      banquet_service_levels: "absent",
+      av_internet: "absent",
+      commission: { commission_pct: 0.09, paid_within_days: 35 },
+      facilities_services: { reduction_threshold_pct: 0.3 },
+      future_rate_cap: { max_annual_increase_pct: 0.03, rates_final_months: 11 },
       attrition: { threshold: 0.75, liability_rate: 0.75 },
       cutoff_date: { days_prior: 32 },
       fb_minimum: { menu_price_lock_months: 14, shortfall_rate: 0.4 },
@@ -273,6 +323,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     style: { voice: "verbose", tables: "many", exhibits: true, header_footer_terms: false },
     intent: "Hurricane-belt resort. Named-storm and force-majeure language are both present and both weak.",
     terms: from(ADVERSE, {
+      ...WITHOUT_2026_ADDITIONS,
       named_storm: { cancellation_window_hours: 36 },
       attrition: { threshold: 0.8, liability_rate: 0.85 },
       cancellation: { resale_credit: true },
@@ -295,6 +346,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     style: { voice: "brand_boilerplate", tables: "many", exhibits: true, header_footer_terms: false },
     intent: "Exhibition property with hard in-house vendor requirements and punitive rebate terms.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
       exclusivity_vendors: { outside_vendors_allowed: false, opt_out_fee_usd: 4500 },
       rebates: { comp_room_ratio: 100, formula_based: false, forfeited_on_attrition: true },
       mandatory_fees: { disclosed_before_signature: false, undisclosed_waived: false, resort_fee_usd: 22 },
@@ -318,6 +370,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     intent:
       "The same adverse percentage appears in four separate clauses. A quote of it alone resolves nowhere, so the harness has to fall back to clause type and report the ambiguity.",
     terms: from(ADVERSE, {
+      ...WITHOUT_2026_ADDITIONS,
       attrition: { threshold: 0.8, liability_rate: 0.8 },
       cancellation: { top_tier_pct: 0.8 },
       fb_minimum: { shortfall_rate: 0.8 },
@@ -341,6 +394,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     intent:
       "Reads as reasonable throughout, with two severe deviations buried in long compliant clauses. Measures whether a fair-looking contract gets read carefully.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
       insurance_indemnification: { mutual: false, own_negligence_only: false },
       attrition: { basis: "night_by_night", threshold: 0.95, liability_rate: 1.0 },
     }),
@@ -359,6 +413,8 @@ const ALL_SPECS: EvalContractSpec[] = [
     style: { voice: "brand_boilerplate", tables: "few", exhibits: false, header_footer_terms: true },
     intent: "Heavily unionised market. The labour, gratuity and service-charge clauses are the point.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
+      cutoff_date: { days_prior: 30 },
       labor_disputes: { cba_expiry_notice_months: 0, cancel_window_days: 30, cancel_no_liability: false },
       gratuity_service_charge: { separately_defined: false, gratuity_to_staff: false, service_charge_disclosed: false, service_charge_pct: 0.25 },
       master_account_billing: { finance_charge_monthly_pct: 0.02, dispute_window_days: 7 },
@@ -381,6 +437,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     intent:
       "A large block with a high undisclosed resort fee. The only clause in the corpus whose dollar exposure follows from stated figures in one step.",
     terms: from(ADVERSE, {
+      ...WITHOUT_2026_ADDITIONS,
       mandatory_fees: { disclosed_before_signature: false, undisclosed_waived: false, resort_fee_usd: 42 },
       force_majeure: { standard: "impracticable", covers_epidemic: true },
       termination_rights: { for_cause_no_liability: true },
@@ -403,6 +460,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     intent:
       "An association that rotates management companies. Assignment and ownership-change terms matter, and several low-severity clauses are absent.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
       assignment_subcontracting: { assignable_to_successor: false, consent_not_unreasonably_withheld: false },
       brand_ownership_change: { notice_days: 120, termination_window_days: 7, covers_bankruptcy: false },
       termination_rights: { for_cause_no_liability: false, separate_from_cancellation_scale: false },
@@ -428,6 +486,7 @@ const ALL_SPECS: EvalContractSpec[] = [
     intent:
       "The longest document in the corpus. Every clause type is present, with a wide mix of compliant, marginal and adverse terms.",
     terms: from(COMPLIANT, {
+      ...WITHOUT_2026_ADDITIONS,
       attrition: { basis: "night_by_night", threshold: 0.85, high_occupancy_credit: false },
       cancellation: { damages_basis: "gross_revenue", rebook_credit: false, liability_free_months: 6, top_tier_pct: 0.9 },
       force_majeure: { standard: "impossible", covers_unsafe_travel: false },

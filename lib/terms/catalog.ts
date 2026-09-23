@@ -192,6 +192,47 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     bool("resale_mitigation_duty.affirmative_duty", "True when the hotel must actively try to resell released rooms or function space. False when it has no such obligation."),
     bool("resale_mitigation_duty.proceeds_credited", "True when resale proceeds are credited against what the group owes. False when the hotel keeps them as well."),
     bool("resale_mitigation_duty.records_available", "True when the hotel makes its resale records available to the group. False when they are closed to it."),
+
+    // Commission
+    num("commission.commission_pct", "pct", "The commission rate the hotel pays the booking agency on room revenue."),
+    bool("commission.outside_block_commissionable", "True when commission is paid on all actualized room revenue, including rooms booked outside the block. False when only rooms within the block earn commission."),
+    num("commission.paid_within_days", "days", "How many days after the group departs the hotel must pay the commission."),
+
+    // Cancellation by hotel
+    bool("hotel_cancellation.consequential_damages", "True when a hotel that cancels without the right to do so owes the group's direct, indirect and consequential damages. False when its liability is limited to refunding deposits."),
+    bool("hotel_cancellation.attorney_fees", "True when a hotel that cancels wrongfully also owes the group's attorney's fees and costs. False when the group bears its own. Who pays fees in a general dispute is governing_law_venue.each_party_own_fees, not this."),
+
+    // Function space
+    bool("function_space.assignments_specified", "True when the agreement names the function rooms assigned to the group. False when the hotel assigns them at its discretion."),
+    bool("function_space.changes_need_consent", "True when the hotel may not change the group's function space assignments without the group's written consent. False when it may reassign space on notice."),
+    bool("function_space.rental_waived", "True when meeting room rental charges are waived. False when the group pays them."),
+
+    // Facilities and services
+    num("facilities_services.reduction_threshold_pct", "pct", "How far the hotel may cut an outlet's or facility's capacity or offering before the group's remedies apply. 25% means cuts above 25% trigger them."),
+    bool("facilities_services.alternatives_at_hotel_expense", "True when the hotel must offer equal alternatives at its own expense if it reduces facilities or services. False when it may reduce them without offering any."),
+    bool("facilities_services.cancel_no_liability", "True when the group may cancel without liability if no acceptable alternative is agreed. False when reduced facilities or services give it no right to cancel."),
+
+    // Future room rates
+    num("future_rate_cap.max_annual_increase_pct", "pct", "The most the group rate may rise per year before the event over the rates quoted in the agreement."),
+    bool("future_rate_cap.decline_adjustment", "True when the group rate falls by the same percentage if market rates decline before arrival. False when it stays as set."),
+    num("future_rate_cap.rates_final_months", "months", "How many months before arrival the final room rates must be confirmed in writing."),
+
+    // Nondiscrimination
+    bool("nondiscrimination.hotel_nondiscrimination", "True when the hotel commits not to discriminate against attendees on protected grounds even where local law would allow it. False when it commits to nothing beyond what the law requires."),
+    bool("nondiscrimination.terminate_on_discriminatory_law", "True when the group may terminate without liability if the state or city adopts legislation permitting discrimination against attendees. False when such a law gives it no right to terminate."),
+
+    // Reservation procedures
+    bool("reservation_procedures.name_changes_at_group_rate", "True when attendees may change the name on a reservation at the group rate up to arrival. False when a name change is treated as a new reservation at the prevailing rate."),
+    bool("reservation_procedures.no_show_reinstated", "True when an attendee who misses the first night keeps the rest of the reservation at the same rate. False when the hotel cancels the remaining nights."),
+    bool("reservation_procedures.same_day_cancellation", "True when attendees may cancel individual reservations without charge until the day of arrival. False when cancelling within a longer period before arrival incurs a charge."),
+
+    // Banquet service levels
+    bool("banquet_service_levels.server_ratios_stated", "True when the agreement sets minimum server or bartender ratios at food and beverage functions. False when staffing is at the hotel's discretion."),
+    bool("banquet_service_levels.no_labor_fees", "True when no labor, bartender or service fees apply to the group's functions apart from small ones. False when the hotel charges such fees."),
+
+    // Audio-visual and internet
+    bool("av_internet.quotes_honored", "True when the hotel honors the audio-visual and internet pricing quoted at contracting. False when those services are priced at its rates in effect at the time of the event."),
+    bool("av_internet.in_house_av_not_condition", "True when using the hotel's in-house audio-visual provider is not a condition of any complimentary or discounted service. False when concessions such as internet depend on using it."),
   ],
 };
 
