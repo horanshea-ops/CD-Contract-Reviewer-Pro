@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
-import { Meta, ReadingText } from "@/components/ui/typography";
+import { Body, Meta, Subtitle } from "@/components/ui/typography";
 import { formatCurrency, titleCase } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
@@ -19,6 +19,8 @@ export interface Finding {
   exposure_amount: number | null;
   exposure_basis: string | null;
   location_section: string | null;
+  /** Null on findings recorded before the model wrote headlines. */
+  headline: string | null;
   location_page: number | null;
   quoted_text: string | null;
   finding_text: string;
@@ -34,6 +36,15 @@ export interface Finding {
 
 // Shared with the standards library screen.
 export { SEVERITY_STYLE };
+
+/** "4. Cancellation and Liquidated Damages" → "§4". Null when there's no leading number. */
+function sectionRef(section: string | null): string | null {
+  const number = section?.match(/^\s*(\d+(?:\.\d+)*)/)?.[1];
+  return number ? `§${number}` : null;
+}
+
+/** Small uppercase section label, the same style the rest of the app uses. */
+const LABEL_CLASSES = "font-semibold uppercase tracking-wide mb-1";
 
 const DISMISSAL_REASONS = [
   "Already negotiated elsewhere in this contract",
@@ -80,6 +91,7 @@ export default function FindingCard({
   }
 
   const style = SEVERITY_STYLE[finding.severity];
+  const section = sectionRef(finding.location_section);
 
   async function submitAction(action: "accept" | "edit" | "dismiss") {
     setSaving(true);
@@ -124,86 +136,84 @@ export default function FindingCard({
       style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
       className={cn(focused && "ring-2 ring-[var(--cd-blue)]")}
     >
-      <div className="flex items-baseline justify-between gap-3 pb-2.5 mb-3 border-b border-[var(--border)]">
-        <div className="flex items-baseline gap-1.5 flex-wrap">
-          <Meta as="span" className="font-semibold" style={{ color: style.textColor }}>
+      <div className="flex items-baseline justify-between gap-3">
+        <Meta as="p" className="text-[var(--text-secondary)]">
+          <span className="font-semibold" style={{ color: style.textColor }}>
             {style.label}
-          </Meta>
-          <Meta as="span" className="text-[var(--text-secondary)]">
-            {titleCase(finding.clause_type)}
-          </Meta>
-          {finding.is_missing_clause && (
-            <Meta as="span" className="text-[var(--text-secondary)]">
-              (missing from contract)
-            </Meta>
-          )}
-        </div>
-        {finding.current_action && (
-          <Meta as="span" className="shrink-0 text-[var(--text-secondary)]">
-            {ACTION_LABEL[finding.current_action.action]}
-          </Meta>
+          </span>
+          {" · "}
+          {titleCase(finding.clause_type)}
+          {section && ` · ${section}`}
+          {finding.is_missing_clause && " · missing from contract"}
+        </Meta>
+        {!finding.is_missing_clause && finding.quoted_text && locateMode === "docx" && (
+          <LocateLink onClick={() => onSelectFinding?.(finding)}>Show in document →</LocateLink>
+        )}
+        {!finding.is_missing_clause && finding.quoted_text && locateMode !== "docx" && finding.location_page != null && (
+          <LocateLink onClick={() => onSelectFinding?.(finding)}>Page {finding.location_page} →</LocateLink>
         )}
       </div>
 
-      {!finding.is_missing_clause && finding.quoted_text && (
-        <Meta as="p" className="mb-1">
-          {locateMode === "docx" ? (
-            <button
-              onClick={() => onSelectFinding?.(finding)}
-              className="text-[var(--cd-navy)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
-            >
-              Show in document →
-            </button>
-          ) : finding.location_page != null ? (
-            <button
-              onClick={() => onSelectFinding?.(finding)}
-              className="text-[var(--cd-navy)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
-            >
-              Page {finding.location_page} →
-            </button>
-          ) : (
-            <span className="text-[var(--text-secondary)]">
-              Location not pinpointed, so it won&apos;t be marked in place if exported
-            </span>
-          )}
-        </Meta>
+      {finding.headline ? (
+        <Subtitle as="p" className="text-[var(--text-primary)] mt-2">
+          {finding.headline}
+        </Subtitle>
+      ) : (
+        <Body as="p" className="text-[var(--text-primary)] mt-2">
+          {finding.finding_text}
+        </Body>
       )}
 
       {finding.exposure_amount != null && (
-        <ReadingText as="p" className="text-[var(--text-primary)] mb-2">
-          <span className="font-semibold [font-variant-numeric:tabular-nums]">
+        <div className="mt-3 rounded-md border border-[var(--border)] px-3 py-2">
+          <Subtitle as="p" className="text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
             {formatCurrency(finding.exposure_amount)}
-          </span>
+          </Subtitle>
           {finding.exposure_basis && (
-            <span className="text-[var(--text-secondary)]"> — {finding.exposure_basis}</span>
+            <Meta as="p" className="text-[var(--text-secondary)]">
+              {finding.exposure_basis}
+            </Meta>
           )}
-        </ReadingText>
+        </div>
       )}
 
-      <ReadingText className="text-[var(--text-primary)] mb-2">{finding.finding_text}</ReadingText>
-
-      {finding.quoted_text && (
-        <ReadingText
-          as="blockquote"
-          className="text-[var(--text-secondary)] border-l-2 border-[var(--border-strong)] pl-2 mb-2"
-        >
-          &ldquo;{finding.quoted_text}&rdquo;
-        </ReadingText>
-      )}
-
-      <div className="pt-2.5 mt-1 mb-2 border-t border-[var(--border)]">
-        <Meta as="p" className="font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-1">
-          Proposed language
-        </Meta>
-        <ReadingText className="text-[var(--text-primary)]">{finding.proposed_language}</ReadingText>
+      <div className="mt-3 rounded-md border border-[var(--border)] overflow-hidden">
+        {!finding.is_missing_clause && finding.quoted_text && (
+          <div className="bg-[var(--surface-muted)] px-3 py-2.5 border-b border-[var(--border)]">
+            <Meta as="p" className={cn(LABEL_CLASSES, "text-[var(--text-secondary)]")}>
+              Now
+            </Meta>
+            <Body as="blockquote" className="text-[var(--text-secondary)]">
+              &ldquo;{finding.quoted_text}&rdquo;
+            </Body>
+            {locateMode !== "docx" && finding.location_page == null && (
+              <Meta as="p" className="text-[var(--text-muted)] mt-1">
+                Location not pinpointed, so it won&apos;t be marked in place if exported
+              </Meta>
+            )}
+          </div>
+        )}
+        <div className="px-3 py-2.5 border-l-[3px] border-[var(--cd-navy)]">
+          <Meta as="p" className={cn(LABEL_CLASSES, "text-[var(--cd-navy)]")}>
+            {finding.is_missing_clause ? "Proposed addition" : "Proposed"}
+          </Meta>
+          <Body as="p" className="text-[var(--text-primary)]">
+            {finding.proposed_language}
+          </Body>
+        </div>
       </div>
 
-      <div className="mb-2">
+      <div className="mt-3">
+        {finding.headline && (
+          <Body as="p" className="text-[var(--text-secondary)]">
+            {finding.finding_text}
+          </Body>
+        )}
         <button
           type="button"
           onClick={() => setStandardOpen((v) => !v)}
           aria-expanded={standardOpen}
-          className="flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--cd-navy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+          className="mt-1.5 flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--cd-navy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
         >
           <svg
             width="10"
@@ -218,14 +228,17 @@ export default function FindingCard({
           {ORG.shortName} standard
         </button>
         {standardOpen && (
-          <Meta as="p" className="mt-1 text-[var(--text-primary)]">
+          <Body as="p" className="mt-1 text-[var(--text-primary)]">
             {finding.cd_standard}
-          </Meta>
+          </Body>
         )}
       </div>
 
       {mode === "view" && finding.current_action && !changingDecision && (
-        <div className="mt-3">
+        <div className="mt-4 flex items-center gap-3">
+          <Meta as="span" className="font-medium text-[var(--text-secondary)]">
+            {ACTION_LABEL[finding.current_action.action]}
+          </Meta>
           <Button variant="secondary" size="sm" onClick={() => setChangingDecision(true)}>
             Change decision
           </Button>
@@ -233,7 +246,7 @@ export default function FindingCard({
       )}
 
       {mode === "view" && (!finding.current_action || changingDecision) && (
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 mt-4">
           <Button size="sm" onClick={() => submitAction("accept")} loading={saving} loadingText="Accepting...">
             Accept
           </Button>
@@ -317,5 +330,17 @@ export default function FindingCard({
         </Meta>
       )}
     </Card>
+  );
+}
+
+function LocateLink({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 text-xs text-[var(--cd-navy)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+    >
+      {children}
+    </button>
   );
 }
