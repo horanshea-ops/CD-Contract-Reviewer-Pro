@@ -126,6 +126,15 @@ describe("term extraction in processAnalysis", () => {
     expect(updatesTo("analyses").some((u) => u.status === "complete")).toBe(true);
   });
 
+  it("gives the review call a time budget inside the route's 300s", async () => {
+    await processAnalysis("analysis-1");
+
+    const options = create.mock.calls.find(([body]) => body.tools?.[0]?.name === "record_analysis")?.[1];
+    expect(options.maxRetries).toBe(0);
+    expect(options.timeout).toBeGreaterThan(200_000);
+    expect(options.timeout).toBeLessThanOrEqual(240_000);
+  });
+
   it("runs alongside the review when switched on, and stores a row per catalog term", async () => {
     vi.stubEnv("TERM_EXTRACTION", "on");
     await processAnalysis("analysis-1");

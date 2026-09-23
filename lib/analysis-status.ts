@@ -11,6 +11,14 @@
 /** The route's own ceiling is 300s, and the screen promises 1-3 minutes. */
 export const STALE_ANALYSIS_MINUTES = 6;
 
+/**
+ * How long the model call may run, counted from the start of processAnalysis.
+ * The route stops at 300s. The rest covers the upload before and the saves
+ * after, so a slow review fails with an error rather than being cut off
+ * mid-run and left at "processing".
+ */
+export const MODEL_CALL_BUDGET_MS = 240_000;
+
 export interface AnalysisRun {
   status: string;
   created_at: string;

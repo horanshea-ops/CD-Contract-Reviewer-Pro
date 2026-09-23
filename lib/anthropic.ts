@@ -162,7 +162,14 @@ export interface AnalyzeContractPdfArgs {
   contextNote?: string;
   model?: string;
   org?: OrgProfile;
+  /** Epoch ms by which the review must finish. Each attempt stops there, and
+   *  the retry is skipped when too little time is left for it. */
+  deadline?: number;
 }
+
+/** The largest review measured took 155s. A retry with less time than this
+ *  would likely be cut off, so the run fails with a clear error instead. */
+const MIN_RETRY_MS = 120_000;
 
 export async function analyzeContract({
   document,
@@ -171,6 +178,7 @@ export async function analyzeContract({
   contextNote,
   model,
   org = ORG,
+  deadline,
 }: AnalyzeContractPdfArgs): Promise<AnalysisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -191,7 +199,10 @@ export async function analyzeContract({
     userContent.push({ type: "text", text: contextNote });
   }
 
+  const remaining = () => (deadline === undefined ? undefined : Math.max(deadline - Date.now(), 1_000));
+
   async function attempt(): Promise<AnalysisResult> {
+    const timeout = remaining();
     const response = await client.messages.create({
       model: modelId,
 
@@ -203,7 +214,10 @@ export async function analyzeContract({
       tools: [findingsToolSchema(org)],
       tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
       messages: [{ role: "user", content: userContent }],
-    });
+    },
+    // The SDK's own retries don't know about the deadline, so they're off
+    // whenever there is one. The retry below does the same job within it.
+    timeout === undefined ? undefined : { timeout, maxRetries: 0 });
 
     const toolUseBlock = response.content.find(
       (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
@@ -247,6 +261,11 @@ export async function analyzeContract({
   try {
     return await attempt();
   } catch (err) {
+    const left = remaining();
+    if (left !== undefined && left < MIN_RETRY_MS) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(`The review failed with too little time left to try again (${reason}). Use Retry to run it again.`);
+    }
     console.error("analyzeContract: first attempt failed, retrying once —", err);
     return await attempt();
   }
