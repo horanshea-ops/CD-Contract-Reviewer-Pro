@@ -125,7 +125,7 @@ export default function UploadPage() {
         ← Back to dashboard
       </Link>
 
-      <Card padding="lg" elevated className="mt-4">
+      <Card padding="lg" className="mt-4">
         <Title className="text-[var(--text-primary)] tracking-tight mb-1">Review a contract</Title>
         <Body as="p" className="text-[var(--text-secondary)] mb-6">
           This is a negotiating aid, not legal advice. Review every finding yourself before sending anything to a
@@ -182,23 +182,41 @@ export default function UploadPage() {
 
           <div>
             <p className="block text-sm font-medium text-[var(--text-primary)] mb-1">Negotiation</p>
-            <div className="flex gap-2 mb-2">
-              <Button
+            <div
+              role="radiogroup"
+              aria-label="Negotiation"
+              className="inline-flex rounded-md border border-[var(--border-strong)] p-0.5 mb-2"
+            >
+              <button
                 type="button"
-                size="sm"
-                variant={negotiationMode === "new" ? "primary" : "secondary"}
+                role="radio"
+                aria-checked={negotiationMode === "new"}
                 onClick={() => setNegotiationMode("new")}
+                className={cn(
+                  "rounded-[5px] px-3 py-1.5 text-xs font-medium transition-colors",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]",
+                  negotiationMode === "new"
+                    ? "bg-[var(--cd-navy)] text-white"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                )}
               >
                 New negotiation
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                size="sm"
-                variant={negotiationMode === "continuing" ? "primary" : "secondary"}
+                role="radio"
+                aria-checked={negotiationMode === "continuing"}
                 onClick={() => setNegotiationMode("continuing")}
+                className={cn(
+                  "rounded-[5px] px-3 py-1.5 text-xs font-medium transition-colors",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]",
+                  negotiationMode === "continuing"
+                    ? "bg-[var(--cd-navy)] text-white"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                )}
               >
                 Continuing one
-              </Button>
+              </button>
             </div>
 
             {negotiationMode === "new" ? (

@@ -60,9 +60,7 @@ export default async function DashboardPage() {
             Welcome back, {associate.name.split(" ")[0]}.
           </Body>
         </div>
-        <Button href="/upload" gradient>
-          Review a new contract
-        </Button>
+        <Button href="/upload">Review a new contract</Button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
