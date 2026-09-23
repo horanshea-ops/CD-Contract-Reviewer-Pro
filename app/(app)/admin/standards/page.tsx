@@ -43,16 +43,19 @@ export default async function StandardsAdminPage() {
         but never this list, because it&apos;s the source those findings are measured against.
       </Body>
 
-      <Body
-        as="div"
-        className="rounded-md border border-[var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-4 py-3 mb-6 text-[var(--severity-medium)]"
-      >
-        <span className="font-medium">{counts.industry_default} of {rows.length} entries</span> are still
-        generic industry defaults, not {ORG.shortName}&apos;s validated position. Nothing here should be presented
-        to an associate as &ldquo;how {ORG.name} negotiates&rdquo; until a senior associate reviews it.
-        {counts.extracted > 0 && ` ${counts.extracted} extracted from ${ORG.shortName} contracts (unvalidated).`}
-        {counts.cd_validated > 0 && ` ${counts.cd_validated} ${ORG.shortName}-validated.`}
-      </Body>
+      {counts.cd_validated < rows.length && (
+        <Body
+          as="p"
+          className="rounded-md border border-[var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-4 py-3 mb-6 text-[var(--severity-medium)]"
+        >
+          <span className="font-medium">
+            {counts.industry_default} industry defaults and {counts.extracted} extracted from {ORG.shortName}{" "}
+            contracts, {counts.cd_validated > 0 ? `${counts.cd_validated} validated` : "none validated yet"}.
+          </span>{" "}
+          Nothing here should be presented to an associate as &ldquo;how {ORG.name} negotiates&rdquo; until a senior
+          associate reviews it.
+        </Body>
+      )}
 
       <StandardsList initialStandards={rows} associateNames={associateNames} />
     </div>
