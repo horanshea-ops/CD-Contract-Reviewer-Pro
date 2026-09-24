@@ -902,6 +902,10 @@ the words that change, with new wording before struck wording.
     | Crosses a paragraph break | 1 | Engine limit, below |
     | Instruction, not wording | 1 | Vantage cancellation: "Reconcile the narrative … schedule and the table …" |
 
+    `npm run eval:score` now reports these counts for any run (see `docs/eval-harness.md`).
+    It holds back the 3 findings that propose no change, as every export does, so it
+    reads 157 applied for this run rather than 160.
+
 - **Still open:**
   - **Whole-sentence quotes.** Branch `prompt/whole-sentence-quotes` has the rules: quote
     whole sentences, repeat what stays, never shorten a quote with "…", write contract
@@ -1013,7 +1017,9 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         $0.90), and the findings key has no correction mechanism for
         drafted text that says more than its spec.
       - The model flags silence on the newer terms inconsistently. Recall
-        is 88.7% against the new key.
+        is 88.7% against the new key. A repeat run (`baseline-repeat-2026-09-22`)
+        scored 88.1%, but only 8 of its 20 misses were also missed the first
+        time, so most misses are chance rather than fixed blind spots.
       - The template's attrition formula says 75% while its headline says
         70%. The library keeps 70%, and the question should go back to CD.
       - Commission findings appear in client memos and emails like any
