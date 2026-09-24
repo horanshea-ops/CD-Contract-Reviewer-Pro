@@ -128,8 +128,12 @@ describe("the analysis system prompt", () => {
       expect(prompt()).toContain("never advice or an instruction to the reviewer");
     });
 
-    it("keeps a standard's blank rather than inventing a figure for it", () => {
-      expect(prompt()).toContain("keep the blank rather than inventing one");
+    it("takes figures from the library or the contract, and leaves a blank rather than inventing one", () => {
+      // A blank stops the redline, which tells the associate to fill it. An
+      // invented figure would reach the property unnoticed.
+      const text = prompt();
+      expect(text).toContain("Take every figure in it from the standards library or this contract");
+      expect(text).toContain("write [X] in its place rather than inventing one");
     });
   });
 

@@ -135,7 +135,7 @@ Rules:
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
 - List every clause type you checked in clauses_checked, whether or not it produced a finding — this is how the reviewer knows what was actually reviewed.
 - proposed_language replaces everything in quoted_text and nothing else. Repeat word for word any quoted wording that should stay, and leave out only what should go. The reviewer's redline marks only the words that differ, so repeated wording costs nothing, while wording you leave out is struck from the contract.
-- proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Where the standards library's fallback language leaves a blank such as [X] and this contract doesn't supply the figure, keep the blank rather than inventing one.
+- proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Take every figure in it from the standards library or this contract, or work it out from them. If the wording needs a figure that neither gives, write [X] in its place rather than inventing one, and the reviewer will fill it in.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
