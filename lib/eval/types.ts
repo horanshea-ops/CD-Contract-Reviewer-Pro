@@ -1,6 +1,7 @@
 import type { Severity } from "../standards/types";
 import type { AnalysisResult } from "../anthropic";
 import type { NumericUnit } from "../quantities";
+import type { ExportOutcome, UnappliedFinding, UnappliedReason, WidenedChange } from "../redline-validation/types";
 
 /**
  * Types for the eval harness (MASTER_PLAN.md §2.0.1).
@@ -328,6 +329,68 @@ export interface AttributeRates {
   severity_confusion: Record<Severity, Record<Severity, number>>;
 }
 
+// ---------------------------------------------------------------------------
+// Redline and comparison
+// ---------------------------------------------------------------------------
+
+export interface RedlineContractResult {
+  contract: string;
+  findings: number;
+  /** Findings that propose no change, which no export uses. */
+  held_back: number;
+  applied: number;
+  /** Null when the run has no analysis for this contract. */
+  outcome: ExportOutcome | null;
+  failed_checks: string[];
+  widened: WidenedChange[];
+  unapplied: UnappliedFinding[];
+}
+
+/** Every finding in a run accepted as proposed and marked up, as an export would. */
+export interface RedlineSummary {
+  findings: number;
+  held_back: number;
+  applied: number;
+  /** Applied changes that also strike wording the finding didn't quote. */
+  widened: number;
+  unapplied: number;
+  by_reason: Partial<Record<UnappliedReason, number>>;
+  failed_checks: number;
+  outcomes: Record<ExportOutcome, number>;
+  contracts: RedlineContractResult[];
+}
+
+export interface RunHeadline {
+  run_id: string;
+  recall: number;
+  matched: number;
+  key_items: number;
+  redline: Pick<RedlineSummary, "applied" | "widened" | "unapplied"> | null;
+}
+
+export interface ComparedItem {
+  key_item_id: string;
+  contract: string;
+  clause_type: string;
+  severity: Severity;
+}
+
+/**
+ * This run against earlier runs of the same key.
+ *
+ * Two identical runs miss different items, so a change in the total says
+ * little. An item every earlier run missed is a blind spot rather than chance,
+ * and catching it is the evidence a prompt change worked.
+ */
+export interface RunComparison {
+  current: RunHeadline;
+  baselines: RunHeadline[];
+  /** Missed by every baseline, with whether this run matched it. */
+  repeat_misses: (ComparedItem & { caught_now: boolean })[];
+  /** Matched by every baseline and missed by this run. */
+  new_misses: ComparedItem[];
+}
+
 export interface ScoreReport {
   key_version: string;
   key_source: AnswerKey["source"];
@@ -346,6 +409,10 @@ export interface ScoreReport {
   by_clause_type: ClauseTypeRow[];
   contracts: ContractResult[];
   tokens: { input: number; output: number; cache_read: number; cache_creation: number };
+  /** Added by the score script, which runs the redline engine. */
+  redline?: RedlineSummary;
+  /** Added when the score script is given baseline runs. */
+  comparison?: RunComparison;
 }
 
 // ---------------------------------------------------------------------------
