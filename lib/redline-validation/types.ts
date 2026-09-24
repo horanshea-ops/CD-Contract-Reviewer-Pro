@@ -20,9 +20,19 @@ export type UnappliedReason =
   | "in_field"
   | "in_header_footer"
   | "unfilled_blank"
-  | "not_contract_wording"
-  | "starts_mid_sentence"
-  | "ends_mid_sentence";
+  | "not_contract_wording";
+
+/**
+ * A change widened to cover its whole sentence. It strikes contract wording
+ * the finding didn't quote, so the associate checks it before sending.
+ */
+export interface WidenedChange {
+  clause_type: string;
+  severity: string;
+  quoted_text: string | null;
+  /** The extra contract wording struck, before and after the quote. */
+  struck: string;
+}
 
 export interface UnappliedFinding {
   clause_type: string;
@@ -48,10 +58,6 @@ export const UNAPPLIED_REASON_TEXT: Record<UnappliedReason, string> = {
   unfilled_blank: "The proposed wording still has a blank to fill in. Edit the finding, then export again.",
   not_contract_wording:
     "The proposed wording reads as an instruction, not contract wording. Edit the finding, then export again.",
-  starts_mid_sentence:
-    "The proposed wording is a whole sentence, but the quote starts partway through the contract's sentence. Make this change by hand in Word.",
-  ends_mid_sentence:
-    "The proposed wording ends the sentence, but the contract's sentence carries on after the quote. Make this change by hand in Word.",
 };
 
 /** What every revision engine hands the oracle. */
@@ -59,6 +65,8 @@ export interface RedlineEngineResult {
   docxBytes: Uint8Array;
   appliedCount: number;
   unapplied: UnappliedFinding[];
+  /** Applied changes that cover more of their sentence than the finding quoted. */
+  widened?: WidenedChange[];
   /**
    * The `w:id` values this run wrote. The oracle attributes revisions by this
    * set rather than by author name, so an export stays verifiable when the
@@ -94,5 +102,6 @@ export interface ValidationReport {
   /** First failing check's detail; null unless the outcome is "fallback". */
   fallbackReason: string | null;
   unapplied: UnappliedFinding[];
+  widened: WidenedChange[];
   appliedCount: number;
 }

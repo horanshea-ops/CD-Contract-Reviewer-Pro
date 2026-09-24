@@ -120,6 +120,7 @@ function report(checks: CheckResult[], engineResult: RedlineEngineResult): Valid
     checks,
     fallbackReason: firstFailure?.detail ?? null,
     unapplied: engineResult.unapplied,
+    widened: engineResult.widened ?? [],
     appliedCount: engineResult.appliedCount,
   };
 }

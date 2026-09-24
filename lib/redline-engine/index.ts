@@ -1,5 +1,5 @@
 import { NumberingResolver, loadDocx, walkPart, type ParsedPart, type WalkResult } from "../docx";
-import type { RedlineEngineResult, UnappliedFinding, UnappliedReason } from "../redline-validation/types";
+import type { RedlineEngineResult, UnappliedFinding, UnappliedReason, WidenedChange } from "../redline-validation/types";
 import { assessApplicability } from "./applicability";
 import { fitToProposal } from "./fit";
 import { RevisionIds } from "./ids";
@@ -75,6 +75,7 @@ export async function generateRedline({
   const date = now.toISOString();
 
   const unapplied: UnappliedFinding[] = [];
+  const widened: WidenedChange[] = [];
   const resolutions: RedlineOutcome["resolutions"] = [];
   const editedParts = new Set<ParsedPart>();
   let appliedCount = 0;
@@ -170,11 +171,25 @@ export async function generateRedline({
 
     const part = parts.find((p) => p.part === located.part)!;
     const fit = fitToProposal(part, located, finding.language);
-    if (!fit.ok) {
-      refuse(finding, fit.reason, located.resolution, "blocked_wording", fit.detail);
-      continue;
-    }
     const { span, language } = fit;
+    const struck = fit.widened
+      ? [fit.widened.before, fit.widened.after].map((s) => s.trim()).filter(Boolean).join(" … ")
+      : "";
+
+    // Recorded once the change is actually made, so the associate is asked to
+    // check only wording the file really strikes.
+    const applied = (detail: string) => {
+      appliedCount++;
+      if (struck) {
+        widened.push({ clause_type: finding.clause_type, severity: finding.severity, quoted_text: finding.quoted_text, struck });
+      }
+      resolutions.push({
+        findingId: finding.id,
+        spanResolution: span.resolution,
+        applicability: "applicable",
+        detail: struck ? `${detail} Covers the whole sentence, so it also strikes: "${struck}".` : detail,
+      });
+    };
 
     const verdict = assessApplicability(part, span);
     if (verdict.applicability !== "applicable") {
@@ -190,13 +205,7 @@ export async function generateRedline({
       }
       editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
       walked = null;
-      appliedCount++;
-      resolutions.push({
-        findingId: finding.id,
-        spanResolution: span.resolution,
-        applicability: "applicable",
-        detail: verdict.detail,
-      });
+      applied(verdict.detail);
       continue;
     }
 
@@ -226,13 +235,7 @@ export async function generateRedline({
     replaceSpan({ covered, replacement: language, author, date, ids });
     editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
     walked = null; // the document changed
-    appliedCount++;
-    resolutions.push({
-      findingId: finding.id,
-      spanResolution: span.resolution,
-      applicability: "applicable",
-      detail: verdict.detail,
-    });
+    applied(verdict.detail);
   }
 
   if (toAppend.length) {
@@ -243,5 +246,5 @@ export async function generateRedline({
   for (const part of editedParts) pkg.zip.file(part.path, serializePart(part));
   const docxBytes = await pkg.zip.generateAsync({ type: "uint8array" });
 
-  return { docxBytes, appliedCount, unapplied, ownRevisionIds: ids.ownRevisionIds, resolutions };
+  return { docxBytes, appliedCount, unapplied, widened, ownRevisionIds: ids.ownRevisionIds, resolutions };
 }

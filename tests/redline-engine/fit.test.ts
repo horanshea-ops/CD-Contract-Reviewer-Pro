@@ -112,25 +112,51 @@ describe("stretching a change over wording the proposal repeats", () => {
 });
 
 describe("a whole-sentence proposal for part of a sentence", () => {
-  it("is left out, with a reason, when the contract's sentence carries on", async () => {
+  it("covers the whole sentence when the contract's sentence carries on past the quote", async () => {
     const paragraph =
       "The Hotel shall pay to Group a sales commission equal to nine percent (9%) of all room revenue actualized in connection with the Event, whether such rooms are booked as part of the blocked allocation or otherwise procured by Group members through independent channels. Commission shall be calculated on the gross room rate.";
-    const { result, accepted, insertions, deletions } = await redline(
+    const language =
+      "All rates confirmed in this Agreement are commissionable at ten percent (10%) to ConferenceDirect, LLC, regardless of rate paid and including all rooms outside the block. Commission is non-cancelable and non-transferable.";
+    const { result, report, accepted } = await redline(
       paragraph,
       finding({
         clause_type: "commission",
         quoted_text:
           "The Hotel shall pay to Group a sales commission equal to nine percent (9%) of all room revenue actualized in connection with the Event",
-        language:
-          "All rates confirmed in this Agreement are commissionable at ten percent (10%) to ConferenceDirect, LLC, regardless of rate paid and including all rooms outside the block. Commission is non-cancelable and non-transferable.",
+        language,
       })
     );
-    expect(result.appliedCount).toBe(0);
-    expect(result.unapplied.map((u) => u.reason)).toEqual(["ends_mid_sentence"]);
-    expect(result.resolutions[0].applicability).toBe("blocked_wording");
-    expect(result.resolutions[0].detail).toContain("whether such rooms are booked");
-    expect([insertions, deletions]).toEqual([0, 0]);
-    expect(accepted).toBe(paragraph);
+    expect(result.appliedCount).toBe(1);
+    expect(report.outcome).toBe("clean");
+    expect(accepted).toBe(`${language} Commission shall be calculated on the gross room rate.`);
+    // The associate is told what else was struck.
+    expect(report.widened).toHaveLength(1);
+    expect(report.widened[0].struck).toBe(
+      ", whether such rooms are booked as part of the blocked allocation or otherwise procured by Group members through independent channels."
+    );
+    expect(result.resolutions[0].detail).toContain("Covers the whole sentence");
+  });
+
+  it("covers the whole sentence across a tab inside the paragraph", async () => {
+    const originalBytes = await buildDocx(
+      para(run("Group shall pay the deposit on signing") + "<w:r><w:tab/></w:r>" + run("and the balance on arrival."))
+    );
+    const result = await generateRedline({
+      originalDocxBytes: originalBytes,
+      findings: [
+        finding({
+          quoted_text: "Group shall pay the deposit on signing",
+          language: "Group shall pay the deposit within thirty (30) days of signing.",
+        }),
+      ],
+      author: AUTHOR,
+    });
+    const report = await validateRedline({ originalBytes, engineResult: result, author: AUTHOR });
+    const accepted = (await extractDocx(result.docxBytes)).parts.find((p) => p.part === "document")!.text.trim();
+    expect(result.appliedCount).toBe(1);
+    expect(report.outcome).toBe("clean");
+    expect(accepted).toBe("Group shall pay the deposit within thirty (30) days of signing.");
+    expect(report.widened[0].struck).toBe("and the balance on arrival.");
   });
 
   const BRAND =
@@ -151,22 +177,22 @@ describe("a whole-sentence proposal for part of a sentence", () => {
   const BRAND_QUOTE =
     "provided that the Group demonstrating, in good faith, that the change materially affects the Hotel's ability to perform its obligations under this Agreement or materially alters the character or service standards of the property.";
 
-  it("is left out when a whole-sentence proposal replaces a quote that starts partway through a sentence", async () => {
-    const { result, insertions, deletions, accepted } = await redline(
+  it("covers the whole sentence when the quote starts partway through it", async () => {
+    const language =
+      "Should Hotel undergo a material change in ownership, management company, or brand affiliation, Hotel will inform Group in writing within thirty (30) days. Group may terminate this Agreement without liability within thirty (30) days of receiving that notice.";
+    const { result, report, accepted } = await redline(
       BRAND,
       finding({
         clause_type: "brand_ownership_change",
         quoted_text: BRAND_QUOTE,
-        language:
-          "Should Hotel undergo a material change in ownership, management company, or brand affiliation, Hotel will inform Group in writing within thirty (30) days. Group may terminate this Agreement without liability within thirty (30) days of receiving that notice.",
+        language,
       }),
       PREAMBLE
     );
-    expect(result.appliedCount).toBe(0);
-    expect(result.unapplied.map((u) => u.reason)).toEqual(["starts_mid_sentence"]);
-    expect(result.resolutions[0].detail).toContain("termination right shall be");
-    expect([insertions, deletions]).toEqual([0, 0]);
-    expect(accepted.endsWith(BRAND)).toBe(true);
+    expect(result.appliedCount).toBe(1);
+    expect(report.outcome).toBe("clean");
+    expect(accepted.endsWith(`delivered to the Hotel. ${language}`)).toBe(true);
+    expect(report.widened[0].struck).toBe("The Group's termination right shall be");
   });
 
   it("covers whole words when a loose match starts partway through one", async () => {
