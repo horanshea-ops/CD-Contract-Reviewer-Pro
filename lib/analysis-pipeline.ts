@@ -236,6 +236,7 @@ export async function processAnalysis(analysisId: string) {
         // docx_native document that fell back to the PDF after a failed
         // extraction has no accepted-view text worth storing here.
         accepted_view_text: document.kind === "text" ? scanText : null,
+        document_notes: result.document_notes.trim() || null,
         token_usage: {
           input_tokens: result.input_tokens,
           output_tokens: result.output_tokens,
