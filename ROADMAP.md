@@ -917,6 +917,45 @@ the words that change, with new wording before struck wording.
     Striking across paragraphs is real §1.5 work. Revisit if it shows up in real
     contracts.
 
+**Provisional values for CD to confirm (2026-09-23, branch
+`standards/provisional-blank-values`).** CD's template leaves blanks in 13 clauses'
+fallback wording. The model copied them into its proposals, and the redline correctly
+refused to send "[X]". So the full flow can be tested, each blank is filled with a typical
+industry figure, or with wording that points at the contract's own facts. **None of these
+are CD's numbers.** Ask CD for each, then change it on the Standards Library admin screen,
+which is audited. `lib/standards/v1.ts` and the live table hold the same values
+(`standards:status` matches), and `tests/standards-blanks.test.ts` keeps new blanks out.
+
+| Clause | Template blank | Provisional value | Typical range | CD answer |
+|---|---|---|---|---|
+| Attrition, Cancellation | rebook credit if rebooked "within [X] years" | three (3) years | 2–3 years | open |
+| F&B minimum | menu prices "confirmed at [year] pricing" | "the Hotel's pricing in effect on the date of this Agreement" | a deal fact | open |
+| F&B minimum | "a food and beverage minimum of $[X]" | "the food and beverage minimum stated in this Agreement" | a deal fact | open |
+| Walk / relocation | credit "$[X] for each night a guest is relocated" | $200 | about $100–250 (estimate) | open |
+| Construction / renovation | facilities "fully operational by [date]" | "no later than ninety (90) days before Group's arrival" | 60–120 days | open |
+| Review / audit dates | reviews "by [date] (24 months prior)" and "by [date] (12 months prior)" | 24 and 12 months prior to arrival | the template's own note | open |
+| Review / audit dates | block change "up to [X]% at each review and [X]% cumulatively" | 10% each, 20% cumulative | 10–20% / 20–30% | open |
+| Review / audit dates | pickup reports "starting [X] days prior to the cutoff date" | 60 days | 30–90 days | open |
+| Labor disputes | "One year in advance, or no later than [date]" | "…or within thirty (30) days of signing this Agreement if that is later" | wording | open |
+| Gratuity / service charge | gratuity "[X]%" and retained service charge "[X]%" | 18% gratuity, 6% service charge (24% in total) | totals now 24–32%, with a staff gratuity historically 15–20% | open |
+| Banquet service levels | labor fee "$[X]" for functions under 25 people | $150 | about $100–200 (estimate) | open |
+| AV / internet | AV discount "[X]%", internet discount "[X]%" | 20% each | 15–20%, up to 25% | open |
+| Nondiscrimination | "the state of [state] or the city of [city]" | "the state or city in which Hotel is located" | a deal fact | open |
+
+Two bracketed notes were also turned into wording:
+- **Commission.** "[Outside the USA: …]" is now the sentence "If Hotel is outside the
+  United States, commission also applies to …". The meaning is unchanged.
+- **Rate parity.** The alternative is removed from the fallback, so the model proposes
+  only the primary wording. Ask CD which to use. The alternative reads: "Hotel will
+  include all rooms booked by Group attendees in the room block regardless of rate paid,
+  and will immediately cease selling rooms to transient or group guests at the lower
+  rate."
+
+New reviews use these values. Existing reviews and saved eval runs keep "[X]" until they
+are re-run or edited. The eval answer key was re-stamped with the new standards
+fingerprint at no cost. Its 168 key items are unchanged, because the corpus never reads
+fallback wording.
+
 ### Deploy and client-presentation readiness (2026-09-22, high priority)
 
 A client presentation is expected this week. Item 13's redesign (above) is done;
