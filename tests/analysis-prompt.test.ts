@@ -139,6 +139,32 @@ describe("the analysis system prompt", () => {
       expect(prompt()).toContain("never advice or an instruction to the reviewer");
     });
 
+    // A real contract's review rewrote attrition without quoting it, dropped a
+    // refund from force majeure, and replaced a cancellation schedule with a
+    // flat fee that cost the group more than the contract did two years out.
+    it("asks a rewrite of existing wording to quote it", () => {
+      expect(prompt()).toContain("A finding that changes wording already in the contract quotes that wording");
+      expect(prompt()).toContain("is_missing_clause is true only when the contract has no wording on the clause at all");
+    });
+
+    it("keeps the group's existing protections", () => {
+      expect(prompt()).toContain("Keep every protection the quoted wording already gives the group");
+    });
+
+    it("keeps a schedule, and changes a table cell by cell", () => {
+      const text = prompt();
+      expect(text).toContain("Never replace a schedule with one flat figure");
+      expect(text).toContain("record a finding for each table cell that changes, quoting that cell");
+    });
+
+    it("never lets a proposal cost the group more than the contract", () => {
+      expect(prompt()).toContain("It must never cost the group more than the contract does in any case");
+    });
+
+    it("asks for the places the contract contradicts itself", () => {
+      expect(prompt()).toContain("In document_notes, name every place the contract contradicts itself");
+    });
+
     it("takes figures from the library or the contract, and leaves a blank rather than inventing one", () => {
       // A blank stops the redline, which tells the associate to fill it. An
       // invented figure would reach the property unnoticed.
