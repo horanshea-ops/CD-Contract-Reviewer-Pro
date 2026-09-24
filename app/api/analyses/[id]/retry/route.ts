@@ -6,7 +6,9 @@ import { logAudit } from "@/lib/audit";
 import { processAnalysis } from "@/lib/analysis-pipeline";
 import { retryability } from "@/lib/analysis-status";
 
-export const maxDuration = 300;
+// Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
+// upload and saves. Render runs a long-lived server and ignores it.
+export const maxDuration = 600;
 
 /**
  * Re-runs an analysis that failed or stalled, on the file already in storage.

@@ -195,7 +195,31 @@ export interface AnalyzeContractPdfArgs {
   deadline?: number;
 }
 
-/** The largest review measured took 155s. A retry with less time than this
+/**
+ * A list field from the tool input. A long response sometimes carries a list
+ * as a JSON string instead, and that string is decoded rather than failing the
+ * review, because a retry costs a whole second review.
+ */
+function listField<T>(value: unknown): T[] | null {
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value !== "string") return null;
+  try {
+    const decoded: unknown = JSON.parse(value);
+    return Array.isArray(decoded) ? (decoded as T[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** What a malformed field held, for the error that reports it. */
+function describeField(value: unknown): string {
+  if (value === undefined) return "absent";
+  if (Array.isArray(value)) return `list of ${value.length}`;
+  if (typeof value === "string") return `text of ${value.length} characters starting ${JSON.stringify(value.slice(0, 40))}`;
+  return value === null ? "null" : typeof value;
+}
+
+/** A typical review takes about two minutes. A retry with less time than this
  *  would likely be cut off, so the run fails with a clear error instead. */
 const MIN_RETRY_MS = 120_000;
 
@@ -256,19 +280,22 @@ export async function analyzeContract({
       throw new Error("Model did not return structured findings (no tool_use block in response).");
     }
 
-    const parsed = toolUseBlock.input as {
-      clause_review?: ClauseReview[];
-      findings?: Finding[];
-      document_notes?: string;
+    const input = toolUseBlock.input as Record<string, unknown>;
+    const parsed = {
+      clause_review: listField<ClauseReview>(input.clause_review),
+      findings: listField<Finding>(input.findings),
+      document_notes: typeof input.document_notes === "string" ? input.document_notes : undefined,
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
     // omit a required field. Validate the shape rather than trusting it, per
     // build brief §5: "model returned invalid JSON (retry once, then fail
     // visibly)".
-    if (!Array.isArray(parsed.findings) || !Array.isArray(parsed.clause_review)) {
+    if (!parsed.findings || !parsed.clause_review) {
       throw new Error(
-        `Model returned malformed JSON (missing findings or clause_review array). stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
+        `Model returned malformed JSON (missing findings or clause_review array). ` +
+          `Got findings: ${describeField(input.findings)}, clause_review: ${describeField(input.clause_review)}. ` +
+          `stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
       );
     }
 
