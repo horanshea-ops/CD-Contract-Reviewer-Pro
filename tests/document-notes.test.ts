@@ -24,6 +24,14 @@ describe("toNotes", () => {
     expect(note).toEqual({ headline: "The dates disagree.", detail: "The table says 2010. Everything else says 2015." });
   });
 
+  it("shortens a long headline, and keeps the whole sentence in the detail", () => {
+    const long =
+      "The document is internally inconsistent on dates in several places, since the General Information table lists the meeting as October 2010 while every other reference uses October 2015.";
+    const [n] = toNotes(long);
+    expect(n.headline).toBe("The document is internally inconsistent on dates in several places, since the General Information table lists…");
+    expect(n.detail).toBe(long);
+  });
+
   it("reads notes saved as one block of text", () => {
     const legacy =
       "The document is internally inconsistent on dates. The General Information table lists 2010. Every other reference uses 2015. The footers are numbered inconsistently.";

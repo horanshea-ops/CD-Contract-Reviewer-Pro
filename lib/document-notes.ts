@@ -1,11 +1,11 @@
 /**
  * The model's notes on the document as a whole, as short items.
  *
- * Each note is one sentence the associate reads first, with a little more
- * behind it. The model is asked for that shape, and this module holds it to
- * it: a headline is cut to its first sentence and the detail to two, whatever
- * the model sent. Notes saved as one block of text, before the list existed,
- * read the same way.
+ * Each note is one short sentence the associate reads first, with a little
+ * more behind it. The model is asked for that shape, and this module holds it
+ * to it: a headline is cut to its first sentence, and to about twenty words,
+ * with the rest moved into the detail, which keeps two sentences. Notes saved
+ * as one block of text, before the list existed, read the same way.
  */
 
 export interface DocumentNote {
@@ -15,6 +15,7 @@ export interface DocumentNote {
 
 const MAX_NOTES = 5;
 const MAX_DETAIL_SENTENCES = 2;
+const MAX_HEADLINE_WORDS = 20;
 
 function sentences(text: string): string[] {
   return text
@@ -24,19 +25,27 @@ function sentences(text: string): string[] {
     .filter(Boolean);
 }
 
-function fromText(text: string): DocumentNote | null {
-  const [headline, ...rest] = sentences(text);
-  return headline ? { headline, detail: rest.slice(0, MAX_DETAIL_SENTENCES).join(" ") } : null;
+/** A note from its sentences: the first is the headline, and a long one moves whole into the detail. */
+function note([first, ...rest]: string[]): DocumentNote | null {
+  if (!first) return null;
+  const words = first.split(" ");
+  if (words.length <= MAX_HEADLINE_WORDS) {
+    return { headline: first, detail: rest.slice(0, MAX_DETAIL_SENTENCES).join(" ") };
+  }
+  return {
+    headline: `${words.slice(0, MAX_HEADLINE_WORDS - 4).join(" ").replace(/[,;:]$/, "")}…`,
+    detail: [first, ...rest].slice(0, MAX_DETAIL_SENTENCES).join(" "),
+  };
 }
+
+const fromText = (text: string) => note(sentences(text));
 
 function fromItem(item: unknown): DocumentNote | null {
   if (typeof item === "string") return fromText(item);
   if (!item || typeof item !== "object") return null;
   const { headline, detail } = item as { headline?: unknown; detail?: unknown };
   if (typeof headline !== "string" || !headline.trim()) return null;
-  const [first, ...spill] = sentences(headline);
-  const more = [...spill, ...(typeof detail === "string" ? sentences(detail) : [])];
-  return { headline: first, detail: more.slice(0, MAX_DETAIL_SENTENCES).join(" ") };
+  return note([...sentences(headline), ...(typeof detail === "string" ? sentences(detail) : [])]);
 }
 
 /** Notes from whatever was stored or returned: a list, a JSON string of one, or plain text. */
