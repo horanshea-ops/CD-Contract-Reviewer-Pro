@@ -63,13 +63,25 @@ export function dropNonChanges(findings: Finding[]): { findings: Finding[]; drop
   return { findings: kept, dropped_findings };
 }
 
+/**
+ * A finding that quotes the contract is not about a missing clause.
+ *
+ * The model sometimes marks a clause missing because it lacks a required term,
+ * and still quotes the wording that is there. Every export reads "missing" as
+ * "add a new clause", which would leave the quoted wording in place beside a
+ * contradicting addition. The quote says where the change belongs.
+ */
+export function normalizeFindings(findings: Finding[]): Finding[] {
+  return findings.map((f) => (f.is_missing_clause && f.quoted_text ? { ...f, is_missing_clause: false } : f));
+}
+
 const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
 
 export function reconcileReview(
   review: { findings: Finding[]; clause_review: ClauseReview[] },
   standards: StandardEntry[]
 ): ReconciledReview {
-  const { findings, dropped_findings } = dropNonChanges(review.findings);
+  const { findings, dropped_findings } = dropNonChanges(normalizeFindings(review.findings));
 
   const verdicts = new Map(review.clause_review.map((entry) => [normalize(entry.clause_type), entry]));
   const flagged = new Set(findings.map((finding) => normalize(finding.clause_type)));
