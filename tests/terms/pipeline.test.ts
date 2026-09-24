@@ -127,6 +127,26 @@ describe("term extraction in processAnalysis", () => {
     expect(updatesTo("analyses").some((u) => u.status === "complete")).toBe(true);
   });
 
+  it("saves the model's notes on the document, and saves none when it wrote none", async () => {
+    create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
+      params.tool_choice.name === "record_analysis"
+        ? toolResponse("record_analysis", {
+            findings: [],
+            clauses_checked: ["attrition"],
+            document_notes: "The meeting dates say 2010, and the room block says 2015.",
+          })
+        : termsResponse
+    );
+    await processAnalysis("analysis-1");
+    const completed = updatesTo("analyses").find((u) => u.status === "complete");
+    expect(completed?.document_notes).toBe("The meeting dates say 2010, and the room block says 2015.");
+
+    db.writes = [];
+    create.mockImplementation(async () => analysisResponse);
+    await processAnalysis("analysis-1");
+    expect(updatesTo("analyses").find((u) => u.status === "complete")?.document_notes).toBeNull();
+  });
+
   it("gives the review call the model budget as its time limit", async () => {
     await processAnalysis("analysis-1");
 

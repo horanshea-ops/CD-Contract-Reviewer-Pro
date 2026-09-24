@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
   assemblePropertyEmailItems,
@@ -191,5 +192,14 @@ describe("buildPropertyEmailPayload label handling", () => {
     );
     expect(payload).toContain("the agreement");
     expect(payload).not.toMatch(/\.docx|\.pdf/i);
+  });
+});
+
+describe("what the property email is assembled from", () => {
+  it("never reads the analysis row, where the model's notes on the document live", async () => {
+    // The notes are CD's internal reading of the contract, like finding_text.
+    const source = await readFile("lib/email-drafting/property-assembly.ts", "utf8");
+    expect(source).not.toMatch(/from\("analyses"\)/);
+    expect(source).not.toContain("document_notes");
   });
 });
