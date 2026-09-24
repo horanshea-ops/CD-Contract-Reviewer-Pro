@@ -112,6 +112,12 @@ describe("the analysis system prompt", () => {
       expect(prompt()).toContain("Quote whole sentences, starting where a sentence starts and ending where it ends");
     });
 
+    it("forbids shortening a quote with an ellipsis", () => {
+      // The Monarch eval's ADA quote skipped its middle with "...", so it
+      // matched nothing in the contract and could not be marked up.
+      expect(prompt()).toContain('Never shorten a quote with "..." or "…"');
+    });
+
     it("says the proposal replaces the whole quote, repeating what stays", () => {
       const text = prompt();
       expect(text).toContain("proposed_language replaces everything in quoted_text and nothing else");
