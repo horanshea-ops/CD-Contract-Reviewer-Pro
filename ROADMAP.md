@@ -835,7 +835,8 @@ on the reject-round-trip oracle, never on a human seeing it, and
 rendered the insertions inline and the deletions in margin balloons, with the revisions
 attributed correctly.
 
-- **Not a defect, worth knowing.** A balloon for a replacement reads
+- **Addressed 2026-09-23 (see "Redline readability" below): new wording now comes
+  before struck wording.** A balloon for a replacement reads
   `Deleted: <old sentence>.<first words of the new sentence>` with no separator, because
   Word treats an adjacent `w:del`/`w:ins` pair as one revision and runs the two together
   in the balloon. The XML is one deletion and one insertion as siblings, correctly
@@ -857,6 +858,42 @@ the edit flow pre-filled the model's proposal and carried the edited figure thro
 the property email; the property email leaked no exposure figure, severity or rationale;
 and the tracked-changes redline passed all ten validation checks with 10 of 10 accepted
 changes applied, clean, including the reject-round-trip.
+
+**Redline readability (2026-09-23, branch `redline/cleaner-changes`).** The user compared
+three layouts of the Monarch eval redline in Word, and chose to mark only the words that
+change, with new wording before struck wording.
+
+- **What the engine now does:**
+  - It marks only the words that change. Shared words stay as plain text
+    (`lib/redline-engine/word-diff.ts`).
+  - A proposal that keeps less than half of the quote's words is a rewrite, and gets one
+    change over the whole passage. So does a passage holding anything but plain text.
+  - Each insertion comes before its deletion. This targets the run-together margin
+    note, and the user still needs to confirm the result in Word.
+- **The Word check found three problems in what the model wrote.** They already existed,
+  and marking only changed words made them visible. Across the seven eval contracts
+  (182 findings):
+  - **Repeated wording (5 changes).** The proposal repeats wording just outside the
+    quote, so accepting it printed that wording twice. The change is now stretched over
+    it (`fit.ts`).
+  - **Ends mid-sentence (14 changes).** The proposal ends a sentence, but the contract's
+    sentence carries on. These are left out, with a reason, because only the model knows
+    whether the rest should stay.
+  - **Unfilled blank (19 changes).** A blank such as "[X]", copied from CD's own
+    standard wording, or an instruction to the reviewer. These are left out, with a
+    reason, until the associate edits the finding.
+
+  Migration 008 adds `blocked_wording` for these skip reasons. 140 of 182 changes apply,
+  with no failed checks.
+- **Still open:**
+  - The lasting fix for the mid-sentence case is a prompt rule to quote whole
+    sentences and repeat what stays. It is on branch `prompt/whole-sentence-quotes`,
+    unmeasured, and waits on a paid eval run (about $1.20).
+  - **Ask CD:** should proposals edit the contract's own wording, or paste CD's
+    standard wording as now? Pasting makes most changes whole-passage rewrites, such as
+    the commission clause. Nothing changes until CD answers.
+  - Blanks can also reach the property email and the clean contract, which don't check
+    for them.
 
 ### Deploy and client-presentation readiness (2026-09-22, high priority)
 

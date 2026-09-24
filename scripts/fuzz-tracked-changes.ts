@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import { generateRedline, type RedlineLayout, type RevisionFinding } from "../lib/redline-engine";
+import { generateRedline, type RevisionFinding } from "../lib/redline-engine";
 import { validateRedline } from "../lib/redline-validation";
 import type { RedlineEngineResult } from "../lib/redline-validation";
 import { CONTENT_TYPES, DOC_RELS, ROOT_RELS, zipParts } from "../tests/helpers/docx-package";
@@ -235,19 +235,19 @@ function pickQuote(rnd: () => number, xml: string): { quote: string; section: st
 
 /** One generated contract through the engine and the oracle. */
 /**
- * The finding's proposed wording. The changed-words layout only diffs a
- * proposal that shares most of the quote's words, so for that layout one word
- * is swapped and two are added. Every other layout gets wording that shares
- * nothing with the quote.
+ * The finding's proposed wording. The engine marks individual words only when
+ * a proposal shares most of the quote's words, so a longer quote has one word
+ * swapped and two added. A short one gets wording that shares nothing, which
+ * takes the whole-passage change.
  */
-function proposalFor(quote: string, layout: RedlineLayout): string {
+function proposalFor(quote: string): string {
   const words = quote.split(" ");
-  if (layout !== "changed_words" || words.length < 4) return "NEGOTIATED REPLACEMENT LANGUAGE";
+  if (words.length < 4) return "NEGOTIATED REPLACEMENT LANGUAGE";
   words[Math.floor(words.length / 2)] = "NEGOTIATED";
   return `${words.join(" ")} REPLACEMENT LANGUAGE`;
 }
 
-export async function runOne(seed: number, layout: RedlineLayout = "whole") {
+export async function runOne(seed: number) {
   const rnd = mulberry32(seed ^ 0x9e3779b9);
   const beforeXml = buildDocument(seed);
   const bytes = await toDocx(beforeXml);
@@ -257,7 +257,7 @@ export async function runOne(seed: number, layout: RedlineLayout = "whole") {
 
   const base = {
     clause_type: "attrition", severity: "high" as const, is_missing_clause: false,
-    quoted_text: quote, language: proposalFor(quote, layout),
+    quoted_text: quote, language: proposalFor(quote),
     finding_text: "x", cd_standard: "y",
   };
   const findings: RevisionFinding[] = [{ ...base, id: "fuzz-1", location_section: section }];
@@ -290,7 +290,7 @@ export async function runOne(seed: number, layout: RedlineLayout = "whole") {
   }
 
   const result = await check("engine", () =>
-    generateRedline({ originalDocxBytes: bytes, findings, author: OUR_AUTHOR, layout })
+    generateRedline({ originalDocxBytes: bytes, findings, author: OUR_AUTHOR })
   );
 
   return {
@@ -306,20 +306,18 @@ export async function runOne(seed: number, layout: RedlineLayout = "whole") {
 }
 
 async function main() {
-  const layoutArg = process.argv.indexOf("--layout");
-  const layout = (layoutArg >= 0 ? process.argv[layoutArg + 1] : "whole") as RedlineLayout;
   const arg = process.argv.indexOf("--seed");
   const seeds = arg >= 0
     ? [Number(process.argv[arg + 1])]
-    : Array.from({ length: Number(/^\d+$/.test(process.argv[2] ?? "") ? process.argv[2] : 10) }, () => Math.floor(Math.random() * 1e9));
+    : Array.from({ length: Number(process.argv[2] ?? 10) }, () => Math.floor(Math.random() * 1e9));
 
   console.log("=".repeat(78));
-  console.log(`Randomised stress test — ${seeds.length} generated contracts, ${layout} layout`);
+  console.log(`Randomised stress test — ${seeds.length} generated contracts`);
   console.log("=".repeat(78));
 
   let failed = 0, appliedCount = 0;
   for (const seed of seeds) {
-    const r = await runOne(seed, layout);
+    const r = await runOne(seed);
     if (r.skipped) { console.log(`seed ${String(seed).padEnd(11)} skipped (document too short)`); continue; }
     const status = r.failures.length ? "FAIL" : " ok ";
     console.log(`seed ${String(seed).padEnd(11)} ${status}  ${String(r.outcome ?? "-").padEnd(8)} applied=${r.applied ?? 0} unapplied=${r.unapplied ?? 0}  quote: "${String(r.quote).slice(0, 46)}"`);

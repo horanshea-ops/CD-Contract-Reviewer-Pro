@@ -84,8 +84,9 @@ describe("cases the old engine refused", () => {
 
     expect(result.appliedCount).toBe(1);
     expect(report.outcome).toBe("clean");
-    // Our deletion inside their insertion, not alongside it.
-    expect(xml).toMatch(/<w:ins[^>]*Dana Reyes[^>]*>\s*<w:del[^>]*Jane Associate/);
+    // Our deletion inside their insertion, not alongside it, with our new
+    // wording just before it.
+    expect(xml).toMatch(/<w:ins[^>]*Dana Reyes[^>]*>\s*<w:ins[^>]*Jane Associate[^>]*>.*?<\/w:ins>\s*<w:del[^>]*Jane Associate/);
   });
 
   it("marks up wording that spans a tab", async () => {

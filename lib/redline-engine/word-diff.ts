@@ -1,5 +1,5 @@
 /**
- * Which words a proposal changes, for the changed-words layout.
+ * Which words a proposal changes.
  *
  * The passage and the proposal are compared word by word, where a word is
  * anything between spaces, so "(12)" or "hours." changes as a unit and is

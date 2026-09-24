@@ -1,15 +1,14 @@
 import type { RevisionIds } from "./ids";
 import { replaceRun, runText, splitRun } from "./runs";
-import type { RedlineLayout } from "./types";
 import { wordChanges, type WordChange } from "./word-diff";
 
 /**
  * Emitting a tracked change (MASTER_PLAN.md §1.5.5–§1.5.7).
  *
- * The runs a span covers are wrapped in a `w:del`, their text converted to
- * `w:delText`, and the replacement goes beside it in a `w:ins` whose run clones
- * the formatting of the first deleted run. In the changed-words layout this
- * happens once per changed stretch, and shared words stay as they were.
+ * Only the words that change are marked. Each changed stretch becomes a `w:ins`
+ * holding the new wording, followed by a `w:del` holding the old, and the words
+ * the proposal shares with the contract stay as they were. The inserted run
+ * clones the formatting of the first deleted run.
  *
  * §1.5.7's nested case falls out of doing this on the tree rather than on a
  * string. When the wording being struck is text the counterparty inserted, the
@@ -80,23 +79,22 @@ export interface ReplaceOptions {
   author: string;
   date: string;
   ids: RevisionIds;
-  layout?: RedlineLayout;
 }
 
 type Stamp = Pick<ReplaceOptions, "author" | "date" | "ids">;
 
 /**
- * Replaces the covered runs with the replacement, as tracked changes laid out
- * the way `layout` asks.
+ * Replaces the covered runs with the replacement as tracked changes.
  *
- * The changed-words layout needs every covered run to be plain text that still
- * reads in the contract. Anything else (a tab, a field, wording someone already
- * struck) takes the whole-passage change instead.
+ * Marking only the changed words needs every covered run to be plain text that
+ * still reads in the contract. Anything else (a tab, a field, wording someone
+ * already struck) takes one change over the whole passage instead, as does a
+ * proposal that rewrites most of it.
  */
-export function replaceSpan({ covered, replacement, layout = "whole", ...stamp }: ReplaceOptions): void {
+export function replaceSpan({ covered, replacement, ...stamp }: ReplaceOptions): void {
   if (covered.length === 0) return;
 
-  if (layout === "changed_words" && covered.every(isPlainLiveText)) {
+  if (covered.every(isPlainLiveText)) {
     const passage = covered.map(runText).join("");
     const changes = wordChanges(passage, replacement);
     const whole = changes.length === 1 && changes[0].from === 0 && changes[0].to === passage.length;
@@ -106,18 +104,21 @@ export function replaceSpan({ covered, replacement, layout = "whole", ...stamp }
     }
   }
 
-  strikeAndInsert(covered, replacement, stamp, layout === "insertion_first");
+  strikeAndInsert(covered, replacement, stamp);
 }
 
 /**
- * Strikes the covered runs and inserts the replacement beside them.
+ * Inserts the replacement, then strikes the covered runs after it.
+ *
+ * New wording comes first because Word's margin note for a deletion runs on
+ * into an insertion that follows it, with no break between the two.
  *
  * The covered runs can sit under different parents — part inside a hyperlink
  * and part outside, say — so each run of adjacent siblings gets its own
  * wrapper. One wrapper spanning two parents is not something XML can express,
  * and reaching for it is how the old engine produced files Word would not open.
  */
-function strikeAndInsert(covered: Element[], replacement: string, { author, date, ids }: Stamp, insertionFirst: boolean) {
+function strikeAndInsert(covered: Element[], replacement: string, { author, date, ids }: Stamp) {
   const doc = covered[0].ownerDocument!;
   const formatLike = covered[0];
 
@@ -138,16 +139,10 @@ function strikeAndInsert(covered: Element[], replacement: string, { author, date
   const insertion = revisionElement(doc, "w:ins", ids, author, date);
   insertion.appendChild(insertedRun(doc, replacement, formatLike));
 
-  // Beside the deletion, so the new wording reads where the old one was.
-  // Inside the counterparty's insertion when that is where the old wording
-  // lived, which keeps the position exact.
-  if (insertionFirst) {
-    const anchor = deletions[0];
-    anchor.parentNode!.insertBefore(insertion, anchor);
-  } else {
-    const anchor = deletions[deletions.length - 1];
-    anchor.parentNode!.insertBefore(insertion, anchor.nextSibling);
-  }
+  // Directly before the deletion, so the new wording reads where the old one
+  // was. Inside the counterparty's insertion when that is where the old
+  // wording lived, which keeps the position exact.
+  deletions[0].parentNode!.insertBefore(insertion, deletions[0]);
 }
 
 /** A run of ordinary text, not inside anyone's deletion. */
@@ -197,7 +192,7 @@ function applyWordChanges(covered: Element[], changes: WordChange[], stamp: Stam
       .filter(({ start, end }) => start < end && change.from <= start && end <= change.to)
       .map(({ run }) => run);
 
-    if (struck.length) strikeAndInsert(struck, change.text, stamp, false);
+    if (struck.length) strikeAndInsert(struck, change.text, stamp);
     else insertAt(pieces, change.from, change.text, stamp);
   }
 }
