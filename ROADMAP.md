@@ -907,10 +907,17 @@ the words that change, with new wording before struck wording.
     reads 157 applied for this run rather than 160.
 
 - **Still open:**
-  - **Whole-sentence quotes.** Branch `prompt/whole-sentence-quotes` has the rules: quote
-    whole sentences, repeat what stays, never shorten a quote with "…", write contract
-    wording rather than instructions, and fill a blank only from the contract. It is
-    unmeasured and waits on a paid eval run (about $1.20).
+  - **Whole-sentence quotes.** Branch `prompt/whole-sentence-quotes` has these rules:
+    - quote whole sentences
+    - repeat what stays
+    - never shorten a quote with "…"
+    - write contract wording rather than instructions
+    - take every figure from the standards library or the contract, and write [X] rather
+      than invent one
+
+    It is unmeasured and waits on a paid eval run (about $1.20). Score it with
+    `--baseline checker-2026-09-22 --baseline baseline-repeat-2026-09-22`, and look for
+    fewer whole-sentence changes and no "…" quotes or instructions.
   - **Ask CD:** should proposals edit the contract's own wording, or paste CD's
     standard wording as now? Pasting makes most changes whole-passage rewrites, such as
     the commission clause. Nothing changes until CD answers.

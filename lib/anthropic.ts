@@ -83,7 +83,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             quoted_text: {
               type: ["string", "null"],
               description:
-                "Verbatim span copied exactly from the contract text. Null only if is_missing_clause is true.",
+                "Verbatim span copied exactly from the contract text: whole sentences, or one whole table cell or list item. Null only if is_missing_clause is true.",
             },
             exposure_amount: {
               type: ["number", "null"],
@@ -100,7 +100,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             proposed_language: {
               type: "string",
               description:
-                "The replacement wording. Always an actual change — never a note that no change is needed.",
+                "Contract wording that replaces everything in quoted_text: repeat what stays, leave out what goes. Always an actual change — never a note that no change is needed, and never an instruction to the reviewer.",
             },
             model_confidence: { type: "string", enum: ["high", "medium", "low"] },
           },
@@ -146,9 +146,11 @@ Rules:
 - Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and a meets verdict in clause_review says the same thing. Never say that about a clause that falls short by any margin at all.
 - severity comes from that clause's severity_default in the standards library. Depart from it only where this contract's own facts justify it — an unusually large block, a term that compounds another — and say why in finding_text. Calling everything high is the same as calling nothing high. A narrow margin is not a reason to lower the severity, and never a reason to leave the finding out.
 - headline is the one line a reviewer reads first: at most about 12 words, saying what is wrong in plain terms. Don't repeat the clause name, and don't use a figure the finding doesn't state. finding_text carries the full reasoning.
-- quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
+- quoted_text must be copied verbatim from the contract — do not paraphrase it. Quote whole sentences, starting where a sentence starts and ending where it ends, or quote one whole table cell or list item. Never shorten a quote with "..." or "…"; quote the whole passage, or record separate findings for passages that are apart. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
+- proposed_language replaces everything in quoted_text and nothing else. Repeat word for word any quoted wording that should stay, and leave out only what should go. The reviewer's redline marks only the words that differ, so repeated wording costs nothing, while wording you leave out is struck from the contract.
+- proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Take every figure in it from the standards library or this contract, or work it out from them. If the wording needs a figure that neither gives, write [X] in its place rather than inventing one, and the reviewer will fill it in.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
