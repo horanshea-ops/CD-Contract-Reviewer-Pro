@@ -24,8 +24,11 @@ import type { Applicability, LocatedSpan } from "./types";
 
 export type EditStrategy = "in_place" | "table_replacement";
 
+/** The verdicts that come from where the wording sits. `blocked_wording` comes from the wording itself. */
+type SpanApplicability = Exclude<Applicability, "blocked_wording">;
+
 export interface ApplicabilityResult {
-  applicability: Applicability;
+  applicability: SpanApplicability;
   /** Plain language, stored in `findings.applicability_detail`. */
   detail: string;
   /** Present only when applicability is "applicable". */
@@ -34,7 +37,7 @@ export interface ApplicabilityResult {
   tableIndex?: number;
 }
 
-const blocked = (applicability: Applicability, detail: string): ApplicabilityResult => ({
+const blocked = (applicability: SpanApplicability, detail: string): ApplicabilityResult => ({
   applicability,
   detail,
 });

@@ -1,6 +1,7 @@
 import { NumberingResolver, loadDocx, walkPart, type ParsedPart, type WalkResult } from "../docx";
 import type { RedlineEngineResult, UnappliedFinding, UnappliedReason } from "../redline-validation/types";
 import { assessApplicability } from "./applicability";
+import { fitToProposal } from "./fit";
 import { RevisionIds } from "./ids";
 import { locateQuote } from "./locate";
 import { appendClauses } from "./paragraphs";
@@ -8,6 +9,7 @@ import { replaceSpan } from "./revise";
 import { runsForSpan } from "./runs";
 import { replaceTable } from "./tables";
 import { serializePart } from "./serialize";
+import { wordingProblem } from "./wording";
 import { isLocated, type Applicability, type RevisionFinding, type SpanResolution } from "./types";
 
 export * from "./types";
@@ -25,7 +27,7 @@ export * from "./types";
  */
 
 /** What the associate is told, per applicability verdict. */
-const REASON_FOR: Record<Exclude<Applicability, "applicable">, UnappliedReason> = {
+const REASON_FOR: Record<Exclude<Applicability, "applicable" | "blocked_wording">, UnappliedReason> = {
   blocked_table: "crosses_boundary",
   blocked_content_control: "in_content_control",
   blocked_field: "in_field",
@@ -111,6 +113,11 @@ export async function generateRedline({
 
   for (const finding of findings) {
     if (finding.is_missing_clause || !finding.quoted_text) {
+      const problem = wordingProblem(finding.language, null);
+      if (problem) {
+        refuse(finding, problem.reason, "unresolved", "blocked_wording", problem.detail);
+        continue;
+      }
       if (finding.language.trim()) {
         toAppend.push(finding.language.trim());
         appliedCount++;
@@ -127,8 +134,8 @@ export async function generateRedline({
     }
 
     const parts = walk();
-    const span = locateQuote(parts, finding.quoted_text, finding.location_section);
-    if (!isLocated(span)) {
+    const located = locateQuote(parts, finding.quoted_text, finding.location_section);
+    if (!isLocated(located)) {
       // Wording that was there when the document arrived and is not there now
       // was struck by an earlier finding. Saying "could not be found" would be
       // true and useless; the associate needs to know which of their decisions
@@ -146,16 +153,29 @@ export async function generateRedline({
       } else {
         refuse(
           finding,
-          span.ambiguous ? "ambiguous_quote" : "not_located",
+          located.ambiguous ? "ambiguous_quote" : "not_located",
           "unresolved",
           "blocked_cross_paragraph",
-          span.reason
+          located.reason
         );
       }
       continue;
     }
 
-    const part = parts.find((p) => p.part === span.part)!;
+    const problem = wordingProblem(finding.language, finding.quoted_text);
+    if (problem) {
+      refuse(finding, problem.reason, located.resolution, "blocked_wording", problem.detail);
+      continue;
+    }
+
+    const part = parts.find((p) => p.part === located.part)!;
+    const fit = fitToProposal(part, located, finding.language);
+    if (!fit.ok) {
+      refuse(finding, fit.reason, located.resolution, "blocked_wording", fit.detail);
+      continue;
+    }
+    const { span, language } = fit;
+
     const verdict = assessApplicability(part, span);
     if (verdict.applicability !== "applicable") {
       refuse(finding, REASON_FOR[verdict.applicability], span.resolution, verdict.applicability, verdict.detail);
@@ -163,7 +183,7 @@ export async function generateRedline({
     }
 
     if (verdict.strategy === "table_replacement") {
-      const replaced = replaceTable({ part, span, replacement: finding.language, author, date, ids });
+      const replaced = replaceTable({ part, span, replacement: language, author, date, ids });
       if (!replaced.ok) {
         refuse(finding, "crosses_boundary", span.resolution, "blocked_table", replaced.reason);
         continue;
@@ -203,7 +223,7 @@ export async function generateRedline({
       continue;
     }
 
-    replaceSpan({ covered, replacement: finding.language, author, date, ids });
+    replaceSpan({ covered, replacement: language, author, date, ids });
     editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
     walked = null; // the document changed
     appliedCount++;

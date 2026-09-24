@@ -27,7 +27,8 @@ export type Applicability =
   | "blocked_content_control"
   | "blocked_field"
   | "blocked_cross_paragraph"
-  | "blocked_already_deleted";
+  | "blocked_already_deleted"
+  | "blocked_wording";
 
 export interface LocatedSpan {
   /** Part name as §1.4 reports it — "document", "header1", ... */

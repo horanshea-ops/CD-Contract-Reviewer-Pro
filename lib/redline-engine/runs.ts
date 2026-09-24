@@ -112,7 +112,7 @@ export function splitRun(run: Element, from: number, to: number): { before: Elem
 }
 
 /** Replaces a run in its parent with the pieces it was split into. */
-function replaceRun(run: Element, pieces: (Element | null)[]) {
+export function replaceRun(run: Element, pieces: (Element | null)[]) {
   const parent = run.parentNode!;
   for (const piece of pieces) {
     if (piece) parent.insertBefore(piece, run);

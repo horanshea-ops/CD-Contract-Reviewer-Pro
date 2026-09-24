@@ -234,6 +234,19 @@ function pickQuote(rnd: () => number, xml: string): { quote: string; section: st
 }
 
 /** One generated contract through the engine and the oracle. */
+/**
+ * The finding's proposed wording. The engine marks individual words only when
+ * a proposal shares most of the quote's words, so a longer quote has one word
+ * swapped and two added. A short one gets wording that shares nothing, which
+ * takes the whole-passage change.
+ */
+function proposalFor(quote: string): string {
+  const words = quote.split(" ");
+  if (words.length < 4) return "NEGOTIATED REPLACEMENT LANGUAGE";
+  words[Math.floor(words.length / 2)] = "NEGOTIATED";
+  return `${words.join(" ")} REPLACEMENT LANGUAGE`;
+}
+
 export async function runOne(seed: number) {
   const rnd = mulberry32(seed ^ 0x9e3779b9);
   const beforeXml = buildDocument(seed);
@@ -244,7 +257,7 @@ export async function runOne(seed: number) {
 
   const base = {
     clause_type: "attrition", severity: "high" as const, is_missing_clause: false,
-    quoted_text: quote, language: "NEGOTIATED REPLACEMENT LANGUAGE",
+    quoted_text: quote, language: proposalFor(quote),
     finding_text: "x", cd_standard: "y",
   };
   const findings: RevisionFinding[] = [{ ...base, id: "fuzz-1", location_section: section }];
@@ -270,7 +283,7 @@ export async function runOne(seed: number) {
     // invariant above while making the feature useless, so confirm the engine
     // did the work it reported doing.
     const afterXml = await (await JSZip.loadAsync(out.docxBytes)).file("word/document.xml")!.async("string");
-    if (out.appliedCount > 0 && !acceptedText(afterXml).includes("NEGOTIATED REPLACEMENT LANGUAGE")) {
+    if (out.appliedCount > 0 && !acceptedText(afterXml).includes(collapse(esc(findings[0].language)))) {
       failures.push(`${label}: applied, but the replacement is not in the accepted view`);
     }
     return { applied: out.appliedCount, outcome: report.outcome, reasons: out.unapplied.map((u) => u.reason) };
