@@ -92,7 +92,8 @@ const toolResponse = (name: string, input: unknown) => ({
   usage: { input_tokens: 100, output_tokens: 10 },
 });
 
-const analysisResponse = toolResponse("record_analysis", { clause_review: [{ clause_type: "attrition", verdict: "meets", basis: "" }], findings: [], document_notes: "" });
+const analysisInput = { clause_review: [{ clause_type: "attrition", verdict: "meets", basis: "" }], findings: [], document_notes: "" };
+const analysisResponse = toolResponse("record_analysis", analysisInput);
 const termsResponse = toolResponse("record_contract_terms", {
   terms: [{ term_key: "deal.group_rate_usd", value: 289, quoted_text: "a group rate of $289.00 per room", confidence: "high" }],
 });
@@ -131,8 +132,7 @@ describe("term extraction in processAnalysis", () => {
     create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
       params.tool_choice.name === "record_analysis"
         ? toolResponse("record_analysis", {
-            findings: [],
-            clauses_checked: ["attrition"],
+            ...analysisInput,
             document_notes: "The meeting dates say 2010, and the room block says 2015.",
           })
         : termsResponse
