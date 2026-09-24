@@ -3,9 +3,9 @@ import { analyzeContract } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 
 /**
- * The review's time budget. The route stops at 300s, and a retry that starts
- * too late is cut off mid-run and leaves the analysis at "processing" with no
- * error. So a run that fails late ends with a clear error instead.
+ * The review's time budget. A retry that starts too late is cut off mid-run
+ * and leaves the analysis at "processing" with no error. So a run that fails
+ * late ends with a clear error instead.
  */
 
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
