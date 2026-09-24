@@ -118,7 +118,8 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
       },
       document_notes: {
         type: "string",
-        description: "Anything about the document itself worth flagging (illegible pages, unusual structure, etc.)",
+        description:
+          "Anything about the document itself worth flagging: every place it contradicts itself (dates, figures, parties, or a table that disagrees with the text around it), illegible pages, unusual structure.",
       },
     },
     required: ["clause_review", "findings", "document_notes"],
@@ -151,6 +152,11 @@ Rules:
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
 - proposed_language replaces everything in quoted_text and nothing else. Repeat word for word any quoted wording that should stay, and leave out only what should go. The reviewer's redline marks only the words that differ, so repeated wording costs nothing, while wording you leave out is struck from the contract.
 - proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Take every figure in it from the standards library or this contract, or work it out from them. If the wording needs a figure that neither gives, write [X] in its place rather than inventing one, and the reviewer will fill it in.
+- A finding that changes wording already in the contract quotes that wording. is_missing_clause is true only when the contract has no wording on the clause at all.
+- Keep every protection the quoted wording already gives the group, such as a refund, a credit or a termination right, unless the standard replaces it with something at least as good.
+- Where the contract sets out a schedule, such as cancellation fees by date, keep the schedule and move each tier to the standard's basis. Never replace a schedule with one flat figure. Where the schedule's figures sit in a table, record a finding for each table cell that changes, quoting that cell.
+- Before recording a proposal, compare it with the contract at every tier, date and amount. It must never cost the group more than the contract does in any case.
+- In document_notes, name every place the contract contradicts itself: dates, figures, parties, or a table that disagrees with the text around it.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
