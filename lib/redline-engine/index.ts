@@ -5,6 +5,7 @@ import { fitToProposal } from "./fit";
 import { RevisionIds } from "./ids";
 import { locateQuote } from "./locate";
 import { appendClauses } from "./paragraphs";
+import { dropRestated, rewritesExistingWording, struckSentences } from "./restated";
 import { replaceSpan } from "./revise";
 import { runsForSpan } from "./runs";
 import { replaceTable } from "./tables";
@@ -112,30 +113,63 @@ export async function generateRedline({
   // rather than one appendix per finding.
   const toAppend: string[] = [];
 
+  // The contract as it arrived, for spotting wording a proposal repeats. A
+  // proposal keeps any sentence another finding strikes, or the contract
+  // would lose it altogether.
+  const contractText = pristine.map((p) => p.text).join("\n");
+  const struckByBatch = struckSentences(findings);
+
+  const leavesOut = (dropped: string[]) =>
+    dropped.length === 0
+      ? ""
+      : ` Leaves out ${dropped.length === 1 ? "a sentence" : `${dropped.length} sentences`} the contract already has.`;
+
+  const append = (finding: RevisionFinding) => {
+    const problem = wordingProblem(finding.language, null);
+    if (problem) {
+      refuse(finding, problem.reason, "unresolved", "blocked_wording", problem.detail);
+      return;
+    }
+    // Appending a rewrite of an existing clause would leave both versions in
+    // the contract, contradicting each other.
+    if (rewritesExistingWording(finding.language, contractText)) {
+      refuse(
+        finding,
+        "unquoted_rewrite",
+        "unresolved",
+        "blocked_wording",
+        "The proposal opens with wording already in the contract, and the finding quotes nothing for it to replace."
+      );
+      return;
+    }
+    const { language, dropped } = dropRestated(finding.language.trim(), contractText, struckByBatch);
+    if (!language.trim()) {
+      refuse(finding, "missing_clause", "unresolved", "applicable", "The finding proposes no language to add.");
+      return;
+    }
+    toAppend.push(language.trim());
+    appliedCount++;
+    resolutions.push({
+      findingId: finding.id,
+      spanResolution: "unresolved",
+      applicability: "applicable",
+      detail: `Not in the contract — added to the appendix as a tracked insertion.${leavesOut(dropped)}`,
+    });
+  };
+
   for (const finding of findings) {
-    if (finding.is_missing_clause || !finding.quoted_text) {
-      const problem = wordingProblem(finding.language, null);
-      if (problem) {
-        refuse(finding, problem.reason, "unresolved", "blocked_wording", problem.detail);
-        continue;
-      }
-      if (finding.language.trim()) {
-        toAppend.push(finding.language.trim());
-        appliedCount++;
-        resolutions.push({
-          findingId: finding.id,
-          spanResolution: "unresolved",
-          applicability: "applicable",
-          detail: "Not in the contract — added to the appendix as a tracked insertion.",
-        });
-      } else {
-        refuse(finding, "missing_clause", "unresolved", "applicable", "The finding proposes no language to add.");
-      }
+    // A quote says where the change belongs, even on a finding marked missing.
+    if (!finding.quoted_text) {
+      append(finding);
       continue;
     }
 
     const parts = walk();
     const located = locateQuote(parts, finding.quoted_text, finding.location_section);
+    if (!isLocated(located) && finding.is_missing_clause) {
+      append(finding);
+      continue;
+    }
     if (!isLocated(located)) {
       // Wording that was there when the document arrived and is not there now
       // was struck by an earlier finding. Saying "could not be found" would be
@@ -171,7 +205,11 @@ export async function generateRedline({
 
     const part = parts.find((p) => p.part === located.part)!;
     const fit = fitToProposal(part, located, finding.language);
-    const { span, language } = fit;
+    const { span } = fit;
+    const { language, dropped } = dropRestated(fit.language, contractText, [
+      ...struckByBatch,
+      part.text.slice(span.start, span.end),
+    ]);
     const struck = fit.widened
       ? [fit.widened.before, fit.widened.after].map((s) => s.trim()).filter(Boolean).join(" … ")
       : "";
@@ -187,7 +225,8 @@ export async function generateRedline({
         findingId: finding.id,
         spanResolution: span.resolution,
         applicability: "applicable",
-        detail: struck ? `${detail} Covers the whole sentence, so it also strikes: "${struck}".` : detail,
+        detail:
+          (struck ? `${detail} Covers the whole sentence, so it also strikes: "${struck}".` : detail) + leavesOut(dropped),
       });
     };
 

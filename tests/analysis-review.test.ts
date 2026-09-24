@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Finding } from "@/lib/anthropic";
-import { dropNonChanges, proposesNoChange } from "@/lib/analysis-review";
+import { dropNonChanges, normalizeFindings, proposesNoChange } from "@/lib/analysis-review";
 
 function finding(clause_type: string, proposed_language = "Replace with seventy percent (70%)."): Finding {
   return {
@@ -48,5 +48,15 @@ describe("proposesNoChange", () => {
     "No changes to the room block may be made without Group's written consent.",
   ])("keeps a real change: %j", (language) => {
     expect(proposesNoChange(finding("attrition", language))).toBe(false);
+  });
+});
+
+describe("normalizeFindings", () => {
+  it("treats a finding that quotes the contract as a change in place, not a missing clause", () => {
+    const quoted = { ...finding("assignment_subcontracting"), is_missing_clause: true };
+    const missing = { ...finding("named_storm"), is_missing_clause: true, quoted_text: null };
+    const [inPlace, stillMissing] = normalizeFindings([quoted, missing]);
+    expect(inPlace.is_missing_clause).toBe(false);
+    expect(stillMissing).toBe(missing);
   });
 });

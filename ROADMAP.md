@@ -907,17 +907,33 @@ the words that change, with new wording before struck wording.
     reads 157 applied for this run rather than 160.
 
 - **Still open:**
-  - **Whole-sentence quotes.** Branch `prompt/whole-sentence-quotes` has these rules:
-    - quote whole sentences
-    - repeat what stays
-    - never shorten a quote with "…"
-    - write contract wording rather than instructions
-    - take every figure from the standards library or the contract, and write [X] rather
-      than invent one
+  - **Prompt branches, measured 2026-09-23 (run `combined-2026-09-23`, about $2.08).**
+    Branch `prompt/combined-run` holds both `prompt/clause-checklist` and
+    `prompt/whole-sentence-quotes`. Full results are in that branch's
+    `docs/eval-harness.md`.
 
-    It is unmeasured and waits on a paid eval run (about $1.20). Score it with
-    `--baseline checker-2026-09-22 --baseline baseline-repeat-2026-09-22`, and look for
-    fewer whole-sentence changes and no "…" quotes or instructions.
+    | | Two baselines | Combined |
+    |---|---|---|
+    | Recall | 88.7% / 88.1% | 98.2% |
+    | High-severity recall | 80% / 87% | 100% |
+    | Repeat misses caught | — | 7 of 8 |
+    | Redline applied | 157 / 146 | 155 of 203 |
+    | Whole-sentence changes | 19 / 12 | 1 |
+    | Left out: not found or crossing a paragraph | 3 / 1 | 44 |
+    | Output per run | 93k tokens | 159k tokens |
+    | One attempt | 54–151s | 163–253s |
+
+    - **Checklist:** it works. It costs about $0.26 a contract instead of $0.17, and
+      about twice the time. The app now allows 7 minutes (merged, `analysis/long-reviews`).
+    - **Quotes:** the whole-sentence rules made the model quote whole clauses, joining
+      sentences that are apart and running across paragraphs. The rule now asks for only
+      the sentences being changed, from one paragraph. That rewrite is unmeasured.
+    - **Next check (paid, not approved):** `eval:capture --only
+      eval-01-harborview.docx,eval-10-crossroads.docx` on `prompt/combined-run`, about
+      $0.60. Merge the combined branch once quotes place again.
+    - **Monarch's first attempt came back unreadable** after 23k output tokens and cost
+      a retry. A list sent as text is now decoded instead of retried, and the error
+      names what each field held.
   - **Ask CD:** should proposals edit the contract's own wording, or paste CD's
     standard wording as now? Pasting makes most changes whole-passage rewrites, such as
     the commission clause. Nothing changes until CD answers.
