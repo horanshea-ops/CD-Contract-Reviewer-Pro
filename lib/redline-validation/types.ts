@@ -21,6 +21,7 @@ export type UnappliedReason =
   | "in_header_footer"
   | "unfilled_blank"
   | "not_contract_wording"
+  | "starts_mid_sentence"
   | "ends_mid_sentence";
 
 export interface UnappliedFinding {
@@ -47,6 +48,8 @@ export const UNAPPLIED_REASON_TEXT: Record<UnappliedReason, string> = {
   unfilled_blank: "The proposed wording still has a blank to fill in. Edit the finding, then export again.",
   not_contract_wording:
     "The proposed wording reads as an instruction, not contract wording. Edit the finding, then export again.",
+  starts_mid_sentence:
+    "The proposed wording is a whole sentence, but the quote starts partway through the contract's sentence. Make this change by hand in Word.",
   ends_mid_sentence:
     "The proposed wording ends the sentence, but the contract's sentence carries on after the quote. Make this change by hand in Word.",
 };

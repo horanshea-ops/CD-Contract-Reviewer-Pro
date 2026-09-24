@@ -29,8 +29,8 @@ const finding = (over: Partial<RevisionFinding>): RevisionFinding => ({
   ...over,
 });
 
-async function redline(paragraph: string, f: RevisionFinding) {
-  const originalBytes = await buildDocx(para(run(paragraph)));
+async function redline(paragraph: string, f: RevisionFinding, preamble: string[] = []) {
+  const originalBytes = await buildDocx([...preamble, paragraph].map((p) => para(run(p))).join(""));
   const result = await generateRedline({ originalDocxBytes: originalBytes, findings: [f], author: AUTHOR });
   const report = await validateRedline({ originalBytes, engineResult: result, author: AUTHOR });
   const xml = await (await JSZip.loadAsync(result.docxBytes)).file("word/document.xml")!.async("string");
@@ -111,7 +111,7 @@ describe("stretching a change over wording the proposal repeats", () => {
   });
 });
 
-describe("a proposal that ends mid-sentence", () => {
+describe("a whole-sentence proposal for part of a sentence", () => {
   it("is left out, with a reason, when the contract's sentence carries on", async () => {
     const paragraph =
       "The Hotel shall pay to Group a sales commission equal to nine percent (9%) of all room revenue actualized in connection with the Event, whether such rooms are booked as part of the blocked allocation or otherwise procured by Group members through independent channels. Commission shall be calculated on the gross room rate.";
@@ -131,6 +131,71 @@ describe("a proposal that ends mid-sentence", () => {
     expect(result.resolutions[0].detail).toContain("whether such rooms are booked");
     expect([insertions, deletions]).toEqual([0, 0]);
     expect(accepted).toBe(paragraph);
+  });
+
+  const BRAND =
+    "Upon receipt of notice of a change in brand, management, or ownership, the Group shall have the right to terminate this Agreement without penalty or liability within twenty-five (25) days of such notice, provided that the Group's election to terminate is exercised by written notice delivered to the Hotel. The Group's termination right shall be conditioned upon the Group demonstrating, in good faith, that the change materially affects the Hotel's ability to perform its obligations under this Agreement or materially alters the character or service standards of the property.";
+  // The locator anchors a loose match on the quote's rarest word. A real
+  // contract says "provided" often enough that the misquoted opening isn't it.
+  //
+  // The heading then "Should" at the start of the next paragraph is how the
+  // Monarch contract reads. "Should" there opens a sentence, and doesn't make
+  // it a name.
+  const PREAMBLE = [
+    "Deposits are refundable provided notice is given, and rebates apply provided the block is met, provided always that the Hotel is paid in full.",
+    "Cancellation and Liquidated Damages",
+    "Should Group cancel the Event, liquidated damages apply.",
+  ];
+  // The model misquoted the opening, so the quote only matches loosely, and
+  // the loose match began partway through "conditioned".
+  const BRAND_QUOTE =
+    "provided that the Group demonstrating, in good faith, that the change materially affects the Hotel's ability to perform its obligations under this Agreement or materially alters the character or service standards of the property.";
+
+  it("is left out when a whole-sentence proposal replaces a quote that starts partway through a sentence", async () => {
+    const { result, insertions, deletions, accepted } = await redline(
+      BRAND,
+      finding({
+        clause_type: "brand_ownership_change",
+        quoted_text: BRAND_QUOTE,
+        language:
+          "Should Hotel undergo a material change in ownership, management company, or brand affiliation, Hotel will inform Group in writing within thirty (30) days. Group may terminate this Agreement without liability within thirty (30) days of receiving that notice.",
+      }),
+      PREAMBLE
+    );
+    expect(result.appliedCount).toBe(0);
+    expect(result.unapplied.map((u) => u.reason)).toEqual(["starts_mid_sentence"]);
+    expect(result.resolutions[0].detail).toContain("termination right shall be");
+    expect([insertions, deletions]).toEqual([0, 0]);
+    expect(accepted.endsWith(BRAND)).toBe(true);
+  });
+
+  it("covers whole words when a loose match starts partway through one", async () => {
+    const { result, report, xml, accepted } = await redline(
+      BRAND,
+      finding({
+        clause_type: "brand_ownership_change",
+        quoted_text: BRAND_QUOTE,
+        language:
+          "conditioned upon the Group giving written notice, without any need to show that the change affects the Hotel's ability to perform its obligations under this Agreement or alters the character or service standards of the property.",
+      }),
+      PREAMBLE
+    );
+    expect(result.appliedCount).toBe(1);
+    expect(report.outcome).toBe("clean");
+    expect(xml).not.toContain("shall be con</w:t>");
+    expect(accepted).toContain("The Group's termination right shall be conditioned upon the Group giving written notice");
+  });
+
+  it("treats a capitalised name as part of the sentence, not the start of a new one", async () => {
+    const { result, accepted } = await redline(
+      "If the Hotel changes brands, the Group may terminate this Agreement without penalty.",
+      finding({
+        quoted_text: "the Group may terminate this Agreement without penalty.",
+        language: "Group may terminate this Agreement without liability.",
+      })
+    );
+    expect(result.appliedCount).toBe(1);
+    expect(accepted).toBe("If the Hotel changes brands, Group may terminate this Agreement without liability.");
   });
 
   it("is applied when the proposal is itself part of a sentence", async () => {

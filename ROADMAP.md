@@ -876,15 +876,20 @@ change, with new wording before struck wording.
   - **Repeated wording (5 changes).** The proposal repeats wording just outside the
     quote, so accepting it printed that wording twice. The change is now stretched over
     it (`fit.ts`).
-  - **Ends mid-sentence (14 changes).** The proposal ends a sentence, but the contract's
-    sentence carries on. These are left out, with a reason, because only the model knows
-    whether the rest should stay.
+  - **Breaks the contract's sentence (19 changes).** The proposal is written as whole
+    sentences, but the quote ends (14) or starts (5) partway through the contract's
+    sentence. These are left out, with a reason, because only the model knows whether
+    the rest of the sentence should stay.
+  - **Starts partway through a word.** A loosely matched quote began at "ditioned" in
+    "conditioned" (Monarch §21, a misquote). Every change now covers whole words, and a
+    scan of all seven redlines finds no change edge inside a word.
   - **Unfilled blank (19 changes).** A blank such as "[X]", copied from CD's own
     standard wording, or an instruction to the reviewer. These are left out, with a
     reason, until the associate edits the finding.
 
-  Migration 008 adds `blocked_wording` for these skip reasons. 140 of 182 changes apply,
-  with no failed checks.
+  Migration 008 adds `blocked_wording` for these skip reasons, and it is applied. 135 of
+  182 changes apply, with no failed checks. The user confirmed in Word that margin notes
+  no longer run old and new wording together.
 - **Still open:**
   - The lasting fix for the mid-sentence case is a prompt rule to quote whole
     sentences and repeat what stays. It is on branch `prompt/whole-sentence-quotes`,
