@@ -45,6 +45,30 @@ to look at prose before paying for the rest.
 
 `eval:capture --model <id>` measures a different model. `--label <name>` names the run file.
 
+### The redline and earlier runs
+
+Every score also marks up each contract with the run's findings, through the live redline
+engine and the export oracle. It accepts every finding as proposed and holds back any that
+propose no change, as every export does. The "Redline" section counts:
+
+- changes applied, and how many cover the whole sentence
+- changes left out, by reason
+- failed oracle checks, which should always be 0
+
+`--audit` lists each whole-sentence change with the wording it also strikes, and each
+change left out with its quote. This adds about five seconds per run scored, and no cost.
+
+`--baseline <label>` compares the run with an earlier one, and can be repeated:
+
+```bash
+npm run eval:score -- --run <new> --baseline checker-2026-09-22 --baseline baseline-repeat-2026-09-22
+```
+
+The "Against earlier runs" section lists recall and redline counts for each run. It also
+lists the key items every baseline missed, and whether the new run catches each one.
+Two identical runs miss different items (see "Run-to-run variance"), so these repeat
+misses are the fair test of a prompt change. A change in the total isn't.
+
 ## How ground truth works
 
 Contracts are not read to find out what they say. They are **written from a spec that

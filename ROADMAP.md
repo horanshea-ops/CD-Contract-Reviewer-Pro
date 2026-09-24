@@ -835,7 +835,8 @@ on the reject-round-trip oracle, never on a human seeing it, and
 rendered the insertions inline and the deletions in margin balloons, with the revisions
 attributed correctly.
 
-- **Not a defect, worth knowing.** A balloon for a replacement reads
+- **Addressed 2026-09-23 (see "Redline readability" below): new wording now comes
+  before struck wording.** A balloon for a replacement reads
   `Deleted: <old sentence>.<first words of the new sentence>` with no separator, because
   Word treats an adjacent `w:del`/`w:ins` pair as one revision and runs the two together
   in the balloon. The XML is one deletion and one insertion as siblings, correctly
@@ -857,6 +858,107 @@ the edit flow pre-filled the model's proposal and carried the edited figure thro
 the property email; the property email leaked no exposure figure, severity or rationale;
 and the tracked-changes redline passed all ten validation checks with 10 of 10 accepted
 changes applied, clean, including the reject-round-trip.
+
+**Redline readability (2026-09-23, branch `redline/cleaner-changes`, merged).** The
+user compared three layouts of the Monarch eval redline in Word, and chose to mark only
+the words that change, with new wording before struck wording.
+
+- **What the engine now does:**
+  - It marks only the words that change. Shared words stay as plain text
+    (`lib/redline-engine/word-diff.ts`).
+  - A proposal that keeps less than half of the quote's words is a rewrite, and gets one
+    change over the whole passage. So does a passage holding anything but plain text.
+  - Each insertion comes before its deletion. The user confirmed in Word that margin
+    notes no longer run old and new wording together.
+  - A change stretches over wording the proposal repeats just outside the quote, so
+    accepting it doesn't print that wording twice (`fit.ts`).
+  - Every change covers whole words. A loose match had begun at "ditioned" in
+    "conditioned" (Monarch §21, a misquote).
+  - A proposal written as whole sentences, for a quote that starts or ends partway
+    through the contract's sentence, replaces the whole sentence. The user chose this
+    over leaving the change out. The export screen lists each one with the extra
+    wording it strikes, under "check them in Word before sending", and never downloads
+    such a file before showing that list.
+  - A change is left out, with a reason on the export screen, when its wording has an
+    unfilled blank such as "[X]" or reads as an instruction to the reviewer
+    (`wording.ts`). Migration 008 (applied) lets `findings.applicability` record this
+    as `blocked_wording`.
+- **Eval run `checker-2026-09-22` (183 findings, matches the current corpus): 160 apply,
+  no failed checks, and no change starts or ends partway through a word.** Measure
+  against this run. `standards-2026-09-22` predates the last Bayfront edit, so five of its
+  Bayfront quotes point at wording that no longer exists.
+  - **19 of the 160 cover the whole sentence.** Most strike a qualifier that CD's wording
+    replaces, such as commission's ", whether such rooms are booked…". A few strike
+    wording that protects the group, which the associate must check. Examples are the
+    named storm cancellation rights (Monarch, Crossroads), F&B menu-change consent
+    (Crossroads) and the force majeure opening (Vantage). The prompt fix on
+    `prompt/whole-sentence-quotes` should make these rare.
+  - **The 23 left out:**
+
+    | Reason | Count | Status |
+    |---|---|---|
+    | Unfilled blank | 19 | Provisional values now fill the standards' blanks (see "Provisional values for CD to confirm"). Saved runs and existing reviews keep "[X]" until re-run or edited. |
+    | Quote not found | 2 | Monarch ADA shortened its quote with "…" (prompt fix on `prompt/whole-sentence-quotes`). Crossroads billing stitched two passages together, a one-off misquote. |
+    | Crosses a paragraph break | 1 | Engine limit, below |
+    | Instruction, not wording | 1 | Vantage cancellation: "Reconcile the narrative … schedule and the table …" |
+
+    `npm run eval:score` now reports these counts for any run (see `docs/eval-harness.md`).
+    It holds back the 3 findings that propose no change, as every export does, so it
+    reads 157 applied for this run rather than 160.
+
+- **Still open:**
+  - **Whole-sentence quotes.** Branch `prompt/whole-sentence-quotes` has the rules: quote
+    whole sentences, repeat what stays, never shorten a quote with "…", write contract
+    wording rather than instructions, and fill a blank only from the contract. It is
+    unmeasured and waits on a paid eval run (about $1.20).
+  - **Ask CD:** should proposals edit the contract's own wording, or paste CD's
+    standard wording as now? Pasting makes most changes whole-passage rewrites, such as
+    the commission clause. Nothing changes until CD answers.
+  - **Blanks elsewhere.** Blanks can still reach the property email and the clean
+    contract, and the review screen doesn't prompt the associate to fill one before
+    Accept. This is flagged as its own task.
+  - **Known limit.** One change can't span two paragraphs (Granite Bay billing, 1 in 183).
+    Striking across paragraphs is real §1.5 work. Revisit if it shows up in real
+    contracts.
+
+**Provisional values for CD to confirm (2026-09-23, branch
+`standards/provisional-blank-values`).** CD's template leaves blanks in 13 clauses'
+fallback wording. The model copied them into its proposals, and the redline correctly
+refused to send "[X]". So the full flow can be tested, each blank is filled with a typical
+industry figure, or with wording that points at the contract's own facts. **None of these
+are CD's numbers.** Ask CD for each, then change it on the Standards Library admin screen,
+which is audited. `lib/standards/v1.ts` and the live table hold the same values
+(`standards:status` matches), and `tests/standards-blanks.test.ts` keeps new blanks out.
+
+| Clause | Template blank | Provisional value | Typical range | CD answer |
+|---|---|---|---|---|
+| Attrition, Cancellation | rebook credit if rebooked "within [X] years" | three (3) years | 2–3 years | open |
+| F&B minimum | menu prices "confirmed at [year] pricing" | "the Hotel's pricing in effect on the date of this Agreement" | a deal fact | open |
+| F&B minimum | "a food and beverage minimum of $[X]" | "the food and beverage minimum stated in this Agreement" | a deal fact | open |
+| Walk / relocation | credit "$[X] for each night a guest is relocated" | $200 | about $100–250 (estimate) | open |
+| Construction / renovation | facilities "fully operational by [date]" | "no later than ninety (90) days before Group's arrival" | 60–120 days | open |
+| Review / audit dates | reviews "by [date] (24 months prior)" and "by [date] (12 months prior)" | 24 and 12 months prior to arrival | the template's own note | open |
+| Review / audit dates | block change "up to [X]% at each review and [X]% cumulatively" | 10% each, 20% cumulative | 10–20% / 20–30% | open |
+| Review / audit dates | pickup reports "starting [X] days prior to the cutoff date" | 60 days | 30–90 days | open |
+| Labor disputes | "One year in advance, or no later than [date]" | "…or within thirty (30) days of signing this Agreement if that is later" | wording | open |
+| Gratuity / service charge | gratuity "[X]%" and retained service charge "[X]%" | 18% gratuity, 6% service charge (24% in total) | totals now 24–32%, with a staff gratuity historically 15–20% | open |
+| Banquet service levels | labor fee "$[X]" for functions under 25 people | $150 | about $100–200 (estimate) | open |
+| AV / internet | AV discount "[X]%", internet discount "[X]%" | 20% each | 15–20%, up to 25% | open |
+| Nondiscrimination | "the state of [state] or the city of [city]" | "the state or city in which Hotel is located" | a deal fact | open |
+
+Two bracketed notes were also turned into wording:
+- **Commission.** "[Outside the USA: …]" is now the sentence "If Hotel is outside the
+  United States, commission also applies to …". The meaning is unchanged.
+- **Rate parity.** The alternative is removed from the fallback, so the model proposes
+  only the primary wording. Ask CD which to use. The alternative reads: "Hotel will
+  include all rooms booked by Group attendees in the room block regardless of rate paid,
+  and will immediately cease selling rooms to transient or group guests at the lower
+  rate."
+
+New reviews use these values. Existing reviews and saved eval runs keep "[X]" until they
+are re-run or edited. The eval answer key was re-stamped with the new standards
+fingerprint at no cost. Its 168 key items are unchanged, because the corpus never reads
+fallback wording.
 
 ### Deploy and client-presentation readiness (2026-09-22, high priority)
 
@@ -920,8 +1022,11 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         time, so most misses are chance rather than fixed blind spots.
       - Branch `prompt/clause-checklist` asks for a verdict on every clause
         type before findings, and records disagreements between verdicts and
-        findings as `review_gaps`. It needs one paid run (about $1.20) to
+        findings as `review_gaps`. It needs one paid run (about $1.30) to
         measure. A drop of two or three misses is within run-to-run noise.
+        Score it with `--baseline checker-2026-09-22 --baseline
+        baseline-repeat-2026-09-22`. The test is how many of the 8 items
+        both baselines missed it catches.
       - The template's attrition formula says 75% while its headline says
         70%. The library keeps 70%, and the question should go back to CD.
       - Commission findings appear in client memos and emails like any

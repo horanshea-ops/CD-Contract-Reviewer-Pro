@@ -1,5 +1,6 @@
+import { UNAPPLIED_REASON_TEXT, type UnappliedReason } from "../redline-validation/types";
 import { SEVERITY_ORDER } from "./types";
-import type { ContractResult, ScoreReport } from "./types";
+import type { ComparedItem, ContractResult, RedlineContractResult, RunHeadline, ScoreReport } from "./types";
 
 /**
  * Rendering a score report (MASTER_PLAN.md §2.0.1).
@@ -165,7 +166,90 @@ const clip = (s: string | null, width = 88) => {
   return flat.length <= width ? flat : `${flat.slice(0, width - 1)}…`;
 };
 
-function auditLines(contract: ContractResult): string[] {
+function redlineLines(report: ScoreReport): string[] {
+  const r = report.redline;
+  if (!r) return [];
+
+  const lines = [
+    ...heading("Redline, every finding accepted as proposed"),
+    `Findings             ${num(r.findings, 5)}`,
+    `Held back            ${num(r.held_back, 5)}   proposes no change, so no export uses it`,
+    `Applied              ${num(r.applied, 5)}   ${r.widened} of them also strike wording the finding didn't quote`,
+    `Left out             ${num(r.unapplied, 5)}`,
+  ];
+  const reasons = Object.entries(r.by_reason).sort((a, b) => b[1] - a[1]);
+  for (const [reason, count] of reasons) {
+    // The first clause of the associate's explanation is enough to recognise it.
+    const text = UNAPPLIED_REASON_TEXT[reason as UnappliedReason].split(/[.,]/)[0];
+    lines.push(`  ${pad(reason, 21)}${num(count, 3)}   ${text}`);
+  }
+  lines.push(
+    `Failed checks        ${num(r.failed_checks, 5)}`,
+    `Files                clean ${r.outcomes.clean} · partial ${r.outcomes.partial} · fallback ${r.outcomes.fallback}`,
+    "",
+    `${pad("Contract", 26)}${pad("Findings", 10)}${pad("Applied", 9)}${pad("Whole", 7)}${pad("Left out", 10)}File`
+  );
+  for (const c of r.contracts) {
+    lines.push(
+      pad(c.contract, 26) +
+        pad(String(c.findings), 10) +
+        pad(String(c.applied), 9) +
+        pad(String(c.widened.length), 7) +
+        pad(String(c.unapplied.length), 10) +
+        (c.outcome ?? "no analysis")
+    );
+  }
+  return lines;
+}
+
+function headlineRow(run: RunHeadline, label: string): string {
+  const recall = `${pct(run.recall)} (${run.matched}/${run.key_items})`;
+  const r = run.redline;
+  return (
+    pad(label, 42) +
+    pad(recall, 18) +
+    (r ? pad(String(r.applied), 9) + pad(String(r.widened), 7) + String(r.unapplied) : "-")
+  );
+}
+
+const itemLine = (m: ComparedItem) =>
+  `${pad(m.contract.replace(/\.docx$/, ""), 22)}${pad(m.clause_type, 30)}${m.severity}`;
+
+function comparisonLines(report: ScoreReport): string[] {
+  const c = report.comparison;
+  if (!c) return [];
+
+  const lines = [
+    ...heading("Against earlier runs"),
+    `${pad("Run", 42)}${pad("Recall", 18)}${pad("Applied", 9)}${pad("Whole", 7)}Left out`,
+    ...c.baselines.map((b) => headlineRow(b, b.run_id)),
+    headlineRow(c.current, `${c.current.run_id} (this run)`),
+    "",
+  ];
+
+  const caught = c.repeat_misses.filter((m) => m.caught_now).length;
+  lines.push(
+    c.baselines.length === 1
+      ? `Missed by the earlier run: ${c.repeat_misses.length}. This run catches ${caught}.`
+      : `Missed by every earlier run: ${c.repeat_misses.length}. This run catches ${caught}.`
+  );
+  for (const m of c.repeat_misses) {
+    lines.push(`  ${pad(m.caught_now ? "caught" : "missed", 8)}${itemLine(m)}`);
+  }
+
+  lines.push(
+    "",
+    c.baselines.length === 1
+      ? `Found by the earlier run and missed now: ${c.new_misses.length}.`
+      : `Found by every earlier run and missed now: ${c.new_misses.length}.`
+  );
+  for (const m of c.new_misses) {
+    lines.push(`  ${itemLine(m)}`);
+  }
+  return lines;
+}
+
+function auditLines(contract: ContractResult, redline: RedlineContractResult | undefined): string[] {
   const lines = ["", rule(), `AUDIT — ${contract.contract}`, rule()];
 
   if (contract.error) {
@@ -212,6 +296,21 @@ function auditLines(contract: ContractResult): string[] {
     }
   }
 
+  if (redline) {
+    lines.push("", `Redline: ${redline.applied} applied, ${redline.outcome ?? "no analysis"}`);
+    for (const check of redline.failed_checks) lines.push(`  failed : ${check}`);
+
+    lines.push(`  Whole sentence (${redline.widened.length})`);
+    for (const w of redline.widened) {
+      lines.push(`    [${w.clause_type}, ${w.severity}]  also struck: ${clip(w.struck, 70)}`);
+    }
+    lines.push(`  Left out (${redline.unapplied.length})`);
+    for (const u of redline.unapplied) {
+      lines.push(`    [${u.clause_type}, ${u.severity}]  ${u.reason}`);
+      lines.push(`      model : ${clip(u.quoted_text)}`);
+    }
+  }
+
   return lines;
 }
 
@@ -253,11 +352,16 @@ export function renderReport(report: ScoreReport, options: RenderOptions = {}): 
     ...severityLines(report),
     ...attributeLines(report),
     ...clauseTypeLines(report),
-    ...contractLines(report)
+    ...contractLines(report),
+    ...redlineLines(report),
+    ...comparisonLines(report)
   );
 
   if (options.audit) {
-    for (const contract of report.contracts) lines.push(...auditLines(contract));
+    for (const contract of report.contracts) {
+      const redline = report.redline?.contracts.find((c) => c.contract === contract.contract);
+      lines.push(...auditLines(contract, redline));
+    }
   } else {
     lines.push("", "Run again with --audit to see every pairing behind these numbers.");
   }
