@@ -20,7 +20,7 @@ const BLANK = /\[[^\]\n]{0,80}\]/g;
 // next. The second word keeps contract wording such as "State and local taxes"
 // from matching.
 const INSTRUCTION =
-  /^\s*["'“‘]?(state|confirm|specify|clarify|request|negotiate|ask|ensure|consider|propose|insert|replace|strike|revise|amend|change)\s+(the|that|whether|a|an|this|these|any|explicitly|clearly|in|with|to|for|how|what|which)\b/i;
+  /^\s*["'“‘]?(state|confirm|specify|clarify|request|negotiate|ask|ensure|consider|propose|insert|replace|strike|revise|amend|change|reconcile|align|harmonize|conform|verify)\s+(the|that|whether|a|an|this|these|any|explicitly|clearly|in|with|to|for|how|what|which)\b/i;
 
 export function wordingProblem(language: string, quote: string | null): WordingProblem | null {
   // A bracket the contract already has is its own wording, not a blank.

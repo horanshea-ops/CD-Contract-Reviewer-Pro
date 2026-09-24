@@ -859,46 +859,56 @@ the property email; the property email leaked no exposure figure, severity or ra
 and the tracked-changes redline passed all ten validation checks with 10 of 10 accepted
 changes applied, clean, including the reject-round-trip.
 
-**Redline readability (2026-09-23, branch `redline/cleaner-changes`).** The user compared
-three layouts of the Monarch eval redline in Word, and chose to mark only the words that
-change, with new wording before struck wording.
+**Redline readability (2026-09-23, branch `redline/cleaner-changes`, merged).** The
+user compared three layouts of the Monarch eval redline in Word, and chose to mark only
+the words that change, with new wording before struck wording.
 
 - **What the engine now does:**
   - It marks only the words that change. Shared words stay as plain text
     (`lib/redline-engine/word-diff.ts`).
   - A proposal that keeps less than half of the quote's words is a rewrite, and gets one
     change over the whole passage. So does a passage holding anything but plain text.
-  - Each insertion comes before its deletion. This targets the run-together margin
-    note, and the user still needs to confirm the result in Word.
-- **The Word check found three problems in what the model wrote.** They already existed,
-  and marking only changed words made them visible. Across the seven eval contracts
-  (182 findings):
-  - **Repeated wording (5 changes).** The proposal repeats wording just outside the
-    quote, so accepting it printed that wording twice. The change is now stretched over
-    it (`fit.ts`).
-  - **Breaks the contract's sentence (19 changes).** The proposal is written as whole
-    sentences, but the quote ends (14) or starts (5) partway through the contract's
-    sentence. These are left out, with a reason, because only the model knows whether
-    the rest of the sentence should stay.
-  - **Starts partway through a word.** A loosely matched quote began at "ditioned" in
-    "conditioned" (Monarch §21, a misquote). Every change now covers whole words, and a
-    scan of all seven redlines finds no change edge inside a word.
-  - **Unfilled blank (19 changes).** A blank such as "[X]", copied from CD's own
-    standard wording, or an instruction to the reviewer. These are left out, with a
-    reason, until the associate edits the finding.
+  - Each insertion comes before its deletion. The user confirmed in Word that margin
+    notes no longer run old and new wording together.
+  - A change stretches over wording the proposal repeats just outside the quote, so
+    accepting it doesn't print that wording twice (`fit.ts`).
+  - Every change covers whole words. A loose match had begun at "ditioned" in
+    "conditioned" (Monarch §21, a misquote).
+  - A change is left out, with a reason on the export screen, when its wording:
+    - is written as whole sentences but the quote starts or ends partway through the
+      contract's sentence
+    - has an unfilled blank such as "[X]"
+    - reads as an instruction to the reviewer (`wording.ts`)
 
-  Migration 008 adds `blocked_wording` for these skip reasons, and it is applied. 135 of
-  182 changes apply, with no failed checks. The user confirmed in Word that margin notes
-  no longer run old and new wording together.
+    Migration 008 (applied) lets `findings.applicability` record this as
+    `blocked_wording`.
+- **Eval run `checker-2026-09-22` (183 findings, matches the current corpus): 141 apply,
+  no failed checks.** Measure against this run. `standards-2026-09-22` predates the last
+  Bayfront edit, so five of its Bayfront quotes point at wording that no longer exists.
+  The 42 left out:
+
+  | Reason | Count | Status |
+  |---|---|---|
+  | Unfilled blank | 19 | By design. CD's template leaves a figure per deal (gratuity %, AV discount %, walk credit, exhibit letter, review dates). The associate fills it in with Edit. |
+  | Starts or ends mid-sentence | 19 (5 + 14) | Prompt fix on `prompt/whole-sentence-quotes` |
+  | Quote not found | 2 | Monarch ADA shortened its quote with "…" (prompt fix on the same branch). Crossroads billing stitched two passages together, a one-off misquote. |
+  | Crosses a paragraph break | 1 | Engine limit, below |
+  | Instruction, not wording | 1 | Vantage cancellation: "Reconcile the narrative … schedule and the table …" |
+
 - **Still open:**
-  - The lasting fix for the mid-sentence case is a prompt rule to quote whole
-    sentences and repeat what stays. It is on branch `prompt/whole-sentence-quotes`,
-    unmeasured, and waits on a paid eval run (about $1.20).
+  - **Whole-sentence quotes.** Branch `prompt/whole-sentence-quotes` has the rules: quote
+    whole sentences, repeat what stays, never shorten a quote with "…", write contract
+    wording rather than instructions, and fill a blank only from the contract. It is
+    unmeasured and waits on a paid eval run (about $1.20).
   - **Ask CD:** should proposals edit the contract's own wording, or paste CD's
     standard wording as now? Pasting makes most changes whole-passage rewrites, such as
     the commission clause. Nothing changes until CD answers.
-  - Blanks can also reach the property email and the clean contract, which don't check
-    for them.
+  - **Blanks elsewhere.** Blanks can still reach the property email and the clean
+    contract, and the review screen doesn't prompt the associate to fill one before
+    Accept. This is flagged as its own task.
+  - **Known limit.** One change can't span two paragraphs (Granite Bay billing, 1 in 183).
+    Striking across paragraphs is real §1.5 work. Revisit if it shows up in real
+    contracts.
 
 ### Deploy and client-presentation readiness (2026-09-22, high priority)
 

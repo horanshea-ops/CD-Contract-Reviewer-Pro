@@ -240,6 +240,21 @@ describe("wording that isn't ready for the property", () => {
     expect(result.unapplied.map((u) => u.reason)).toEqual(["not_contract_wording"]);
   });
 
+  it("leaves out an instruction to reconcile two parts of the contract", async () => {
+    // Vantage eval contract: skipped only because its quote crossed two table
+    // cells. In one cell, this would have gone into the contract as written.
+    const { result } = await redline(
+      "Cancellation damages are due as set out in the schedule below.",
+      finding({
+        clause_type: "cancellation",
+        quoted_text: "Cancellation damages are due as set out in the schedule below.",
+        language:
+          "Reconcile the narrative cancellation damages schedule and the table in Section 4 so that only one, internally consistent sliding scale applies.",
+      })
+    );
+    expect(result.unapplied.map((u) => u.reason)).toEqual(["not_contract_wording"]);
+  });
+
   it("does not mistake contract wording that opens with such a word for an instruction", async () => {
     const { result, accepted } = await redline(
       "Taxes will be added to all charges.",
