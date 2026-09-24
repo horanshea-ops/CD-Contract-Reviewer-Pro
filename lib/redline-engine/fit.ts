@@ -4,12 +4,13 @@ import type { LocatedSpan } from "./types";
 /**
  * Fitting the change to what the proposal actually replaces.
  *
- * The model quotes part of a sentence and sometimes writes its proposal for
- * more of it. Two cases follow, and both stay inside the quote's sentence:
+ * The model quotes part of its paragraph and sometimes writes its proposal for
+ * more of it. Two cases follow:
  *
- * - The proposal repeats wording just before or after the quote. The change
- *   is stretched over that wording, so accepting it doesn't print the wording
- *   twice. The word-level diff then leaves the repeated words as they were.
+ * - The proposal repeats wording before or after the quote, anywhere in the
+ *   quote's paragraph. The change is stretched over that wording, so
+ *   accepting it doesn't print the wording twice. The word-level diff then
+ *   leaves the repeated words as they were.
  * - The proposal is written as whole sentences but the quote starts or ends
  *   partway through the contract's sentence. Accepting it as quoted would
  *   leave the rest of that sentence dangling, so the change covers the whole
@@ -160,7 +161,7 @@ export function fitToProposal(part: WalkResult, span: LocatedSpan, language: str
   let fitted = language;
 
   if (proposal.length >= ANCHOR_WORDS && !sameRun(quote.slice(0, ANCHOR_WORDS), proposal.slice(0, ANCHOR_WORDS))) {
-    const before = wordsIn(text, sentenceStart(text, around.from, start), start);
+    const before = wordsIn(text, around.from, start);
     const words = [...before, ...quote];
     const opening = proposal.slice(0, ANCHOR_WORDS);
     for (let k = before.length - 1; k >= 0; k--) {
@@ -172,7 +173,7 @@ export function fitToProposal(part: WalkResult, span: LocatedSpan, language: str
   }
 
   if (proposal.length >= ANCHOR_WORDS && !sameRun(quote.slice(-ANCHOR_WORDS), proposal.slice(-ANCHOR_WORDS))) {
-    const after = wordsIn(text, end, sentenceEnd(text, end, around.to));
+    const after = wordsIn(text, end, around.to);
     const words = [...quote, ...after];
     const closing = proposal.slice(-ANCHOR_WORDS);
     for (let e = quote.length; e < words.length; e++) {

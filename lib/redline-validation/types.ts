@@ -20,7 +20,8 @@ export type UnappliedReason =
   | "in_field"
   | "in_header_footer"
   | "unfilled_blank"
-  | "not_contract_wording";
+  | "not_contract_wording"
+  | "unquoted_rewrite";
 
 /**
  * A change widened to cover its whole sentence. It strikes contract wording
@@ -58,6 +59,8 @@ export const UNAPPLIED_REASON_TEXT: Record<UnappliedReason, string> = {
   unfilled_blank: "The proposed wording still has a blank to fill in. Edit the finding, then export again.",
   not_contract_wording:
     "The proposed wording reads as an instruction, not contract wording. Edit the finding, then export again.",
+  unquoted_rewrite:
+    "The finding rewrites wording already in the contract without quoting it, so the change can't be placed. Mark it up by hand or run the review again.",
 };
 
 /** What every revision engine hands the oracle. */
