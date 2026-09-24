@@ -109,13 +109,24 @@ describe("the analysis system prompt", () => {
     // A quote that stops mid-sentence under a proposal that ends one leaves the
     // rest of the contract's sentence dangling, and the redline has to skip it.
     it("asks for quotes that start and end where a sentence does", () => {
-      expect(prompt()).toContain("Quote whole sentences, starting where a sentence starts and ending where it ends");
+      expect(prompt()).toContain("each one whole, starting where a sentence starts and ending where it ends");
+    });
+
+    it("keeps a quote to the sentences being changed, in one unbroken stretch", () => {
+      // Asked only for whole sentences, the model quoted whole clauses. In the
+      // combined eval it joined sentences that are apart and ran quotes across
+      // paragraphs, and 44 changes could not be marked up.
+      const text = prompt();
+      expect(text).toContain("Quote only the sentences your proposal changes");
+      expect(text).toContain("A quote is one unbroken stretch of a single paragraph");
+      expect(text).toContain("Never join sentences that are not next to each other");
+      expect(text).toContain("record a separate finding for each place");
     });
 
     it("forbids shortening a quote with an ellipsis", () => {
       // The Monarch eval's ADA quote skipped its middle with "...", so it
       // matched nothing in the contract and could not be marked up.
-      expect(prompt()).toContain('Never shorten a quote with "..." or "…"');
+      expect(prompt()).toContain('never shorten a quote with "..." or "…"');
     });
 
     it("says the proposal replaces the whole quote, repeating what stays", () => {
@@ -178,7 +189,8 @@ describe("the findings tool schema", () => {
 
   it("describes quotes as whole sentences, and proposals as replacing all of them", () => {
     const items = properties.findings.items.properties;
-    expect(items.quoted_text.description).toContain("whole sentences, or one whole table cell or list item");
+    expect(items.quoted_text.description).toContain("One unbroken span copied exactly from a single paragraph");
+    expect(items.quoted_text.description).toContain("only the whole sentences being changed");
     expect(items.proposed_language.description).toContain("replaces everything in quoted_text");
     expect(items.proposed_language.description).toContain("never an instruction to the reviewer");
   });
