@@ -8,17 +8,19 @@
  * itself.
  */
 
-/** The route's own ceiling is 300s, and the screen promises 1-3 minutes. */
-export const STALE_ANALYSIS_MINUTES = 6;
+/** Past the model budget below, with room for the saves after it. */
+export const STALE_ANALYSIS_MINUTES = 10;
 
 /**
  * How long the model call may run, counted from the start of processAnalysis.
  * It ends well before the stall check above, so a slow review fails with an
- * error instead of sitting at "processing" until the associate retries. It
- * also fits the 300s route limit on serverless hosts, with room for the upload
- * before and the saves after.
+ * error instead of sitting at "processing" until the associate retries.
+ *
+ * Seven minutes fits one slow attempt and a retry. The longest single attempt
+ * measured is 253s, on the synthetic eval corpus. The routes' maxDuration
+ * leaves room for the upload before and the saves after.
  */
-export const MODEL_CALL_BUDGET_MS = 240_000;
+export const MODEL_CALL_BUDGET_MS = 420_000;
 
 export interface AnalysisRun {
   status: string;

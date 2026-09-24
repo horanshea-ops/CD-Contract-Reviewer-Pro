@@ -324,7 +324,7 @@ export default function AnalysisPage() {
           <Body as="p" className="text-[var(--text-secondary)] mb-3">
             {stalled
               ? `Nothing has come back in ${Math.floor(elapsedSeconds / 60)} minutes, which usually means the connection dropped mid-run. Your contract is still saved, so start it again from here.`
-              : `Usually 1-3 minutes, longer if the model needs a retry or the contract is unusually long. (${elapsedSeconds}s elapsed)`}
+              : `Usually 2-5 minutes, longer if the model needs a retry or the contract is unusually long. (${elapsedSeconds}s elapsed)`}
           </Body>
           {stalled ? (
             <RetryControls onRetry={retryAnalysis} retrying={retrying} error={retryError} />
