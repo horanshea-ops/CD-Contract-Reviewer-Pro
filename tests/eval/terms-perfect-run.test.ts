@@ -82,7 +82,10 @@ beforeAll(async () => {
 
   run = { run_id: "perfect", created_at: "", model_id: "none", catalog_version: HOTEL_TERM_CATALOG.version, documents };
   report = scoreTermsRun({ key, run, catalog: HOTEL_TERM_CATALOG });
-});
+
+  // Extracting seven contracts takes about four seconds alone, and past the
+  // default ten on a machine busy with the rest of the suite.
+}, 60_000);
 
 describe("a perfect extraction over all seven eval contracts", () => {
   it("scores every value correct and invents nothing", () => {
