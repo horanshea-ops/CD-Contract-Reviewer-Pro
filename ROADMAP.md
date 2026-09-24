@@ -874,26 +874,33 @@ the words that change, with new wording before struck wording.
     accepting it doesn't print that wording twice (`fit.ts`).
   - Every change covers whole words. A loose match had begun at "ditioned" in
     "conditioned" (Monarch §21, a misquote).
-  - A change is left out, with a reason on the export screen, when its wording:
-    - is written as whole sentences but the quote starts or ends partway through the
-      contract's sentence
-    - has an unfilled blank such as "[X]"
-    - reads as an instruction to the reviewer (`wording.ts`)
+  - A proposal written as whole sentences, for a quote that starts or ends partway
+    through the contract's sentence, replaces the whole sentence. The user chose this
+    over leaving the change out. The export screen lists each one with the extra
+    wording it strikes, under "check them in Word before sending", and never downloads
+    such a file before showing that list.
+  - A change is left out, with a reason on the export screen, when its wording has an
+    unfilled blank such as "[X]" or reads as an instruction to the reviewer
+    (`wording.ts`). Migration 008 (applied) lets `findings.applicability` record this
+    as `blocked_wording`.
+- **Eval run `checker-2026-09-22` (183 findings, matches the current corpus): 160 apply,
+  no failed checks, and no change starts or ends partway through a word.** Measure
+  against this run. `standards-2026-09-22` predates the last Bayfront edit, so five of its
+  Bayfront quotes point at wording that no longer exists.
+  - **19 of the 160 cover the whole sentence.** Most strike a qualifier that CD's wording
+    replaces, such as commission's ", whether such rooms are booked…". A few strike
+    wording that protects the group, which the associate must check. Examples are the
+    named storm cancellation rights (Monarch, Crossroads), F&B menu-change consent
+    (Crossroads) and the force majeure opening (Vantage). The prompt fix on
+    `prompt/whole-sentence-quotes` should make these rare.
+  - **The 23 left out:**
 
-    Migration 008 (applied) lets `findings.applicability` record this as
-    `blocked_wording`.
-- **Eval run `checker-2026-09-22` (183 findings, matches the current corpus): 141 apply,
-  no failed checks.** Measure against this run. `standards-2026-09-22` predates the last
-  Bayfront edit, so five of its Bayfront quotes point at wording that no longer exists.
-  The 42 left out:
-
-  | Reason | Count | Status |
-  |---|---|---|
-  | Unfilled blank | 19 | By design. CD's template leaves a figure per deal (gratuity %, AV discount %, walk credit, exhibit letter, review dates). The associate fills it in with Edit. |
-  | Starts or ends mid-sentence | 19 (5 + 14) | Prompt fix on `prompt/whole-sentence-quotes` |
-  | Quote not found | 2 | Monarch ADA shortened its quote with "…" (prompt fix on the same branch). Crossroads billing stitched two passages together, a one-off misquote. |
-  | Crosses a paragraph break | 1 | Engine limit, below |
-  | Instruction, not wording | 1 | Vantage cancellation: "Reconcile the narrative … schedule and the table …" |
+    | Reason | Count | Status |
+    |---|---|---|
+    | Unfilled blank | 19 | Provisional values now fill the standards' blanks (see "Provisional values for CD to confirm"). Saved runs and existing reviews keep "[X]" until re-run or edited. |
+    | Quote not found | 2 | Monarch ADA shortened its quote with "…" (prompt fix on `prompt/whole-sentence-quotes`). Crossroads billing stitched two passages together, a one-off misquote. |
+    | Crosses a paragraph break | 1 | Engine limit, below |
+    | Instruction, not wording | 1 | Vantage cancellation: "Reconcile the narrative … schedule and the table …" |
 
 - **Still open:**
   - **Whole-sentence quotes.** Branch `prompt/whole-sentence-quotes` has the rules: quote
