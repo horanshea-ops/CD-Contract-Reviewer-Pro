@@ -105,6 +105,28 @@ describe("the analysis system prompt", () => {
     });
   });
 
+  describe("quotes and proposals cover whole sentences", () => {
+    // A quote that stops mid-sentence under a proposal that ends one leaves the
+    // rest of the contract's sentence dangling, and the redline has to skip it.
+    it("asks for quotes that start and end where a sentence does", () => {
+      expect(prompt()).toContain("Quote whole sentences, starting where a sentence starts and ending where it ends");
+    });
+
+    it("says the proposal replaces the whole quote, repeating what stays", () => {
+      const text = prompt();
+      expect(text).toContain("proposed_language replaces everything in quoted_text and nothing else");
+      expect(text).toContain("Repeat word for word any quoted wording that should stay");
+    });
+
+    it("says the proposal is contract wording, not an instruction", () => {
+      expect(prompt()).toContain("never advice or an instruction to the reviewer");
+    });
+
+    it("keeps a standard's blank rather than inventing a figure for it", () => {
+      expect(prompt()).toContain("keep the blank rather than inventing one");
+    });
+  });
+
   describe("severity", () => {
     it("anchors severity to the library rather than leaving it free", () => {
       expect(prompt()).toContain("severity comes from that clause's severity_default");
@@ -142,6 +164,13 @@ describe("the findings tool schema", () => {
   it("says proposed_language is always an actual change", () => {
     const described = properties.findings.items.properties.proposed_language;
     expect(described.description).toContain("never a note that no change is needed");
+  });
+
+  it("describes quotes as whole sentences, and proposals as replacing all of them", () => {
+    const items = properties.findings.items.properties;
+    expect(items.quoted_text.description).toContain("whole sentences, or one whole table cell or list item");
+    expect(items.proposed_language.description).toContain("replaces everything in quoted_text");
+    expect(items.proposed_language.description).toContain("never an instruction to the reviewer");
   });
 
   it("describes the tool as deviations plus coverage, not as everything found", () => {
