@@ -38,10 +38,18 @@ interface RedlineUnapplied {
   explanation: string;
 }
 
+interface RedlineWidened {
+  clause_type: string;
+  severity: string;
+  quoted_text: string | null;
+  struck: string;
+}
+
 interface RedlinePreflight {
   outcome: Outcome;
   appliedCount: number;
   unapplied: RedlineUnapplied[];
+  widened: RedlineWidened[];
   fallbackReason: string | null;
   markupPdfUrl: string;
 }
@@ -176,7 +184,8 @@ export function ExportPicker({
         return false;
       }
       const verdict = await res.json();
-      if (verdict.outcome === "clean") return true;
+      // A clean redline that struck wording beyond a quote still needs a look.
+      if (verdict.outcome === "clean" && !(key === "redline" && verdict.widened?.length)) return true;
       setStatus(key, key === "redline" ? { kind: "redline", verdict } : { kind: "clean", verdict });
       return false;
     } catch {
@@ -533,36 +542,65 @@ function RedlineVerdictRow({
   return (
     <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
       <Body as="p" className="font-medium text-[var(--text-primary)]">
-        {verdict.appliedCount} change{verdict.appliedCount === 1 ? "" : "s"} marked up. {verdict.unapplied.length}{" "}
-        could not be.
+        {verdict.appliedCount} change{verdict.appliedCount === 1 ? "" : "s"} marked up.
+        {verdict.unapplied.length > 0 && ` ${verdict.unapplied.length} could not be.`}
       </Body>
-      <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
-        The file is safe to send. These items are not in the markup, so raise them another way.
-      </Meta>
-      <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
-        {verdict.unapplied.map((u, i) => (
-          <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
-            <Meta as="p" className="font-medium text-[var(--text-primary)]">
-              {titleCase(u.clause_type)}
-              <span className="ml-2 font-normal text-[var(--text-muted)]">{u.severity}</span>
-            </Meta>
-            {u.quoted_text && (
-              <Meta as="p" className="mt-1 border-l-2 border-[var(--border)] pl-2 text-[var(--text-muted)]">
-                &ldquo;{u.quoted_text}&rdquo;
-              </Meta>
-            )}
-            <Meta as="p" className="mt-1 text-[var(--text-muted)]">
-              {u.explanation}
-            </Meta>
-          </li>
-        ))}
-      </ul>
+
+      {verdict.unapplied.length > 0 && (
+        <>
+          <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
+            The file is safe to send. These items are not in the markup, so raise them another way.
+          </Meta>
+          <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
+            {verdict.unapplied.map((u, i) => (
+              <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
+                <Meta as="p" className="font-medium text-[var(--text-primary)]">
+                  {titleCase(u.clause_type)}
+                  <span className="ml-2 font-normal text-[var(--text-muted)]">{u.severity}</span>
+                </Meta>
+                {u.quoted_text && (
+                  <Meta as="p" className="mt-1 border-l-2 border-[var(--border)] pl-2 text-[var(--text-muted)]">
+                    &ldquo;{u.quoted_text}&rdquo;
+                  </Meta>
+                )}
+                <Meta as="p" className="mt-1 text-[var(--text-muted)]">
+                  {u.explanation}
+                </Meta>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {verdict.widened.length > 0 && (
+        <>
+          <Meta as="p" className="mt-2 text-[var(--text-secondary)]">
+            {verdict.widened.length === 1 ? "This change covers" : "These changes cover"} the whole sentence, so{" "}
+            {verdict.widened.length === 1 ? "it also strikes" : "they also strike"} wording the finding didn&rsquo;t
+            quote. Check {verdict.widened.length === 1 ? "it" : "them"} in Word before sending.
+          </Meta>
+          <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
+            {verdict.widened.map((w, i) => (
+              <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
+                <Meta as="p" className="font-medium text-[var(--text-primary)]">
+                  {titleCase(w.clause_type)}
+                  <span className="ml-2 font-normal text-[var(--text-muted)]">{w.severity}</span>
+                </Meta>
+                <Meta as="p" className="mt-1 text-[var(--text-muted)]">
+                  Also struck: &ldquo;{w.struck}&rdquo;
+                </Meta>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <div className="mt-2 flex justify-end gap-2">
         <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
           Skip
         </Button>
         <Button size="sm" disabled={busy} onClick={onDownload}>
-          Download anyway
+          {verdict.unapplied.length > 0 ? "Download anyway" : "Download"}
         </Button>
       </div>
     </div>

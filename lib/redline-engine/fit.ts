@@ -11,19 +11,29 @@ import type { LocatedSpan } from "./types";
  *   is stretched over that wording, so accepting it doesn't print the wording
  *   twice. The word-level diff then leaves the repeated words as they were.
  * - The proposal is written as whole sentences but the quote starts or ends
- *   partway through the contract's sentence. Accepting it would leave the
- *   rest of that sentence dangling, and only the model knows whether the rest
- *   should stay, so the change is refused.
+ *   partway through the contract's sentence. Accepting it as quoted would
+ *   leave the rest of that sentence dangling, so the change covers the whole
+ *   sentence. The extra wording it strikes is reported, because the associate
+ *   has to check it before sending.
  *
  * A loosely matched quote can also start or end partway through a word. The
  * change always covers whole words.
- * Nothing here looks past a paragraph, a table cell or anything else the
- * extractor invented, such as a tab or a list number.
+ *
+ * Nothing here looks past the quote's paragraph or table cell, and a list
+ * number or heading marker the extractor put in front is never struck.
  */
 
-export type Fit =
-  | { ok: true; span: LocatedSpan; language: string }
-  | { ok: false; reason: "starts_mid_sentence" | "ends_mid_sentence"; detail: string };
+/** Contract wording outside the quote that a widened change also strikes. */
+export interface Widened {
+  before: string;
+  after: string;
+}
+
+export interface Fit {
+  span: LocatedSpan;
+  language: string;
+  widened: Widened | null;
+}
 
 /** How many words in a row mark a proposal's start or end as restated. */
 const ANCHOR_WORDS = 3;
@@ -88,7 +98,13 @@ function commonCount(a: Word[], b: Word[]): number {
 /** True when the proposal repeats at least half of `stretch`, somewhere in `near`. */
 const restates = (stretch: Word[], near: Word[]) => commonCount(stretch, near) >= stretch.length * MIN_RESTATED_SHARE;
 
-/** The span's paragraph text either side of it, stopping at anything the extractor invented. */
+const hasWords = (s: string) => /[\p{L}\p{N}]/u.test(s);
+
+/**
+ * The span's paragraph, from its first contract character to its last. It
+ * reaches across a tab or line break inside the paragraph, and leaves out a
+ * list number or heading marker the extractor put in front.
+ */
 function paragraphAround(part: WalkResult, span: LocatedSpan): { from: number; to: number } | null {
   const paragraphOf = (i: number) => {
     const entry = part.map[i];
@@ -104,9 +120,17 @@ function paragraphAround(part: WalkResult, span: LocatedSpan): { from: number; t
   const paragraph = [...inside][0];
 
   let from = span.start;
-  while (from > 0 && paragraphOf(from - 1) === paragraph) from--;
+  for (let j = span.start - 1; j >= 0; j--) {
+    const p = paragraphOf(j);
+    if (p === paragraph) from = j;
+    else if (p !== null) break;
+  }
   let to = span.end;
-  while (to < part.text.length && paragraphOf(to) === paragraph) to++;
+  for (let j = span.end; j < part.text.length; j++) {
+    const p = paragraphOf(j);
+    if (p === paragraph) to = j + 1;
+    else if (p !== null) break;
+  }
   return { from, to };
 }
 
@@ -123,7 +147,7 @@ function sentenceEnd(text: string, at: number, to: number): number {
 
 export function fitToProposal(part: WalkResult, span: LocatedSpan, language: string): Fit {
   const around = paragraphAround(part, span);
-  if (!around) return { ok: true, span, language };
+  if (!around) return { span, language, widened: null };
 
   const text = part.text;
   let start = span.start;
@@ -166,24 +190,26 @@ export function fitToProposal(part: WalkResult, span: LocatedSpan, language: str
     }
   }
 
-  const rest = text.slice(end, sentenceEnd(text, end, around.to));
-  const carriesOn = !ENDS_SENTENCE.test(text.slice(start, end)) && /[\p{L}\p{N}]/u.test(rest);
-  if (carriesOn && ENDS_SENTENCE.test(fitted)) {
-    return {
-      ok: false,
-      reason: "ends_mid_sentence",
-      detail: `The proposed wording ends the sentence, but the contract carries on: "${rest.trim().slice(0, 60)}".`,
-    };
+  const widened: Widened = { before: "", after: "" };
+  const wholeSentences = ENDS_SENTENCE.test(fitted);
+
+  const restEnd = sentenceEnd(text, end, around.to);
+  const rest = text.slice(end, restEnd);
+  if (wholeSentences && !ENDS_SENTENCE.test(text.slice(start, end)) && hasWords(rest)) {
+    widened.after = rest;
+    end = restEnd;
   }
 
-  const lead = text.slice(sentenceStart(text, around.from, start), start);
-  if (/[\p{L}\p{N}]/u.test(lead) && opensSentence(fitted, text) && ENDS_SENTENCE.test(fitted)) {
-    return {
-      ok: false,
-      reason: "starts_mid_sentence",
-      detail: `The proposed wording is a whole sentence, but the contract's sentence starts before the quote: "${lead.trim().slice(-60)}".`,
-    };
+  const leadStart = sentenceStart(text, around.from, start);
+  const lead = text.slice(leadStart, start);
+  if (wholeSentences && hasWords(lead) && opensSentence(fitted, text)) {
+    widened.before = lead;
+    start = leadStart;
   }
 
-  return { ok: true, span: { ...span, start, end }, language: fitted };
+  return {
+    span: { ...span, start, end },
+    language: fitted,
+    widened: widened.before || widened.after ? widened : null,
+  };
 }

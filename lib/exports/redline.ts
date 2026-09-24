@@ -100,6 +100,7 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
     outcome: report.outcome,
     appliedCount: report.appliedCount,
     unapplied,
+    widened: report.widened,
     fallbackReason: report.fallbackReason,
     markupPdfUrl,
   };
