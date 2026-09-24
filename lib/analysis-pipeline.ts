@@ -173,6 +173,7 @@ export async function processAnalysis(analysisId: string) {
         severity: f.severity,
         exposure_amount: f.exposure_amount,
         exposure_basis: f.exposure_basis,
+        exposure_formula: f.exposure_formula ?? null,
         location_section: f.location_section,
         headline: f.headline ?? null,
         quoted_text: f.quoted_text,
@@ -236,7 +237,7 @@ export async function processAnalysis(analysisId: string) {
         // docx_native document that fell back to the PDF after a failed
         // extraction has no accepted-view text worth storing here.
         accepted_view_text: document.kind === "text" ? scanText : null,
-        document_notes: result.document_notes.trim() || null,
+        document_notes: result.document_notes.length > 0 ? result.document_notes : null,
         token_usage: {
           input_tokens: result.input_tokens,
           output_tokens: result.output_tokens,

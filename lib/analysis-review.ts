@@ -1,4 +1,5 @@
 import type { Finding } from "./anthropic";
+import { checkExposure } from "./exposure";
 
 /**
  * Drops findings that propose no change.
@@ -36,13 +37,24 @@ export function dropNonChanges(findings: Finding[]): { findings: Finding[]; drop
 }
 
 /**
- * A finding that quotes the contract is not about a missing clause.
+ * Findings as every export should read them.
  *
- * The model sometimes marks a clause missing because it lacks a required term,
- * and still quotes the wording that is there. Every export reads "missing" as
- * "add a new clause", which would leave the quoted wording in place beside a
- * contradicting addition. The quote says where the change belongs.
+ * - A finding that quotes the contract is not about a missing clause. The
+ *   model sometimes marks a clause missing because it lacks a required term,
+ *   and still quotes the wording that is there. Every export reads "missing"
+ *   as "add a new clause", which would leave the quoted wording beside a
+ *   contradicting addition.
+ * - The exposure figure is the result of its formula, worked out here. The
+ *   model's own arithmetic was wrong often enough to reach the client email.
  */
 export function normalizeFindings(findings: Finding[]): Finding[] {
-  return findings.map((f) => (f.is_missing_clause && f.quoted_text ? { ...f, is_missing_clause: false } : f));
+  return findings.map((f) => {
+    const { exposure_amount, exposure_formula } = checkExposure(f);
+    return {
+      ...f,
+      is_missing_clause: f.is_missing_clause && !f.quoted_text,
+      exposure_amount,
+      exposure_formula,
+    };
+  });
 }
