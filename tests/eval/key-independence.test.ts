@@ -33,10 +33,12 @@ describe("the scorer is key-agnostic", () => {
     const files = await scoringFiles();
     expect(files.map((f) => path.relative(path.join("lib", "eval"), f)).sort()).toEqual(
       [
+        "compare.ts",
         "grade.ts",
         "hungarian.ts",
         "language.ts",
         "match.ts",
+        "redline.ts",
         "report.ts",
         "score.ts",
         "types.ts",

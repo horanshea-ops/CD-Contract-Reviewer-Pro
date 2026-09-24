@@ -2,8 +2,8 @@
   "version": "synthetic-v1",
   "source": "synthetic",
   "standards_version": "v1-industry-default",
-  "standards_hash": "daf90a77f30c511ded11409db1d5fbe2af159c7f078c23b4b675aca67973f409",
-  "generated_at": "2026-09-23T03:22:12.482Z",
+  "standards_hash": "7bbb02d9af70dc9d4cef21d58bece675919fdde6ef6a5122f9ae020c3d418738",
+  "generated_at": "2026-09-24T02:33:33.487Z",
   "contracts": [
     {
       "contract": "eval-01-harborview.docx",
