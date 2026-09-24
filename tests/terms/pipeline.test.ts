@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { MODEL_CALL_BUDGET_MS, STALE_ANALYSIS_MINUTES } from "@/lib/analysis-status";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
 /**
@@ -126,13 +127,24 @@ describe("term extraction in processAnalysis", () => {
     expect(updatesTo("analyses").some((u) => u.status === "complete")).toBe(true);
   });
 
-  it("gives the review call a time budget inside the route's 300s", async () => {
+  it("gives the review call the model budget as its time limit", async () => {
     await processAnalysis("analysis-1");
 
     const options = create.mock.calls.find(([body]) => body.tools?.[0]?.name === "record_analysis")?.[1];
     expect(options.maxRetries).toBe(0);
-    expect(options.timeout).toBeGreaterThan(200_000);
-    expect(options.timeout).toBeLessThanOrEqual(240_000);
+    expect(options.timeout).toBeGreaterThan(MODEL_CALL_BUDGET_MS - 60_000);
+    expect(options.timeout).toBeLessThanOrEqual(MODEL_CALL_BUDGET_MS);
+  });
+
+  it("fits the model budget inside every analysis route's ceiling, with room to save", async () => {
+    // A serverless host stops the route at maxDuration, mid-save if the
+    // budget runs up against it.
+    for (const route of ["route.ts", "[id]/retry/route.ts", "[id]/ai-clause-decision/route.ts"]) {
+      const source = await readFile(path.join("app", "api", "analyses", route), "utf8");
+      const seconds = Number(source.match(/export const maxDuration = (\d+);/)?.[1]);
+      expect(seconds * 1000, route).toBeGreaterThanOrEqual(MODEL_CALL_BUDGET_MS + 60_000);
+    }
+    expect(STALE_ANALYSIS_MINUTES * 60_000).toBeGreaterThan(MODEL_CALL_BUDGET_MS + 60_000);
   });
 
   it("runs alongside the review when switched on, and stores a row per catalog term", async () => {

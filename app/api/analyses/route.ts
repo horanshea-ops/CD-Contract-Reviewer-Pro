@@ -11,7 +11,9 @@ import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
 import { nextRoundLinkage } from "@/lib/negotiation-threads";
 import { storageSafeName } from "@/lib/storage-key";
 
-export const maxDuration = 300;
+// Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
+// upload and saves. Render runs a long-lived server and ignores it.
+export const maxDuration = 600;
 
 const STORAGE_BUCKET = "contracts";
 const MAX_FILE_BYTES = 32 * 1024 * 1024; // 32MB — see build brief §5 on checking current PDF limits
