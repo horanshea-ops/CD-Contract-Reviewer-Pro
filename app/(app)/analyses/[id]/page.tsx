@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import FindingCard, { SEVERITY_STYLE, type Finding } from "./finding-card";
 import FindingsOverviewBar from "./findings-overview-bar";
-import DocumentNotes from "./document-notes";
+import DocumentNotes, { noteCount } from "./document-notes";
 import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
@@ -17,6 +17,8 @@ import { getMarkupReason } from "@/lib/pdf-markup-reason";
 import { isStalledRun } from "@/lib/analysis-status";
 import { Button } from "@/components/ui/button";
 import { Body, Meta, Title } from "@/components/ui/typography";
+import type { DocumentNote } from "@/lib/document-notes";
+import { ORG } from "@/lib/org";
 
 interface AiUseMatch {
   term: string;
@@ -49,6 +51,8 @@ interface AnalysisResponse {
   round_number: number | null;
   propertyName: string | null;
   document_notes: unknown;
+  /** The app's own arithmetic checks on the contract. */
+  document_checks?: DocumentNote[];
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -236,6 +240,8 @@ export default function AnalysisPage() {
   }
 
   function handleActionRecorded(findingId: string, action: Finding["current_action"]) {
+    // An edit changes what the redline would do, which the API works out.
+    if (action?.action === "edit") pollNow.current();
     setData((prev) =>
       prev
         ? {
@@ -368,6 +374,26 @@ export default function AnalysisPage() {
   }
 
   const overview = computeFindingsOverview(sortedFindings);
+  const checks = data.document_checks ?? [];
+  const notesInOther = noteCount(data.document_notes, checks);
+  // Notes sit in the Other bucket with the findings outside CD's standards, so its count includes them.
+  const bucketOverview = {
+    ...overview,
+    bySeverity: { ...overview.bySeverity, note: overview.bySeverity.note + notesInOther },
+  };
+  const mainFindings = visibleFindings.filter((f) => f.severity !== "note");
+  const otherFindings = visibleFindings.filter((f) => f.severity === "note");
+  const showOther = !hiddenSeverities.has("note") && (otherFindings.length > 0 || notesInOther > 0);
+  const card = (f: Finding) => (
+    <FindingCard
+      key={f.id}
+      finding={f}
+      focused={f.id === selectedFindingId}
+      onActionRecorded={handleActionRecorded}
+      onSelectFinding={handleSelectFinding}
+      locateMode={data.intake_route === "docx_native" ? "docx" : "pdf"}
+    />
+  );
 
   return (
     <div className="h-full flex flex-col">
@@ -446,10 +472,10 @@ export default function AnalysisPage() {
         </div>
 
         <div className="lg:w-1/2 overflow-y-auto bg-[var(--surface-muted)]">
-          {sortedFindings.length > 0 && (
+          {sortedFindings.length + notesInOther > 0 && (
             <div className="sticky top-0 z-10 bg-[var(--surface-muted)] px-4 py-3 border-b border-[var(--border)]">
               <FindingsOverviewBar
-                overview={overview}
+                overview={bucketOverview}
                 hiddenSeverities={hiddenSeverities}
                 onToggleSeverity={toggleSeverity}
                 hideDecided={hideDecided}
@@ -458,26 +484,26 @@ export default function AnalysisPage() {
             </div>
           )}
           <div className="px-4 py-4 space-y-3">
-            <DocumentNotes notes={data.document_notes} />
-            {sortedFindings.length === 0 ? (
+            {sortedFindings.length + notesInOther === 0 ? (
               <Body as="p" className="text-[var(--text-secondary)]">
                 No findings. Nothing flagged against the standards library.
               </Body>
-            ) : visibleFindings.length === 0 ? (
+            ) : mainFindings.length === 0 && !showOther ? (
               <Body as="p" className="text-[var(--text-secondary)]">
                 No findings match this filter.
               </Body>
             ) : (
-              visibleFindings.map((f) => (
-                <FindingCard
-                  key={f.id}
-                  finding={f}
-                  focused={f.id === selectedFindingId}
-                  onActionRecorded={handleActionRecorded}
-                  onSelectFinding={handleSelectFinding}
-                  locateMode={data.intake_route === "docx_native" ? "docx" : "pdf"}
-                />
-              ))
+              mainFindings.map(card)
+            )}
+            {showOther && (
+              <section aria-label="Other" className="space-y-3 pt-2">
+                <Meta as="h2" className="text-[var(--text-secondary)]">
+                  <span className="font-semibold uppercase tracking-wide">Other</span>
+                  {` · outside ${ORG.shortName}'s standards, and notes on the document`}
+                </Meta>
+                {otherFindings.map(card)}
+                <DocumentNotes notes={data.document_notes} checks={checks} />
+              </section>
             )}
           </div>
         </div>
