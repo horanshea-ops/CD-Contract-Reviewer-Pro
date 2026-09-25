@@ -116,7 +116,9 @@ describe("reconcileReview", () => {
       STANDARDS
     );
     expect(result.findings.map((f) => f.clause_type)).toEqual(["cutoff_date"]);
-    expect(result.dropped_findings).toEqual([{ finding: noChange, reason: "proposes_no_change" }]);
+    expect(result.dropped_findings).toEqual([
+      { finding: { ...noChange, exposure_formula: null }, reason: "proposes_no_change" },
+    ]);
 
     // With its only finding dropped, attrition's falls_short verdict stands alone.
     expect(result.review_gaps).toEqual([{ kind: "short_without_finding", clause_type: "attrition", verdict: "falls_short" }]);
@@ -153,6 +155,6 @@ describe("normalizeFindings", () => {
     const missing = { ...finding("named_storm"), is_missing_clause: true, quoted_text: null };
     const [inPlace, stillMissing] = normalizeFindings([quoted, missing]);
     expect(inPlace.is_missing_clause).toBe(false);
-    expect(stillMissing).toBe(missing);
+    expect(stillMissing.is_missing_clause).toBe(true);
   });
 });

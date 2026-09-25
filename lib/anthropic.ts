@@ -4,6 +4,8 @@ import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
 import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap } from "./analysis-review";
+import { toNotes, type DocumentNote } from "./document-notes";
+import { formatCurrency } from "./format";
 import type { TermCatalog, TermDefinition } from "./terms/types";
 
 /**
@@ -23,6 +25,8 @@ export interface Finding {
   quoted_text: string | null;
   exposure_amount: number | null;
   exposure_basis: string | null;
+  /** The arithmetic behind exposure_amount. Absent on findings recorded before it was asked for. */
+  exposure_formula?: string | null;
   /** Absent on findings recorded before the model was asked for one. */
   headline?: string | null;
   finding_text: string;
@@ -37,7 +41,7 @@ export interface AnalysisResult {
   clauses_checked: string[];
   review_gaps: ReviewGap[];
   dropped_findings: DroppedFinding[];
-  document_notes: string;
+  document_notes: DocumentNote[];
   model_id: string;
   standards_library_version: string;
   input_tokens: number;
@@ -89,7 +93,16 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
               type: ["number", "null"],
               description: "Dollar exposure if calculable. Null if not quantifiable — never invent a number.",
             },
-            exposure_basis: { type: ["string", "null"] },
+            exposure_formula: {
+              type: ["string", "null"],
+              description:
+                "The arithmetic behind exposure_amount, using only numbers from the contract and + - * / ( ). Write percentages as decimals. Example: 2280 * 149 * 0.10. Null when exposure_amount is null.",
+            },
+            exposure_basis: {
+              type: ["string", "null"],
+              description:
+                "One short sentence naming what the numbers in exposure_formula are, such as \"the 10-point attrition gap on 2,280 room nights at $149.\" No arithmetic.",
+            },
             headline: {
               type: "string",
               description:
@@ -117,9 +130,18 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         },
       },
       document_notes: {
-        type: "string",
+        type: "array",
+        maxItems: 5,
         description:
-          "Anything about the document itself worth flagging: every place it contradicts itself (dates, figures, parties, or a table that disagrees with the text around it), illegible pages, unusual structure.",
+          "Up to five notes about the document itself that the reviewer needs: every place it contradicts itself (dates, figures, parties, or a table that disagrees with the text around it), a missing exhibit, an unreadable part. Nothing the findings already say.",
+        items: {
+          type: "object",
+          properties: {
+            headline: { type: "string", description: "One sentence, at most about 15 words." },
+            detail: { type: "string", description: "At most two short sentences of detail." },
+          },
+          required: ["headline", "detail"],
+        },
       },
     },
     required: ["clause_review", "findings", "document_notes"],
@@ -157,6 +179,7 @@ Rules:
 - Where the contract sets out a schedule, such as cancellation fees by date, keep the schedule and move each tier to the standard's basis. Never replace a schedule with one flat figure. Where the schedule's figures sit in a table, record a finding for each table cell that changes, quoting that cell.
 - Before recording a proposal, compare it with the contract at every tier, date and amount. It must never cost the group more than the contract does in any case.
 - In document_notes, name every place the contract contradicts itself: dates, figures, parties, or a table that disagrees with the text around it.
+- Give every exposure_amount its exposure_formula: the arithmetic that produces it, using only the contract's numbers. The reviewer's tool works the figure out from the formula, and shows no figure without one. exposure_basis is one short sentence naming what those numbers are.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
@@ -290,7 +313,7 @@ export async function analyzeContract({
     const parsed = {
       clause_review: listField<ClauseReview>(input.clause_review),
       findings: listField<Finding>(input.findings),
-      document_notes: typeof input.document_notes === "string" ? input.document_notes : undefined,
+      document_notes: toNotes(input.document_notes),
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
@@ -311,7 +334,7 @@ export async function analyzeContract({
 
     return {
       ...reviewed,
-      document_notes: parsed.document_notes ?? "",
+      document_notes: parsed.document_notes,
       model_id: modelId,
       standards_library_version: standardsVersion,
       input_tokens: usage.input_tokens,
@@ -415,7 +438,7 @@ export async function generateClientEmail({
   const findingsBlock = findings
     .map((f, i) => {
       const exposure =
-        f.exposure_amount != null ? `\nExposure: $${f.exposure_amount.toLocaleString()} (${f.exposure_basis})` : "";
+        f.exposure_amount != null ? `\nExposure: ${formatCurrency(f.exposure_amount)} (${f.exposure_basis})` : "";
       return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
     })
     .join("\n\n");

@@ -55,7 +55,22 @@ describe("analyzeContract's tool output", () => {
     );
     const result = await run();
     expect(create).toHaveBeenCalledTimes(1);
-    expect(result.findings).toEqual([FINDING]);
+    expect(result.findings).toEqual([{ ...FINDING, exposure_formula: null }]);
+  });
+
+  it("works the exposure figure out from its formula, and notes arrive as short items", async () => {
+    create.mockResolvedValueOnce(
+      response({
+        findings: [{ ...FINDING, exposure_amount: 91200, exposure_formula: "2280 * 149 * 0.10" }],
+        clause_review: [{ clause_type: "attrition", verdict: "falls_short", basis: "Threshold is 90%." }],
+        document_notes: [{ headline: "Meeting dates disagree. One table says 2010.", detail: "Everything else says 2015." }],
+      })
+    );
+    const result = await run();
+    expect(result.findings[0]).toMatchObject({ exposure_amount: 33972, exposure_formula: "2280 * 149 * 0.10" });
+    expect(result.document_notes).toEqual([
+      { headline: "Meeting dates disagree.", detail: "One table says 2010. Everything else says 2015." },
+    ]);
   });
 
   it("retries, then says what the malformed field held", async () => {

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import FindingCard, { SEVERITY_STYLE, type Finding } from "./finding-card";
 import FindingsOverviewBar from "./findings-overview-bar";
+import DocumentNotes from "./document-notes";
 import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
 import type { HighlightRect } from "@/lib/locate-text";
@@ -47,7 +48,7 @@ interface AnalysisResponse {
   thread_id: string | null;
   round_number: number | null;
   propertyName: string | null;
-  document_notes: string | null;
+  document_notes: unknown;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -457,19 +458,7 @@ export default function AnalysisPage() {
             </div>
           )}
           <div className="px-4 py-4 space-y-3">
-            {data.document_notes && (
-              <section
-                aria-label="Notes on this document"
-                className="rounded-lg border border-[var(--border)] bg-white px-4 py-3"
-              >
-                <Meta as="h2" className="font-semibold uppercase tracking-wide mb-1 text-[var(--text-secondary)]">
-                  Notes on this document
-                </Meta>
-                <Body as="p" className="text-[var(--text-primary)] whitespace-pre-line">
-                  {data.document_notes}
-                </Body>
-              </section>
-            )}
+            <DocumentNotes notes={data.document_notes} />
             {sortedFindings.length === 0 ? (
               <Body as="p" className="text-[var(--text-secondary)]">
                 No findings. Nothing flagged against the standards library.
