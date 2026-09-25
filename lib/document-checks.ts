@@ -17,11 +17,11 @@ export interface CheckNote extends DocumentNote {
   source: "check";
 }
 
-const NUMBER = /^\$?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?$/;
+const NUMBER = /^[$€£]?\s*(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?$/;
 
 function numberIn(cell: string): number | null {
   const m = cell.trim().match(NUMBER);
-  return m ? Number(m[0].replace(/[$,]/g, "")) : null;
+  return m ? Number(m[0].replace(/[$€£,\s]/g, "")) : null;
 }
 
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -101,9 +101,55 @@ function tableMismatches({ rows }: Table): string[] {
   return mismatches;
 }
 
+const MIN_LEDGER_AMOUNTS = 3;
+
+/**
+ * Totals in a two-column table of labels and amounts, such as a revenue
+ * summary. Read top to bottom, a "Total" row must equal the amounts since the
+ * last total, or the last total plus them.
+ *
+ * Line items are often labelled "Total" too ("Total Room Rental Revenue"). A
+ * sum can't be smaller than its parts, so a "Total" row smaller than anything
+ * above it, or with nothing above it, counts as a line item.
+ */
+function ledgerMismatches({ rows }: Table): string[] {
+  const entries: { label: string; amount: number }[] = [];
+  for (const row of rows) {
+    const cells = row.filter((c) => c.trim());
+    if (cells.length === 0) continue;
+    const amounts = cells.map(numberIn);
+    const found = amounts.filter((n) => n !== null);
+    if (found.length > 1) return [];
+    if (found.length === 0) continue;
+    if (amounts[amounts.length - 1] === null || cells.length < 2) return [];
+    entries.push({ label: cells[0], amount: found[0] });
+  }
+  if (entries.length < MIN_LEDGER_AMOUNTS) return [];
+
+  const mismatches: string[] = [];
+  let lastTotal: number | null = null;
+  let since: number[] = [];
+  for (const { label, amount } of entries) {
+    const above = lastTotal === null ? since : [lastTotal, ...since];
+    if (!isTotal(label) || above.length === 0 || above.some((n) => n > amount)) {
+      since.push(amount);
+      continue;
+    }
+    const sinceSum = since.reduce((a, b) => a + b, 0);
+    const addends = lastTotal === null ? since : [lastTotal, ...since];
+    if (addends.length >= 2 && differs(sinceSum, amount) && differs((lastTotal ?? 0) + sinceSum, amount)) {
+      const sum = addends.reduce((a, b) => a + b, 0);
+      mismatches.push(`${label} adds up to ${fmt(sum)} (${addends.map(fmt).join(" + ")}), but the table says ${fmt(amount)}`);
+    }
+    lastTotal = amount;
+    since = [];
+  }
+  return mismatches;
+}
+
 function tableNotes(text: string): CheckNote[] {
   return tables(text).flatMap((table) => {
-    const mismatches = tableMismatches(table);
+    const mismatches = [...tableMismatches(table), ...ledgerMismatches(table)];
     if (mismatches.length === 0) return [];
     const name = table.heading ? `The ${headingCase(table.heading)} table's` : "A table's";
     const places = mismatches.length === 1 ? "one place" : `${mismatches.length} places`;
@@ -158,7 +204,100 @@ function nightCountNotes(text: string): CheckNote[] {
   ];
 }
 
+const MONEY = /([$€£])\s?(\d{1,3}(?:,\d{3})+|\d+)(\.\d{2})?/g;
+const PERCENT = /(\d{1,3}(?:\.\d+)?)\s*\]?\s*%/;
+const EXCLUSIVE_TAX = /(excluding|exclusive of|net of)[^.|]*tax/i;
+const INCLUSIVE_TAX = /(including|inclusive of)[^.|]*tax/i;
+
+const money = (symbol: string, n: number) =>
+  `${symbol}${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Totals the document labels as including or excluding tax, from table rows of a label and an amount. */
+function statedTotals(text: string): { inclusive: number[]; exclusive: number[] } {
+  const inclusive: number[] = [];
+  const exclusive: number[] = [];
+  for (const { rows } of tables(text)) {
+    for (const row of rows) {
+      const cells = row.filter((c) => c.trim());
+      const amount = cells.length >= 2 ? numberIn(cells[cells.length - 1]) : null;
+      if (amount === null || !/total/i.test(cells[0])) continue;
+      if (INCLUSIVE_TAX.test(cells[0])) inclusive.push(amount);
+      else if (EXCLUSIVE_TAX.test(cells[0])) exclusive.push(amount);
+    }
+  }
+  return { inclusive, exclusive };
+}
+
+/**
+ * A payment schedule worked out on the wrong total: its amounts are
+ * percentages of the total including tax, while the contract says they are
+ * percentages of the total excluding it.
+ */
+function paymentScheduleNotes(text: string): CheckNote[] {
+  const paragraphs = text.split("\n").map((p) => p.trim()).filter(Boolean);
+  const { inclusive, exclusive } = statedTotals(text);
+  if (inclusive.length === 0 || exclusive.length === 0) return [];
+
+  const notes: CheckNote[] = [];
+  let run: { pct: number; amount: number; symbol: string }[] = [];
+  let runEnd = -1;
+
+  const close = () => {
+    if (run.length >= 2) {
+      const bases = run.map((r) => r.amount / (r.pct / 100));
+      const base = bases[0];
+      const stated = paragraphs.slice(runEnd + 1, runEnd + 4).join(" ");
+      const exclusiveTotal = exclusive.find((e) => Math.abs(e - base) >= 1);
+      if (
+        bases.every((b) => Math.abs(b - base) < 0.5) &&
+        inclusive.some((i) => Math.abs(i - base) < 0.5) &&
+        exclusiveTotal !== undefined &&
+        EXCLUSIVE_TAX.test(stated)
+      ) {
+        const [first] = run;
+        notes.push({
+          source: "check",
+          headline: "A payment schedule is worked out on the total including tax.",
+          detail:
+            `The payments are ${run.map((r) => `${r.pct}%`).join(", ")} of ${money(first.symbol, base)}, the total including taxes, ` +
+            `but the contract says the percentages refer to the total exclusive of tax (${money(first.symbol, exclusiveTotal)}). ` +
+            `On that total the first payment would be ${money(first.symbol, (first.pct / 100) * exclusiveTotal)}, not ${money(first.symbol, first.amount)}.`,
+        });
+      }
+    }
+    run = [];
+  };
+
+  paragraphs.forEach((paragraph, index) => {
+    const pct = paragraph.match(PERCENT);
+    const amounts = [...paragraph.matchAll(MONEY)];
+    const last = amounts[amounts.length - 1];
+    if (pct && last && !paragraph.startsWith("|")) {
+      run.push({ pct: Number(pct[1]), amount: Number(`${last[2]}${last[3] ?? ""}`.replace(/,/g, "")), symbol: last[1] });
+      runEnd = index;
+    } else close();
+  });
+  close();
+  return notes;
+}
+
+/** One note per picture that may hold figures the review never read. */
+export function pictureNotes(pictures: { near: string }[] | null | undefined): CheckNote[] {
+  return (pictures ?? []).map(({ near }) => ({
+    source: "check" as const,
+    headline: near ? `The contract has a picture near "${near}" that the review can't read.` : "The contract has a picture the review can't read.",
+    detail: "Check any figures in it, such as rates or room counts, by hand. Findings and exposures here don't use them.",
+  }));
+}
+
+/** The line the model reads about pictures, so it doesn't infer what one holds. */
+export function pictureContext(pictures: { near: string }[] | null | undefined): string | undefined {
+  if (!pictures?.length) return undefined;
+  const places = pictures.map(({ near }) => `"${near}"`).join(" and ");
+  return `The contract has ${pictures.length === 1 ? "a picture" : "pictures"} near ${places} that this text leaves out. Their contents weren't read, so don't infer figures from them.`;
+}
+
 export function checkDocument(text: string | null): CheckNote[] {
   if (!text) return [];
-  return [...tableNotes(text), ...nightCountNotes(text)];
+  return [...tableNotes(text), ...paymentScheduleNotes(text), ...nightCountNotes(text)];
 }

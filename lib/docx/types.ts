@@ -109,11 +109,19 @@ export interface HealthCheck {
 
 export type IntakeRoute = "docx_native" | "pdf";
 
+/** A picture in the contract body large enough to hold figures the text leaves out. */
+export interface ContractPicture {
+  /** The last few words before it, to say where it is. */
+  near: string;
+}
+
 export interface IntakeHealth {
   route: IntakeRoute;
   checks: HealthCheck[];
   /** Populated when route is "pdf" — the first failing check, in plain language. */
   reason: string | null;
+  /** Pictures that may hold a table or figures. Informational; they never change the route. Absent on older uploads. */
+  pictures?: ContractPicture[];
 }
 
 export interface ExtractedDocument {

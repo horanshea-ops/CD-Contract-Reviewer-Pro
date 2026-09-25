@@ -1,6 +1,7 @@
 import { createAdminClient } from "./supabase/admin";
 import { analyzeContract, type AnalyzableDocument } from "./anthropic";
-import { extractDocx } from "./docx";
+import { extractDocx, type ContractPicture } from "./docx";
+import { pictureContext } from "./document-checks";
 import { contractText } from "./docx/contract-text";
 import type { LocatablePart } from "./redline-engine/locate";
 import { extractionRecord, extractTerms, termRows } from "./terms/extract";
@@ -25,7 +26,7 @@ export async function processAnalysis(analysisId: string) {
 
   const { data: analysis, error: fetchError } = await admin
     .from("analyses")
-    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path, ai_clause_acknowledged_at")
+    .select("id, storage_path, associate_id, source_format, intake_route, intake_health, original_storage_path, ai_clause_acknowledged_at")
     .eq("id", analysisId)
     .single();
 
@@ -162,6 +163,7 @@ export async function processAnalysis(analysisId: string) {
       document,
       standards: standards.entries,
       standardsVersion: standards.version,
+      contextNote: pictureContext((analysis.intake_health as { pictures?: ContractPicture[] } | null)?.pictures),
       deadline,
     });
 
