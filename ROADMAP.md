@@ -1107,11 +1107,14 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         told not to infer what they hold. Rome's room block, rates included, was a
         picture the model never saw.
       - Still to do:
-        - [ ] Check dates against the event dates in code, as the night-count
-              check does: the function schedule, the cutoff's "major arrival
-              day" and the room-night dates against arrival and departure.
-              Rome's functions run to 04/10 on an event ending 02/10, and its
-              cutoff names 28 September against a 26 September arrival.
+        - [x] Date checks (`lib/date-checks.ts`), done 2026-09-25. They flag
+              schedule dates outside the event, a check-out on or before its
+              check-in, and a date range that ends before it starts. Rome gets
+              all three; Florida and the eval corpus get none. Numeric dates
+              are read only when the contract shows whether it writes the day
+              or the month first. The cutoff's "major arrival day" isn't
+              checked, because a peak day after the first arrival is often
+              legitimate.
         - [ ] Send large pictures, such as Rome's room-block table, to the
               model with the text, so attrition and cancellation can get
               figures. About $0.003 a picture. Building and testing it is free;
