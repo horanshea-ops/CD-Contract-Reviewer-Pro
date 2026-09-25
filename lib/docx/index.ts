@@ -42,14 +42,16 @@ export async function extractDocx(
   const document = parts.find((p) => p.part === "document");
   if (!document) throw new DocxParseError("word/document.xml produced no content.");
 
+  const { pictures, images } = await findPictures(pkg);
   return {
     parts,
     document,
     existingRevisions: summariseRevisions(parts),
     health: {
       ...assessHealth({ pkg, parts, fileSizeBytes: opts.fileSizeBytes ?? bytes.byteLength }),
-      pictures: findPictures(pkg.document.xml),
+      pictures,
     },
+    pictures: images,
   };
 }
 

@@ -113,6 +113,16 @@ export type IntakeRoute = "docx_native" | "pdf";
 export interface ContractPicture {
   /** The last few words before it, to say where it is. */
   near: string;
+  /** Whether the review sends it to the model. Absent on older uploads, which sent none. */
+  readable?: boolean;
+}
+
+/** A picture the review sends to the model, with its image data. */
+export interface PictureImage {
+  near: string;
+  mediaType: "image/png" | "image/jpeg" | "image/gif" | "image/webp";
+  /** Base64. */
+  data: string;
 }
 
 export interface IntakeHealth {
@@ -130,4 +140,6 @@ export interface ExtractedDocument {
   document: ExtractedPart;
   existingRevisions: ExistingRevisions;
   health: IntakeHealth;
+  /** The readable pictures in `health.pictures`, with their data. Never stored. */
+  pictures: PictureImage[];
 }

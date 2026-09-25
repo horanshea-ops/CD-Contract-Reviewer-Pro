@@ -73,7 +73,7 @@ export const DOC_RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`;
 
 /** Zips an arbitrary set of parts. Pass `overrides` to break one deliberately. */
-export async function zipParts(parts: Record<string, string>): Promise<Uint8Array> {
+export async function zipParts(parts: Record<string, string | Uint8Array>): Promise<Uint8Array> {
   const zip = new JSZip();
   const at = { date: new Date("2026-01-01T00:00:00Z"), createFolders: false };
   for (const [path, content] of Object.entries(parts)) zip.file(path, content, at);
@@ -83,7 +83,7 @@ export async function zipParts(parts: Record<string, string>): Promise<Uint8Arra
 /** A well-formed package around one document body. */
 export async function buildDocx(
   body: string,
-  extra: Record<string, string> = {}
+  extra: Record<string, string | Uint8Array> = {}
 ): Promise<Uint8Array> {
   return zipParts({
     "[Content_Types].xml": CONTENT_TYPES,
