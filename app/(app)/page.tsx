@@ -5,11 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Body, Display, Meta, Title } from "@/components/ui/typography";
 import { RecentAnalysesCard } from "@/components/recent-analyses-card";
-
-function startOfMonthISO() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
-}
+import { limitReachedMessage, monthStartUTC, reviewAllowance } from "@/lib/review-allowance";
 
 export default async function DashboardPage() {
   const associate = await getCurrentAssociate();
@@ -17,9 +13,10 @@ export default async function DashboardPage() {
 
   const admin = createAdminClient();
 
-  const [{ count: totalCount }, { count: inProgressCount }, { count: completedThisMonth }, { count: needingDecisions }, { data: recentAnalyses }] =
+  const now = new Date();
+  const [allowance, { count: inProgressCount }, { count: completedThisMonth }, { count: needingDecisions }, { data: recentAnalyses }] =
     await Promise.all([
-      admin.from("analyses").select("id", { count: "exact", head: true }).eq("associate_id", associate.id),
+      reviewAllowance(admin, associate.id, now),
       admin
         .from("analyses")
         .select("id", { count: "exact", head: true })
@@ -30,7 +27,7 @@ export default async function DashboardPage() {
         .select("id", { count: "exact", head: true })
         .eq("associate_id", associate.id)
         .eq("status", "complete")
-        .gte("created_at", startOfMonthISO()),
+        .gte("created_at", monthStartUTC(now).toISOString()),
       // Complete reviews with at least one finding that has no decision yet.
       admin
         .from("analyses")
@@ -46,8 +43,12 @@ export default async function DashboardPage() {
         .limit(12),
     ]);
 
-  const stats = [
-    { label: "Total reviews", value: totalCount ?? 0 },
+  const stats: { label: string; value: number; note?: string }[] = [
+    {
+      label: "Reviews left this month",
+      value: allowance.remaining,
+      note: `of ${allowance.limit}, resets ${allowance.resetsOn}`,
+    },
     { label: "In progress", value: inProgressCount ?? 0 },
     { label: "Completed this month", value: completedThisMonth ?? 0 },
     { label: "Reviews needing decisions", value: needingDecisions ?? 0 },
@@ -62,7 +63,13 @@ export default async function DashboardPage() {
             Welcome back, {associate.name.split(" ")[0]}.
           </Body>
         </div>
-        <Button href="/upload">Review a new contract</Button>
+        {allowance.remaining > 0 ? (
+          <Button href="/upload">Review a new contract</Button>
+        ) : (
+          <Body as="p" className="max-w-xs text-right text-[var(--text-secondary)]">
+            {limitReachedMessage(allowance)}
+          </Body>
+        )}
       </div>
 
       {/* The 1px gap over a border-coloured background draws the dividers, whichever way the grid wraps. */}
@@ -74,6 +81,11 @@ export default async function DashboardPage() {
               <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
                 {s.label}
               </Meta>
+              {s.note && (
+                <Meta as="p" className="text-[var(--text-muted)]">
+                  {s.note}
+                </Meta>
+              )}
             </div>
           ))}
         </div>

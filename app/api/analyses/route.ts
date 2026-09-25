@@ -10,6 +10,7 @@ import { extractDocx } from "@/lib/docx";
 import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
 import { nextRoundLinkage } from "@/lib/negotiation-threads";
 import { storageSafeName } from "@/lib/storage-key";
+import { limitReachedMessage, reviewAllowance } from "@/lib/review-allowance";
 
 // Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
 // upload and saves. Render runs a long-lived server and ignores it.
@@ -28,6 +29,11 @@ export async function POST(request: Request) {
   const associate = await getCurrentAssociate();
   if (!associate) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
+
+  const allowance = await reviewAllowance(createAdminClient(), associate.id);
+  if (allowance.remaining === 0) {
+    return NextResponse.json({ error: limitReachedMessage(allowance) }, { status: 403 });
   }
 
   const formData = await request.formData();
