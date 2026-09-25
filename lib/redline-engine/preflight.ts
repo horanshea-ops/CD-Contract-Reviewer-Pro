@@ -62,6 +62,16 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
       continue;
     }
 
+    // The engine lays a change across a table row cell by cell, split on "|".
+    const cells = (f.quoted_text ?? "").split("|").filter((c) => c.trim()).length;
+    if (cells > 1 && language.split("|").length !== cells) {
+      previews.set(f.id, {
+        export_issue: `Won't go into the redline: the quote spans ${cells} table cells, but the wording isn't split to match. Use Edit to change the cells one at a time, or raise it another way.`,
+        redline_language: null,
+      });
+      continue;
+    }
+
     if (!contractText) {
       previews.set(f.id, NONE);
       continue;

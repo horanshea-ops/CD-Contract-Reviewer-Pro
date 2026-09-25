@@ -267,7 +267,8 @@ export default function FindingCard({
         </Body>
       )}
 
-      {finding.export_issue && (
+      {/* A point raised without wording says so once, in the Other section's heading. */}
+      {finding.export_issue && language.trim() && (
         <Meta as="p" className="mt-3 rounded-md bg-[var(--severity-medium-bg)] text-[var(--text-primary)] px-2.5 py-1.5">
           {finding.export_issue}
         </Meta>
