@@ -1,4 +1,5 @@
 import { assessHealth } from "./health";
+import { findPictures } from "./pictures";
 import { NumberingResolver } from "./numbering";
 import { DocxParseError, loadDocx } from "./parts";
 import { walkPart } from "./walk";
@@ -45,7 +46,10 @@ export async function extractDocx(
     parts,
     document,
     existingRevisions: summariseRevisions(parts),
-    health: assessHealth({ pkg, parts, fileSizeBytes: opts.fileSizeBytes ?? bytes.byteLength }),
+    health: {
+      ...assessHealth({ pkg, parts, fileSizeBytes: opts.fileSizeBytes ?? bytes.byteLength }),
+      pictures: findPictures(pkg.document.xml),
+    },
   };
 }
 

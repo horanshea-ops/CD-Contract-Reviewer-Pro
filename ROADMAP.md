@@ -1108,6 +1108,20 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       - Demo account: add it with `scripts/seed-test-associate.ts <email>
         <name>` (it makes the account an admin), sign in once with
         `scripts/dev-login-link.ts`, then set the password on `/account`.
+- [x] **12. Checks raised by the Rome review (2026-09-25, `965de927`, $0.36, 3m47s).**
+      A second real contract (EMEA, euros, 73k characters) found gaps the app can
+      close without the model:
+      - The AI-use check no longer stops on a product name spelled out after its
+        acronym, "RAPID! (Reservation Automated Processing …)". The §1.10.2 term
+        list is unchanged.
+      - Arithmetic checks read € and £, check two-column revenue summaries (its
+        headline total was €5,000 more than its parts), and flag a payment
+        schedule worked out on the tax-inclusive total when the contract says
+        tax-exclusive.
+      - Pictures at least 3 inches wide in the body are recorded in
+        `intake_health.pictures`. The review screen notes each one, and the model is
+        told not to infer what they hold. Rome's room block, rates included, was a
+        picture the model never saw.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft

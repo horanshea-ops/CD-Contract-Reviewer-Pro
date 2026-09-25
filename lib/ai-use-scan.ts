@@ -73,23 +73,49 @@ function excerptAround(text: string, start: number, length: number): { excerpt: 
   };
 }
 
-function scan(text: string, patterns: RegExp[]): AiUseMatch[] {
-  const matches: AiUseMatch[] = [];
+/** A match and where it starts in the scanned text. */
+interface Found {
+  match: AiUseMatch;
+  index: number;
+}
+
+function scan(text: string, patterns: RegExp[]): Found[] {
+  const matches: Found[] = [];
   for (const pattern of patterns) {
     const re = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g");
     for (const m of text.matchAll(re)) {
       if (m.index == null) continue;
       const { excerpt, matchStart, matchLength } = excerptAround(text, m.index, m[0].length);
-      matches.push({ term: m[0], excerpt, matchStart, matchLength });
+      matches.push({ match: { term: m[0], excerpt, matchStart, matchLength }, index: m.index });
     }
   }
   return matches;
 }
 
+/**
+ * Whether a match only spells out a product name, as in "RAPID! (Reservation
+ * Automated Processing Input and Delivery)": Title Case words inside
+ * parentheses that directly follow an all-caps name. The name itself is still
+ * checked against the list, so "AI (Artificial Intelligence)" matches on "AI".
+ */
+function spellsOutName(text: string, { match, index }: Found): boolean {
+  const words = match.term.split(/\s+/);
+  if (!words.every((w) => /^[A-Z][a-z]/.test(w))) return false;
+
+  const open = text.lastIndexOf("(", index);
+  const close = text.indexOf(")", index);
+  if (open === -1 || close === -1 || index - open > 80 || close - index > 120) return false;
+  if (text.slice(open, index).includes(")") || text.slice(index, close).includes("(")) return false;
+
+  return /\b[A-Z][A-Z0-9]+[!.]?\s*$/.test(text.slice(Math.max(0, open - 20), open));
+}
+
 export function scanForAiUseTerms(text: string): AiUseMatch[] {
-  return scan(text, AI_USE_TERMS);
+  return scan(text, AI_USE_TERMS)
+    .filter((found) => !spellsOutName(text, found))
+    .map((found) => found.match);
 }
 
 export function scanForAdjacentTerms(text: string): AiUseMatch[] {
-  return scan(text, ADJACENT_TERMS);
+  return scan(text, ADJACENT_TERMS).map((found) => found.match);
 }

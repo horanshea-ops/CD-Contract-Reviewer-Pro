@@ -8,6 +8,13 @@ describe("scanForAiUseTerms — false positives", () => {
     expect(scanForAiUseTerms(text)).toEqual([]);
   });
 
+  it("does not match a product name spelled out after its acronym", () => {
+    // A real hotel contract named its reservation feed this way.
+    const text =
+      "The hotel offers direct download into many reservation systems using RAPID! (Reservation Automated Processing Input and Delivery).";
+    expect(scanForAiUseTerms(text)).toEqual([]);
+  });
+
   it("does not match plain, unrelated contract language", () => {
     const text =
       "Group agrees to maintain the room block and said rate for the duration of the agreement, as stated above.";
@@ -23,6 +30,8 @@ describe("scanForAiUseTerms — true positives", () => {
     ["generative AI", "Use of generative AI tools to draft correspondence is prohibited."],
     ["generative artificial", "Use of generative artificial systems is prohibited."],
     ["automated processing", "Guest data is not subject to automated processing of any kind."],
+    ["Automated Processing in a heading", "Automated Processing (Section 4). Guest data may not be processed by automated means."],
+    ["an acronym that is itself on the list", "No Artificial Intelligence (AI) may be used to review this Agreement."],
     ["automated decision", "No automated decision may be made regarding attendee eligibility."],
     ["algorithmic", "Pricing shall not be set by algorithmic means."],
     ["AI", "No AI may be used to review this Agreement."],

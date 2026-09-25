@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkDocument } from "@/lib/document-checks";
+import { checkDocument, pictureNotes } from "@/lib/document-checks";
 import { previewFindings } from "@/lib/redline-engine/preflight";
 
 const STORAGE_BUCKET = "contracts";
@@ -93,7 +93,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // The contract text is only read here, never sent to the page.
   const { negotiation_threads, accepted_view_text, ...analysisFields } = analysis;
   const propertyName = (negotiation_threads as unknown as { property_name: string } | null)?.property_name ?? null;
-  const document_checks = analysis.status === "complete" ? checkDocument(accepted_view_text) : [];
+  const document_checks =
+    analysis.status === "complete"
+      ? [...pictureNotes((analysis.intake_health as { pictures?: { near: string }[] } | null)?.pictures), ...checkDocument(accepted_view_text)]
+      : [];
 
   return NextResponse.json({ ...analysisFields, propertyName, findings, documentUrl, document_checks });
 }

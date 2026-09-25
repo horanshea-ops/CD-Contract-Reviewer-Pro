@@ -88,3 +88,62 @@ describe("night counts", () => {
     expect(checkDocument("We will hold one (1) Garden Suite for five (5) nights beginning March 2, 2026.")).toEqual([]);
   });
 });
+
+describe("a summary table of labels and amounts", () => {
+  // Shaped like a real revenue summary whose headline total was €5,000 more
+  // than its parts. Line items there were also labelled "Total".
+  const summary = (grand: string) =>
+    [
+      "# Revenue",
+      "",
+      "| Summary of Anticipated Revenue |",
+      "| --- |",
+      "| Total Anticipated Room Revenue | €90,000.00 |",
+      "|   |   |",
+      "| Minimum Food & Beverage Revenue | € 15,000.00 |",
+      "| Total Meeting Room Rental | €6,000.00 |",
+      `| Total Anticipated Revenue, excluding taxes | ${grand} |`,
+      "| Taxes | €10,000.00 |",
+      "| Total Anticipated Revenue, including taxes | €" + (Number(grand.replace(/[€,]/g, "")) + 10000).toLocaleString("en-US") + ".00 |",
+    ].join("\n");
+
+  it("names a total that its line items don't add up to", () => {
+    expect(checkDocument(summary("€116,000.00"))).toEqual([
+      {
+        source: "check",
+        headline: "The Revenue table's totals don't add up in one place.",
+        detail: "Total Anticipated Revenue, excluding taxes adds up to 111,000 (90,000 + 15,000 + 6,000), but the table says 116,000.",
+      },
+    ]);
+  });
+
+  it("says nothing when every total adds up, including one built on the total above it", () => {
+    expect(checkDocument(summary("€111,000.00"))).toEqual([]);
+  });
+
+  it("leaves a table with several amounts per row to the row and column check", () => {
+    const schedule = ["| Notice | Rooms | Food |", "| --- | --- | --- |", "| 90 days | $5,000 | $1,000 |", "| 30 days | $9,000 | $2,000 |", "| Total due | $20,000 | $3,000 |"].join("\n");
+    expect(checkDocument(schedule).map((n) => n.detail).join(" ")).not.toContain("(");
+  });
+});
+
+describe("a payment schedule", () => {
+  const TOTALS = ["| Totals |", "| --- |", "| Total Revenue, excluding taxes | €100,000.00 |", "| Taxes | €12,000.00 |", "| Total Revenue, including taxes | €112,000.00 |"].join("\n");
+  const schedule = (first: string, second: string) =>
+    [TOTALS, "", `[20] % payable on signing\t${first}`, "", `[50] % payable 90 days before arrival\t${second}`, "", "All percentages above refer to the Total Revenue, exclusive of applicable taxes."].join("\n");
+
+  it("says when the payments are worked out on the total including tax", () => {
+    expect(checkDocument(schedule("€22,400.00", "€56,000.00"))).toEqual([
+      {
+        source: "check",
+        headline: "A payment schedule is worked out on the total including tax.",
+        detail:
+          "The payments are 20%, 50% of €112,000.00, the total including taxes, but the contract says the percentages refer to the total exclusive of tax (€100,000.00). On that total the first payment would be €20,000.00, not €22,400.00.",
+      },
+    ]);
+  });
+
+  it("says nothing when the payments use the total the contract names", () => {
+    expect(checkDocument(schedule("€20,000.00", "€50,000.00"))).toEqual([]);
+  });
+});
