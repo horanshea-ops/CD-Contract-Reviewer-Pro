@@ -7,7 +7,7 @@ import { DialogShell } from "@/components/ui/dialog-shell";
 import { Body, Meta } from "@/components/ui/typography";
 import { downloadFile } from "@/lib/download";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
-import { titleCase } from "@/lib/format";
+import { clauseLabel } from "@/lib/format";
 import { ORG } from "@/lib/org";
 
 /**
@@ -555,7 +555,7 @@ function RedlineVerdictRow({
             {verdict.unapplied.map((u, i) => (
               <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
                 <Meta as="p" className="font-medium text-[var(--text-primary)]">
-                  {titleCase(u.clause_type)}
+                  {clauseLabel(u.clause_type)}
                   <span className="ml-2 font-normal text-[var(--text-muted)]">{u.severity}</span>
                 </Meta>
                 {u.quoted_text && (
@@ -583,7 +583,7 @@ function RedlineVerdictRow({
             {verdict.widened.map((w, i) => (
               <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
                 <Meta as="p" className="font-medium text-[var(--text-primary)]">
-                  {titleCase(w.clause_type)}
+                  {clauseLabel(w.clause_type)}
                   <span className="ml-2 font-normal text-[var(--text-muted)]">{w.severity}</span>
                 </Meta>
                 <Meta as="p" className="mt-1 text-[var(--text-muted)]">
@@ -667,7 +667,7 @@ function CleanVerdictRow({
         {verdict.unplaced.map((u, i) => (
           <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
             <Meta as="p" className="font-medium text-[var(--text-primary)]">
-              {titleCase(u.clause_type)}
+              {clauseLabel(u.clause_type)}
             </Meta>
             <Meta as="p" className="mt-1 text-[var(--text-muted)]">
               {u.reason}

@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { Body, Meta } from "@/components/ui/typography";
 import { SEVERITY_STYLE } from "@/components/severity-style";
 import { SeverityToggles } from "@/components/severity-toggles";
-import { titleCase } from "@/lib/format";
+import { clauseLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 
@@ -78,7 +78,7 @@ export default function StandardsList({
     const shown = standards.filter(
       (s) =>
         !hidden.has(s.severity_default) &&
-        (!q || titleCase(s.clause_type).toLowerCase().includes(q) || s.position.toLowerCase().includes(q))
+        (!q || clauseLabel(s.clause_type).toLowerCase().includes(q) || s.position.toLowerCase().includes(q))
     );
     return SEVERITY_OPTIONS.map((severity) => ({
       severity,
@@ -241,7 +241,7 @@ function StandardItem({
         </svg>
         <div className="min-w-0 flex-1">
           <Body as="span" className="block font-medium text-[var(--text-primary)]">
-            {titleCase(standard.clause_type)}
+            {clauseLabel(standard.clause_type)}
           </Body>
           {!open && (
             <Body as="span" className="block truncate text-[var(--text-secondary)]">

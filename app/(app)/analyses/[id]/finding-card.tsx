@@ -7,7 +7,7 @@ import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/f
 import { useToast } from "@/components/ui/toast";
 import { Body, Meta, Subtitle } from "@/components/ui/typography";
 import { formatCalculation } from "@/lib/exposure";
-import { formatCurrency, titleCase } from "@/lib/format";
+import { clauseLabel, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
@@ -182,7 +182,7 @@ export default function FindingCard({
             {style.label}
           </span>
           {" · "}
-          {titleCase(finding.clause_type)}
+          {clauseLabel(finding.clause_type)}
           {section && ` · ${section}`}
           {finding.is_missing_clause && " · missing from contract"}
         </Meta>

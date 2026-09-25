@@ -1,3 +1,4 @@
+import { clauseLabel } from "./format";
 import type { RenderedLine } from "./text-to-pdf";
 import { textToPdf } from "./text-to-pdf";
 import { extractPdfLines } from "./extract-pdf-lines";
@@ -85,7 +86,8 @@ const UNENCODABLE_LETTER = /[^\x00-\xFF]/u;
 /** Page numbers are drawn by the renderer, not part of the document's content. */
 const PAGE_NUMBER = /^page\s+\d+\s+of\s+\d+$/i;
 
-const titleCase = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+// This copy can go to the property, so a finding outside CD's standards is headed neutrally.
+const clauseHeading = (s: string) => (s === "general" ? "Additional terms" : clauseLabel(s));
 
 /**
  * Reading order, not content-stream order. unpdf returns items in whatever
@@ -356,7 +358,7 @@ export function applyProposedChanges(text: string, findings: CleanContractFindin
       unplaced.push({
         clause_type: p.finding.clause_type,
         language: p.finding.language,
-        reason: `The quoted wording overlaps the text already replaced for ${titleCase(prev.finding.clause_type)}.`,
+        reason: `The quoted wording overlaps the text already replaced for ${clauseHeading(prev.finding.clause_type)}.`,
       });
     } else {
       kept.push(p);
@@ -384,7 +386,7 @@ export function buildCleanContractText(result: SubstitutionResult): string {
 
   if (result.additions.length) {
     out += `\n\n${ADDITIONS_HEADING}\n\n`;
-    out += result.additions.map((a) => `${titleCase(a.clause_type)}\n${a.language}`).join("\n\n");
+    out += result.additions.map((a) => `${clauseHeading(a.clause_type)}\n${a.language}`).join("\n\n");
   }
 
   if (result.unplaced.length) {
@@ -394,7 +396,7 @@ export function buildCleanContractText(result: SubstitutionResult): string {
     // before the download; the reasons differ per item and would read as a
     // report on our own tooling if printed in a contract.
     out += "The following changes are also proposed. The wording above is unchanged for these items.\n\n";
-    out += result.unplaced.map((u) => `${titleCase(u.clause_type)}\n${u.language}`).join("\n\n");
+    out += result.unplaced.map((u) => `${clauseHeading(u.clause_type)}\n${u.language}`).join("\n\n");
   }
 
   return out;
@@ -467,7 +469,7 @@ export async function checkContentConservation({
   // 2. Every change that reported as applied is actually in the text.
   for (const f of applied) {
     if (!norm(intendedText).includes(norm(f.language))) {
-      problems.push(`The proposed language for ${titleCase(f.clause_type)} is not present in the output.`);
+      problems.push(`The proposed language for ${clauseHeading(f.clause_type)} is not present in the output.`);
     }
   }
 
