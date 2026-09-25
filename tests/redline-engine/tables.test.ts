@@ -122,10 +122,13 @@ describe("a change inside one cell", () => {
 
 describe("real fixtures with tables", () => {
   it("handles a nested, merged-cell table without the oracle objecting", async () => {
+    // The quote runs across two cells and leaves out the "|" between them, and
+    // so does the proposal. Each change sits inside one cell, so it goes in.
     const bytes = new Uint8Array(await readFile(path.join("tests", "fixtures", "13-nested-merged-tables.docx")));
-    const { report } = await redline(bytes, [
+    const { result, report } = await redline(bytes, [
       finding({ quoted_text: "Tier A fifty percent (50%)", language: "Tier A twenty-five percent (25%)" }),
     ]);
+    expect(result.appliedCount).toBe(1);
     expect(report.checks.filter((c) => !c.passed)).toEqual([]);
   });
 

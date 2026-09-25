@@ -209,11 +209,14 @@ need not.
       existed only to exercise it; Stage 0's findings stay in
       `docs/live-engine-validation.md`. 227 tests, 300 randomised documents, lint and
       typecheck clean.
-      *Open, for a follow-up*: a table quote that omits the extractor's `|` separators
-      lands just under the 0.95 fuzzy threshold and is reported as not located
-      (`13-nested-merged-tables.docx`). §1.4's live check showed the model does include
-      them, so this is a narrow case — but tables are where the money is, and matching
-      against a pipe-stripped projection would close it.
+      *Closed 2026-09-24:* a table quote that omits the extractor's `|` separators
+      used to land just under the 0.95 fuzzy threshold (`13-nested-merged-tables.docx`).
+      `locateQuote` now tries a pass with the separators set aside, and a proposal
+      written without them is laid out across the cells by `splitAcrossCells`, which
+      refuses rather than guesses when a change crosses a cell boundary. The card's
+      warning uses the same split. A replay of 361 real quotes (two eval runs, four
+      Florida runs) found none that had failed this way, and every one locates exactly
+      as before, so this guards a failure not yet seen in real output.
 
 - [x] **§1.7 PDF path, §1.10 AI-use pre-check, §1.9 multi-round hooks
       (2026-09-08).** Logged together; each is self-contained and shipped without
