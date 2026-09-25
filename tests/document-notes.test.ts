@@ -43,9 +43,9 @@ describe("toNotes", () => {
     ]);
   });
 
-  it("reads a list stored as a JSON string, keeps at most five, and drops empty items", () => {
-    const many = Array.from({ length: 7 }, (_, i) => ({ headline: `Note ${i + 1}.`, detail: "" }));
-    expect(toNotes(JSON.stringify([{ headline: "  ", detail: "x" }, ...many]))).toHaveLength(5);
+  it("reads a list stored as a JSON string, keeps every note, and drops empty items", () => {
+    const many = Array.from({ length: 10 }, (_, i) => ({ headline: `Note ${i + 1}.`, detail: "" }));
+    expect(toNotes(JSON.stringify([{ headline: "  ", detail: "x" }, ...many]))).toHaveLength(10);
   });
 
   it("gives nothing for nothing", () => {

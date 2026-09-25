@@ -13,7 +13,6 @@ export interface DocumentNote {
   detail: string;
 }
 
-const MAX_NOTES = 5;
 const MAX_DETAIL_SENTENCES = 2;
 const MAX_HEADLINE_WORDS = 20;
 
@@ -62,6 +61,5 @@ export function toNotes(value: unknown): DocumentNote[] {
   const list = Array.isArray(items) ? items : [items];
   return list
     .map(fromItem)
-    .filter((n): n is DocumentNote => n !== null)
-    .slice(0, MAX_NOTES);
+    .filter((n): n is DocumentNote => n !== null);
 }

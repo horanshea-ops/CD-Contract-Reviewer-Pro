@@ -53,6 +53,8 @@ export interface AnalysisResult {
   output_tokens: number;
   cache_read_input_tokens: number;
   cache_creation_input_tokens: number;
+  /** Characters of thinking the model wrote before its answer. Thinking is billed as output. Absent on older runs. */
+  thinking_chars?: number;
 }
 
 const FINDINGS_TOOL_NAME = "record_analysis";
@@ -133,9 +135,8 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
       },
       document_notes: {
         type: "array",
-        maxItems: 5,
         description:
-          "Up to five notes about the document itself that the reviewer needs: a place it contradicts itself that you can quote on both sides, a missing exhibit, an unreadable part. Nothing the findings already say, and no table totals or night counts, which the reviewer's tool checks itself.",
+          "Notes about the document itself that the reviewer needs: a place it contradicts itself that you can quote on both sides, a missing exhibit, an unreadable part. Nothing the findings already say, and no table totals or night counts, which the reviewer's tool checks itself.",
         items: {
           type: "object",
           properties: {
@@ -194,8 +195,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
       },
       other_findings: {
         type: "array",
-        maxItems: 6,
-        description: `Up to six terms no clause type in the standards library covers that still shift cost, liability or control onto the group, the most consequential first. Nothing a finding or document note already says.`,
+        description: `Every term no clause type in the standards library covers that still shifts cost, liability or control onto the group, the most consequential first. Nothing a finding or document note already says.`,
         items: {
           type: "object",
           properties: {
@@ -246,12 +246,15 @@ Rules:
 - proposed_language replaces everything in quoted_text and nothing else. Repeat word for word any quoted wording that should stay, and leave out only what should go. The reviewer's redline marks only the words that differ, so repeated wording costs nothing, while wording you leave out is struck from the contract.
 - proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Take every figure in it from the standards library or this contract, or work it out from them. If the wording needs a figure that neither gives, write [X] in its place rather than inventing one, and the reviewer will fill it in.
 - A finding that changes wording already in the contract quotes that wording. is_missing_clause is true only when the contract has no wording on the clause at all.
+- Read the closing and general paragraphs, such as "Other Provisions" or "Miscellaneous", as closely as the named clauses. One sentence there can undo a protection the contract gives elsewhere.
+- ${firm} is the group's agent on this booking. A promise by the group that it used no meeting planner, agent or finder, or owes no one a commission or finder's fee, conflicts with ${firm}'s commission unless it names ${firm} as the exception. Record it as a commission finding that quotes that sentence, with wording that adds ${firm} as the exception.
+- Where concessions such as complimentary or discounted rooms, suites, upgrades or credits depend on the group reaching a pickup level, compare that level with the attrition terms. A group that falls short would pay attrition and lose the concessions for the same shortfall. Record it as a rebates finding quoting the condition, with wording that removes it.
 - Keep every protection the quoted wording already gives the group, such as a refund, a credit or a termination right, unless the standard replaces it with something at least as good.
 - Where the contract sets out a schedule, such as cancellation fees by date, keep the schedule and move each tier to the standard's basis. Never replace a schedule with one flat figure. Where the schedule's figures sit in a table, record a finding for each table cell that changes, quoting that cell, with the new figure worked out. Once your changes are made, the wording that introduces a schedule and every figure in it must agree.
 - Before recording a proposal, compare it with the contract at every tier, date and amount. It must never cost the group more than the contract does in any case.
 - Work out every threshold in room nights or dollars, for both the contract and your proposal, measured the way the standard measures it. An attrition trigger is measured against the whole room block, not against a minimum the contract already sets below the block. Never propose a threshold that goes further than the standard asks.
 - In document_notes, name each place the contract contradicts itself, such as two different dates for the same event. Record one only when you can quote both sides, and check any arithmetic before calling a figure wrong. The reviewer's tool checks table totals and night counts itself, so leave those out.
-- After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group: for example, a default under any other agreement that lets the hotel end this one, a damages waiver that protects only the hotel, a right to demand prepayment on the hotel's own judgment, or a duty to answer for a third party's acts. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
+- After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group: for example, a default under any other agreement that lets the hotel end this one, a damages waiver that protects only the hotel, a right to demand prepayment on the hotel's own judgment, a duty to answer for a third party's acts, or a right to end the agreement over a minor or technical breach, such as using the hotel's name or logo without approval. Read to the end of the contract before deciding what to record. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
 - Record the contract's figures in deal_figures, each with the words it comes from. Write percentages as they appear, 80 for 80%. Quote words that state the figure itself, since the reviewer's tool checks every figure against its quote and works out every dollar exposure from them. Leave a figure null when the contract doesn't state it; never work one out.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
@@ -327,6 +330,9 @@ function describeField(value: unknown): string {
  *  would likely be cut off, so the run fails with a clear error instead. */
 const MIN_RETRY_MS = 120_000;
 
+/** An answer cut off at the output limit. Retrying would be cut off the same way, so it isn't. */
+class CutOffError extends Error {}
+
 export async function analyzeContract({
   document,
   standards,
@@ -364,8 +370,9 @@ export async function analyzeContract({
       model: modelId,
 
       // Each finding carries full replacement language, and clause_review adds
-      // a line per clause type, so output grows with the library.
-      max_tokens: 32000,
+      // a line per clause type, so output grows with the library. The deadline
+      // stops a long review well before this does.
+      max_tokens: 64000,
 
       system: buildSystemPrompt(standards, standardsVersion, org),
       tools: [findingsToolSchema(org)],
@@ -376,6 +383,13 @@ export async function analyzeContract({
     // The SDK's own retries don't know about the deadline, so they're off
     // whenever there is one. The retry below does the same job within it.
     timeout === undefined ? { timeout: 600_000 } : { timeout, maxRetries: 0 });
+
+    if (response.stop_reason === "max_tokens") {
+      throw new CutOffError(
+        `The review ran past the model's output limit and was cut off (${response.usage.output_tokens} tokens). ` +
+          `It wasn't retried, because a retry would be cut off the same way.`
+      );
+    }
 
     const toolUseBlock = response.content.find(
       (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
@@ -425,12 +439,14 @@ export async function analyzeContract({
       output_tokens: usage.output_tokens,
       cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+      thinking_chars: response.content.reduce((sum, block) => sum + (block.type === "thinking" ? block.thinking.length : 0), 0),
     };
   }
 
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof CutOffError) throw err;
     const left = remaining();
     if (left !== undefined && left < MIN_RETRY_MS) {
       const reason = err instanceof Error ? err.message : String(err);

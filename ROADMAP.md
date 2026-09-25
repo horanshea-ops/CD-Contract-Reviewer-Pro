@@ -934,6 +934,19 @@ the words that change, with new wording before struck wording.
     - **Next check (paid, not approved):** `eval:capture --only
       eval-01-harborview.docx,eval-10-crossroads.docx` on `prompt/combined-run`, about
       $0.60. Merge the combined branch once quotes place again.
+    - **Florida misses, prompt rules added 2026-09-24 (unmeasured).** Four Florida runs
+      all missed three terms, so the combined branch now carries rules for them:
+      - a no-finder promise, which conflicts with CD's commission
+      - a termination right over unapproved logo use, as an Other finding
+      - concessions that depend on the same 80% pickup as the attrition minimum, as a
+        rebates finding
+
+      A rule also says to read the closing boilerplate as closely as the named
+      clauses. Other findings and document notes no longer have a count limit.
+      `max_tokens` is 64,000, since the last Florida run used 28,859 of 32,000. A cut-off
+      answer now fails without a second paid attempt, and `token_usage.thinking_chars`
+      records how much output went to thinking. The next Florida run (about $0.40) is
+      the check.
     - **Monarch's first attempt came back unreadable** after 23k output tokens and cost
       a retry. A list sent as text is now decoded instead of retried, and the error
       names what each field held.

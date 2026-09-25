@@ -207,6 +207,29 @@ describe("the analysis system prompt", () => {
       expect(text).toContain("Propose no wording for them");
     });
 
+    it("reads the closing boilerplate as closely as the named clauses", () => {
+      // The no-finder promise and the logo termination right both sat there, and four runs missed them.
+      expect(prompt()).toContain('Read the closing and general paragraphs, such as "Other Provisions" or "Miscellaneous"');
+    });
+
+    it("treats a no-finder promise as a threat to the firm's commission", () => {
+      const text = prompt();
+      expect(text).toContain("used no meeting planner, agent or finder");
+      expect(text).toContain("Record it as a commission finding that quotes that sentence");
+    });
+
+    it("compares a pickup condition on concessions with the attrition terms", () => {
+      const text = prompt();
+      expect(text).toContain("depend on the group reaching a pickup level, compare that level with the attrition terms");
+      expect(text).toContain("Record it as a rebates finding quoting the condition");
+    });
+
+    it("names a termination right over a minor breach as a term outside the library, read to the end", () => {
+      const text = prompt();
+      expect(text).toContain("a right to end the agreement over a minor or technical breach");
+      expect(text).toContain("Read to the end of the contract before deciding what to record");
+    });
+
     it("takes figures from the library or the contract, and leaves a blank rather than inventing one", () => {
       // A blank stops the redline, which tells the associate to fill it. An
       // invented figure would reach the property unnoticed.

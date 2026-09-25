@@ -126,6 +126,21 @@ describe("analyzeContract's tool output", () => {
     expect(create).toHaveBeenCalledTimes(2);
   });
 
+  it("fails an answer cut off at the output limit without paying for a second review", async () => {
+    create.mockResolvedValueOnce({ ...response({ findings: "[{", clause_review: [] }), stop_reason: "max_tokens" });
+    await expect(run()).rejects.toThrow(/cut off \(23108 tokens\)\. It wasn't retried/);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("measures the thinking written before the answer, since it is billed as output", async () => {
+    const answer = response({ findings: [], clause_review: [], document_notes: [] });
+    create.mockResolvedValueOnce({
+      ...answer,
+      content: [{ type: "thinking", thinking: "Check attrition first.", signature: "sig" }, ...answer.content],
+    });
+    expect((await run()).thinking_chars).toBe("Check attrition first.".length);
+  });
+
   it("reports a missing field as absent", async () => {
     const broken = response({ clause_review: [] });
     create.mockResolvedValueOnce(broken).mockResolvedValueOnce(broken);

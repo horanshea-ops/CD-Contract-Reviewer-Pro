@@ -35,9 +35,9 @@ describe("toOtherFindings", () => {
     ]);
   });
 
-  it("drops an item with no headline or no quote, and keeps at most six", () => {
-    const items = [{ ...CROSS_DEFAULT, quoted_text: " " }, { ...CROSS_DEFAULT, headline: "" }, ...Array(8).fill(CROSS_DEFAULT)];
-    expect(toOtherFindings(items, "CD")).toHaveLength(6);
+  it("drops an item with no headline or no quote, and keeps every other", () => {
+    const items = [{ ...CROSS_DEFAULT, quoted_text: " " }, { ...CROSS_DEFAULT, headline: "" }, ...Array(10).fill(CROSS_DEFAULT)];
+    expect(toOtherFindings(items, "CD")).toHaveLength(10);
   });
 
   it("gives nothing for anything that isn't a list", () => {
