@@ -78,9 +78,25 @@ describe("previewFindings", () => {
   it("says a change across a table row won't go in unless its wording is split to match the cells", () => {
     const row = "| 90 Days or Less | $50,000.00 | $20,000.00 |";
     expect(preview(finding({ quoted_text: row, language: "Fees are seventy percent of room profit at every tier." }))?.export_issue).toBe(
-      "Won't go into the redline: the quote spans 3 table cells, but the wording isn't split to match. Use Edit to change the cells one at a time, or raise it another way."
+      "Won't go into the redline: the quote spans 3 table cells, and the wording can't be laid out across them. Use Edit to change the cells one at a time, or raise it another way."
     );
     expect(preview(finding({ quoted_text: row, language: "90 Days or Less | $35,000.00 | $20,000.00" }))?.export_issue).toBeNull();
+  });
+
+  describe("a quote that runs across table cells without the separators", () => {
+    const TABLE = `Cancellation fees:\n\n| Notice | Room fee | Food fee |\n| --- | --- | --- |\n| 90 Days or Less | $50,000.00 | $20,000.00 |\n`;
+    const quote = "90 Days or Less $50,000.00";
+
+    it("says nothing when each change sits inside one cell", () => {
+      expect(preview(finding({ quoted_text: quote, language: "90 Days or Less $35,000.00" }), TABLE)?.export_issue).toBeNull();
+    });
+
+    it("warns when the wording can't be laid out across the cells", () => {
+      expect(
+        preview(finding({ quoted_text: quote, language: "Fees are seventy percent of room profit at every tier." }), TABLE)
+          ?.export_issue
+      ).toMatch(/^Won't go into the redline: the quote spans 2 table cells/);
+    });
   });
 
   it("says nothing about a clean change", () => {

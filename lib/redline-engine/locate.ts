@@ -17,8 +17,9 @@ import type { LocateResult, LocatedSpan } from "./types";
  * Finding the wording a model quoted, in the document (MASTER_PLAN.md §1.5.1).
  *
  * Three tiers, tried in order, and the tier is recorded so a weak match is
- * visible rather than assumed: exact, then whitespace- and case-insensitive,
- * then fuzzy at a similarity of 0.95 or better.
+ * visible rather than assumed: exact, then whitespace- and case-insensitive
+ * (with table separators ignored as a last resort), then fuzzy at a
+ * similarity of 0.95 or better.
  *
  * **The model is never asked where the text is.** Models are unreliable at
  * counting characters; matching here is deterministic and free.
@@ -48,16 +49,17 @@ interface Projection {
  *
  * Matching has to tolerate a model rewrapping a quote across lines, but the
  * offsets handed to the rest of the engine must point into the real text, so
- * every projected character remembers where it came from.
+ * every projected character remembers where it came from. With `skipPipes`,
+ * the "|" that separates table cells counts as whitespace too.
  */
-function project(text: string): Projection {
+function project(text: string, skipPipes = false): Projection {
   let out = "";
   const origin: number[] = [];
   let inWhitespace = false;
 
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    if (/\s/.test(ch)) {
+    if (/\s/.test(ch) || (skipPipes && ch === "|")) {
       if (!inWhitespace && out.length > 0) {
         out += " ";
         origin.push(i);
@@ -249,6 +251,26 @@ export function locateQuote(
   }
   const normalizedResult = decide(normalized, locationSection, "normalized");
   if (normalizedResult) return normalizedResult;
+
+  // Still tier 2, with table separators set aside as well. The "|" between
+  // cells is our layout rather than the contract's, and a quote that runs
+  // across cells may leave it out.
+  const acrossCells: Candidate[] = [];
+  const cellQuote = project(normalizeText(raw), true).text;
+  for (const part of parts) {
+    if (!part.text.includes("|")) continue;
+    const projection = project(part.text, true);
+    for (const at of allOccurrences(projection.text, cellQuote)) {
+      acrossCells.push({
+        part: part.part,
+        ...toOriginalRange(projection, at, cellQuote.length),
+        similarity: 1,
+        text: part.text,
+      });
+    }
+  }
+  const acrossCellsResult = decide(acrossCells, locationSection, "normalized");
+  if (acrossCellsResult) return acrossCellsResult;
 
   // Tier 3 — fuzzy, for a quote the model reworded slightly.
   const fuzzy: Candidate[] = [];
