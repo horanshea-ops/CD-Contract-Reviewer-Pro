@@ -35,9 +35,9 @@ const response = (input: Record<string, unknown>) => ({
   usage: { input_tokens: 0, output_tokens: 23_108 },
 });
 
-const run = () =>
+const run = (text = "CONTRACT BODY") =>
   analyzeContract({
-    document: { kind: "text", text: "CONTRACT BODY" },
+    document: { kind: "text", text },
     standards: STANDARDS_LIBRARY,
     standardsVersion: STANDARDS_LIBRARY_VERSION,
   });
@@ -58,16 +58,37 @@ describe("analyzeContract's tool output", () => {
     expect(result.findings).toEqual([{ ...FINDING, exposure_formula: null }]);
   });
 
-  it("works the exposure figure out from its formula, and notes arrive as short items", async () => {
+  it("works exposure figures out from the contract's checked figures, and notes arrive as short items", async () => {
+    const contract = [
+      "The Room Block totals 2,850 room nights.",
+      "Run of House: $149.00 per night.",
+      "You agree that you will use at least 2,280 room nights (the \"Minimum Number of Room Nights\").",
+      "The fee is the shortfall, times the Group Room Rate, times 80%.",
+    ].join("\n");
+    const figure = (value: number, quoted_text: string) => ({ value, quoted_text });
     create.mockResolvedValueOnce(
       response({
+        // The model's own figure is ignored; only the app's calculation reaches the finding.
         findings: [{ ...FINDING, exposure_amount: 91200, exposure_formula: "2280 * 149 * 0.10" }],
         clause_review: [{ clause_type: "attrition", verdict: "falls_short", basis: "Threshold is 90%." }],
         document_notes: [{ headline: "Meeting dates disagree. One table says 2010.", detail: "Everything else says 2015." }],
+        other_findings: [],
+        deal_figures: {
+          room_block_room_nights: figure(2850, "The Room Block totals 2,850 room nights."),
+          group_rate_usd: figure(149, "Run of House: $149.00 per night."),
+          minimum_room_nights: figure(2280, "at least 2,280 room nights"),
+          attrition_threshold_pct: null,
+          // A quote that states a different figure is dropped, so no exposure rests on it.
+          attrition_damages_pct: figure(80, "times the Group Room Rate, times 80%"),
+          cancellation_tiers: [],
+          fb_minimum_usd: figure(100000, "a $50,000 minimum"),
+          fb_shortfall_pct: null,
+        },
       })
     );
-    const result = await run();
-    expect(result.findings[0]).toMatchObject({ exposure_amount: 33972, exposure_formula: "2280 * 149 * 0.10" });
+    const result = await run(contract);
+    expect(result.findings[0]).toMatchObject({ exposure_amount: 33972, exposure_formula: "(2280 - 1995) * $149 * 0.8" });
+    expect(result.deal_figures).toMatchObject({ minimum_room_nights: 2280, attrition_damages_pct: 0.8, fb_minimum_usd: null });
     expect(result.document_notes).toEqual([
       { headline: "Meeting dates disagree.", detail: "One table says 2010. Everything else says 2015." },
     ]);
