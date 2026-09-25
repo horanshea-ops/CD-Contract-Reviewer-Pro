@@ -48,6 +48,24 @@ describe("computing a review's overview stats", () => {
     expect(overview.totalExposure).toBe(0);
   });
 
+  // With no figure anywhere, a total of zero would claim nothing is at stake.
+  it("reports no exposure when no finding has a figure", () => {
+    const overview = computeFindingsOverview([finding(), finding({ current_action: { action: "accept" } })]);
+    expect(overview.hasExposure).toBe(false);
+  });
+
+  it("reports exposure when one finding has a figure", () => {
+    const overview = computeFindingsOverview([finding(), finding({ exposure_amount: 2_500 })]);
+    expect(overview.hasExposure).toBe(true);
+    expect(overview.totalExposure).toBe(2_500);
+  });
+
+  it("keeps the total when the only figure was dismissed", () => {
+    const overview = computeFindingsOverview([finding({ exposure_amount: 8_000, current_action: { action: "dismiss" } })]);
+    expect(overview.hasExposure).toBe(true);
+    expect(overview.totalExposure).toBe(0);
+  });
+
   it("handles an empty review", () => {
     const overview = computeFindingsOverview([]);
     expect(overview).toEqual({
@@ -57,6 +75,7 @@ describe("computing a review's overview stats", () => {
       includedCount: 0,
       dismissedCount: 0,
       totalExposure: 0,
+      hasExposure: false,
     });
   });
 });

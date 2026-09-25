@@ -24,6 +24,8 @@ export interface FindingsOverview {
   includedCount: number;
   dismissedCount: number;
   totalExposure: number;
+  /** True when any finding carries a figure, dismissed or not. */
+  hasExposure: boolean;
 }
 
 export function computeFindingsOverview(findings: FindingLike[]): FindingsOverview {
@@ -51,5 +53,6 @@ export function computeFindingsOverview(findings: FindingLike[]): FindingsOvervi
     }
   }
 
-  return { total: findings.length, bySeverity, undecidedCount, includedCount, dismissedCount, totalExposure };
+  const hasExposure = findings.some((f) => f.exposure_amount != null);
+  return { total: findings.length, bySeverity, undecidedCount, includedCount, dismissedCount, totalExposure, hasExposure };
 }
