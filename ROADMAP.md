@@ -1011,6 +1011,10 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       (`scripts/copy-pdf-worker.mjs`) runs in Render's build. Supersedes the
       Vercel-Pro note elsewhere in this file — see the 2026-09-19 hosting audit.
       Node is pinned to 24 in `.node-version`, which Render and CI both read.
+      Checked locally on 2026-09-25 on `prompt/combined-run` (39898ce):
+      `npm run build` passes with no warnings, and `npm start` served sign-in,
+      the dashboard, upload, account, standards, a DOCX and a PDF review, and
+      all four exports with no server errors.
 - [ ] **2. Starter tier ($7/mo), not Free.** Free spins down after 15 minutes
       idle with a 30-60s cold-start wake on the next request — a real risk if
       the app is opened cold in front of the client.
@@ -1132,6 +1136,17 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
           `group_rate` and `fb_minimum` as written, the checker reads €/£/$ amounts,
           and the card, the total and the client email show the right symbol. Rome's
           F&B gap works out to €13,000 by hand.
+      - Still to do:
+        - [ ] Check dates against the event dates in code, as the night-count
+              check does: the function schedule, the cutoff's "major arrival
+              day" and the room-night dates against arrival and departure.
+              Rome's functions run to 04/10 on an event ending 02/10, and its
+              cutoff names 28 September against a 26 September arrival.
+        - [ ] Send large pictures, such as Rome's room-block table, to the
+              model with the text, so attrition and cancellation can get
+              figures. About $0.003 a picture. Building and testing it is free;
+              checking that the model reads the table right takes one paid Rome
+              run (about $0.36).
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft

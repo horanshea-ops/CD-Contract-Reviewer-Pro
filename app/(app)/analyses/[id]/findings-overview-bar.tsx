@@ -9,8 +9,9 @@ import { SeverityToggles } from "@/components/severity-toggles";
 /**
  * Sticky strip above the findings list — severity counts doubling as filter
  * toggles, the undecided count, a hide-decided toggle, and the review's total
- * exposure. Counts always reflect the whole review, not the active filter,
- * so they read as an honest total rather than a live filter readout.
+ * exposure when any finding has a figure. Counts always reflect the whole
+ * review, not the active filter, so they read as an honest total rather than
+ * a live filter readout.
  */
 export default function FindingsOverviewBar({
   overview,
@@ -47,12 +48,14 @@ export default function FindingsOverviewBar({
         Hide decided
       </label>
 
-      <Body as="span" className="font-medium text-[var(--text-primary)] ml-auto">
-        {formatCurrency(overview.totalExposure, overview.exposureCurrency)}
-        <Meta as="span" className="font-normal text-[var(--text-secondary)] ml-1.5">
-          exposure on the table
-        </Meta>
-      </Body>
+      {overview.hasExposure && (
+        <Body as="span" className="font-medium text-[var(--text-primary)] ml-auto">
+          {formatCurrency(overview.totalExposure, overview.exposureCurrency)}
+          <Meta as="span" className="font-normal text-[var(--text-secondary)] ml-1.5">
+            exposure on the table
+          </Meta>
+        </Body>
+      )}
 
       {filtersActive && (
         <button type="button" onClick={clearFilters} className="text-xs text-[var(--cd-navy)] hover:underline">
