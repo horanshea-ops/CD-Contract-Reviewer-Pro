@@ -163,6 +163,8 @@ export async function processAnalysis(analysisId: string) {
       standards: standards.entries,
       standardsVersion: standards.version,
       deadline,
+      // A PDF reaches the model as a file, so its figures are checked against the text read from it.
+      contractText: scanText ?? undefined,
     });
 
     if (result.findings.length > 0) {

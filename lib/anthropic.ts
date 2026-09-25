@@ -6,6 +6,8 @@ import { ORG, type OrgProfile } from "./org";
 import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap } from "./analysis-review";
 import { toNotes, type DocumentNote } from "./document-notes";
 import { toOtherFindings } from "./other-findings";
+import { checkFigures, type DealFigures } from "./exposures/figures";
+import { withComputedExposures } from "./exposures/compute";
 import { formatCurrency } from "./format";
 import type { TermCatalog, TermDefinition } from "./terms/types";
 
@@ -43,6 +45,8 @@ export interface AnalysisResult {
   review_gaps: ReviewGap[];
   dropped_findings: DroppedFinding[];
   document_notes: DocumentNote[];
+  /** The contract's figures the app checked and computed exposures from. Absent on runs captured before them. */
+  deal_figures?: DealFigures;
   model_id: string;
   standards_library_version: string;
   input_tokens: number;
@@ -52,6 +56,17 @@ export interface AnalysisResult {
 }
 
 const FINDINGS_TOOL_NAME = "record_analysis";
+
+/** One figure from the contract and the words that state it. */
+const figure = (description: string) => ({
+  type: ["object", "null"],
+  description,
+  properties: {
+    value: { type: "number", description: "The figure as written: 2280 for 2,280, 149 for $149.00, 80 for 80%." },
+    quoted_text: { type: "string", description: "Words copied exactly from the contract that state this figure." },
+  },
+  required: ["value", "quoted_text"],
+});
 
 export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) => ({
   name: FINDINGS_TOOL_NAME,
@@ -89,20 +104,6 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
               type: ["string", "null"],
               description:
                 "One unbroken span copied exactly from a single paragraph of the contract: only the whole sentences being changed, or one whole table cell or list item. Null only if is_missing_clause is true.",
-            },
-            exposure_amount: {
-              type: ["number", "null"],
-              description: "Dollar exposure if calculable. Null if not quantifiable — never invent a number.",
-            },
-            exposure_formula: {
-              type: ["string", "null"],
-              description:
-                "The arithmetic behind exposure_amount, using only numbers from the contract and + - * / ( ). Write percentages as decimals. Example: 2280 * 149 * 0.10. Null when exposure_amount is null.",
-            },
-            exposure_basis: {
-              type: ["string", "null"],
-              description:
-                "One short sentence naming what the numbers in exposure_formula are, such as \"the 10-point attrition gap on 2,280 room nights at $149.\" No arithmetic.",
             },
             headline: {
               type: "string",
@@ -144,6 +145,53 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           required: ["headline", "detail"],
         },
       },
+      deal_figures: {
+        type: "object",
+        description:
+          "The contract's own figures, each with the words it comes from, for the reviewer's tool to work out dollar exposures. Null for any figure the contract doesn't state.",
+        properties: {
+          room_block_room_nights: figure("Total room nights in the room block, as the contract totals them."),
+          group_rate_usd: figure("The main group room rate per night, in dollars."),
+          minimum_room_nights: figure("The room nights the group commits to use before attrition damages apply."),
+          attrition_threshold_pct: figure("Where the contract states the commitment as a share of the block instead: that percentage."),
+          attrition_damages_pct: figure("The percentage of the room rate owed for each room night short of the commitment."),
+          cancellation_tiers: {
+            type: "array",
+            description: "Every tier of the room cancellation schedule.",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string", description: "The tier as the contract names it, such as \"90 Days or Less\"." },
+                room_pct: { type: "number", description: "The tier's room cancellation percentage, as written: 90 for 90%." },
+                base: {
+                  type: "string",
+                  enum: ["minimum_room_nights", "room_block", "other"],
+                  description: "Which room nights the percentage applies to.",
+                },
+                charges: {
+                  type: "string",
+                  enum: ["rate", "room_profit"],
+                  description: "Whether the percentage is of the full room rate or of room profit.",
+                },
+                quoted_text: { type: "string", description: "The contract's words for this tier, stating its percentage." },
+              },
+              required: ["label", "room_pct", "base", "charges", "quoted_text"],
+            },
+          },
+          fb_minimum_usd: figure("The food and beverage minimum the group commits to spend, in dollars."),
+          fb_shortfall_pct: figure("The percentage of a food and beverage shortfall the group owes. Null when the contract states none."),
+        },
+        required: [
+          "room_block_room_nights",
+          "group_rate_usd",
+          "minimum_room_nights",
+          "attrition_threshold_pct",
+          "attrition_damages_pct",
+          "cancellation_tiers",
+          "fb_minimum_usd",
+          "fb_shortfall_pct",
+        ],
+      },
       other_findings: {
         type: "array",
         maxItems: 6,
@@ -168,7 +216,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         },
       },
     },
-    required: ["clause_review", "findings", "document_notes", "other_findings"],
+    required: ["clause_review", "findings", "document_notes", "other_findings", "deal_figures"],
   },
 });
 
@@ -195,7 +243,6 @@ Rules:
 - headline is the one line a reviewer reads first: at most about 12 words, saying what is wrong in plain terms. Don't repeat the clause name, and don't use a figure the finding doesn't state. finding_text carries the full reasoning.
 - quoted_text must be copied verbatim from the contract — do not paraphrase it. Quote only the sentences your proposal changes, each one whole, starting where a sentence starts and ending where it ends, or quote one whole table cell or list item. A quote is one unbroken stretch of a single paragraph. Never join sentences that are not next to each other, never run a quote into the next paragraph, and never shorten a quote with "..." or "…". If a clause needs changes in places that are apart, record a separate finding for each place. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
-- exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
 - proposed_language replaces everything in quoted_text and nothing else. Repeat word for word any quoted wording that should stay, and leave out only what should go. The reviewer's redline marks only the words that differ, so repeated wording costs nothing, while wording you leave out is struck from the contract.
 - proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Take every figure in it from the standards library or this contract, or work it out from them. If the wording needs a figure that neither gives, write [X] in its place rather than inventing one, and the reviewer will fill it in.
 - A finding that changes wording already in the contract quotes that wording. is_missing_clause is true only when the contract has no wording on the clause at all.
@@ -205,7 +252,7 @@ Rules:
 - Work out every threshold in room nights or dollars, for both the contract and your proposal, measured the way the standard measures it. An attrition trigger is measured against the whole room block, not against a minimum the contract already sets below the block. Never propose a threshold that goes further than the standard asks.
 - In document_notes, name each place the contract contradicts itself, such as two different dates for the same event. Record one only when you can quote both sides, and check any arithmetic before calling a figure wrong. The reviewer's tool checks table totals and night counts itself, so leave those out.
 - After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group: for example, a default under any other agreement that lets the hotel end this one, a damages waiver that protects only the hotel, a right to demand prepayment on the hotel's own judgment, or a duty to answer for a third party's acts. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
-- Give every exposure_amount its exposure_formula: the arithmetic that produces it, using only the contract's numbers. The reviewer's tool works the figure out from the formula, and shows no figure without one. exposure_basis is one short sentence naming what those numbers are.
+- Record the contract's figures in deal_figures, each with the words it comes from. Write percentages as they appear, 80 for 80%. Quote words that state the figure itself, since the reviewer's tool checks every figure against its quote and works out every dollar exposure from them. Leave a figure null when the contract doesn't state it; never work one out.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
@@ -248,6 +295,8 @@ export interface AnalyzeContractPdfArgs {
   /** Epoch ms by which the review must finish. Each attempt stops there, and
    *  the retry is skipped when too little time is left for it. */
   deadline?: number;
+  /** The contract as text, for checking the figures the model quotes. Defaults to a text document's own text. */
+  contractText?: string;
 }
 
 /**
@@ -286,6 +335,7 @@ export async function analyzeContract({
   model,
   org = ORG,
   deadline,
+  contractText,
 }: AnalyzeContractPdfArgs): Promise<AnalysisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -341,6 +391,9 @@ export async function analyzeContract({
       findings: listField<Finding>(input.findings),
       document_notes: toNotes(input.document_notes),
       other_findings: toOtherFindings(listField(input.other_findings), org.shortName),
+      deal_figures: checkFigures(input.deal_figures, [
+        { part: "document", text: contractText ?? (document.kind === "text" ? document.text : "") },
+      ]),
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
@@ -362,8 +415,10 @@ export async function analyzeContract({
     return {
       ...reviewed,
       // Kept out of reconcileReview, which checks findings against the library's clause types.
-      findings: [...reviewed.findings, ...parsed.other_findings],
+      // Every exposure figure is the app's own, worked out from the checked figures.
+      findings: withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
       document_notes: parsed.document_notes,
+      deal_figures: parsed.deal_figures,
       model_id: modelId,
       standards_library_version: standardsVersion,
       input_tokens: usage.input_tokens,
