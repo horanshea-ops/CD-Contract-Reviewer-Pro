@@ -1,4 +1,6 @@
+import { dateNotes } from "./date-checks";
 import type { DocumentNote } from "./document-notes";
+import { tables, type Table } from "./text-tables";
 
 /**
  * Arithmetic the contract gets wrong, checked by the app.
@@ -30,35 +32,6 @@ const differs = (a: number, b: number) => Math.abs(a - b) > 0.005;
 
 function headingCase(heading: string): string {
   return heading === heading.toUpperCase() ? heading.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : heading;
-}
-
-interface Table {
-  heading: string | null;
-  rows: string[][];
-}
-
-function tables(text: string): Table[] {
-  const found: Table[] = [];
-  let heading: string | null = null;
-  let current: string[][] | null = null;
-
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("|")) {
-      const cells = trimmed.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
-      if (cells.every((c) => /^-{3,}$/.test(c))) continue;
-      (current ??= []).push(cells);
-      continue;
-    }
-    if (current) {
-      found.push({ heading, rows: current });
-      current = null;
-    }
-    const h = trimmed.match(/^#+\s+(.+)$/);
-    if (h && h[1].trim()) heading = h[1].trim();
-  }
-  if (current) found.push({ heading, rows: current });
-  return found;
 }
 
 /** Rows and columns whose figures don't add up to the total the table states. */
@@ -299,5 +272,5 @@ export function pictureContext(pictures: { near: string }[] | null | undefined):
 
 export function checkDocument(text: string | null): CheckNote[] {
   if (!text) return [];
-  return [...tableNotes(text), ...paymentScheduleNotes(text), ...nightCountNotes(text)];
+  return [...tableNotes(text), ...paymentScheduleNotes(text), ...nightCountNotes(text), ...dateNotes(text)];
 }
