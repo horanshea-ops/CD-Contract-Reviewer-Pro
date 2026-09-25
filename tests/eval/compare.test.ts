@@ -70,7 +70,7 @@ function runFinding(run_id: string, found: KeyItem[]): RunRecord {
     findings: found.map(findingFor),
     clauses_checked: [],
     dropped_findings: [],
-    document_notes: "",
+    document_notes: [],
     model_id: "claude-sonnet-5",
     standards_library_version: "v1",
     input_tokens: 0,

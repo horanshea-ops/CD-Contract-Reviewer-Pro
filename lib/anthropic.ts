@@ -4,6 +4,8 @@ import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
 import { dropNonChanges, normalizeFindings, type DroppedFinding } from "./analysis-review";
+import { toNotes, type DocumentNote } from "./document-notes";
+import { formatCurrency } from "./format";
 import type { TermCatalog, TermDefinition } from "./terms/types";
 
 /**
@@ -23,6 +25,8 @@ export interface Finding {
   quoted_text: string | null;
   exposure_amount: number | null;
   exposure_basis: string | null;
+  /** The arithmetic behind exposure_amount. Absent on findings recorded before it was asked for. */
+  exposure_formula?: string | null;
   /** Absent on findings recorded before the model was asked for one. */
   headline?: string | null;
   finding_text: string;
@@ -35,7 +39,7 @@ export interface AnalysisResult {
   findings: Finding[];
   clauses_checked: string[];
   dropped_findings: DroppedFinding[];
-  document_notes: string;
+  document_notes: DocumentNote[];
   model_id: string;
   standards_library_version: string;
   input_tokens: number;
@@ -71,7 +75,16 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
               type: ["number", "null"],
               description: "Dollar exposure if calculable. Null if not quantifiable — never invent a number.",
             },
-            exposure_basis: { type: ["string", "null"] },
+            exposure_formula: {
+              type: ["string", "null"],
+              description:
+                "The arithmetic behind exposure_amount, using only numbers from the contract and + - * / ( ). Write percentages as decimals. Example: 2280 * 149 * 0.10. Null when exposure_amount is null.",
+            },
+            exposure_basis: {
+              type: ["string", "null"],
+              description:
+                "One short sentence naming what the numbers in exposure_formula are, such as \"the 10-point attrition gap on 2,280 room nights at $149.\" No arithmetic.",
+            },
             headline: {
               type: "string",
               description:
@@ -104,8 +117,18 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         description: "Every clause type from the standards library that was checked, found or not.",
       },
       document_notes: {
-        type: "string",
-        description: "Anything about the document itself worth flagging (illegible pages, unusual structure, etc.)",
+        type: "array",
+        maxItems: 5,
+        description:
+          "Up to five notes about the document itself that the reviewer needs: places it contradicts itself, a missing exhibit, an unreadable part. Nothing the findings already say.",
+        items: {
+          type: "object",
+          properties: {
+            headline: { type: "string", description: "One sentence, at most about 15 words." },
+            detail: { type: "string", description: "At most two short sentences of detail." },
+          },
+          required: ["headline", "detail"],
+        },
       },
     },
     required: ["findings", "clauses_checked", "document_notes"],
@@ -133,6 +156,7 @@ Rules:
 - quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
 - exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
+- Give every exposure_amount its exposure_formula: the arithmetic that produces it, using only the contract's numbers. The reviewer's tool works the figure out from the formula, and shows no figure without one. exposure_basis is one short sentence naming what those numbers are.
 - List every clause type you checked in clauses_checked, whether or not it produced a finding — this is how the reviewer knows what was actually reviewed.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
@@ -266,7 +290,7 @@ export async function analyzeContract({
     const parsed = {
       findings: listField<Finding>(input.findings),
       clauses_checked: listField<string>(input.clauses_checked),
-      document_notes: typeof input.document_notes === "string" ? input.document_notes : undefined,
+      document_notes: toNotes(input.document_notes),
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
@@ -286,7 +310,7 @@ export async function analyzeContract({
     return {
       ...dropNonChanges(normalizeFindings(parsed.findings)),
       clauses_checked: parsed.clauses_checked,
-      document_notes: parsed.document_notes ?? "",
+      document_notes: parsed.document_notes,
       model_id: modelId,
       standards_library_version: standardsVersion,
       input_tokens: usage.input_tokens,
@@ -390,7 +414,7 @@ export async function generateClientEmail({
   const findingsBlock = findings
     .map((f, i) => {
       const exposure =
-        f.exposure_amount != null ? `\nExposure: $${f.exposure_amount.toLocaleString()} (${f.exposure_basis})` : "";
+        f.exposure_amount != null ? `\nExposure: ${formatCurrency(f.exposure_amount)} (${f.exposure_basis})` : "";
       return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
     })
     .join("\n\n");

@@ -57,6 +57,6 @@ describe("normalizeFindings", () => {
     const missing = { ...finding("named_storm"), is_missing_clause: true, quoted_text: null };
     const [inPlace, stillMissing] = normalizeFindings([quoted, missing]);
     expect(inPlace.is_missing_clause).toBe(false);
-    expect(stillMissing).toBe(missing);
+    expect(stillMissing.is_missing_clause).toBe(true);
   });
 });

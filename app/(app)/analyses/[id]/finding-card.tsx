@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { Body, Meta, Subtitle } from "@/components/ui/typography";
+import { formatCalculation } from "@/lib/exposure";
 import { formatCurrency, titleCase } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
@@ -18,6 +19,8 @@ export interface Finding {
   severity: "high" | "medium" | "low" | "note";
   exposure_amount: number | null;
   exposure_basis: string | null;
+  /** Null on findings recorded before the app worked exposure figures out itself. */
+  exposure_formula?: string | null;
   location_section: string | null;
   /** Null on findings recorded before the model wrote headlines. */
   headline: string | null;
@@ -41,6 +44,43 @@ export { SEVERITY_STYLE };
 function sectionRef(section: string | null): string | null {
   const number = section?.match(/^\s*(\d+(?:\.\d+)*)/)?.[1];
   return number ? `§${number}` : null;
+}
+
+/**
+ * The exposure figure, a one-line basis, and the calculation behind it on
+ * request. A finding from before formulas has only the model's own working,
+ * which is long, so it stays closed until asked for.
+ */
+function ExposureBox({ amount, basis, formula }: { amount: number; basis: string | null; formula: string | null }) {
+  const [open, setOpen] = useState(false);
+  const detail = formula ? formatCalculation(formula, amount) : basis;
+  return (
+    <div className="mt-3 rounded-md border border-[var(--border)] px-3 py-2">
+      <Subtitle as="p" className="text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
+        {formatCurrency(amount)}
+      </Subtitle>
+      {formula && basis && (
+        <Meta as="p" className="text-[var(--text-secondary)]">
+          {basis}
+        </Meta>
+      )}
+      {detail && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="text-xs text-[var(--cd-navy)] hover:underline mt-0.5"
+        >
+          {open ? "Hide calculation" : formula ? "Show calculation" : "Show how this was estimated"}
+        </button>
+      )}
+      {detail && open && (
+        <Meta as="p" className="text-[var(--text-secondary)] mt-1 [font-variant-numeric:tabular-nums]">
+          {detail}
+        </Meta>
+      )}
+    </div>
+  );
 }
 
 /** Small uppercase section label, the same style the rest of the app uses. */
@@ -165,16 +205,11 @@ export default function FindingCard({
       )}
 
       {finding.exposure_amount != null && (
-        <div className="mt-3 rounded-md border border-[var(--border)] px-3 py-2">
-          <Subtitle as="p" className="text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
-            {formatCurrency(finding.exposure_amount)}
-          </Subtitle>
-          {finding.exposure_basis && (
-            <Meta as="p" className="text-[var(--text-secondary)]">
-              {finding.exposure_basis}
-            </Meta>
-          )}
-        </div>
+        <ExposureBox
+          amount={finding.exposure_amount}
+          basis={finding.exposure_basis}
+          formula={finding.exposure_formula ?? null}
+        />
       )}
 
       <div className="mt-3 rounded-md border border-[var(--border)] overflow-hidden">
