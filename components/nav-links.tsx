@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { StatusPill } from "@/components/ui/status-pill";
 import SignOutButton from "@/components/sign-out-button";
+import { Button } from "@/components/ui/button";
 import { ORG } from "@/lib/org";
 
 export interface NavAssociate {
@@ -118,12 +119,13 @@ export function NavFooter({ associate, collapsed }: { associate: NavAssociate | 
     return (
       <div className="px-3 flex flex-col items-center gap-2 pb-1">
         {associate && (
-          <div
-            title={`${associate.name}${associate.is_admin ? " (admin)" : ""}`}
+          <Link
+            href="/account"
+            title={`${associate.name}${associate.is_admin ? " (admin)" : ""}. Set your password.`}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] text-xs font-semibold"
           >
             {initials}
-          </div>
+          </Link>
         )}
         <SignOutButton iconOnly />
       </div>
@@ -140,7 +142,10 @@ export function NavFooter({ associate, collapsed }: { associate: NavAssociate | 
           )}
         </div>
       )}
-      <div className="px-3 pb-1">
+      <div className="px-3 pb-1 flex gap-1">
+        <Button href="/account" variant="ghost" size="sm">
+          Password
+        </Button>
         <SignOutButton />
       </div>
     </div>

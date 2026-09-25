@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Field, FieldInput } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,47 @@ function RedirectError() {
   );
 }
 
+const BAD_PASSWORD =
+  "That email and password don't match. If you haven't set a password yet, sign in with an emailed link below, then set one.";
+
 export default function LoginPage() {
+  const router = useRouter();
+  const [mode, setMode] = useState<"password" | "link">("password");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
+  function fail(message: string) {
+    setStatus("error");
+    setErrorMessage(message);
+  }
+
+  async function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("sending");
+    setErrorMessage("");
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      fail(error.code === "invalid_credentials" ? BAD_PASSWORD : error.message);
+      return;
+    }
+
+    // Signing in proves the password. Using the app also needs an active
+    // associate row, and the route signs the session out when there isn't one.
+    const res = await fetch("/api/auth/verify-allowlist").catch(() => null);
+    if (!res?.ok) {
+      fail(res?.status === 403 ? REDIRECT_ERRORS.not_authorized : "Sign-in didn't finish. Try again.");
+      return;
+    }
+
+    router.replace("/");
+    router.refresh();
+  }
+
+  async function handleLinkSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
     setErrorMessage("");
@@ -43,17 +78,22 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/account`,
       },
     });
 
     if (error) {
-      setStatus("error");
-      setErrorMessage(error.message);
+      fail(error.message);
       return;
     }
 
     setStatus("sent");
+  }
+
+  function switchMode(next: "password" | "link") {
+    setMode(next);
+    setStatus("idle");
+    setErrorMessage("");
   }
 
   return (
@@ -94,7 +134,9 @@ export default function LoginPage() {
 
           <Title className="text-[var(--text-primary)] tracking-tight mb-1">Sign in</Title>
           <Body as="p" className="text-[var(--text-secondary)] mb-6">
-            Use your {ORG.name} email. We&apos;ll send you a login link, no password needed.
+            {mode === "password"
+              ? `Use your ${ORG.name} email and password.`
+              : "We'll email you a sign-in link. After you sign in, you can set a new password."}
           </Body>
 
           <Suspense fallback={null}>
@@ -108,10 +150,10 @@ export default function LoginPage() {
               aria-live="polite"
               className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-[var(--text-primary)]"
             >
-              Check <span className="font-medium">{email}</span> for a login link. It expires in a few minutes.
+              Check <span className="font-medium">{email}</span> for a sign-in link. It expires in a few minutes.
             </Body>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={mode === "password" ? handlePasswordSubmit : handleLinkSubmit} className="space-y-3">
               <Field label="Email">
                 <FieldInput
                   type="email"
@@ -123,8 +165,24 @@ export default function LoginPage() {
                   placeholder="you@conferencedirect.com"
                 />
               </Field>
-              <Button type="submit" fullWidth loading={status === "sending"} loadingText="Sending...">
-                Send login link
+              {mode === "password" && (
+                <Field label="Password">
+                  <FieldInput
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </Field>
+              )}
+              <Button
+                type="submit"
+                fullWidth
+                loading={status === "sending"}
+                loadingText={mode === "password" ? "Signing in..." : "Sending..."}
+              >
+                {mode === "password" ? "Sign in" : "Email me a sign-in link"}
               </Button>
               {status === "error" && (
                 <Body as="p" role="alert" className="text-[var(--severity-high)]">
@@ -133,6 +191,14 @@ export default function LoginPage() {
               )}
             </form>
           )}
+
+          <button
+            type="button"
+            onClick={() => switchMode(mode === "password" ? "link" : "password")}
+            className="mt-4 text-sm text-[var(--text-secondary)] underline underline-offset-2 hover:text-[var(--cd-navy)]"
+          >
+            {mode === "password" ? "Forgot your password? Email me a sign-in link" : "Sign in with a password instead"}
+          </button>
         </div>
       </div>
     </div>
