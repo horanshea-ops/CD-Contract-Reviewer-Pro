@@ -230,6 +230,18 @@ describe("the analysis system prompt", () => {
       expect(text).toContain("Read to the end of the contract before deciding what to record");
     });
 
+    it("reads a deadline in days before arrival the right way round", () => {
+      // A Rome review called a 14-day cutoff "earlier than CD's 21-day floor" and proposed 21, which is worse for the group.
+      expect(prompt()).toContain("14 days before arrival is after 21 days before");
+    });
+
+    it("marks a clause type that can't apply to this hotel not_applicable, with no finding", () => {
+      const text = prompt();
+      expect(text).toContain("A named-storm clause matters only for hotels in hurricane or typhoon regions");
+      expect(text).toContain("Give such a clause type the verdict not_applicable, say why in its basis, and record no finding for it");
+      expect(text).toContain("Outside the United States, don't ask for ADA compliance by name");
+    });
+
     it("takes figures from the library or the contract, and leaves a blank rather than inventing one", () => {
       // A blank stops the redline, which tells the associate to fill it. An
       // invented figure would reach the property unnoticed.
@@ -309,7 +321,7 @@ describe("the findings tool schema", () => {
     expect(order.indexOf("clause_review")).toBeLessThan(order.indexOf("findings"));
   });
 
-  it("limits a verdict to meets, falls_short or missing", () => {
-    expect(properties.clause_review.items.properties.verdict.enum).toEqual(["meets", "falls_short", "missing"]);
+  it("limits a verdict to meets, falls_short, missing or not_applicable", () => {
+    expect(properties.clause_review.items.properties.verdict.enum).toEqual(["meets", "falls_short", "missing", "not_applicable"]);
   });
 });

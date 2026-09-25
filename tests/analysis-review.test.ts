@@ -95,6 +95,27 @@ describe("reconcileReview", () => {
     expect(result.findings).toHaveLength(1);
   });
 
+  it("reads not_applicable as needing no change, and flags a finding recorded anyway", () => {
+    // A Rome hotel has no named-storm season. Asking it for a hurricane clause is noise sent under CD's name.
+    const quiet = reconcileReview(
+      {
+        findings: [],
+        clause_review: [verdict("attrition", "meets"), verdict("cutoff_date", "meets"), verdict("force_majeure", "not_applicable")],
+      },
+      STANDARDS
+    );
+    expect(quiet.review_gaps).toEqual([]);
+
+    const noisy = reconcileReview(
+      {
+        findings: [finding("force_majeure")],
+        clause_review: [verdict("attrition", "meets"), verdict("cutoff_date", "meets"), verdict("force_majeure", "not_applicable")],
+      },
+      STANDARDS
+    );
+    expect(noisy.review_gaps).toEqual([{ kind: "finding_on_meets", clause_type: "force_majeure" }]);
+  });
+
   it("matches clause types regardless of case and spacing", () => {
     const result = reconcileReview(
       {

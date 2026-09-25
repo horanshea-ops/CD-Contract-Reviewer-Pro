@@ -8,6 +8,7 @@ import { toNotes, type DocumentNote } from "./document-notes";
 import { toOtherFindings } from "./other-findings";
 import { checkFigures, type DealFigures } from "./exposures/figures";
 import { withComputedExposures } from "./exposures/compute";
+import { currencyOf } from "./exposure";
 import { formatCurrency } from "./format";
 import type { TermCatalog, TermDefinition } from "./terms/types";
 
@@ -64,7 +65,7 @@ const figure = (description: string) => ({
   type: ["object", "null"],
   description,
   properties: {
-    value: { type: "number", description: "The figure as written: 2280 for 2,280, 149 for $149.00, 80 for 80%." },
+    value: { type: "number", description: "The figure as written: 2280 for 2,280, 149 for $149.00, 469 for €469.00, 80 for 80%." },
     quoted_text: { type: "string", description: "Words copied exactly from the contract that state this figure." },
   },
   required: ["value", "quoted_text"],
@@ -83,7 +84,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           type: "object",
           properties: {
             clause_type: { type: "string" },
-            verdict: { type: "string", enum: ["meets", "falls_short", "missing"] },
+            verdict: { type: "string", enum: ["meets", "falls_short", "missing", "not_applicable"] },
             basis: {
               type: "string",
               description: `One line. Each term ${firm}'s position requires, and what this contract says about it. Write "silent" where it says nothing.`,
@@ -149,10 +150,10 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
       deal_figures: {
         type: "object",
         description:
-          "The contract's own figures, each with the words it comes from, for the reviewer's tool to work out dollar exposures. Null for any figure the contract doesn't state.",
+          "The contract's own figures, each with the words it comes from, for the reviewer's tool to work out exposures. Null for any figure the contract doesn't state.",
         properties: {
           room_block_room_nights: figure("Total room nights in the room block, as the contract totals them."),
-          group_rate_usd: figure("The main group room rate per night, in dollars."),
+          group_rate: figure("The main group room rate per night, in the contract's currency."),
           minimum_room_nights: figure("The room nights the group commits to use before attrition damages apply."),
           attrition_threshold_pct: figure("Where the contract states the commitment as a share of the block instead: that percentage."),
           attrition_damages_pct: figure("The percentage of the room rate owed for each room night short of the commitment."),
@@ -179,17 +180,17 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
               required: ["label", "room_pct", "base", "charges", "quoted_text"],
             },
           },
-          fb_minimum_usd: figure("The food and beverage minimum the group commits to spend, in dollars."),
+          fb_minimum: figure("The food and beverage minimum the group commits to spend, in the contract's currency."),
           fb_shortfall_pct: figure("The percentage of a food and beverage shortfall the group owes. Null when the contract states none."),
         },
         required: [
           "room_block_room_nights",
-          "group_rate_usd",
+          "group_rate",
           "minimum_room_nights",
           "attrition_threshold_pct",
           "attrition_damages_pct",
           "cancellation_tiers",
-          "fb_minimum_usd",
+          "fb_minimum",
           "fb_shortfall_pct",
         ],
       },
@@ -234,6 +235,7 @@ Rules:
 - Review every clause type in the standards library before recording any findings. Give each one entry in clause_review, with a verdict of meets, falls_short or missing and the basis for it.
 - Check every term ${firm}'s position requires, not only the terms the contract's clause happens to mention. A clause that says nothing about a term ${firm}'s position requires falls short of it.
 - A clause type with no corresponding language anywhere in the contract is missing, and its finding sets is_missing_clause to true.
+- Some clause types apply only in certain places, or only to terms the contract has. A named-storm clause matters only for hotels in hurricane or typhoon regions. A position about a deposit, fee or right the contract never creates, such as a damage deposit, has nothing to fix. Give such a clause type the verdict not_applicable, say why in its basis, and record no finding for it. Outside the United States, don't ask for ADA compliance by name; compare the contract's accessibility terms with the substance of the standard.
 - Record a finding for every clause whose verdict is falls_short or missing, and for no other.
 - A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clause_review is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
 - Never write "compliant", "no change recommended", "matches ${firm}'s standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
@@ -252,6 +254,7 @@ Rules:
 - Keep every protection the quoted wording already gives the group, such as a refund, a credit or a termination right, unless the standard replaces it with something at least as good.
 - Where the contract sets out a schedule, such as cancellation fees by date, keep the schedule and move each tier to the standard's basis. Never replace a schedule with one flat figure. Where the schedule's figures sit in a table, record a finding for each table cell that changes, quoting that cell, with the new figure worked out. Once your changes are made, the wording that introduces a schedule and every figure in it must agree.
 - Before recording a proposal, compare it with the contract at every tier, date and amount. It must never cost the group more than the contract does in any case.
+- A deadline counted in days before arrival comes later, and gives attendees longer, the fewer days it names: 14 days before arrival is after 21 days before. Before calling a deadline a deviation, work out which date falls later and which one the standard favors.
 - Work out every threshold in room nights or dollars, for both the contract and your proposal, measured the way the standard measures it. An attrition trigger is measured against the whole room block, not against a minimum the contract already sets below the block. Never propose a threshold that goes further than the standard asks.
 - In document_notes, name each place the contract contradicts itself, such as two different dates for the same event. Record one only when you can quote both sides, and check any arithmetic before calling a figure wrong. The reviewer's tool checks table totals and night counts itself, so leave those out.
 - After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group: for example, a default under any other agreement that lets the hotel end this one, a damages waiver that protects only the hotel, a right to demand prepayment on the hotel's own judgment, a duty to answer for a third party's acts, or a right to end the agreement over a minor or technical breach, such as using the hotel's name or logo without approval. Read to the end of the contract before deciding what to record. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
@@ -538,7 +541,9 @@ export async function generateClientEmail({
   const findingsBlock = findings
     .map((f, i) => {
       const exposure =
-        f.exposure_amount != null ? `\nExposure: ${formatCurrency(f.exposure_amount)} (${f.exposure_basis})` : "";
+        f.exposure_amount != null
+          ? `\nExposure: ${formatCurrency(f.exposure_amount, currencyOf(f.exposure_formula))} (${f.exposure_basis})`
+          : "";
       return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
     })
     .join("\n\n");

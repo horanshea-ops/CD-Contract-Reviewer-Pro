@@ -1,3 +1,5 @@
+import { currencyOf } from "./exposure";
+
 /**
  * A review's whole-list stats — severity counts, decision counts, total
  * exposure — for the overview bar above the findings list (ROADMAP item 7).
@@ -14,6 +16,7 @@ export const SEVERITY_ORDER: Record<FindingSeverity, number> = { high: 0, medium
 interface FindingLike {
   severity: FindingSeverity;
   exposure_amount: number | null;
+  exposure_formula?: string | null;
   current_action: { action: "accept" | "edit" | "dismiss" } | null;
 }
 
@@ -24,6 +27,8 @@ export interface FindingsOverview {
   includedCount: number;
   dismissedCount: number;
   totalExposure: number;
+  /** The symbol the exposures are written in; one contract uses one currency. */
+  exposureCurrency: string;
 }
 
 export function computeFindingsOverview(findings: FindingLike[]): FindingsOverview {
@@ -51,5 +56,6 @@ export function computeFindingsOverview(findings: FindingLike[]): FindingsOvervi
     }
   }
 
-  return { total: findings.length, bySeverity, undecidedCount, includedCount, dismissedCount, totalExposure };
+  const exposureCurrency = currencyOf(findings.find((f) => f.exposure_amount != null)?.exposure_formula);
+  return { total: findings.length, bySeverity, undecidedCount, includedCount, dismissedCount, totalExposure, exposureCurrency };
 }

@@ -15,7 +15,7 @@ import type { Finding } from "@/lib/anthropic";
 const FLORIDA: DealFigures = {
   ...NO_FIGURES,
   room_block_room_nights: 2850,
-  group_rate_usd: 149,
+  group_rate: 149,
   minimum_room_nights: 2280,
   attrition_damages_pct: 0.8,
   cancellation_tiers: [
@@ -23,7 +23,7 @@ const FLORIDA: DealFigures = {
     { label: "90 Days or Less", room_pct: 0.9, base: "minimum_room_nights", charges: "rate" },
     { label: "91 - 180 Days", room_pct: 0.75, base: "minimum_room_nights", charges: "rate" },
   ],
-  fb_minimum_usd: 100000,
+  fb_minimum: 100000,
 };
 
 describe("attritionExposure", () => {
@@ -99,5 +99,18 @@ describe("withComputedExposures", () => {
     );
     expect(out.map((f) => f.exposure_amount)).toEqual([91724.4, null, 33972, null]);
     expect(out[3]).toMatchObject({ exposure_basis: null, exposure_formula: null });
+  });
+});
+
+describe("an exposure in euros", () => {
+  // A real Rome contract: a €20,000 food and beverage minimum, with the whole shortfall owed.
+  const ROME: DealFigures = { ...NO_FIGURES, fb_minimum: 20000, fb_shortfall_pct: 1, currency: "€" };
+
+  it("works out the F&B gap and writes it in the contract's currency", () => {
+    expect(fbMinimumExposure(ROME)).toEqual({
+      amount: 13000,
+      formula: "€20000 * (1 - 0.35)",
+      basis: "If none of the €20,000 minimum is spent, this contract charges 100% of the shortfall. CD's standard charges 35%.",
+    });
   });
 });

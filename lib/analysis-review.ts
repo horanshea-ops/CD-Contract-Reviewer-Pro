@@ -17,7 +17,10 @@ import { checkExposure } from "./exposure";
  * code can answer.
  */
 
-export type ClauseVerdict = "meets" | "falls_short" | "missing";
+export type ClauseVerdict = "meets" | "falls_short" | "missing" | "not_applicable";
+
+/** Verdicts that say the contract needs no change on a clause type. */
+const NEEDS_NO_CHANGE: ClauseVerdict[] = ["meets", "not_applicable"];
 
 export interface ClauseReview {
   clause_type: string;
@@ -103,13 +106,14 @@ export function reconcileReview(
     const entry = verdicts.get(normalize(clause_type));
     if (!entry) {
       review_gaps.push({ kind: "no_verdict", clause_type });
-    } else if (entry.verdict !== "meets" && !flagged.has(normalize(clause_type))) {
+    } else if (!NEEDS_NO_CHANGE.includes(entry.verdict) && !flagged.has(normalize(clause_type))) {
       review_gaps.push({ kind: "short_without_finding", clause_type, verdict: entry.verdict });
     }
   }
 
   for (const clauseType of flagged) {
-    if (verdicts.get(clauseType)?.verdict === "meets") {
+    const verdict = verdicts.get(clauseType)?.verdict;
+    if (verdict && NEEDS_NO_CHANGE.includes(verdict)) {
       review_gaps.push({ kind: "finding_on_meets", clause_type: clauseType });
     }
   }

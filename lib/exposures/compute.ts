@@ -32,6 +32,7 @@ export interface ComputedExposure {
 }
 
 const whole = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+const symbolOf = (f: DealFigures) => f.currency ?? "$";
 const percent = (fraction: number) => `${Number((fraction * 100).toFixed(4))}%`;
 
 function result(formula: string, basis: string): ComputedExposure | null {
@@ -42,7 +43,7 @@ function result(formula: string, basis: string): ComputedExposure | null {
 
 export function attritionExposure(f: DealFigures): ComputedExposure | null {
   const block = f.room_block_room_nights;
-  const rate = f.group_rate_usd;
+  const rate = f.group_rate;
   const damages = f.attrition_damages_pct;
   if (block === null || rate === null || damages === null) return null;
 
@@ -52,15 +53,16 @@ export function attritionExposure(f: DealFigures): ComputedExposure | null {
   const trigger = Math.round(block * ATTRITION_TRIGGER_OF_BLOCK);
   if (minimum <= trigger) return null;
 
+  const sym = symbolOf(f);
   return result(
-    `(${minimum} - ${trigger}) * $${rate} * ${damages}`,
+    `(${minimum} - ${trigger}) * ${sym}${rate} * ${damages}`,
     `At ${percent(ATTRITION_TRIGGER_OF_BLOCK)} pickup (${whole(trigger)} room nights), where CD's standard owes nothing, ` +
-      `this contract charges for ${whole(minimum - trigger)} nights at ${percent(damages)} of $${whole(rate)}.`
+      `this contract charges for ${whole(minimum - trigger)} nights at ${percent(damages)} of ${sym}${whole(rate)}.`
   );
 }
 
 export function cancellationExposure(f: DealFigures): ComputedExposure | null {
-  const rate = f.group_rate_usd;
+  const rate = f.group_rate;
   if (rate === null) return null;
 
   const top = [...f.cancellation_tiers].sort((a, b) => b.room_pct - a.room_pct)[0];
@@ -69,20 +71,20 @@ export function cancellationExposure(f: DealFigures): ComputedExposure | null {
   if (nights === null) return null;
 
   return result(
-    `${nights} * $${rate} * ${top.room_pct} * (1 - ${ROOM_PROFIT_OF_RATE})`,
+    `${nights} * ${symbolOf(f)}${rate} * ${top.room_pct} * (1 - ${ROOM_PROFIT_OF_RATE})`,
     `In the "${top.label}" tier, this contract charges ${percent(top.room_pct)} of the full rate on ${whole(nights)} room nights. ` +
       `CD's standard charges ${percent(top.room_pct)} of room profit, which is ${percent(ROOM_PROFIT_OF_RATE)} of the rate.`
   );
 }
 
 export function fbMinimumExposure(f: DealFigures): ComputedExposure | null {
-  const minimum = f.fb_minimum_usd;
+  const minimum = f.fb_minimum;
   const shortfall = f.fb_shortfall_pct;
   if (minimum === null || shortfall === null || shortfall <= FB_SHORTFALL_RATE) return null;
 
   return result(
-    `$${minimum} * (${shortfall} - ${FB_SHORTFALL_RATE})`,
-    `If none of the $${whole(minimum)} minimum is spent, this contract charges ${percent(shortfall)} of the shortfall. ` +
+    `${symbolOf(f)}${minimum} * (${shortfall} - ${FB_SHORTFALL_RATE})`,
+    `If none of the ${symbolOf(f)}${whole(minimum)} minimum is spent, this contract charges ${percent(shortfall)} of the shortfall. ` +
       `CD's standard charges ${percent(FB_SHORTFALL_RATE)}.`
   );
 }
