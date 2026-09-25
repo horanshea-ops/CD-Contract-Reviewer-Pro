@@ -73,6 +73,29 @@ describe("analyzeContract's tool output", () => {
     ]);
   });
 
+  it("adds terms outside the library after the library's findings, as wordless Other findings", async () => {
+    create.mockResolvedValueOnce(
+      response({
+        findings: [FINDING],
+        clause_review: [{ clause_type: "attrition", verdict: "falls_short", basis: "Threshold is 90%." }],
+        document_notes: [],
+        other_findings: [
+          {
+            headline: "Breaching any other agreement ends this one",
+            quoted_text: "If you fail to perform under any other agreement between us, we may terminate this Agreement.",
+            finding_text: "An unrelated missed payment would let the hotel cancel.",
+          },
+        ],
+      })
+    );
+    const result = await run();
+    expect(result.findings.map((f) => [f.clause_type, f.severity, f.proposed_language])).toEqual([
+      ["attrition", FINDING.severity, FINDING.proposed_language],
+      ["general", "note", ""],
+    ]);
+    expect(result.review_gaps.filter((g) => g.clause_type === "general")).toEqual([]);
+  });
+
   it("retries, then says what the malformed field held", async () => {
     const broken = response({ findings: "[{ not json", clause_review: [] });
     create.mockResolvedValueOnce(broken).mockResolvedValueOnce(broken);

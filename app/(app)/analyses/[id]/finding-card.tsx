@@ -219,21 +219,32 @@ export default function FindingCard({
         />
       )}
 
-      <ChangeView
-        quote={finding.quoted_text}
-        language={finding.redline_language ?? language}
-        addition={finding.is_missing_clause || !finding.quoted_text}
-        footnote={
-          locateMode !== "docx" &&
-          finding.quoted_text &&
-          !finding.is_missing_clause &&
-          finding.location_page == null && (
-            <Meta as="p" className="text-[var(--text-muted)] mt-1">
-              Location not pinpointed, so it won&apos;t be marked in place if exported
-            </Meta>
-          )
-        }
-      />
+      {!language.trim() && finding.quoted_text ? (
+        <div className="mt-3 rounded-md border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2.5">
+          <Meta as="p" className="font-semibold uppercase tracking-wide mb-1 text-[var(--text-secondary)]">
+            Contract says
+          </Meta>
+          <Body as="blockquote" className="text-[var(--text-secondary)]">
+            &ldquo;{finding.quoted_text}&rdquo;
+          </Body>
+        </div>
+      ) : (
+        <ChangeView
+          quote={finding.quoted_text}
+          language={finding.redline_language ?? language}
+          addition={finding.is_missing_clause || !finding.quoted_text}
+          footnote={
+            locateMode !== "docx" &&
+            finding.quoted_text &&
+            !finding.is_missing_clause &&
+            finding.location_page == null && (
+              <Meta as="p" className="text-[var(--text-muted)] mt-1">
+                Location not pinpointed, so it won&apos;t be marked in place if exported
+              </Meta>
+            )
+          }
+        />
+      )}
 
       <div className="mt-2 flex flex-wrap gap-x-4">
         {finding.headline && (
@@ -279,7 +290,7 @@ export default function FindingCard({
             Accept
           </Button>
           <Button variant="secondary" size="sm" onClick={() => setMode("editing")} disabled={saving}>
-            Edit
+            {language.trim() ? "Edit" : "Add wording"}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>
             Dismiss

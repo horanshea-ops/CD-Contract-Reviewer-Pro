@@ -244,6 +244,14 @@ describe("findings that don't say where they belong", () => {
     expect(accepted.trim()).toBe("You may not assign this Agreement without our consent, which we will not unreasonably withhold.");
   });
 
+  it("leaves a point raised without wording out, rather than striking its quote", async () => {
+    const clause = "If you fail to perform under any other agreement between us, we may terminate this Agreement.";
+    const { result, accepted } = await redline([clause], [finding({ clause_type: "general", quoted_text: clause, language: "" })]);
+    expect(result.appliedCount).toBe(0);
+    expect(result.unapplied).toMatchObject([{ clause_type: "general", reason: "no_wording" }]);
+    expect(accepted.trim()).toBe(clause);
+  });
+
   it("still appends a genuinely missing clause", async () => {
     const { result, accepted } = await redline(
       ["The Hotel will hold the rooms listed above."],

@@ -182,8 +182,29 @@ describe("the analysis system prompt", () => {
       expect(prompt()).toContain("It must never cost the group more than the contract does in any case");
     });
 
-    it("asks for the places the contract contradicts itself", () => {
-      expect(prompt()).toContain("In document_notes, name every place the contract contradicts itself");
+    it("asks for the places the contract contradicts itself, only where both sides can be quoted", () => {
+      // A real run noted a fee "mismatch" its own detail admitted wasn't one.
+      const text = prompt();
+      expect(text).toContain("In document_notes, name each place the contract contradicts itself");
+      expect(text).toContain("Record one only when you can quote both sides");
+      expect(text).toContain("checks table totals and night counts itself");
+    });
+
+    it("measures an attrition trigger against the whole block, never past the standard", () => {
+      // A real run set the trigger at 70% of a minimum already at 80% of the block.
+      const text = prompt();
+      expect(text).toContain("An attrition trigger is measured against the whole room block");
+      expect(text).toContain("Never propose a threshold that goes further than the standard asks.");
+    });
+
+    it("keeps a schedule's wording and its table figures in agreement", () => {
+      expect(prompt()).toContain("the wording that introduces a schedule and every figure in it must agree");
+    });
+
+    it("asks for terms outside the library, with a quote and no wording", () => {
+      const text = prompt();
+      expect(text).toContain("Record each in other_findings with its quote");
+      expect(text).toContain("Propose no wording for them");
     });
 
     it("takes figures from the library or the contract, and leaves a blank rather than inventing one", () => {

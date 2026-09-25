@@ -5,6 +5,7 @@ import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
 import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap } from "./analysis-review";
 import { toNotes, type DocumentNote } from "./document-notes";
+import { toOtherFindings } from "./other-findings";
 import { formatCurrency } from "./format";
 import type { TermCatalog, TermDefinition } from "./terms/types";
 
@@ -133,7 +134,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         type: "array",
         maxItems: 5,
         description:
-          "Up to five notes about the document itself that the reviewer needs: every place it contradicts itself (dates, figures, parties, or a table that disagrees with the text around it), a missing exhibit, an unreadable part. Nothing the findings already say.",
+          "Up to five notes about the document itself that the reviewer needs: a place it contradicts itself that you can quote on both sides, a missing exhibit, an unreadable part. Nothing the findings already say, and no table totals or night counts, which the reviewer's tool checks itself.",
         items: {
           type: "object",
           properties: {
@@ -143,8 +144,31 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           required: ["headline", "detail"],
         },
       },
+      other_findings: {
+        type: "array",
+        maxItems: 6,
+        description: `Up to six terms no clause type in the standards library covers that still shift cost, liability or control onto the group, the most consequential first. Nothing a finding or document note already says.`,
+        items: {
+          type: "object",
+          properties: {
+            headline: {
+              type: "string",
+              description: "One line, at most about 12 words, saying what the term does to the group.",
+            },
+            quoted_text: {
+              type: "string",
+              description: "The term's wording: one unbroken span copied exactly from a single paragraph, whole sentences only.",
+            },
+            finding_text: {
+              type: "string",
+              description: "Two or three sentences: what the term lets the other side do, and what it could cost the group.",
+            },
+          },
+          required: ["headline", "quoted_text", "finding_text"],
+        },
+      },
     },
-    required: ["clause_review", "findings", "document_notes"],
+    required: ["clause_review", "findings", "document_notes", "other_findings"],
   },
 });
 
@@ -176,9 +200,11 @@ Rules:
 - proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Take every figure in it from the standards library or this contract, or work it out from them. If the wording needs a figure that neither gives, write [X] in its place rather than inventing one, and the reviewer will fill it in.
 - A finding that changes wording already in the contract quotes that wording. is_missing_clause is true only when the contract has no wording on the clause at all.
 - Keep every protection the quoted wording already gives the group, such as a refund, a credit or a termination right, unless the standard replaces it with something at least as good.
-- Where the contract sets out a schedule, such as cancellation fees by date, keep the schedule and move each tier to the standard's basis. Never replace a schedule with one flat figure. Where the schedule's figures sit in a table, record a finding for each table cell that changes, quoting that cell.
+- Where the contract sets out a schedule, such as cancellation fees by date, keep the schedule and move each tier to the standard's basis. Never replace a schedule with one flat figure. Where the schedule's figures sit in a table, record a finding for each table cell that changes, quoting that cell, with the new figure worked out. Once your changes are made, the wording that introduces a schedule and every figure in it must agree.
 - Before recording a proposal, compare it with the contract at every tier, date and amount. It must never cost the group more than the contract does in any case.
-- In document_notes, name every place the contract contradicts itself: dates, figures, parties, or a table that disagrees with the text around it.
+- Work out every threshold in room nights or dollars, for both the contract and your proposal, measured the way the standard measures it. An attrition trigger is measured against the whole room block, not against a minimum the contract already sets below the block. Never propose a threshold that goes further than the standard asks.
+- In document_notes, name each place the contract contradicts itself, such as two different dates for the same event. Record one only when you can quote both sides, and check any arithmetic before calling a figure wrong. The reviewer's tool checks table totals and night counts itself, so leave those out.
+- After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group: for example, a default under any other agreement that lets the hotel end this one, a damages waiver that protects only the hotel, a right to demand prepayment on the hotel's own judgment, or a duty to answer for a third party's acts. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
 - Give every exposure_amount its exposure_formula: the arithmetic that produces it, using only the contract's numbers. The reviewer's tool works the figure out from the formula, and shows no figure without one. exposure_basis is one short sentence naming what those numbers are.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
@@ -314,6 +340,7 @@ export async function analyzeContract({
       clause_review: listField<ClauseReview>(input.clause_review),
       findings: listField<Finding>(input.findings),
       document_notes: toNotes(input.document_notes),
+      other_findings: toOtherFindings(listField(input.other_findings), org.shortName),
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
@@ -334,6 +361,8 @@ export async function analyzeContract({
 
     return {
       ...reviewed,
+      // Kept out of reconcileReview, which checks findings against the library's clause types.
+      findings: [...reviewed.findings, ...parsed.other_findings],
       document_notes: parsed.document_notes,
       model_id: modelId,
       standards_library_version: standardsVersion,
