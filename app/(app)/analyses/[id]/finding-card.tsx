@@ -7,10 +7,11 @@ import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/f
 import { useToast } from "@/components/ui/toast";
 import { Body, Meta, Subtitle } from "@/components/ui/typography";
 import { formatCalculation } from "@/lib/exposure";
-import { formatCurrency, titleCase } from "@/lib/format";
+import { clauseLabel, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
+import ChangeView from "./change-view";
 
 export interface Finding {
   id: string;
@@ -35,6 +36,10 @@ export interface Finding {
     edited_language: string | null;
     dismissal_reason: string | null;
   } | null;
+  /** Why the change, or part of it, won't go into the redline. Worked out by the analysis API. */
+  export_issue?: string | null;
+  /** The wording the redline will insert, when it differs from the proposal or edit. */
+  redline_language?: string | null;
 }
 
 // Shared with the standards library screen.
@@ -83,9 +88,6 @@ function ExposureBox({ amount, basis, formula }: { amount: number; basis: string
   );
 }
 
-/** Small uppercase section label, the same style the rest of the app uses. */
-const LABEL_CLASSES = "font-semibold uppercase tracking-wide mb-1";
-
 const DISMISSAL_REASONS = [
   "Already negotiated elsewhere in this contract",
   "Client accepted this risk",
@@ -123,6 +125,7 @@ export default function FindingCard({
   const [error, setError] = useState("");
   const [changingDecision, setChangingDecision] = useState(false);
   const [standardOpen, setStandardOpen] = useState(false);
+  const [whyOpen, setWhyOpen] = useState(false);
   const { showToast } = useToast();
 
   function cancelToView() {
@@ -132,6 +135,10 @@ export default function FindingCard({
 
   const style = SEVERITY_STYLE[finding.severity];
   const section = sectionRef(finding.location_section);
+  const language =
+    finding.current_action?.action === "edit" && finding.current_action.edited_language
+      ? finding.current_action.edited_language
+      : finding.proposed_language;
 
   async function submitAction(action: "accept" | "edit" | "dismiss") {
     setSaving(true);
@@ -182,7 +189,7 @@ export default function FindingCard({
             {style.label}
           </span>
           {" · "}
-          {titleCase(finding.clause_type)}
+          {clauseLabel(finding.clause_type)}
           {section && ` · ${section}`}
           {finding.is_missing_clause && " · missing from contract"}
         </Meta>
@@ -212,62 +219,48 @@ export default function FindingCard({
         />
       )}
 
-      <div className="mt-3 rounded-md border border-[var(--border)] overflow-hidden">
-        {!finding.is_missing_clause && finding.quoted_text && (
-          <div className="bg-[var(--surface-muted)] px-3 py-2.5 border-b border-[var(--border)]">
-            <Meta as="p" className={cn(LABEL_CLASSES, "text-[var(--text-secondary)]")}>
-              Now
+      <ChangeView
+        quote={finding.quoted_text}
+        language={finding.redline_language ?? language}
+        addition={finding.is_missing_clause || !finding.quoted_text}
+        footnote={
+          locateMode !== "docx" &&
+          finding.quoted_text &&
+          !finding.is_missing_clause &&
+          finding.location_page == null && (
+            <Meta as="p" className="text-[var(--text-muted)] mt-1">
+              Location not pinpointed, so it won&apos;t be marked in place if exported
             </Meta>
-            <Body as="blockquote" className="text-[var(--text-secondary)]">
-              &ldquo;{finding.quoted_text}&rdquo;
-            </Body>
-            {locateMode !== "docx" && finding.location_page == null && (
-              <Meta as="p" className="text-[var(--text-muted)] mt-1">
-                Location not pinpointed, so it won&apos;t be marked in place if exported
-              </Meta>
-            )}
-          </div>
-        )}
-        <div className="px-3 py-2.5 border-l-[3px] border-[var(--cd-navy)]">
-          <Meta as="p" className={cn(LABEL_CLASSES, "text-[var(--cd-navy)]")}>
-            {finding.is_missing_clause ? "Proposed addition" : "Proposed"}
-          </Meta>
-          <Body as="p" className="text-[var(--text-primary)]">
-            {finding.proposed_language}
-          </Body>
-        </div>
-      </div>
+          )
+        }
+      />
 
-      <div className="mt-3">
+      <div className="mt-2 flex flex-wrap gap-x-4">
         {finding.headline && (
-          <Body as="p" className="text-[var(--text-secondary)]">
-            {finding.finding_text}
-          </Body>
+          <Disclosure open={whyOpen} onToggle={() => setWhyOpen((v) => !v)}>
+            Why
+          </Disclosure>
         )}
-        <button
-          type="button"
-          onClick={() => setStandardOpen((v) => !v)}
-          aria-expanded={standardOpen}
-          className="mt-1.5 flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--cd-navy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden="true"
-            className={cn("transition-transform shrink-0", standardOpen && "rotate-90")}
-          >
-            <path d="M6 4l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <Disclosure open={standardOpen} onToggle={() => setStandardOpen((v) => !v)}>
           {ORG.shortName} standard
-        </button>
-        {standardOpen && (
-          <Body as="p" className="mt-1 text-[var(--text-primary)]">
-            {finding.cd_standard}
-          </Body>
-        )}
+        </Disclosure>
       </div>
+      {whyOpen && finding.headline && (
+        <Body as="p" className="mt-1 text-[var(--text-secondary)]">
+          {finding.finding_text}
+        </Body>
+      )}
+      {standardOpen && (
+        <Body as="p" className="mt-1 text-[var(--text-primary)]">
+          {finding.cd_standard}
+        </Body>
+      )}
+
+      {finding.export_issue && (
+        <Meta as="p" className="mt-3 rounded-md bg-[var(--severity-medium-bg)] text-[var(--text-primary)] px-2.5 py-1.5">
+          {finding.export_issue}
+        </Meta>
+      )}
 
       {mode === "view" && finding.current_action && !changingDecision && (
         <div className="mt-4 flex items-center gap-3">
@@ -375,6 +368,29 @@ function LocateLink({ onClick, children }: { onClick: () => void; children: Reac
       onClick={onClick}
       className="shrink-0 text-xs text-[var(--cd-navy)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
     >
+      {children}
+    </button>
+  );
+}
+
+function Disclosure({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="mt-1.5 flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--cd-navy)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+    >
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 20 20"
+        fill="none"
+        aria-hidden="true"
+        className={cn("transition-transform shrink-0", open && "rotate-90")}
+      >
+        <path d="M6 4l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
       {children}
     </button>
   );

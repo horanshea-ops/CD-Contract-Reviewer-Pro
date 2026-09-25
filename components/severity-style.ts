@@ -27,7 +27,7 @@ export const SEVERITY_STYLE: Record<
     bg: "var(--severity-low-bg)",
   },
   note: {
-    label: "NOTE",
+    label: "OTHER",
     borderColor: "var(--severity-note)",
     borderWidth: "2px",
     textColor: "var(--severity-note)",
