@@ -501,6 +501,12 @@ export default function AnalysisPage() {
                   <span className="font-semibold uppercase tracking-wide">Other</span>
                   {` · outside ${ORG.shortName}'s standards, and notes on the document`}
                 </Meta>
+                {otherFindings.length > 0 && (
+                  <Meta as="p" className="text-[var(--text-muted)] -mt-2">
+                    These points carry no proposed wording. Accepting one puts it in the memo; use Add wording to put a
+                    change in the redline.
+                  </Meta>
+                )}
                 {otherFindings.map(card)}
                 <DocumentNotes notes={data.document_notes} checks={checks} />
               </section>
