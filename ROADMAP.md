@@ -1065,6 +1065,33 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       `003`'s fingerprinting stays meaningful. Getting a position wrong here is
       silent and propagates into every review after it, which is why this is
       an Opus task, not Sonnet.
+- [ ] **9. Before hand-off to CD, set up "Sign in with Microsoft" with CD's
+      IT** (the user asked to be reminded, 2026-09-24). Email + password is
+      the sign-in for now. CD's IT needs to:
+      - register an app in Entra ID
+      - give us its client ID, secret and tenant ID for Supabase's Azure provider
+      - add Supabase's auth callback URL to the app's redirect URIs
+
+      The `associates` allowlist check still runs after a Microsoft sign-in.
+- [x] **10. Monthly review limit (2026-09-24).** Each associate gets
+      `MONTHLY_REVIEW_LIMIT` reviews per UTC calendar month. It is 30 for now,
+      a provisional number the firm will set. Every upload that creates an
+      analysis counts, including one that later fails, and a retry doesn't.
+      At zero, the server refuses uploads, the upload page shows when uploads
+      reopen, and the dashboard's "Review a new contract" button disappears.
+      The dashboard's "Reviews left this month" counter replaced "Total
+      reviews".
+- [ ] **11. Email + password sign-in: setup only the user can do.** The code
+      shipped 2026-09-24. Associates sign in with a password, and "Forgot your
+      password?" emails a sign-in link that lands on `/account`, where they set
+      a new one (at least 12 characters, audited as `password_set`).
+      - Supabase → Auth → Providers → Email: set the minimum password length to 12.
+      - Set up custom SMTP (e.g. Resend) before real associates sign in.
+        Supabase's built-in sender only reaches the project's own team, at 2
+        emails an hour, so forgot-password links can't reach CD without it.
+      - Demo account: add it with `scripts/seed-test-associate.ts <email>
+        <name>` (it makes the account an admin), sign in once with
+        `scripts/dev-login-link.ts`, then set the password on `/account`.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft
