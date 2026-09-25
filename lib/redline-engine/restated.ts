@@ -24,6 +24,12 @@ const REWORDED_COVERAGE = 0.9;
 /** Opening words a rewording can share instead of making up half the proposal sentence. */
 const SHARED_OPENING_WORDS = 4;
 
+/** A proposal sentence at least this long, nearly all taken from one contract sentence, is a shortened copy of it. */
+const MIN_SHORTENED_WORDS = 12;
+
+/** Share of the contract sentence a shortened copy must keep. */
+const SHORTENED_KEEPS = 0.6;
+
 const flat = (s: string) => s.replace(/\s+/g, " ").trim();
 const wordCount = (s: string) => (s.match(/\S+/g) ?? []).length;
 const words = (s: string) => s.toLowerCase().match(/[a-z0-9$%]+/g) ?? [];
@@ -70,10 +76,17 @@ function contractSentences(contract: string): ContractSentence[] {
 }
 
 /**
- * Whether a proposal sentence rewrites an unprotected contract sentence:
- * nearly all its words kept in order, and either most of the proposal
- * sentence or its opening. Protection is compared by words, so a bullet glyph
- * or tab the contract carries doesn't hide a sentence the finding quotes.
+ * Whether a proposal sentence rewrites an unprotected contract sentence. Two
+ * shapes count, with words compared in order:
+ *
+ * - it keeps nearly all the contract sentence, which makes up most of it or
+ *   shares its opening (a sentence with wording added)
+ * - nearly all of it comes from the contract sentence, which keeps most of
+ *   its words (a sentence with wording cut, such as a figure changed and a
+ *   long qualifier dropped)
+ *
+ * Protection is compared by words, so a bullet glyph or tab the contract
+ * carries doesn't hide a sentence the finding quotes.
  */
 function rewordedFrom(sentence: string, contract: string, protectedWords: string[]): boolean {
   const proposal = words(sentence);
@@ -81,15 +94,21 @@ function rewordedFrom(sentence: string, contract: string, protectedWords: string
   const vocabulary = new Set(proposal);
 
   for (const candidate of contractSentences(contract)) {
-    const needed = Math.ceil(candidate.words.length * REWORDED_COVERAGE);
     let shared = 0;
     for (const w of candidate.words) if (vocabulary.has(w)) shared++;
-    if (shared < needed) continue;
+    if (shared < candidate.words.length * SHORTENED_KEEPS) continue;
 
+    const common = commonSubsequence(candidate.words, proposal);
     const sameOpening =
       candidate.words.slice(0, SHARED_OPENING_WORDS).join(" ") === proposal.slice(0, SHARED_OPENING_WORDS).join(" ");
-    if (candidate.words.length * 2 < proposal.length && !sameOpening) continue;
-    if (commonSubsequence(candidate.words, proposal) < needed) continue;
+    const added =
+      common >= candidate.words.length * REWORDED_COVERAGE &&
+      (candidate.words.length * 2 >= proposal.length || sameOpening);
+    const cut =
+      proposal.length >= MIN_SHORTENED_WORDS &&
+      common >= proposal.length * REWORDED_COVERAGE &&
+      common >= candidate.words.length * SHORTENED_KEEPS;
+    if (!added && !cut) continue;
     const joined = candidate.words.join(" ");
     if (protectedWords.some((p) => p.includes(joined))) continue;
     return true;

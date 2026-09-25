@@ -81,6 +81,20 @@ describe("dropRestated with reworded sentences", () => {
     expect(out.language).toBe("Reservations received after the cutoff date will be accepted at the group rate.");
   });
 
+  it("leaves out a shortened rewrite of a sentence the finding doesn't quote", () => {
+    const fee =
+      "If fewer than the minimum room nights are occupied by you or your attendees at the Hotel or any affiliated hotel over the dates of the block, you will pay a fee equal to the shortfall times the group rate times eighty percent.";
+    const minimum = "You agree that your attendees will use at least two thousand room nights over the dates of the block.";
+    const shortened =
+      "If fewer than the minimum room nights are occupied at the Hotel or any affiliated hotel over the dates of the block, you will pay a fee equal to the shortfall times the group rate times seventy percent.";
+    const out = dropRestated(
+      `You agree that your attendees will use at least seventy percent of the block over its dates. ${shortened}`,
+      `${minimum}\n${fee}`,
+      [minimum]
+    );
+    expect(out.reworded).toEqual([shortened]);
+  });
+
   it("keeps a rewrite of the wording the finding quotes, which is the change itself", () => {
     const out = dropRestated("Reservations received after the cutoff date will be accepted at the group rate while rooms remain.", CONTRACT, [
       AFTER,
