@@ -26,7 +26,7 @@ export async function processAnalysis(analysisId: string) {
 
   const { data: analysis, error: fetchError } = await admin
     .from("analyses")
-    .select("id, storage_path, associate_id, source_format, intake_route, intake_health, original_storage_path, ai_clause_acknowledged_at")
+    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path, ai_clause_acknowledged_at")
     .eq("id", analysisId)
     .single();
 
@@ -74,6 +74,8 @@ export async function processAnalysis(analysisId: string) {
     let scanText: string | null = null;
     // The text quotes are checked against — the same text the model reads.
     let readParts: LocatablePart[] | null = null;
+    // A PDF carries its pictures itself, so only extracted text needs a word about them.
+    let pictures: ContractPicture[] = [];
     if (analysis.intake_route === "docx_native" && analysis.original_storage_path) {
       try {
         const { data: originalBlob, error: originalErr } = await admin.storage
@@ -82,7 +84,8 @@ export async function processAnalysis(analysisId: string) {
         if (originalErr || !originalBlob) throw new Error(originalErr?.message ?? "original file unavailable");
         const extracted = await extractDocx(new Uint8Array(await originalBlob.arrayBuffer()));
         scanText = contractText(extracted);
-        document = { kind: "text", text: scanText };
+        document = { kind: "text", text: scanText, pictures: extracted.pictures };
+        pictures = extracted.health.pictures ?? [];
         readParts = extracted.parts;
       } catch (extractErr) {
         // Falling back to the PDF loses table structure but still produces an
@@ -163,7 +166,7 @@ export async function processAnalysis(analysisId: string) {
       document,
       standards: standards.entries,
       standardsVersion: standards.version,
-      contextNote: pictureContext((analysis.intake_health as { pictures?: ContractPicture[] } | null)?.pictures),
+      contextNote: pictureContext(pictures),
       deadline,
       // A PDF reaches the model as a file, so its figures are checked against the text read from it.
       contractText: scanText ?? undefined,

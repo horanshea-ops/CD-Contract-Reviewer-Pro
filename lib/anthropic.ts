@@ -11,6 +11,7 @@ import { withComputedExposures } from "./exposures/compute";
 import { currencyOf } from "./exposure";
 import { formatCurrency } from "./format";
 import type { TermCatalog, TermDefinition } from "./terms/types";
+import type { PictureImage } from "./docx/types";
 
 /**
  * THE single module for outbound calls to the model. Non-negotiable #5 in the
@@ -287,7 +288,20 @@ Rules:
  */
 export type AnalyzableDocument =
   | { kind: "pdf"; pdfBase64: string }
-  | { kind: "text"; text: string };
+  | { kind: "text"; text: string; pictures?: PictureImage[] };
+
+/** The contract as the review reads it: the text, then each readable picture with a label saying where it sits. */
+function contractContent(document: Extract<AnalyzableDocument, { kind: "text" }>): Anthropic.Messages.ContentBlockParam[] {
+  const content: Anthropic.Messages.ContentBlockParam[] = [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }];
+  (document.pictures ?? []).forEach((picture, i) => {
+    const place = picture.near ? `, just after "${picture.near}"` : "";
+    content.push(
+      { type: "text", text: `PICTURE ${i + 1} from the contract${place}:` },
+      { type: "image", source: { type: "base64", media_type: picture.mediaType, data: picture.data } }
+    );
+  });
+  return content;
+}
 
 export interface AnalyzeContractPdfArgs {
   document: AnalyzableDocument;
@@ -359,7 +373,7 @@ export async function analyzeContract({
   const userContent: Anthropic.Messages.ContentBlockParam[] =
     document.kind === "pdf"
       ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
-      : [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }];
+      : contractContent(document);
 
   if (contextNote) {
     userContent.push({ type: "text", text: contextNote });

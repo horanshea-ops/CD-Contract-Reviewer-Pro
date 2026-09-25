@@ -1145,11 +1145,21 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               or the month first. The cutoff's "major arrival day" isn't
               checked, because a peak day after the first arrival is often
               legitimate.
-        - [ ] Send large pictures, such as Rome's room-block table, to the
-              model with the text, so attrition and cancellation can get
-              figures. About $0.003 a picture. Building and testing it is free;
-              checking that the model reads the table right takes one paid Rome
-              run (about $0.36).
+        - [x] Pictures sent to the model (branch `prompt/picture-tables`,
+              on `prompt/combined-run`, 2026-09-25). Each large picture whose
+              image has at least 200×30 pixels and is PNG, JPEG, GIF or WebP
+              goes after the contract text with a label, up to four a
+              contract. Rome's room-block table is about 600 tokens ($0.001).
+              A tiny icon stretched wide is skipped, which removes Rome's
+              "Payment Breakdown" false alarm. The model is told not to quote
+              a picture, because quotes are checked against the text, so
+              app-computed exposures still don't use picture figures. The
+              review screen says which pictures were read. Unmeasured until
+              the next paid Rome run (about $0.36).
+        - [ ] The model's notes and the app's checks can name the same
+              problem. Rome shows the backwards date range and the check-out
+              date twice. Consider dropping a model note a check already
+              covers.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft

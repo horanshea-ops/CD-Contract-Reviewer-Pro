@@ -50,6 +50,25 @@ describe("request goldens", () => {
     );
   });
 
+  it("analysis with a picture adds a label and the image after the contract text", async () => {
+    create.mockResolvedValue(toolResponse({ clause_review: [], findings: [], document_notes: "" }));
+
+    await analyzeContract({
+      document: { kind: "text", text: "CONTRACT BODY", pictures: [{ near: "Room Block", mediaType: "image/png", data: "iVBORw0K" }] },
+      standards: STANDARDS_LIBRARY,
+      standardsVersion: STANDARDS_LIBRARY_VERSION,
+      contextNote: "CONTEXT NOTE",
+      model: MODEL,
+    });
+
+    expect(create.mock.calls[0][0].messages[0].content).toEqual([
+      { type: "text", text: "CONTRACT TEXT:\n\nCONTRACT BODY" },
+      { type: "text", text: 'PICTURE 1 from the contract, just after "Room Block":' },
+      { type: "image", source: { type: "base64", media_type: "image/png", data: "iVBORw0K" } },
+      { type: "text", text: "CONTEXT NOTE" },
+    ]);
+  });
+
   it("client email", async () => {
     create.mockResolvedValue(toolResponse({ subject: "s", body: "b" }));
 
