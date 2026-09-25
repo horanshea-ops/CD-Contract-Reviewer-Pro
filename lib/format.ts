@@ -7,8 +7,8 @@ export function titleCase(s: string): string {
 }
 
 /** Whole dollars with commas. Exposure figures are estimates, so cents would claim precision they don't have. */
-export function formatCurrency(amount: number): string {
-  return `$${Math.round(amount).toLocaleString("en-US")}`;
+export function formatCurrency(amount: number, symbol = "$"): string {
+  return `${symbol}${Math.round(amount).toLocaleString("en-US")}`;
 }
 
 /** Names a clause type can't spell out from its stored key. */

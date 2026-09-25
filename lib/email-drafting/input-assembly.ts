@@ -20,6 +20,8 @@ export interface EmailFinding {
   finding_text: string;
   exposure_amount: number | null;
   exposure_basis: string | null;
+  /** The arithmetic behind exposure_amount, which also carries its currency. */
+  exposure_formula?: string | null;
 }
 
 export interface FindingRow {
@@ -32,6 +34,8 @@ export interface FindingRow {
   proposed_language: string;
   exposure_amount: number | null;
   exposure_basis: string | null;
+  /** The arithmetic behind exposure_amount, which also carries its currency. */
+  exposure_formula?: string | null;
 }
 
 export interface ActionRow {
@@ -71,6 +75,7 @@ export function assembleEmailFindings(findingRows: FindingRow[], actionRows: Act
       finding_text: f.finding_text,
       exposure_amount: f.exposure_amount,
       exposure_basis: f.exposure_basis,
+      exposure_formula: f.exposure_formula ?? null,
     }))
     // A finding proposing no change is not a change to tell the client about.
     // Shared with every export path — see lib/proposed-language.ts.
@@ -84,7 +89,7 @@ export async function getEmailFindings(
   const { data: findingRows } = await admin
     .from("findings")
     .select(
-      "id, clause_type, severity, is_missing_clause, quoted_text, finding_text, proposed_language, exposure_amount, exposure_basis"
+      "id, clause_type, severity, is_missing_clause, quoted_text, finding_text, proposed_language, exposure_amount, exposure_basis, exposure_formula"
     )
     .eq("analysis_id", analysisId);
 

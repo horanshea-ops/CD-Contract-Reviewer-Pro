@@ -1122,6 +1122,16 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         `intake_health.pictures`. The review screen notes each one, and the model is
         told not to infer what they hold. Rome's room block, rates included, was a
         picture the model never saw.
+      - On `prompt/combined-run` only, unmeasured until the next Rome run (about $0.36):
+        - A rule reads a deadline in days before arrival the right way round. Rome's
+          review had proposed moving a 14-day cutoff to 21 days, which is worse for the group.
+        - A `not_applicable` verdict covers clause types that can't apply, such as
+          named storm away from hurricane regions, a damage deposit the contract never
+          takes, or ADA by name outside the US.
+        - Exposures work in the contract's currency. `deal_figures` asks for
+          `group_rate` and `fb_minimum` as written, the checker reads €/£/$ amounts,
+          and the card, the total and the client email show the right symbol. Rome's
+          F&B gap works out to €13,000 by hand.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft

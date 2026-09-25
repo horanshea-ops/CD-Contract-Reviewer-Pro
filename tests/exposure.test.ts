@@ -66,6 +66,11 @@ describe("formatCalculation", () => {
   it("keeps dollar signs and parentheses, and shows percents as written", () => {
     expect(formatCalculation("$100,000 * (80% - 35%)", 45000)).toBe("$100,000 × (80% − 35%) = $45,000");
   });
+
+  it("writes a euro formula in euros", () => {
+    expect(evaluateFormula("€20000 * (1 - 0.35)")).toBe(13000);
+    expect(formatCalculation("€20000 * (1 - 0.35)", 13000)).toBe("€20,000 × (1 − 35%) = €13,000");
+  });
 });
 
 describe("formatCurrency", () => {

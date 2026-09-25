@@ -75,20 +75,20 @@ describe("analyzeContract's tool output", () => {
         other_findings: [],
         deal_figures: {
           room_block_room_nights: figure(2850, "The Room Block totals 2,850 room nights."),
-          group_rate_usd: figure(149, "Run of House: $149.00 per night."),
+          group_rate: figure(149, "Run of House: $149.00 per night."),
           minimum_room_nights: figure(2280, "at least 2,280 room nights"),
           attrition_threshold_pct: null,
           // A quote that states a different figure is dropped, so no exposure rests on it.
           attrition_damages_pct: figure(80, "times the Group Room Rate, times 80%"),
           cancellation_tiers: [],
-          fb_minimum_usd: figure(100000, "a $50,000 minimum"),
+          fb_minimum: figure(100000, "a $50,000 minimum"),
           fb_shortfall_pct: null,
         },
       })
     );
     const result = await run(contract);
     expect(result.findings[0]).toMatchObject({ exposure_amount: 33972, exposure_formula: "(2280 - 1995) * $149 * 0.8" });
-    expect(result.deal_figures).toMatchObject({ minimum_room_nights: 2280, attrition_damages_pct: 0.8, fb_minimum_usd: null });
+    expect(result.deal_figures).toMatchObject({ minimum_room_nights: 2280, attrition_damages_pct: 0.8, fb_minimum: null });
     expect(result.document_notes).toEqual([
       { headline: "Meeting dates disagree.", detail: "One table says 2010. Everything else says 2015." },
     ]);

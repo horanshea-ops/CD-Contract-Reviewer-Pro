@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { Body, Meta, Subtitle } from "@/components/ui/typography";
-import { formatCalculation } from "@/lib/exposure";
+import { currencyOf, formatCalculation } from "@/lib/exposure";
 import { clauseLabel, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
@@ -62,7 +62,7 @@ function ExposureBox({ amount, basis, formula }: { amount: number; basis: string
   return (
     <div className="mt-3 rounded-md border border-[var(--border)] px-3 py-2">
       <Subtitle as="p" className="text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">
-        {formatCurrency(amount)}
+        {formatCurrency(amount, currencyOf(formula))}
       </Subtitle>
       {formula && basis && (
         <Meta as="p" className="text-[var(--text-secondary)]">
