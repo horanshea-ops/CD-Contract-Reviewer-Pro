@@ -162,4 +162,26 @@ describe("quotes that span a table", () => {
     const found = locateQuote(parts, "180 to 91 | 50%", null);
     expect(isLocated(found)).toBe(true);
   });
+
+  it("finds a quote that runs across cells without the separators", async () => {
+    const parts = await walk(
+      await buildDocx(
+        table([
+          ["Days Prior to Arrival", "Damages"],
+          ["365 or more", "25%"],
+          ["180 to 91", "50%"],
+        ])
+      )
+    );
+    const found = locateQuote(parts, "180 to 91 50%", null);
+
+    expect(found.resolution).toBe("normalized");
+    if (!isLocated(found)) throw new Error("expected a hit");
+    expect(parts[0].text.slice(found.start, found.end)).toMatch(/^180 to 91\s+\|\s+50%$/);
+  });
+
+  it("finds the fixture quote that used to fall just short", async () => {
+    const parts = await walk(await fixture("13-nested-merged-tables.docx"));
+    expect(isLocated(locateQuote(parts, "Tier A fifty percent (50%)", null))).toBe(true);
+  });
 });

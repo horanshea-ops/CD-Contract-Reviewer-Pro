@@ -1,5 +1,8 @@
 import { dropRestated, rewritesExistingWording, struckSentences } from "./restated";
 import { wordingProblem } from "./wording";
+import { splitAcrossCells } from "./cell-split";
+import { locateQuote } from "./locate";
+import { isLocated } from "./types";
 
 /**
  * What the redline will do with each finding, worked out before export.
@@ -35,6 +38,26 @@ function opening(sentence: string): string {
   return words.length > 8 ? `${words.slice(0, 8).join(" ").replace(/[,;:]$/, "")}…` : sentence.trim();
 }
 
+/**
+ * The table cells a quote covers. A quote that leaves out the "|" between
+ * cells is found in the review text to see which cells it runs across.
+ */
+function quoteCells(quote: string | null, contractText: string | null): string[] {
+  const split = (text: string) => text.split("|").map((c) => c.trim()).filter(Boolean);
+  if (!quote) return [];
+  if (quote.includes("|") || !contractText?.includes("|")) return split(quote);
+
+  const span = locateQuote([{ part: "review", text: contractText }], quote, null);
+  if (!isLocated(span) || span.resolution === "fuzzy") return [quote];
+  return split(contractText.slice(span.start, span.end));
+}
+
+/** Whether the wording can be laid out across the cells, as the engine's table replacement does it. */
+function fitsCells(cells: string[], language: string): boolean {
+  if (language.includes("|")) return language.split("|").length === cells.length;
+  return splitAcrossCells(cells, language) !== null;
+}
+
 export function previewFindings(findings: PreviewFinding[], contractText: string | null): Map<string, FindingPreview> {
   const struck = struckSentences(findings);
   const previews = new Map<string, FindingPreview>();
@@ -62,11 +85,11 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
       continue;
     }
 
-    // The engine lays a change across a table row cell by cell, split on "|".
-    const cells = (f.quoted_text ?? "").split("|").filter((c) => c.trim()).length;
-    if (cells > 1 && language.split("|").length !== cells) {
+    // The engine lays a change across a table row cell by cell.
+    const cells = quoteCells(f.quoted_text, contractText);
+    if (cells.length > 1 && !fitsCells(cells, language)) {
       previews.set(f.id, {
-        export_issue: `Won't go into the redline: the quote spans ${cells} table cells, but the wording isn't split to match. Use Edit to change the cells one at a time, or raise it another way.`,
+        export_issue: `Won't go into the redline: the quote spans ${cells.length} table cells, and the wording can't be laid out across them. Use Edit to change the cells one at a time, or raise it another way.`,
         redline_language: null,
       });
       continue;

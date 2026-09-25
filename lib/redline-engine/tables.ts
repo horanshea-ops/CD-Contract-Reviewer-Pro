@@ -1,7 +1,8 @@
 import type { WalkResult } from "../docx";
 import type { RevisionIds } from "./ids";
 import { childElements, revisionElement, siblingGroups, toDeletedText } from "./revise";
-import { runsForSpan } from "./runs";
+import { runText, runsForSpan } from "./runs";
+import { splitAcrossCells } from "./cell-split";
 import type { LocatedSpan } from "./types";
 
 /**
@@ -144,16 +145,29 @@ function separatorParagraph(doc: Document, ids: RevisionIds, author: string, dat
   return p;
 }
 
+/**
+ * The wording for each covered cell. A proposal with "|" is split on it; one
+ * without is laid out by comparing it with the cells, or null when that can't
+ * be done without guessing.
+ */
+function cellPieces(replacement: string, groups: { runs: Element[] }[]): string[] | null {
+  if (replacement.includes("|") || groups.length < 2) return replacement.split("|").map((s) => s.trim());
+  return splitAcrossCells(
+    groups.map((g) => g.runs.map(runText).join("")),
+    replacement
+  );
+}
+
 export type TableReplacementResult = { ok: true } | { ok: false; reason: string };
 
 /**
  * Strikes the table the span sits in and inserts an edited copy after it.
  *
  * The replacement wording arrives flattened the way the model produced it, with
- * cells joined by pipes, so it is split back out across the cells the span
- * covered. If the pieces do not match the cells, the finding is refused rather
- * than guessed at — a table with wording in the wrong column is worse than one
- * the associate has to raise by hand.
+ * cells joined by pipes or with no separators at all, so it is split back out
+ * across the cells the span covered. If the pieces do not match the cells, the
+ * finding is refused rather than guessed at — a table with wording in the wrong
+ * column is worse than one the associate has to raise by hand.
  */
 export function replaceTable({
   part,
@@ -177,7 +191,15 @@ export function replaceTable({
   if (!table) return { ok: false, reason: "The wording is not inside a table after all." };
 
   const groups = byCell(covered);
-  const pieces = replacement.split("|").map((s) => s.trim());
+  const pieces = cellPieces(replacement, groups);
+  if (!pieces) {
+    return {
+      ok: false,
+      reason:
+        `The change covers ${groups.length} cells, and the proposed wording can't be laid out across them ` +
+        `without guessing which cell a change belongs to.`,
+    };
+  }
   if (pieces.length !== groups.length) {
     return {
       ok: false,
