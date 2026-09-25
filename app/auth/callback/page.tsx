@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safe-next";
 
 /**
  * Lands here after clicking a login link. Handles both shapes Supabase can
@@ -11,7 +12,9 @@ import { createClient } from "@/lib/supabase/client";
  * fragment (implicit flow — what admin-generated dev/testing links produce,
  * since there's no browser-stored PKCE verifier to pair with). The browser
  * client auto-detects and completes either one; we just need to wait for it,
- * then confirm the email is on the allowlist before letting them in.
+ * then confirm the email is on the allowlist before letting them in. A
+ * `next` parameter, such as the forgot-password link's `/account`, says where
+ * to land.
  */
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -54,7 +57,7 @@ export default function AuthCallbackPage() {
       if (cancelled) return;
 
       if (res.ok) {
-        router.replace("/");
+        router.replace(safeNext(params.get("next")));
       } else {
         const body = await res.json().catch(() => ({}));
         router.replace(
