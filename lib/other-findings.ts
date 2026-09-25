@@ -16,8 +16,6 @@ import type { Finding } from "./anthropic";
 
 export const OTHER_CLAUSE_TYPE = "general";
 
-const MAX_OTHER_FINDINGS = 6;
-
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 export function toOtherFindings(value: unknown, firm: string): Finding[] {
@@ -42,6 +40,5 @@ export function toOtherFindings(value: unknown, firm: string): Finding[] {
         model_confidence: "medium",
       };
     })
-    .filter((f): f is Finding => f !== null)
-    .slice(0, MAX_OTHER_FINDINGS);
+    .filter((f): f is Finding => f !== null);
 }

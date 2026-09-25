@@ -245,6 +245,7 @@ export async function processAnalysis(analysisId: string) {
           output_tokens: result.output_tokens,
           cache_read_input_tokens: result.cache_read_input_tokens,
           cache_creation_input_tokens: result.cache_creation_input_tokens,
+          thinking_chars: result.thinking_chars ?? 0,
         },
       })
       .eq("id", analysisId);
