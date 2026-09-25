@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkDocument } from "@/lib/document-checks";
+import { previewFindings } from "@/lib/redline-engine/preflight";
 
 const STORAGE_BUCKET = "contracts";
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
@@ -17,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: analysis, error } = await admin
     .from("analyses")
     .select(
-      "id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, started_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at, thread_id, round_number, document_notes, negotiation_threads(property_name)"
+      "id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, started_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at, thread_id, round_number, document_notes, accepted_view_text, negotiation_threads(property_name)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -61,10 +63,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       }
     }
 
-    findings = (findingRows ?? []).map((f) => ({
+    const withActions = (findingRows ?? []).map((f) => ({
       ...f,
       current_action: latestActionByFinding.get(f.id) ?? null,
     }));
+
+    // What the redline would do with each change, so a card can say so before export.
+    const previews = previewFindings(
+      withActions.map((f) => ({
+        id: f.id,
+        quoted_text: f.quoted_text,
+        is_missing_clause: f.is_missing_clause,
+        language:
+          f.current_action?.action === "edit" && f.current_action.edited_language
+            ? f.current_action.edited_language
+            : f.proposed_language,
+      })),
+      analysis.accepted_view_text
+    );
+    findings = withActions.map((f) => ({ ...f, ...previews.get(f.id) }));
   }
 
   let documentUrl: string | null = null;
@@ -73,8 +90,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .createSignedUrl(analysis.storage_path, SIGNED_URL_TTL_SECONDS);
   documentUrl = signed?.signedUrl ?? null;
 
-  const { negotiation_threads, ...analysisFields } = analysis;
+  // The contract text is only read here, never sent to the page.
+  const { negotiation_threads, accepted_view_text, ...analysisFields } = analysis;
   const propertyName = (negotiation_threads as unknown as { property_name: string } | null)?.property_name ?? null;
+  const document_checks = analysis.status === "complete" ? checkDocument(accepted_view_text) : [];
 
-  return NextResponse.json({ ...analysisFields, propertyName, findings, documentUrl });
+  return NextResponse.json({ ...analysisFields, propertyName, findings, documentUrl, document_checks });
 }

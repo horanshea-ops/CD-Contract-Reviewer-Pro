@@ -57,12 +57,55 @@ describe("dropRestated", () => {
 
   it("keeps a proposal made only of restated sentences", () => {
     const out = dropRestated(CREDIT, DEPOSITS, []);
-    expect(out).toEqual({ language: CREDIT, dropped: [] });
+    expect(out).toEqual({ language: CREDIT, dropped: [], reworded: [] });
   });
 
   it("ignores short sentences, which recur in any contract", () => {
     const out = dropRestated("Late fees change to 1% monthly. No deposit is due at signing.", DEPOSITS, []);
     expect(out.dropped).toEqual([]);
+  });
+});
+
+describe("dropRestated with reworded sentences", () => {
+  const RELEASE = "On the cutoff date we will return any unreserved rooms in the block to general inventory for resale.";
+  const AFTER = "Reservations received after the cutoff date will be accepted on a space and rate available basis.";
+  const CONTRACT = `The cutoff date is thirty days before arrival. ${RELEASE}\n${AFTER}`;
+
+  it("leaves out a rewrite of a sentence the finding doesn't quote", () => {
+    const reworded =
+      "On the cutoff date, after consultation with you, we will return any unreserved rooms in the block to general inventory for resale.";
+    const out = dropRestated(`${reworded} Reservations received after the cutoff date will be accepted at the group rate.`, CONTRACT, [
+      AFTER,
+    ]);
+    expect(out.reworded).toEqual([reworded]);
+    expect(out.language).toBe("Reservations received after the cutoff date will be accepted at the group rate.");
+  });
+
+  it("keeps a rewrite of the wording the finding quotes, which is the change itself", () => {
+    const out = dropRestated("Reservations received after the cutoff date will be accepted at the group rate while rooms remain.", CONTRACT, [
+      AFTER,
+    ]);
+    expect(out).toMatchObject({ dropped: [], reworded: [] });
+  });
+
+  it("recognises quoted wording behind a bullet glyph or tab the contract carries", () => {
+    const bulleted = `\uF0B7\t${AFTER}`;
+    const out = dropRestated(
+      `Reservations received after the cutoff date will be accepted at the group rate. ${RELEASE.replace("for resale", "for resale after consultation")}`,
+      `${bulleted}\n${RELEASE}`,
+      [AFTER]
+    );
+    expect(out.reworded).toHaveLength(1);
+    expect(out.language).toBe("Reservations received after the cutoff date will be accepted at the group rate.");
+  });
+
+  it("keeps a new sentence that only shares a phrase with the contract", () => {
+    const out = dropRestated(
+      `We will return any unreserved rooms promptly. Either party may cancel without liability if a named storm is forecast to reach the Hotel within three days.`,
+      CONTRACT,
+      [AFTER]
+    );
+    expect(out.reworded).toEqual([]);
   });
 });
 
@@ -124,6 +167,27 @@ describe("the engine with restated wording", () => {
       "Contractors must be approved by us before performing any services at the Resort. You are responsible for all acts and omissions of your contractors."
     );
     expect(result.resolutions[0].detail).not.toContain("Leaves out");
+  });
+
+  it("doesn't leave two versions of a sentence the proposal rewords without quoting it", async () => {
+    const release = "On the cutoff date we will return any unreserved rooms in the block to general inventory for resale.";
+    const after = "Reservations received after the cutoff date will be accepted on a space and rate available basis.";
+    const { result, report, accepted } = await redline(
+      [`The cutoff date is thirty days before arrival. ${release}`, after],
+      [
+        finding({
+          clause_type: "cutoff_date",
+          quoted_text: after,
+          language:
+            "On the cutoff date, after consultation with you, we will return any unreserved rooms in the block to general inventory for resale. Reservations received after the cutoff date will be accepted at the group rate.",
+        }),
+      ]
+    );
+    expect(result.appliedCount).toBe(1);
+    expect(report.outcome).toBe("clean");
+    expect(accepted.split("On the cutoff date").length - 1).toBe(1);
+    expect(accepted).toContain("Reservations received after the cutoff date will be accepted at the group rate.");
+    expect(result.resolutions[0].detail).toContain(`Leaves out a rewrite of wording it doesn't quote: "On the cutoff date, after consultation with you…"`);
   });
 
   it("leaves out an appended clause's restated sentence", async () => {

@@ -217,7 +217,7 @@ describe("buildCleanContractText", () => {
       additions: [finding({ clause_type: "walk_relocation", is_missing_clause: true, language: "New clause text." })],
     });
     expect(out).toContain("Additional Proposed Clauses");
-    expect(out).toContain("Walk relocation");
+    expect(out).toContain("Walk & Relocation");
     expect(out).toContain("New clause text.");
   });
 
@@ -1451,7 +1451,7 @@ describe("proposed language that is not a replacement clause", () => {
     ]);
     const text = buildCleanContractText(result);
     expect(text).toContain("Further Proposed Changes");
-    expect(text).toContain("Rate parity");
+    expect(text).toContain("Rate Parity");
     expect(text).toContain(body);
   });
 });

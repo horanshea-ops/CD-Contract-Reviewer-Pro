@@ -1,3 +1,4 @@
+import { clauseLabel } from "./format";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
 /**
@@ -107,7 +108,7 @@ export async function generateRevisionsMemo(input: MemoInput): Promise<Uint8Arra
     ensureSpace(60);
     y -= 6;
 
-    const heading = `${i + 1}. ${SEVERITY_LABEL[finding.severity]} — ${finding.clause_type.replace(/_/g, " ")}`;
+    const heading = `${i + 1}. ${SEVERITY_LABEL[finding.severity]} — ${clauseLabel(finding.clause_type)}`;
     drawWrapped(heading.toUpperCase(), boldFont, 11, 15);
 
     if (finding.is_missing_clause) {
