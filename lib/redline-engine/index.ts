@@ -46,6 +46,12 @@ export interface RedlineOutcome extends RedlineEngineResult {
   }[];
 }
 
+/** The opening of a sentence, for naming it in a resolution detail. */
+function excerpt(sentence: string): string {
+  const opening = sentence.split(/\s+/).slice(0, 8).join(" ");
+  return opening.length < sentence.trim().length ? `${opening.replace(/[,;:]$/, "")}…` : opening;
+}
+
 /** Revision elements enclosing a run, outermost last. */
 function revisionAncestors(run: Element): Element[] {
   const out: Element[] = [];
@@ -119,10 +125,13 @@ export async function generateRedline({
   const contractText = pristine.map((p) => p.text).join("\n");
   const struckByBatch = struckSentences(findings);
 
-  const leavesOut = (dropped: string[]) =>
-    dropped.length === 0
+  const leavesOut = ({ dropped, reworded }: { dropped: string[]; reworded: string[] }) =>
+    (dropped.length === 0
       ? ""
-      : ` Leaves out ${dropped.length === 1 ? "a sentence" : `${dropped.length} sentences`} the contract already has.`;
+      : ` Leaves out ${dropped.length === 1 ? "a sentence" : `${dropped.length} sentences`} the contract already has.`) +
+    reworded
+      .map((s) => ` Leaves out a rewrite of wording it doesn't quote: "${excerpt(s)}". Edit the finding to change that sentence.`)
+      .join("");
 
   const append = (finding: RevisionFinding) => {
     const problem = wordingProblem(finding.language, null);
@@ -142,7 +151,8 @@ export async function generateRedline({
       );
       return;
     }
-    const { language, dropped } = dropRestated(finding.language.trim(), contractText, struckByBatch);
+    const restated = dropRestated(finding.language.trim(), contractText, struckByBatch);
+    const { language } = restated;
     if (!language.trim()) {
       refuse(finding, "missing_clause", "unresolved", "applicable", "The finding proposes no language to add.");
       return;
@@ -153,7 +163,7 @@ export async function generateRedline({
       findingId: finding.id,
       spanResolution: "unresolved",
       applicability: "applicable",
-      detail: `Not in the contract — added to the appendix as a tracked insertion.${leavesOut(dropped)}`,
+      detail: `Not in the contract — added to the appendix as a tracked insertion.${leavesOut(restated)}`,
     });
   };
 
@@ -206,10 +216,11 @@ export async function generateRedline({
     const part = parts.find((p) => p.part === located.part)!;
     const fit = fitToProposal(part, located, finding.language);
     const { span } = fit;
-    const { language, dropped } = dropRestated(fit.language, contractText, [
+    const restated = dropRestated(fit.language, contractText, [
       ...struckByBatch,
       part.text.slice(span.start, span.end),
     ]);
+    const { language } = restated;
     const struck = fit.widened
       ? [fit.widened.before, fit.widened.after].map((s) => s.trim()).filter(Boolean).join(" … ")
       : "";
@@ -226,7 +237,7 @@ export async function generateRedline({
         spanResolution: span.resolution,
         applicability: "applicable",
         detail:
-          (struck ? `${detail} Covers the whole sentence, so it also strikes: "${struck}".` : detail) + leavesOut(dropped),
+          (struck ? `${detail} Covers the whole sentence, so it also strikes: "${struck}".` : detail) + leavesOut(restated),
       });
     };
 
