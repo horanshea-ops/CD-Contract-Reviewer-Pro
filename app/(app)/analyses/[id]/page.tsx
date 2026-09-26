@@ -8,6 +8,7 @@ import FindingsOverviewBar from "./findings-overview-bar";
 import DocumentNotes, { noteCount } from "./document-notes";
 import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
+import { ResizableSplit } from "./resizable-split";
 import type { HighlightRect } from "@/lib/locate-text";
 import { computeFindingsOverview, SEVERITY_ORDER, type FindingSeverity } from "@/lib/findings-overview";
 import { ExportPicker } from "@/components/export-picker";
@@ -451,88 +452,91 @@ export default function AnalysisPage() {
         </div>
       </div>
 
-      {/* Below lg the panes stack, each with its own scroll, so the findings stay reachable under a long contract. */}
-      <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        <div className="h-[45vh] shrink-0 border-b lg:h-auto lg:shrink lg:w-1/2 lg:border-b-0 lg:border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
-          {data.source_format !== "pdf" && data.intake_route !== "docx_native" && (
-            <Meta as="div" className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] px-4 py-2 shrink-0">
-              {getMarkupReason({ sourceFormat: data.source_format, intakeHealthReason: data.intake_health?.reason ?? null })}{" "}
-              Converted from {data.source_format.toUpperCase()} for review, text only. Original formatting (tables,
-              letterhead, styling) isn&apos;t preserved here.
-            </Meta>
-          )}
-          {data.intake_route === "docx_native" ? (
-            <DocxPreview
-              analysisId={data.id}
-              hadExistingRevisions={!!data.had_existing_revisions}
-              existingRevisionAuthors={data.existing_revision_authors ?? []}
-              existingRevisionCount={data.existing_revision_count ?? 0}
-              selectedFinding={sortedFindings.find((f) => f.id === selectedFindingId) ?? null}
-              highlightColor={
-                SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
-              }
-            />
-          ) : data.documentUrl ? (
-            <div className="flex-1 min-h-0">
-              <PdfViewer
-                documentUrl={data.documentUrl}
-                activePage={activePage}
-                highlightRects={selectedFindingId ? (highlightCache[selectedFindingId] ?? null) : null}
+      {/* Below lg the panes stack, each with its own scroll, so the findings stay reachable under a long contract. From lg the divider between them can be dragged. */}
+      <ResizableSplit
+        contract={
+          <div className="h-[45vh] shrink-0 border-b lg:h-auto lg:shrink lg:w-[calc(100%-var(--findings-width))] lg:border-b-0 lg:border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
+            {data.source_format !== "pdf" && data.intake_route !== "docx_native" && (
+              <Meta as="div" className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] px-4 py-2 shrink-0">
+                {getMarkupReason({ sourceFormat: data.source_format, intakeHealthReason: data.intake_health?.reason ?? null })}{" "}
+                Converted from {data.source_format.toUpperCase()} for review, text only. Original formatting (tables,
+                letterhead, styling) isn&apos;t preserved here.
+              </Meta>
+            )}
+            {data.intake_route === "docx_native" ? (
+              <DocxPreview
+                analysisId={data.id}
+                hadExistingRevisions={!!data.had_existing_revisions}
+                existingRevisionAuthors={data.existing_revision_authors ?? []}
+                existingRevisionCount={data.existing_revision_count ?? 0}
+                selectedFinding={sortedFindings.find((f) => f.id === selectedFindingId) ?? null}
                 highlightColor={
                   SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
                 }
               />
-            </div>
-          ) : (
-            <Body as="p" className="p-6 text-[var(--text-secondary)]">
-              Document preview unavailable.
-            </Body>
-          )}
-        </div>
-
-        <div className="flex-1 min-h-0 lg:w-1/2 overflow-y-auto bg-[var(--surface-muted)]">
-          {sortedFindings.length + notesInOther > 0 && (
-            <div className="sticky top-0 z-10 bg-[var(--surface-muted)] px-4 py-3 border-b border-[var(--border)]">
-              <FindingsOverviewBar
-                overview={bucketOverview}
-                hiddenSeverities={hiddenSeverities}
-                onToggleSeverity={toggleSeverity}
-                hideDecided={hideDecided}
-                onToggleHideDecided={toggleHideDecided}
-              />
-            </div>
-          )}
-          <div className="px-4 py-4 space-y-3">
-            {sortedFindings.length + notesInOther === 0 ? (
-              <Body as="p" className="text-[var(--text-secondary)]">
-                No findings. Nothing flagged against the standards library.
-              </Body>
-            ) : mainFindings.length === 0 && !showOther ? (
-              <Body as="p" className="text-[var(--text-secondary)]">
-                No findings match this filter.
-              </Body>
+            ) : data.documentUrl ? (
+              <div className="flex-1 min-h-0">
+                <PdfViewer
+                  documentUrl={data.documentUrl}
+                  activePage={activePage}
+                  highlightRects={selectedFindingId ? (highlightCache[selectedFindingId] ?? null) : null}
+                  highlightColor={
+                    SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
+                  }
+                />
+              </div>
             ) : (
-              mainFindings.map(card)
-            )}
-            {showOther && (
-              <section aria-label="Other" className="space-y-3 pt-2">
-                <Meta as="h2" className="text-[var(--text-secondary)]">
-                  <span className="font-semibold uppercase tracking-wide">Other</span>
-                  {` · outside ${ORG.shortName}'s standards, and notes on the document`}
-                </Meta>
-                {otherFindings.length > 0 && (
-                  <Meta as="p" className="text-[var(--text-muted)] -mt-2">
-                    These points carry no proposed wording. Accepting one puts it in the memo; use Add wording to put a
-                    change in the redline.
-                  </Meta>
-                )}
-                {otherFindings.map(card)}
-                <DocumentNotes notes={data.document_notes} checks={checks} />
-              </section>
+              <Body as="p" className="p-6 text-[var(--text-secondary)]">
+                Document preview unavailable.
+              </Body>
             )}
           </div>
-        </div>
-      </div>
+        }
+        findings={
+          <div className="flex-1 min-h-0 lg:w-[var(--findings-width)] overflow-y-auto bg-[var(--surface-muted)]">
+            {sortedFindings.length + notesInOther > 0 && (
+              <div className="sticky top-0 z-10 bg-[var(--surface-muted)] px-4 py-3 border-b border-[var(--border)]">
+                <FindingsOverviewBar
+                  overview={bucketOverview}
+                  hiddenSeverities={hiddenSeverities}
+                  onToggleSeverity={toggleSeverity}
+                  hideDecided={hideDecided}
+                  onToggleHideDecided={toggleHideDecided}
+                />
+              </div>
+            )}
+            <div className="px-4 py-4 space-y-3">
+              {sortedFindings.length + notesInOther === 0 ? (
+                <Body as="p" className="text-[var(--text-secondary)]">
+                  No findings. Nothing flagged against the standards library.
+                </Body>
+              ) : mainFindings.length === 0 && !showOther ? (
+                <Body as="p" className="text-[var(--text-secondary)]">
+                  No findings match this filter.
+                </Body>
+              ) : (
+                mainFindings.map(card)
+              )}
+              {showOther && (
+                <section aria-label="Other" className="space-y-3 pt-2">
+                  <Meta as="h2" className="text-[var(--text-secondary)]">
+                    <span className="font-semibold uppercase tracking-wide">Other</span>
+                    {` · outside ${ORG.shortName}'s standards, and notes on the document`}
+                  </Meta>
+                  {otherFindings.length > 0 && (
+                    <Meta as="p" className="text-[var(--text-muted)] -mt-2">
+                      These points carry no proposed wording. Accepting one puts it in the memo; use Add wording to put a
+                      change in the redline.
+                    </Meta>
+                  )}
+                  {otherFindings.map(card)}
+                  <DocumentNotes notes={data.document_notes} checks={checks} />
+                </section>
+              )}
+            </div>
+          </div>
+        }
+      />
     </div>
   );
 }
