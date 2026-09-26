@@ -19,6 +19,7 @@ interface OpenThread {
 
 const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".doc"];
 const UNSUPPORTED_TYPE_MESSAGE = "Unsupported file type. Upload a PDF, DOCX, or DOC contract.";
+const MAX_FILE_BYTES = 32 * 1024 * 1024;
 
 // Drag-and-drop bypasses the file input's `accept` filter entirely, and a
 // dropped file's `type` can be empty depending on OS/browser — checking the
@@ -26,6 +27,10 @@ const UNSUPPORTED_TYPE_MESSAGE = "Unsupported file type. Upload a PDF, DOCX, or 
 function hasAcceptedExtension(filename: string): boolean {
   const lower = filename.toLowerCase();
   return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+function tooLargeMessage(bytes: number): string {
+  return `This file is ${formatFileSize(bytes)}. The limit is 32MB.`;
 }
 
 function formatFileSize(bytes: number): string {
@@ -58,10 +63,10 @@ export default function UploadForm() {
     setDragActive(false);
     const dropped = e.dataTransfer.files?.[0];
     if (!dropped) return;
-    if (!hasAcceptedExtension(dropped.name)) {
+    if (!hasAcceptedExtension(dropped.name) || dropped.size > MAX_FILE_BYTES) {
       setFile(null);
       setStatus("error");
-      setErrorMessage(UNSUPPORTED_TYPE_MESSAGE);
+      setErrorMessage(hasAcceptedExtension(dropped.name) ? tooLargeMessage(dropped.size) : UNSUPPORTED_TYPE_MESSAGE);
       return;
     }
     setStatus("idle");
@@ -75,10 +80,10 @@ export default function UploadForm() {
 
   function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] ?? null;
-    if (selected && !hasAcceptedExtension(selected.name)) {
+    if (selected && (!hasAcceptedExtension(selected.name) || selected.size > MAX_FILE_BYTES)) {
       setFile(null);
       setStatus("error");
-      setErrorMessage(UNSUPPORTED_TYPE_MESSAGE);
+      setErrorMessage(hasAcceptedExtension(selected.name) ? tooLargeMessage(selected.size) : UNSUPPORTED_TYPE_MESSAGE);
       return;
     }
     setStatus("idle");
@@ -115,11 +120,11 @@ export default function UploadForm() {
 
     try {
       const res = await fetch("/api/analyses", { method: "POST", body: formData });
-      const body = await res.json();
+      const body = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         setStatus("error");
-        setErrorMessage(body.error || "Upload failed.");
+        setErrorMessage(body.error || "The upload didn't go through. Try again in a moment.");
         return;
       }
 
