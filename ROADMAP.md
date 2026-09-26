@@ -1182,9 +1182,11 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         finds the changed passages between rounds. Carry over the prior
         round's findings on unchanged clauses, and send the model only the
         changed clauses. That cuts cost, but it still makes a call.
-      - **Allowance.** Count a review against the monthly limit only when it
-        called the model. A copied review records the analysis it came from,
-        which needs a `reused_from` column (a migration).
+      - **Allowance.** Done 2026-09-26: a review counts only once it calls
+        the model (the pipeline stamps `token_usage.model_called_at` first), or
+        while it is in progress. A copied review makes no call, so it won't
+        count. It can record its source in its `intake_health` JSON, with no
+        migration.
       - **Open questions.**
         - Should a copy share decisions already made on the old review?
         - How long does a prior review stay reusable?

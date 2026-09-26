@@ -162,6 +162,10 @@ export async function processAnalysis(analysisId: string) {
           )
         : null;
 
+    // Marks the review as one that called the model, which is what the monthly allowance counts.
+    const modelCalledAt = new Date().toISOString();
+    await admin.from("analyses").update({ token_usage: { model_called_at: modelCalledAt } }).eq("id", analysisId);
+
     const result = await analyzeContract({
       document,
       standards: standards.entries,
@@ -246,6 +250,7 @@ export async function processAnalysis(analysisId: string) {
         accepted_view_text: document.kind === "text" ? scanText : null,
         document_notes: result.document_notes.length > 0 ? result.document_notes : null,
         token_usage: {
+          model_called_at: modelCalledAt,
           input_tokens: result.input_tokens,
           output_tokens: result.output_tokens,
           cache_read_input_tokens: result.cache_read_input_tokens,
