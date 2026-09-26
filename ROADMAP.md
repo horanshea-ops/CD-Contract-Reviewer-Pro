@@ -1162,9 +1162,12 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         - [x] A cutoff finding that asks for more days before arrival than
               the contract gives is dropped with reason
               `moves_cutoff_earlier`. Both Rome runs proposed 14 → 21 days.
-              The cause is CD's fallback wording, which fixes the cutoff at
-              21 days while the position says "no earlier than 21 days". That
-              wording is CD's to change.
+              The cause was CD's fallback wording, which fixed the cutoff at
+              21 days while the position said "no earlier than 21 days". Both
+              now say a cutoff 21 days or fewer before arrival meets the
+              standard (2026-09-26, live table updated through the audited
+              admin route, hash `ea1456de`). The library hash changed, so the
+              next eval run needs a fresh baseline.
 
 - [ ] **Repeat reviews without a model call — scoped, not started** (raised by
       the user 2026-09-26). An associate who uploads a contract the tool has
