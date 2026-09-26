@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Body, Title } from "@/components/ui/typography";
 import { ORG } from "@/lib/org";
 
+const NO_ACCOUNT_CODES = new Set(["otp_disabled", "signup_disabled", "user_not_found"]);
+
 const REDIRECT_ERRORS: Record<string, string> = {
   not_authorized:
     "That email isn't on the associate list yet. Ask your admin to add it, then try again.",
@@ -79,10 +81,12 @@ export default function LoginPage() {
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/account`,
+        shouldCreateUser: false,
       },
     });
 
-    if (error) {
+    // An unknown email gets the same answer as a known one, so the form doesn't reveal who has an account.
+    if (error && !NO_ACCOUNT_CODES.has(error.code ?? "")) {
       fail(error.message);
       return;
     }
@@ -150,7 +154,7 @@ export default function LoginPage() {
               aria-live="polite"
               className="rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-[var(--text-primary)]"
             >
-              Check <span className="font-medium">{email}</span> for a sign-in link. It expires in a few minutes.
+              If <span className="font-medium">{email}</span> has an account, a sign-in link is on its way. It expires in a few minutes.
             </Body>
           ) : (
             <form onSubmit={mode === "password" ? handlePasswordSubmit : handleLinkSubmit} className="space-y-3">
