@@ -14,7 +14,7 @@ import { ExportPicker } from "@/components/export-picker";
 import { EmailPicker } from "@/components/email-picker";
 import { AiClauseReview } from "@/components/ai-clause-review";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
-import { isStalledRun } from "@/lib/analysis-status";
+import { isStalledRun, stoppedAtAiUseCheck } from "@/lib/analysis-status";
 import { Button } from "@/components/ui/button";
 import { Body, Meta, Title } from "@/components/ui/typography";
 import type { DocumentNote } from "@/lib/document-notes";
@@ -45,7 +45,7 @@ interface AnalysisResponse {
   had_existing_revisions: boolean | null;
   existing_revision_authors: string[] | null;
   existing_revision_count: number | null;
-  ai_clause_scan_result: { matches: AiUseMatch[] } | null;
+  ai_clause_scan_result: { matches: AiUseMatch[]; decision?: string | null } | null;
   ai_clause_acknowledged_at: string | null;
   thread_id: string | null;
   round_number: number | null;
@@ -347,6 +347,24 @@ export default function AnalysisPage() {
               this page.
             </Meta>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (data.status === "failed" && stoppedAtAiUseCheck(data)) {
+    return (
+      <div className="h-full flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <Body as="p" className="font-medium text-[var(--text-primary)] mb-1">
+            Stopped at the AI-use check
+          </Body>
+          <Body as="p" className="text-[var(--text-secondary)] mb-4">
+            An associate read the matched language and chose not to proceed, so the contract was not sent for review.
+          </Body>
+          <Link href="/upload" className="text-sm text-[var(--text-secondary)] underline">
+            Upload a different file
+          </Link>
         </div>
       </div>
     );

@@ -10,7 +10,7 @@ import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
 import { findMatchingLineIndices } from "./locate-text";
 import { scanForAiUseTerms, scanForAdjacentTerms } from "./ai-use-scan";
-import { MODEL_CALL_BUDGET_MS } from "./analysis-status";
+import { MODEL_CALL_BUDGET_MS, STOPPED_AT_AI_USE_CHECK, stoppedAtAiUseCheck, type AnalysisRun } from "./analysis-status";
 
 const STORAGE_BUCKET = "contracts";
 
@@ -26,12 +26,22 @@ export async function processAnalysis(analysisId: string) {
 
   const { data: analysis, error: fetchError } = await admin
     .from("analyses")
-    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path, ai_clause_acknowledged_at")
+    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path, ai_clause_acknowledged_at, ai_clause_scan_result")
     .eq("id", analysisId)
     .single();
 
   if (fetchError || !analysis) {
     console.error(`processAnalysis: could not load analysis ${analysisId}`, fetchError);
+    return;
+  }
+
+  // An associate declined at the AI-use check, so this contract never reaches the model.
+  if (stoppedAtAiUseCheck({ ai_clause_scan_result: analysis.ai_clause_scan_result as AnalysisRun["ai_clause_scan_result"] })) {
+    console.warn(`processAnalysis: ${analysisId} was stopped at the AI-use check; not running it`);
+    await admin
+      .from("analyses")
+      .update({ status: "failed", error: STOPPED_AT_AI_USE_CHECK })
+      .eq("id", analysisId);
     return;
   }
 

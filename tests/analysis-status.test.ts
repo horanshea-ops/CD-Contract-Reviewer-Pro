@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAwaitingAiUseDecision, isStalledRun, retryability, STALE_ANALYSIS_MINUTES } from "@/lib/analysis-status";
+import { isAwaitingAiUseDecision, isStalledRun, retryability, STALE_ANALYSIS_MINUTES, stoppedAtAiUseCheck } from "@/lib/analysis-status";
 
 /**
  * A dropped connection during a live run left an analysis at "processing" with
@@ -85,5 +85,27 @@ describe("who may be retried", () => {
       ai_clause_scan_result: { matches: [{ term: "machine learning" }] },
     });
     expect(reason(gated)).toMatch(/AI-use decision/);
+  });
+
+  // A retry skipped the check, since the decision was already recorded, and would
+  // have sent a contract the associate declined straight to the model.
+  it("refuses a run an associate stopped at the AI-use check", () => {
+    const stopped = run({
+      status: "failed",
+      ai_clause_acknowledged_at: minutesAgo(5),
+      ai_clause_scan_result: { matches: [{ term: "artificial intelligence" }], decision: "abort" },
+    });
+    expect(stoppedAtAiUseCheck(stopped)).toBe(true);
+    expect(reason(stopped)).toMatch(/chose not to proceed at the AI-use check/);
+  });
+
+  it("still allows a run that proceeded past the check and then failed", () => {
+    const proceeded = run({
+      status: "failed",
+      ai_clause_acknowledged_at: minutesAgo(5),
+      ai_clause_scan_result: { matches: [{ term: "artificial intelligence" }], decision: "proceed" },
+    });
+    expect(stoppedAtAiUseCheck(proceeded)).toBe(false);
+    expect(retryability(proceeded, NOW).allowed).toBe(true);
   });
 });
