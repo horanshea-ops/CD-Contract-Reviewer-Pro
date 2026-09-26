@@ -1104,8 +1104,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
 - [ ] **11. Email + password sign-in: setup only the user can do.** The code
       shipped 2026-09-24. Associates sign in with a password, and "Forgot your
       password?" emails a sign-in link that lands on `/account`, where they set
-      a new one (at least 12 characters, audited as `password_set`).
-      - Supabase → Auth → Providers → Email: set the minimum password length to 12.
+      a new one (at least 8 characters, audited as `password_set`; lowered from 12 by the user on 2026-09-26).
+      - Done 2026-09-26: Supabase → Auth → Providers → Email minimum password length is 8, matching the app.
       - Set up custom SMTP (e.g. Resend) before real associates sign in.
         Supabase's built-in sender only reaches the project's own team, at 2
         emails an hour, so forgot-password links can't reach CD without it.
