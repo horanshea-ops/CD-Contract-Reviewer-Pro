@@ -69,6 +69,8 @@ function runFinding(run_id: string, found: KeyItem[]): RunRecord {
   const analysis: AnalysisResult = {
     findings: found.map(findingFor),
     clauses_checked: [],
+    clause_review: [],
+    review_gaps: [],
     dropped_findings: [],
     document_notes: [],
     model_id: "claude-sonnet-5",

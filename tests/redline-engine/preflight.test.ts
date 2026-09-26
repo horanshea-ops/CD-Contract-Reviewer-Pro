@@ -75,6 +75,12 @@ describe("previewFindings", () => {
     });
   });
 
+  it("says a point raised without wording stays out of the redline but in the memo", () => {
+    expect(preview(finding({ quoted_text: AFTER, language: "" }))?.export_issue).toBe(
+      "No wording proposed, so this won't go into the redline. The memo still lists it. Use Edit to add wording."
+    );
+  });
+
   it("says a change across a table row won't go in unless its wording is split to match the cells", () => {
     const row = "| 90 Days or Less | $50,000.00 | $20,000.00 |";
     expect(preview(finding({ quoted_text: row, language: "Fees are seventy percent of room profit at every tier." }))?.export_issue).toBe(

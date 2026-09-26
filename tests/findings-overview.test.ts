@@ -75,7 +75,16 @@ describe("computing a review's overview stats", () => {
       includedCount: 0,
       dismissedCount: 0,
       totalExposure: 0,
+      exposureCurrency: "$",
       hasExposure: false,
     });
+  });
+
+  it("totals exposures in the currency their formulas are written in", () => {
+    const overview = computeFindingsOverview([
+      { severity: "medium", exposure_amount: null, current_action: null },
+      { severity: "medium", exposure_amount: 13000, exposure_formula: "€20000 * (1 - 0.35)", current_action: null },
+    ]);
+    expect(overview).toMatchObject({ totalExposure: 13000, exposureCurrency: "€" });
   });
 });

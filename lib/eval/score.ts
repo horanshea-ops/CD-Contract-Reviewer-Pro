@@ -1,3 +1,4 @@
+import { OTHER_CLAUSE_TYPE } from "../other-findings";
 import type { LocatablePart } from "../redline-engine/locate";
 import type { Severity } from "../standards/types";
 import { matchDocument, normalizeClauseType } from "./match";
@@ -133,11 +134,15 @@ function scoreContract(
 
   verifyAnchors(entry, parts);
 
-  const { pairs, locations, unmatchedKey, unmatchedFindings } = matchDocument(entry.items, analysis.findings, parts);
+  // Findings outside the standards library are no part of the key, so they
+  // are left out of scoring. They come last, so every index below still
+  // points at the same finding in the run record.
+  const findings = analysis.findings.filter((f) => f.clause_type !== OTHER_CLAUSE_TYPE);
+  const { pairs, locations, unmatchedKey, unmatchedFindings } = matchDocument(entry.items, findings, parts);
 
   const matched: MatchedPair[] = pairs.map((pair) => {
     const item = entry.items[pair.keyIndex];
-    const finding = analysis.findings[pair.findingIndex];
+    const finding = findings[pair.findingIndex];
     return {
       key_item_id: item.id,
       finding_index: pair.findingIndex,
@@ -168,7 +173,7 @@ function scoreContract(
   });
 
   const unmatched: UnmatchedFinding[] = unmatchedFindings.map(({ findingIndex, duplicateOf }) => {
-    const finding = analysis.findings[findingIndex];
+    const finding = findings[findingIndex];
     return {
       finding_index: findingIndex,
       // A finding matching nothing is only wrong if the key claims to list

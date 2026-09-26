@@ -255,6 +255,37 @@ items move it seven points.
 A change needs to move total misses by more than about three before one run can
 credit it.
 
+## Combined checklist and whole-sentence prompts, 2026-09-23
+
+Run `combined-2026-09-23` used branch `prompt/combined-run`, which holds both
+`prompt/clause-checklist` and `prompt/whole-sentence-quotes`. It cost about $2.08,
+including one failed Monarch attempt, and took 25m37s.
+
+| | Baselines | Combined |
+|---|---|---|
+| Recall | 88.7% / 88.1% | 98.2% (165/168) |
+| High-severity recall | 80.0% / 86.7% | 100% (30/30) |
+| Precision | 81.4% / 82.2% | 81.3% |
+| Repeat misses caught | — | 7 of 8 |
+| Redline applied | 157 of 180 / 146 of 178 | 155 of 203 |
+| Whole-sentence changes | 19 / 12 | 1 |
+| Left out: not found | 2 / 1 | 24 |
+| Left out: crosses a boundary | 1 / 0 | 20 |
+| Output tokens | 93k (repeat) | 159k |
+| Time per contract | 54–151s | 163–253s, one retry at 374s |
+
+- **The checklist works.** It caught 7 of the 8 items both baselines missed. The one new
+  miss is Monarch's named storm clause.
+- **The whole-sentence rules backfired on quotes.** Median quote length went from about
+  300 to about 900 characters in Harborview and Crossroads. The model quoted whole
+  clauses, and in Harborview it joined sentences that aren't next to each other
+  instead of using "…". Crossroads quotes ran across paragraphs. Those 44 changes
+  can't be marked up.
+- **They did fix what they aimed at.** Whole-sentence changes fell from 19 to 1, and
+  no proposal read as an instruction.
+- **The cost is time.** Verdicts for 34 clause types add about 65k output tokens per run.
+  Harborview's 253s would exceed the app's 240s model budget.
+
 ## First baseline, 2026-09-10
 
 `claude-sonnet-5`, standards `v1-industry-default`, 7 contracts, 90 key items.

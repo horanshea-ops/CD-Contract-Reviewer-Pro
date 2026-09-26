@@ -1,3 +1,5 @@
+import { formatCurrency } from "./format";
+
 /**
  * Exposure figures the app works out itself.
  *
@@ -7,8 +9,8 @@
  * the amount shown is always the formula's result, and a figure with no formula
  * that evaluates is not shown at all.
  *
- * The parser accepts numbers, + - * / ( ), ×, ÷, % and a leading $. It never
- * calls eval, and anything else makes the formula unreadable.
+ * The parser accepts numbers, + - * / ( ), ×, ÷, % and a leading $, € or £. It
+ * never calls eval, and anything else makes the formula unreadable.
  */
 
 type Token = { kind: "number"; value: number; text: string } | { kind: "op"; op: string };
@@ -29,10 +31,10 @@ function tokenize(formula: string): Token[] | null {
       i++;
       continue;
     }
-    const m = formula.slice(i).match(/^\$?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?%?|^\$?\.\d+%?/);
+    const m = formula.slice(i).match(/^[$€£]?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?%?|^[$€£]?\.\d+%?/);
     if (!m) return null;
     const text = m[0];
-    const digits = text.replace(/[$,%]/g, "");
+    const digits = text.replace(/[$€£,%]/g, "");
     const value = Number(digits) / (text.endsWith("%") ? 100 : 1);
     if (!Number.isFinite(value)) return null;
     tokens.push({ kind: "number", value, text });
@@ -120,21 +122,26 @@ export function checkExposure(finding: { exposure_amount: number | null; exposur
   return { exposure_amount: amount, exposure_formula: amount === null ? null : formula, model_amount_disagreed: disagreed };
 }
 
+/** The currency symbol a formula's amounts are written in, "$" when it names none. */
+export function currencyOf(formula: string | null | undefined): string {
+  return formula?.match(/[$€£]/)?.[0] ?? "$";
+}
+
 /**
  * A formula written for a reader: "2280 * 149 * 0.10" becomes
  * "2,280 × 149 × 10% = $33,972". Numbers get commas, a decimal under one reads
- * as a percent, and the result is in whole dollars.
+ * as a percent, and the result is in whole units of the formula's currency.
  */
 export function formatCalculation(formula: string, amount: number): string {
   const tokens = tokenize(formula) ?? [];
   const parts = tokens.map((t) => {
     if (t.kind === "op") return { "*": "×", "/": "÷", "-": "−", "+": "+", "(": "(", ")": ")" }[t.op] ?? t.op;
-    const dollar = t.text.startsWith("$") ? "$" : "";
+    const symbol = /^[$€£]/.test(t.text) ? t.text[0] : "";
     if (t.text.endsWith("%") || (t.value > 0 && t.value < 1)) {
       return `${Number((t.value * 100).toFixed(4))}%`;
     }
-    return `${dollar}${t.value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+    return `${symbol}${t.value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   });
   const spaced = parts.join(" ").replace(/\( /g, "(").replace(/ \)/g, ")");
-  return `${spaced} = $${Math.round(amount).toLocaleString("en-US")}`;
+  return `${spaced} = ${formatCurrency(amount, currencyOf(formula))}`;
 }

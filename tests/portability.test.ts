@@ -58,7 +58,11 @@ beforeAll(async () => {
   const extracted = await extractDocx(originalBytes);
 
   create.mockResolvedValueOnce(
-    toolResponse({ findings: NORTHWIND_FINDINGS, clauses_checked: NORTHWIND_STANDARDS.map((e) => e.clause_type), document_notes: "" })
+    toolResponse({
+      clause_review: NORTHWIND_STANDARDS.map((e) => ({ clause_type: e.clause_type, verdict: "falls_short", basis: "" })),
+      findings: NORTHWIND_FINDINGS,
+      document_notes: "",
+    })
   );
   analysis = await analyzeContract({
     document: { kind: "text", text: extracted.parts.map((p) => p.text).join("\n\n") },

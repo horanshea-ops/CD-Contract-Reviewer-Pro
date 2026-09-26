@@ -74,7 +74,9 @@ function finding(over: Partial<Finding> = {}): Finding {
 function analysis(findings: Finding[], clauses_checked: string[] = []): AnalysisResult {
   return {
     findings,
+    clause_review: [],
     clauses_checked,
+    review_gaps: [],
     dropped_findings: [],
     document_notes: [],
     model_id: "claude-sonnet-5",

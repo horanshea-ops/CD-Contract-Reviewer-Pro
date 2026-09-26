@@ -77,8 +77,8 @@ export function assemblePropertyEmailItems(
       proposed_language:
         action.action === "edit" && action.edited_language ? action.edited_language : f.proposed_language,
     }))
-    // A finding proposing no change is not an item the property was sent.
-    .filter((item) => !assertsNoChange(item.proposed_language));
+    // A finding proposing no change, or raised without wording, is not an item the property was sent.
+    .filter((item) => item.proposed_language.trim() && !assertsNoChange(item.proposed_language));
 }
 
 /**

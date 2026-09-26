@@ -3,10 +3,15 @@ import type { StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
-import { dropNonChanges, normalizeFindings, type DroppedFinding } from "./analysis-review";
+import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap } from "./analysis-review";
 import { toNotes, type DocumentNote } from "./document-notes";
+import { toOtherFindings } from "./other-findings";
+import { checkFigures, type DealFigures } from "./exposures/figures";
+import { withComputedExposures } from "./exposures/compute";
+import { currencyOf } from "./exposure";
 import { formatCurrency } from "./format";
 import type { TermCatalog, TermDefinition } from "./terms/types";
+import type { PictureImage } from "./docx/types";
 
 /**
  * THE single module for outbound calls to the model. Non-negotiable #5 in the
@@ -37,28 +42,61 @@ export interface Finding {
 
 export interface AnalysisResult {
   findings: Finding[];
+  clause_review: ClauseReview[];
   clauses_checked: string[];
+  review_gaps: ReviewGap[];
   dropped_findings: DroppedFinding[];
   document_notes: DocumentNote[];
+  /** The contract's figures the app checked and computed exposures from. Absent on runs captured before them. */
+  deal_figures?: DealFigures;
   model_id: string;
   standards_library_version: string;
   input_tokens: number;
   output_tokens: number;
   cache_read_input_tokens: number;
   cache_creation_input_tokens: number;
+  /** Characters of thinking the model wrote before its answer. Thinking is billed as output. Absent on older runs. */
+  thinking_chars?: number;
 }
 
 const FINDINGS_TOOL_NAME = "record_analysis";
 
+/** One figure from the contract and the words that state it. */
+const figure = (description: string) => ({
+  type: ["object", "null"],
+  description,
+  properties: {
+    value: { type: "number", description: "The figure as written: 2280 for 2,280, 149 for $149.00, 469 for €469.00, 80 for 80%." },
+    quoted_text: { type: "string", description: "Words copied exactly from the contract that state this figure." },
+  },
+  required: ["value", "quoted_text"],
+});
+
 export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) => ({
   name: FINDINGS_TOOL_NAME,
-  description: `Record a review of this hotel/venue contract against ${name}'s standards library: the deviations found, and separately the full list of clause types examined.`,
+  description: `Record a review of this hotel/venue contract against ${name}'s standards library: a verdict on every clause type examined, then the deviations found.`,
   input_schema: {
     type: "object" as const,
     properties: {
+      clause_review: {
+        type: "array",
+        description: "One entry for every clause type in the standards library, written before findings.",
+        items: {
+          type: "object",
+          properties: {
+            clause_type: { type: "string" },
+            verdict: { type: "string", enum: ["meets", "falls_short", "missing", "not_applicable"] },
+            basis: {
+              type: "string",
+              description: `One line. Each term ${firm}'s position requires, and what this contract says about it. Write "silent" where it says nothing.`,
+            },
+          },
+          required: ["clause_type", "verdict", "basis"],
+        },
+      },
       findings: {
         type: "array",
-        description: `Deviations only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — it belongs in clauses_checked.`,
+        description: `Deviations only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — its meets verdict in clause_review says so.`,
         items: {
           type: "object",
           properties: {
@@ -69,21 +107,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             quoted_text: {
               type: ["string", "null"],
               description:
-                "Verbatim span copied exactly from the contract text. Null only if is_missing_clause is true.",
-            },
-            exposure_amount: {
-              type: ["number", "null"],
-              description: "Dollar exposure if calculable. Null if not quantifiable — never invent a number.",
-            },
-            exposure_formula: {
-              type: ["string", "null"],
-              description:
-                "The arithmetic behind exposure_amount, using only numbers from the contract and + - * / ( ). Write percentages as decimals. Example: 2280 * 149 * 0.10. Null when exposure_amount is null.",
-            },
-            exposure_basis: {
-              type: ["string", "null"],
-              description:
-                "One short sentence naming what the numbers in exposure_formula are, such as \"the 10-point attrition gap on 2,280 room nights at $149.\" No arithmetic.",
+                "One unbroken span copied exactly from a single paragraph of the contract: only the whole sentences being changed, or one whole table cell or list item. Null only if is_missing_clause is true.",
             },
             headline: {
               type: "string",
@@ -95,7 +119,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             proposed_language: {
               type: "string",
               description:
-                "The replacement wording. Always an actual change — never a note that no change is needed.",
+                "Contract wording that replaces everything in quoted_text: repeat what stays, leave out what goes. Always an actual change — never a note that no change is needed, and never an instruction to the reviewer.",
             },
             model_confidence: { type: "string", enum: ["high", "medium", "low"] },
           },
@@ -111,16 +135,10 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           ],
         },
       },
-      clauses_checked: {
-        type: "array",
-        items: { type: "string" },
-        description: "Every clause type from the standards library that was checked, found or not.",
-      },
       document_notes: {
         type: "array",
-        maxItems: 5,
         description:
-          "Up to five notes about the document itself that the reviewer needs: places it contradicts itself, a missing exhibit, an unreadable part. Nothing the findings already say.",
+          "Notes about the document itself that the reviewer needs: a place it contradicts itself that you can quote on both sides, a missing exhibit, an unreadable part. Nothing the findings already say, and no table totals or night counts, which the reviewer's tool checks itself.",
         items: {
           type: "object",
           properties: {
@@ -130,8 +148,77 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           required: ["headline", "detail"],
         },
       },
+      deal_figures: {
+        type: "object",
+        description:
+          "The contract's own figures, each with the words it comes from, for the reviewer's tool to work out exposures. Null for any figure the contract doesn't state.",
+        properties: {
+          room_block_room_nights: figure("Total room nights in the room block, as the contract totals them."),
+          group_rate: figure("The main group room rate per night, in the contract's currency."),
+          minimum_room_nights: figure("The room nights the group commits to use before attrition damages apply."),
+          attrition_threshold_pct: figure("Where the contract states the commitment as a share of the block instead: that percentage."),
+          attrition_damages_pct: figure("The percentage of the room rate owed for each room night short of the commitment."),
+          cancellation_tiers: {
+            type: "array",
+            description: "Every tier of the room cancellation schedule.",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string", description: "The tier as the contract names it, such as \"90 Days or Less\"." },
+                room_pct: { type: "number", description: "The tier's room cancellation percentage, as written: 90 for 90%." },
+                base: {
+                  type: "string",
+                  enum: ["minimum_room_nights", "room_block", "other"],
+                  description: "Which room nights the percentage applies to.",
+                },
+                charges: {
+                  type: "string",
+                  enum: ["rate", "room_profit"],
+                  description: "Whether the percentage is of the full room rate or of room profit.",
+                },
+                quoted_text: { type: "string", description: "The contract's words for this tier, stating its percentage." },
+              },
+              required: ["label", "room_pct", "base", "charges", "quoted_text"],
+            },
+          },
+          fb_minimum: figure("The food and beverage minimum the group commits to spend, in the contract's currency."),
+          fb_shortfall_pct: figure("The percentage of a food and beverage shortfall the group owes. Null when the contract states none."),
+        },
+        required: [
+          "room_block_room_nights",
+          "group_rate",
+          "minimum_room_nights",
+          "attrition_threshold_pct",
+          "attrition_damages_pct",
+          "cancellation_tiers",
+          "fb_minimum",
+          "fb_shortfall_pct",
+        ],
+      },
+      other_findings: {
+        type: "array",
+        description: `Every term no clause type in the standards library covers that still shifts cost, liability or control onto the group, the most consequential first. Nothing a finding or document note already says.`,
+        items: {
+          type: "object",
+          properties: {
+            headline: {
+              type: "string",
+              description: "One line, at most about 12 words, saying what the term does to the group.",
+            },
+            quoted_text: {
+              type: "string",
+              description: "The term's wording: one unbroken span copied exactly from a single paragraph, whole sentences only.",
+            },
+            finding_text: {
+              type: "string",
+              description: "Two or three sentences: what the term lets the other side do, and what it could cost the group.",
+            },
+          },
+          required: ["headline", "quoted_text", "finding_text"],
+        },
+      },
     },
-    required: ["findings", "clauses_checked", "document_notes"],
+    required: ["clause_review", "findings", "document_notes", "other_findings", "deal_figures"],
   },
 });
 
@@ -146,18 +233,33 @@ export function buildSystemPrompt(standards: StandardEntry[], standardsVersion: 
 
 Rules:
 - This is a negotiating aid, not legal advice. Do not describe any finding as a legal opinion, and do not state or imply that a contract is "safe" or "cleared."
-- For every clause type in the standards library, check whether the contract's language matches ${firm}'s position. Record a finding only where it does not, or where a clause ${firm}'s standards call for is missing entirely.
-- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clauses_checked is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
+- Review every clause type in the standards library before recording any findings. Give each one entry in clause_review, with a verdict of meets, falls_short or missing and the basis for it.
+- Check every term ${firm}'s position requires, not only the terms the contract's clause happens to mention. A clause that says nothing about a term ${firm}'s position requires falls short of it.
+- A clause type with no corresponding language anywhere in the contract is missing, and its finding sets is_missing_clause to true.
+- Some clause types apply only in certain places, or only to terms the contract has. A named-storm clause matters only for hotels in hurricane or typhoon regions. A position about a deposit, fee or right the contract never creates, such as a damage deposit, has nothing to fix. Give such a clause type the verdict not_applicable, say why in its basis, and record no finding for it. Outside the United States, don't ask for ADA compliance by name; compare the contract's accessibility terms with the substance of the standard.
+- Record a finding for every clause whose verdict is falls_short or missing, and for no other.
+- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clause_review is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
 - Never write "compliant", "no change recommended", "matches ${firm}'s standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
 - A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of ${firm}'s position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
-- Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and listing it in clauses_checked with no finding says the same thing. Never say that about a clause that falls short by any margin at all.
+- Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and a meets verdict in clause_review says the same thing. Never say that about a clause that falls short by any margin at all.
 - severity comes from that clause's severity_default in the standards library. Depart from it only where this contract's own facts justify it — an unusually large block, a term that compounds another — and say why in finding_text. Calling everything high is the same as calling nothing high. A narrow margin is not a reason to lower the severity, and never a reason to leave the finding out.
 - headline is the one line a reviewer reads first: at most about 12 words, saying what is wrong in plain terms. Don't repeat the clause name, and don't use a figure the finding doesn't state. finding_text carries the full reasoning.
-- quoted_text must be copied verbatim from the contract — do not paraphrase it. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
+- quoted_text must be copied verbatim from the contract — do not paraphrase it. Quote only the sentences your proposal changes, each one whole, starting where a sentence starts and ending where it ends, or quote one whole table cell or list item. A quote is one unbroken stretch of a single paragraph. Never join sentences that are not next to each other, never run a quote into the next paragraph, and never shorten a quote with "..." or "…". If a clause needs changes in places that are apart, record a separate finding for each place. If the clause is entirely missing, set is_missing_clause to true and leave quoted_text null.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Quote only the contract's own words — never include a "#", a "|", or a reconstructed list number inside quoted_text, or the quote will not be found in the original file.
-- exposure_amount must be a real, calculable number based on figures actually present in the contract (room rates, block size, F&B minimums, etc.). If you cannot calculate a number from the document, leave it null. Never estimate or invent a figure.
-- Give every exposure_amount its exposure_formula: the arithmetic that produces it, using only the contract's numbers. The reviewer's tool works the figure out from the formula, and shows no figure without one. exposure_basis is one short sentence naming what those numbers are.
-- List every clause type you checked in clauses_checked, whether or not it produced a finding — this is how the reviewer knows what was actually reviewed.
+- proposed_language replaces everything in quoted_text and nothing else. Repeat word for word any quoted wording that should stay, and leave out only what should go. The reviewer's redline marks only the words that differ, so repeated wording costs nothing, while wording you leave out is struck from the contract.
+- proposed_language is the contract wording itself, never advice or an instruction to the reviewer. Take every figure in it from the standards library or this contract, or work it out from them. If the wording needs a figure that neither gives, write [X] in its place rather than inventing one, and the reviewer will fill it in.
+- A finding that changes wording already in the contract quotes that wording. is_missing_clause is true only when the contract has no wording on the clause at all.
+- Read the closing and general paragraphs, such as "Other Provisions" or "Miscellaneous", as closely as the named clauses. One sentence there can undo a protection the contract gives elsewhere.
+- ${firm} is the group's agent on this booking. A promise by the group that it used no meeting planner, agent or finder, or owes no one a commission or finder's fee, conflicts with ${firm}'s commission unless it names ${firm} as the exception. Record it as a commission finding that quotes that sentence, with wording that adds ${firm} as the exception.
+- Where concessions such as complimentary or discounted rooms, suites, upgrades or credits depend on the group reaching a pickup level, compare that level with the attrition terms. A group that falls short would pay attrition and lose the concessions for the same shortfall. Record it as a rebates finding quoting the condition, with wording that removes it.
+- Keep every protection the quoted wording already gives the group, such as a refund, a credit or a termination right, unless the standard replaces it with something at least as good.
+- Where the contract sets out a schedule, such as cancellation fees by date, keep the schedule and move each tier to the standard's basis. Never replace a schedule with one flat figure. Where the schedule's figures sit in a table, record a finding for each table cell that changes, quoting that cell, with the new figure worked out. Once your changes are made, the wording that introduces a schedule and every figure in it must agree.
+- Before recording a proposal, compare it with the contract at every tier, date and amount. It must never cost the group more than the contract does in any case.
+- A deadline counted in days before arrival comes later, and gives attendees longer, the fewer days it names: 14 days before arrival is after 21 days before. Before calling a deadline a deviation, work out which date falls later and which one the standard favors.
+- Work out every threshold in room nights or dollars, for both the contract and your proposal, measured the way the standard measures it. An attrition trigger is measured against the whole room block, not against a minimum the contract already sets below the block. Never propose a threshold that goes further than the standard asks.
+- In document_notes, name each place the contract contradicts itself, such as two different dates for the same event. Record one only when you can quote both sides, and check any arithmetic before calling a figure wrong. The reviewer's tool checks table totals and night counts itself, so leave those out.
+- After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group: for example, a default under any other agreement that lets the hotel end this one, a damages waiver that protects only the hotel, a right to demand prepayment on the hotel's own judgment, a duty to answer for a third party's acts, or a right to end the agreement over a minor or technical breach, such as using the hotel's name or logo without approval. Read to the end of the contract before deciding what to record. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
+- Record the contract's figures in deal_figures, each with the words it comes from. Write percentages as they appear, 80 for 80%. Quote words that state the figure itself, since the reviewer's tool checks every figure against its quote and works out every dollar exposure from them. Leave a figure null when the contract doesn't state it; never work one out.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
@@ -186,7 +288,20 @@ Rules:
  */
 export type AnalyzableDocument =
   | { kind: "pdf"; pdfBase64: string }
-  | { kind: "text"; text: string };
+  | { kind: "text"; text: string; pictures?: PictureImage[] };
+
+/** The contract as the review reads it: the text, then each readable picture with a label saying where it sits. */
+function contractContent(document: Extract<AnalyzableDocument, { kind: "text" }>): Anthropic.Messages.ContentBlockParam[] {
+  const content: Anthropic.Messages.ContentBlockParam[] = [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }];
+  (document.pictures ?? []).forEach((picture, i) => {
+    const place = picture.near ? `, just after "${picture.near}"` : "";
+    content.push(
+      { type: "text", text: `PICTURE ${i + 1} from the contract${place}:` },
+      { type: "image", source: { type: "base64", media_type: picture.mediaType, data: picture.data } }
+    );
+  });
+  return content;
+}
 
 export interface AnalyzeContractPdfArgs {
   document: AnalyzableDocument;
@@ -200,6 +315,8 @@ export interface AnalyzeContractPdfArgs {
   /** Epoch ms by which the review must finish. Each attempt stops there, and
    *  the retry is skipped when too little time is left for it. */
   deadline?: number;
+  /** The contract as text, for checking the figures the model quotes. Defaults to a text document's own text. */
+  contractText?: string;
 }
 
 /**
@@ -230,6 +347,9 @@ function describeField(value: unknown): string {
  *  would likely be cut off, so the run fails with a clear error instead. */
 const MIN_RETRY_MS = 120_000;
 
+/** An answer cut off at the output limit. Retrying would be cut off the same way, so it isn't. */
+class CutOffError extends Error {}
+
 export async function analyzeContract({
   document,
   standards,
@@ -238,6 +358,7 @@ export async function analyzeContract({
   model,
   org = ORG,
   deadline,
+  contractText,
 }: AnalyzeContractPdfArgs): Promise<AnalysisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -252,7 +373,7 @@ export async function analyzeContract({
   const userContent: Anthropic.Messages.ContentBlockParam[] =
     document.kind === "pdf"
       ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
-      : [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }];
+      : contractContent(document);
 
   if (contextNote) {
     userContent.push({ type: "text", text: contextNote });
@@ -265,18 +386,27 @@ export async function analyzeContract({
     const response = await client.messages.create({
       model: modelId,
 
-      // Each finding carries full replacement language, so output grows with
-      // the library. 21,000 is the most the SDK allows without streaming.
-      max_tokens: 21000,
+      // Each finding carries full replacement language, and clause_review adds
+      // a line per clause type, so output grows with the library. The deadline
+      // stops a long review well before this does.
+      max_tokens: 64000,
 
       system: buildSystemPrompt(standards, standardsVersion, org),
       tools: [findingsToolSchema(org)],
       tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
       messages: [{ role: "user", content: userContent }],
     },
+    // An explicit timeout lifts the SDK's non-streaming cap on max_tokens.
     // The SDK's own retries don't know about the deadline, so they're off
     // whenever there is one. The retry below does the same job within it.
-    timeout === undefined ? undefined : { timeout, maxRetries: 0 });
+    timeout === undefined ? { timeout: 600_000 } : { timeout, maxRetries: 0 });
+
+    if (response.stop_reason === "max_tokens") {
+      throw new CutOffError(
+        `The review ran past the model's output limit and was cut off (${response.usage.output_tokens} tokens). ` +
+          `It wasn't retried, because a retry would be cut off the same way.`
+      );
+    }
 
     const toolUseBlock = response.content.find(
       (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
@@ -288,41 +418,52 @@ export async function analyzeContract({
 
     const input = toolUseBlock.input as Record<string, unknown>;
     const parsed = {
+      clause_review: listField<ClauseReview>(input.clause_review),
       findings: listField<Finding>(input.findings),
-      clauses_checked: listField<string>(input.clauses_checked),
       document_notes: toNotes(input.document_notes),
+      other_findings: toOtherFindings(listField(input.other_findings), org.shortName),
+      deal_figures: checkFigures(input.deal_figures, [
+        { part: "document", text: contractText ?? (document.kind === "text" ? document.text : "") },
+      ]),
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
     // omit a required field. Validate the shape rather than trusting it, per
     // build brief §5: "model returned invalid JSON (retry once, then fail
     // visibly)".
-    if (!parsed.findings || !parsed.clauses_checked) {
+    if (!parsed.findings || !parsed.clause_review) {
       throw new Error(
-        `Model returned malformed JSON (missing findings or clauses_checked array). ` +
-          `Got findings: ${describeField(input.findings)}, clauses_checked: ${describeField(input.clauses_checked)}. ` +
+        `Model returned malformed JSON (missing findings or clause_review array). ` +
+          `Got findings: ${describeField(input.findings)}, clause_review: ${describeField(input.clause_review)}. ` +
           `stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
       );
     }
 
     const usage = response.usage;
 
+    const reviewed = reconcileReview({ findings: parsed.findings, clause_review: parsed.clause_review }, standards);
+
     return {
-      ...dropNonChanges(normalizeFindings(parsed.findings)),
-      clauses_checked: parsed.clauses_checked,
+      ...reviewed,
+      // Kept out of reconcileReview, which checks findings against the library's clause types.
+      // Every exposure figure is the app's own, worked out from the checked figures.
+      findings: withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
       document_notes: parsed.document_notes,
+      deal_figures: parsed.deal_figures,
       model_id: modelId,
       standards_library_version: standardsVersion,
       input_tokens: usage.input_tokens,
       output_tokens: usage.output_tokens,
       cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+      thinking_chars: response.content.reduce((sum, block) => sum + (block.type === "thinking" ? block.thinking.length : 0), 0),
     };
   }
 
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof CutOffError) throw err;
     const left = remaining();
     if (left !== undefined && left < MIN_RETRY_MS) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -414,7 +555,9 @@ export async function generateClientEmail({
   const findingsBlock = findings
     .map((f, i) => {
       const exposure =
-        f.exposure_amount != null ? `\nExposure: ${formatCurrency(f.exposure_amount)} (${f.exposure_basis})` : "";
+        f.exposure_amount != null
+          ? `\nExposure: ${formatCurrency(f.exposure_amount, currencyOf(f.exposure_formula))} (${f.exposure_basis})`
+          : "";
       return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
     })
     .join("\n\n");

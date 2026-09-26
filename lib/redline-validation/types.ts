@@ -21,7 +21,8 @@ export type UnappliedReason =
   | "in_header_footer"
   | "unfilled_blank"
   | "not_contract_wording"
-  | "unquoted_rewrite";
+  | "unquoted_rewrite"
+  | "no_wording";
 
 /**
  * A change widened to cover its whole sentence. It strikes contract wording
@@ -61,6 +62,7 @@ export const UNAPPLIED_REASON_TEXT: Record<UnappliedReason, string> = {
     "The proposed wording reads as an instruction, not contract wording. Edit the finding, then export again.",
   unquoted_rewrite:
     "The finding rewrites wording already in the contract without quoting it, so the change can't be placed. Mark it up by hand or run the review again.",
+  no_wording: "No wording was proposed for this point. Use Edit to add some, or raise it with the property another way.",
 };
 
 /** What every revision engine hands the oracle. */

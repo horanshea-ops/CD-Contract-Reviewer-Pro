@@ -934,6 +934,19 @@ the words that change, with new wording before struck wording.
     - **Next check (paid, not approved):** `eval:capture --only
       eval-01-harborview.docx,eval-10-crossroads.docx` on `prompt/combined-run`, about
       $0.60. Merge the combined branch once quotes place again.
+    - **Florida misses, prompt rules added 2026-09-24 (unmeasured).** Four Florida runs
+      all missed three terms, so the combined branch now carries rules for them:
+      - a no-finder promise, which conflicts with CD's commission
+      - a termination right over unapproved logo use, as an Other finding
+      - concessions that depend on the same 80% pickup as the attrition minimum, as a
+        rebates finding
+
+      A rule also says to read the closing boilerplate as closely as the named
+      clauses. Other findings and document notes no longer have a count limit.
+      `max_tokens` is 64,000, since the last Florida run used 28,859 of 32,000. A cut-off
+      answer now fails without a second paid attempt, and `token_usage.thinking_chars`
+      records how much output went to thinking. The next Florida run (about $0.40) is
+      the check.
     - **Monarch's first attempt came back unreadable** after 23k output tokens and cost
       a retry. A list sent as text is now decoded instead of retried, and the error
       names what each field held.
@@ -1050,6 +1063,13 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         is 88.7% against the new key. A repeat run (`baseline-repeat-2026-09-22`)
         scored 88.1%, but only 8 of its 20 misses were also missed the first
         time, so most misses are chance rather than fixed blind spots.
+      - Branch `prompt/clause-checklist` asks for a verdict on every clause
+        type before findings, and records disagreements between verdicts and
+        findings as `review_gaps`. It needs one paid run (about $1.30) to
+        measure. A drop of two or three misses is within run-to-run noise.
+        Score it with `--baseline checker-2026-09-22 --baseline
+        baseline-repeat-2026-09-22`. The test is how many of the 8 items
+        both baselines missed it catches.
       - The template's attrition formula says 75% while its headline says
         70%. The library keeps 70%, and the question should go back to CD.
       - Commission findings appear in client memos and emails like any
@@ -1106,6 +1126,16 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         `intake_health.pictures`. The review screen notes each one, and the model is
         told not to infer what they hold. Rome's room block, rates included, was a
         picture the model never saw.
+      - On `prompt/combined-run` only, unmeasured until the next Rome run (about $0.36):
+        - A rule reads a deadline in days before arrival the right way round. Rome's
+          review had proposed moving a 14-day cutoff to 21 days, which is worse for the group.
+        - A `not_applicable` verdict covers clause types that can't apply, such as
+          named storm away from hurricane regions, a damage deposit the contract never
+          takes, or ADA by name outside the US.
+        - Exposures work in the contract's currency. `deal_figures` asks for
+          `group_rate` and `fb_minimum` as written, the checker reads €/£/$ amounts,
+          and the card, the total and the client email show the right symbol. Rome's
+          F&B gap works out to €13,000 by hand.
       - Still to do:
         - [x] Date checks (`lib/date-checks.ts`), done 2026-09-25. They flag
               schedule dates outside the event, a check-out on or before its
@@ -1115,11 +1145,48 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               or the month first. The cutoff's "major arrival day" isn't
               checked, because a peak day after the first arrival is often
               legitimate.
-        - [ ] Send large pictures, such as Rome's room-block table, to the
-              model with the text, so attrition and cancellation can get
-              figures. About $0.003 a picture. Building and testing it is free;
-              checking that the model reads the table right takes one paid Rome
-              run (about $0.36).
+        - [x] Pictures sent to the model (branch `prompt/picture-tables`,
+              on `prompt/combined-run`, 2026-09-25). Each large picture whose
+              image has at least 200×30 pixels and is PNG, JPEG, GIF or WebP
+              goes after the contract text with a label, up to four a
+              contract. Rome's room-block table is about 600 tokens ($0.001).
+              A tiny icon stretched wide is skipped, which removes Rome's
+              "Payment Breakdown" false alarm. The model is told not to quote
+              a picture, because quotes are checked against the text, so
+              app-computed exposures still don't use picture figures. The
+              review screen says which pictures were read. Unmeasured until
+              the next paid Rome run (about $0.36).
+        - [x] The model's notes and the app's checks named the same problem
+              twice. The review screen now hides a model note that shares two
+              or more dates or amounts with an app check (2026-09-26).
+        - [x] A cutoff finding that asks for more days before arrival than
+              the contract gives is dropped with reason
+              `moves_cutoff_earlier`. Both Rome runs proposed 14 → 21 days.
+              The cause is CD's fallback wording, which fixes the cutoff at
+              21 days while the position says "no earlier than 21 days". That
+              wording is CD's to change.
+
+- [ ] **Repeat reviews without a model call — scoped, not started** (raised by
+      the user 2026-09-26). An associate who uploads a contract the tool has
+      already reviewed shouldn't pay for, or spend an allowance on, a second
+      full review.
+      - **Same file again.** Hash the accepted-view text at upload. When a
+        complete analysis by the same associate has the same hash, the same
+        `standards_hash` and the same prompt version, copy its findings and
+        notes into the new analysis instead of calling the model. A changed
+        library or prompt means a real re-review, so those must match.
+      - **A revised version (round 2 and later).** §2.1.1's diff already
+        finds the changed passages between rounds. Carry over the prior
+        round's findings on unchanged clauses, and send the model only the
+        changed clauses. That cuts cost, but it still makes a call.
+      - **Allowance.** Count a review against the monthly limit only when it
+        called the model. A copied review records the analysis it came from,
+        which needs a `reused_from` column (a migration).
+      - **Open questions.**
+        - Should a copy share decisions already made on the old review?
+        - How long does a prior review stay reusable?
+        - Can associates reuse each other's reviews? That's a data-sharing
+          question for CD.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft

@@ -13,7 +13,6 @@ export interface DocumentNote {
   detail: string;
 }
 
-const MAX_NOTES = 5;
 const MAX_DETAIL_SENTENCES = 2;
 const MAX_HEADLINE_WORDS = 20;
 
@@ -62,6 +61,39 @@ export function toNotes(value: unknown): DocumentNote[] {
   const list = Array.isArray(items) ? items : [items];
   return list
     .map(fromItem)
-    .filter((n): n is DocumentNote => n !== null)
-    .slice(0, MAX_NOTES);
+    .filter((n): n is DocumentNote => n !== null);
+}
+
+const MONTH_NAMES = "january|february|march|april|may|june|july|august|september|october|november|december";
+const FACT_PATTERNS = [
+  /\b\d{1,2}\/\d{1,2}\/\d{4}\b/g,
+  new RegExp(`\\b(?:${MONTH_NAMES})\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+\\d{4}\\b`, "gi"),
+  new RegExp(`\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:${MONTH_NAMES}),?\\s+\\d{4}\\b`, "gi"),
+  /[$€£]\s?\d[\d,]*(?:\.\d{1,2})?|\b\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\b/g,
+];
+
+/** The dates and amounts a note names, written one way so two notes can be compared. */
+function factsIn(note: DocumentNote): Set<string> {
+  const text = `${note.headline} ${note.detail}`;
+  const facts = new Set<string>();
+  for (const pattern of FACT_PATTERNS) {
+    for (const [match] of text.matchAll(pattern)) {
+      const money = /^[$€£\d]/.test(match) && !match.includes("/") ? Number(match.replace(/[^\d.]/g, "")) : null;
+      facts.add(money !== null && Number.isFinite(money) ? String(money) : match.toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, "$1").replace(/[,\s]+/g, " "));
+    }
+  }
+  return facts;
+}
+
+/**
+ * The model's notes without those that repeat one of the app's own checks.
+ * A note repeats a check when both name at least two of the same dates or
+ * amounts. The check stays, because the app worked it out.
+ */
+export function withoutRepeats(notes: DocumentNote[], checks: DocumentNote[]): DocumentNote[] {
+  const checked = checks.map(factsIn);
+  return notes.filter((note) => {
+    const facts = factsIn(note);
+    return !checked.some((c) => [...facts].filter((f) => c.has(f)).length >= 2);
+  });
 }

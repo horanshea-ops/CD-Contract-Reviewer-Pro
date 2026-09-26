@@ -168,6 +168,13 @@ export async function generateRedline({
   };
 
   for (const finding of findings) {
+    // A point raised without wording, such as a term outside the standards
+    // library. Marking its quote against empty wording would strike it.
+    if (!finding.language.trim()) {
+      refuse(finding, "no_wording", "unresolved", "blocked_wording", "No wording was proposed for this point.");
+      continue;
+    }
+
     // A quote says where the change belongs, even on a finding marked missing.
     if (!finding.quoted_text) {
       append(finding);

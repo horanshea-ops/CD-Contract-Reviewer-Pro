@@ -50,7 +50,7 @@ export default function FindingsOverviewBar({
 
       {overview.hasExposure && (
         <Body as="span" className="font-medium text-[var(--text-primary)] ml-auto">
-          {formatCurrency(overview.totalExposure)}
+          {formatCurrency(overview.totalExposure, overview.exposureCurrency)}
           <Meta as="span" className="font-normal text-[var(--text-secondary)] ml-1.5">
             exposure on the table
           </Meta>

@@ -17,7 +17,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
 }));
 
 const ok = {
-  content: [{ type: "tool_use", id: "toolu_1", name: "record_analysis", input: { findings: [], clauses_checked: [], document_notes: "" } }],
+  content: [{ type: "tool_use", id: "toolu_1", name: "record_analysis", input: { clause_review: [], findings: [], document_notes: "" } }],
   stop_reason: "tool_use",
   usage: { input_tokens: 0, output_tokens: 0 },
 };
@@ -70,10 +70,10 @@ describe("analyzeContract's time budget", () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the SDK's defaults and always retries when no deadline is given", async () => {
+  it("keeps the SDK's retries and always retries when no deadline is given", async () => {
     create.mockImplementationOnce(failAfter(500_000)).mockResolvedValueOnce(ok);
     await run();
     expect(create).toHaveBeenCalledTimes(2);
-    expect(create.mock.calls[0][1]).toBeUndefined();
+    expect(create.mock.calls[0][1]).toEqual({ timeout: 600_000 });
   });
 });

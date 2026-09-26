@@ -44,6 +44,8 @@ function analysis(findings: Finding[]): AnalysisResult {
   return {
     findings,
     clauses_checked: [],
+    clause_review: [],
+    review_gaps: [],
     dropped_findings: [],
     document_notes: [],
     model_id: "claude-sonnet-5",

@@ -254,20 +254,54 @@ function paymentScheduleNotes(text: string): CheckNote[] {
   return notes;
 }
 
-/** One note per picture that may hold figures the review never read. */
-export function pictureNotes(pictures: { near: string }[] | null | undefined): CheckNote[] {
-  return (pictures ?? []).map(({ near }) => ({
-    source: "check" as const,
-    headline: near ? `The contract has a picture near "${near}" that the review can't read.` : "The contract has a picture the review can't read.",
-    detail: "Check any figures in it, such as rates or room counts, by hand. Findings and exposures here don't use them.",
-  }));
+type Picture = { near: string; readable?: boolean };
+
+const where = (near: string) => (near ? ` near "${near}"` : "");
+
+/** One note per picture, saying whether the review read it. */
+export function pictureNotes(pictures: Picture[] | null | undefined): CheckNote[] {
+  return (pictures ?? []).map(({ near, readable }) =>
+    readable
+      ? {
+          source: "check" as const,
+          headline: `The review read a picture${where(near)} as an image.`,
+          detail: "The app can't check its figures or change it in the redline, so confirm any figure a finding takes from it.",
+        }
+      : {
+          source: "check" as const,
+          headline: `The contract has a picture${where(near)} that the review can't read.`,
+          detail: "Check any figures in it, such as rates or room counts, by hand. Findings and exposures here don't use them.",
+        }
+  );
 }
 
-/** The line the model reads about pictures, so it doesn't infer what one holds. */
-export function pictureContext(pictures: { near: string }[] | null | undefined): string | undefined {
+const places = (pictures: Picture[]) => pictures.map(({ near }) => `"${near}"`).join(" and ");
+
+/**
+ * What the model reads about pictures. Readable ones are attached after the
+ * contract text, numbered in order. Their wording can't be quoted, because
+ * quotes are checked against the text.
+ */
+export function pictureContext(pictures: Picture[] | null | undefined): string | undefined {
   if (!pictures?.length) return undefined;
-  const places = pictures.map(({ near }) => `"${near}"`).join(" and ");
-  return `The contract has ${pictures.length === 1 ? "a picture" : "pictures"} near ${places} that this text leaves out. Their contents weren't read, so don't infer figures from them.`;
+  const sent = pictures.filter((p) => p.readable);
+  const unread = pictures.filter((p) => !p.readable);
+  const lines: string[] = [];
+  if (sent.length > 0) {
+    const one = sent.length === 1;
+    lines.push(
+      `${one ? "A picture from the contract is" : `${sent.length} pictures from the contract are`} attached after the contract text. ` +
+        `Read ${one ? "it" : "them"} as part of the contract. ${one ? "Its" : "Their"} wording isn't in the contract text, ` +
+        "so don't put it in quoted_text or deal_figures. Name the picture in your reasoning instead."
+    );
+  }
+  if (unread.length > 0) {
+    lines.push(
+      `The contract has ${unread.length === 1 ? "a picture" : "pictures"} near ${places(unread)} that this text leaves out. ` +
+        "Their contents weren't read, so don't infer figures from them."
+    );
+  }
+  return lines.join("\n\n");
 }
 
 export function checkDocument(text: string | null): CheckNote[] {

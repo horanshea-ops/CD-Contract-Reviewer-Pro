@@ -24,7 +24,10 @@ export async function buildMarkup(ctx: ExportContext): Promise<ExportBuildResult
   }
   const { lines, pdfBytes } = source;
 
-  const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
+  const actioned = await getActionedFindings(admin, analysisId);
+  const { nonSubstantive } = actioned;
+  // A point raised without wording has nothing to mark up.
+  const findings = actioned.findings.filter((f) => f.language.trim());
   const markupBytes = await generateMarkupPdf({ pdfBytes, lines, findings });
 
   return {

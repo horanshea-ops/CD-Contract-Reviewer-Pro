@@ -65,7 +65,10 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
   for (const f of findings) {
     const language = f.language.trim();
     if (!language) {
-      previews.set(f.id, NONE);
+      previews.set(f.id, {
+        export_issue: "No wording proposed, so this won't go into the redline. The memo still lists it. Use Edit to add wording.",
+        redline_language: null,
+      });
       continue;
     }
 

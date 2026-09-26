@@ -33,7 +33,8 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
   // and cd_standard; this document can reach the property, so only contract
   // text crosses into it. Same rule as §1.8.3's property email.
   const { findings: actioned, nonSubstantive } = await getActionedFindings(admin, analysisId);
-  const findings: CleanContractFinding[] = actioned.map((f) => ({
+  // A point raised without wording changes nothing in the contract.
+  const findings: CleanContractFinding[] = actioned.filter((f) => f.language.trim()).map((f) => ({
     clause_type: f.clause_type,
     location_section: f.location_section,
     quoted_text: f.quoted_text,
