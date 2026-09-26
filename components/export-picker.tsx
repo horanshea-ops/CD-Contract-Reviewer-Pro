@@ -28,6 +28,14 @@ import { ORG } from "@/lib/org";
  */
 
 type ExportKey = "memo" | "markup" | "redline" | "clean" | "cleanDocx";
+type ContractRow = "redlined" | "proposed";
+type ContractFormat = "word" | "pdf";
+
+/** The export behind a contract row in a given format. */
+function keyFor(row: ContractRow, format: ContractFormat): ExportKey {
+  if (row === "redlined") return format === "word" ? "redline" : "markup";
+  return format === "word" ? "cleanDocx" : "clean";
+}
 type Outcome = "clean" | "partial" | "fallback";
 
 interface RedlineUnapplied {
@@ -132,13 +140,21 @@ export function ExportPicker({
   // the PDF path, and a contract uploaded as a PDF explains itself.
   const redlineAvailable = sourceFormat === "docx" && intakeRoute !== "pdf";
   const cleanAvailable = includedCount > 0;
-  const cleanDocxAvailable = redlineAvailable && cleanAvailable;
+
+  // Each contract row defaults to Word where the upload has an editable Word
+  // file, and offers PDF behind a switch. Without one, PDF is the only format.
+  const [redlinedFormat, setRedlinedFormat] = useState<ContractFormat>("word");
+  const [proposedFormat, setProposedFormat] = useState<ContractFormat>("word");
+  const redlineKey = keyFor("redlined", redlineAvailable ? redlinedFormat : "pdf");
+  const proposedKey = keyFor("proposed", redlineAvailable ? proposedFormat : "pdf");
 
   const forcedDowngrade = sourceFormat !== "pdf" && intakeRoute !== "docx_native";
   const zippedCount = Object.values(statuses).filter((s) => s.kind === "zipped").length;
 
   function reset() {
     setSelected(new Set());
+    setRedlinedFormat("word");
+    setProposedFormat("word");
     setStarted(false);
     setBusy(false);
     setStatuses(IDLE_STATUSES);
@@ -150,6 +166,23 @@ export function ExportPicker({
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
+    });
+  }
+
+  /** Flips a row between Word and PDF, carrying its tick across. */
+  function switchFormat(row: ContractRow) {
+    const current = row === "redlined" ? redlinedFormat : proposedFormat;
+    const next: ContractFormat = current === "word" ? "pdf" : "word";
+    const from = keyFor(row, current);
+    const to = keyFor(row, next);
+    if (row === "redlined") setRedlinedFormat(next);
+    else setProposedFormat(next);
+    setSelected((prev) => {
+      if (!prev.has(from)) return prev;
+      const moved = new Set(prev);
+      moved.delete(from);
+      moved.add(to);
+      return moved;
     });
   }
 
@@ -301,56 +334,36 @@ export function ExportPicker({
         <div className="space-y-3">
           {/* Memo */}
           <div className="rounded border border-[var(--border)] p-3">
-            <label
-              htmlFor="export-memo"
-              aria-label="Requested-revisions memo (PDF)"
-              className="flex items-start gap-2 cursor-pointer"
-            >
-              <Checkbox
-                id="export-memo"
-                className="mt-0.5"
-                checked={selected.has("memo")}
-                disabled={started}
-                onChange={() => toggle("memo")}
-              />
-              <span>
-                <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Requested-revisions memo (PDF)
-                </Body>
-                <Meta as="span" className="block text-[var(--text-secondary)]">
-                  Findings and {ORG.shortName}&apos;s rationale, for internal review. Not for the property.{" "}
-                  {includedCount} finding{includedCount === 1 ? "" : "s"} included.
-                </Meta>
-              </span>
-            </label>
+            <FormatRowHeader
+              id="export-memo"
+              title="Requested-revisions memo"
+              format="PDF"
+              description={`Findings and ${ORG.shortName}’s rationale, for internal review. Not for the property. ${includedCount} finding${includedCount === 1 ? "" : "s"} included.`}
+              checked={selected.has("memo")}
+              disabled={started}
+              onToggle={() => toggle("memo")}
+            />
             <RowStatusLine status={statuses.memo} />
           </div>
 
-          {/* Marked-up PDF */}
+          {/* Redlined contract */}
           <div className="rounded border border-[var(--border)] p-3">
-            <label
-              htmlFor="export-markup"
-              aria-label="Redlined contract (PDF)"
-              className="flex items-start gap-2 cursor-pointer"
-            >
-              <Checkbox
-                id="export-markup"
-                className="mt-0.5"
-                checked={selected.has("markup")}
-                disabled={started}
-                onChange={() => toggle("markup")}
-              />
-              <span>
-                <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Redlined contract (PDF)
-                </Body>
-                <Meta as="span" className="block text-[var(--text-secondary)]">
-                  {redlineAvailable
-                    ? "Deleted wording struck through in red and new wording underlined in blue, in the text. For a property that can’t work in Word."
-                    : "Deleted wording struck through on the original PDF, with the new wording listed on a cover page."}
-                </Meta>
-              </span>
-            </label>
+            <FormatRowHeader
+              id="export-redlined"
+              title="Redlined contract"
+              format={redlineKey === "redline" ? "Word" : "PDF"}
+              description={
+                redlineKey === "redline"
+                  ? "Changes as Word tracked changes, for a property that will negotiate in the document."
+                  : redlineAvailable
+                    ? "Deleted wording struck through in red and new wording underlined in blue. For a property that can’t work in Word."
+                    : "Deleted wording struck through on the original PDF, with the new wording listed on a cover page."
+              }
+              checked={selected.has(redlineKey)}
+              disabled={started}
+              onToggle={() => toggle(redlineKey)}
+              onSwitch={redlineAvailable ? () => switchFormat("redlined") : undefined}
+            />
             {statuses.markup.kind === "downgrade" && (
               <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
                 <Body as="p" className="font-medium text-[var(--text-primary)]">
@@ -378,34 +391,7 @@ export function ExportPicker({
                 </div>
               </div>
             )}
-            <RowStatusLine status={statuses.markup} />
-          </div>
-
-          {/* Tracked-changes DOCX */}
-          {redlineAvailable && (
-          <div className="rounded border border-[var(--border)] p-3">
-            <label
-              htmlFor="export-redline"
-              aria-label="Redlined contract (Word, tracked changes)"
-              className="flex items-start gap-2 cursor-pointer"
-            >
-              <Checkbox
-                id="export-redline"
-                className="mt-0.5"
-                checked={selected.has("redline")}
-                disabled={started}
-                onChange={() => toggle("redline")}
-              />
-              <span>
-                <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Redlined contract (Word, tracked changes)
-                </Body>
-                <Meta as="span" className="block text-[var(--text-secondary)]">
-                  Redlines as Word tracked changes, for a property that will negotiate in the document.
-                </Meta>
-              </span>
-            </label>
-            <RowStatusLine status={statuses.redline} />
+            <RowStatusLine status={statuses[redlineKey]} />
             {statuses.redline.kind === "redline" && (
               <RedlineVerdictRow
                 verdict={statuses.redline.verdict}
@@ -416,34 +402,25 @@ export function ExportPicker({
               />
             )}
           </div>
-          )}
 
           {/* Proposed contract */}
           {cleanAvailable && (
           <div className="rounded border border-[var(--border)] p-3">
-            <label
-              htmlFor="export-clean"
-              aria-label="Proposed contract, clean (PDF)"
-              className="flex items-start gap-2 cursor-pointer"
-            >
-              <Checkbox
-                id="export-clean"
-                className="mt-0.5"
-                checked={selected.has("clean")}
-                disabled={started}
-                onChange={() => toggle("clean")}
-              />
-              <span>
-                <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Proposed contract, clean (PDF)
-                </Body>
-                <Meta as="span" className="block text-[var(--text-secondary)]">
-                  The contract as it would read if every accepted change applied, for review or to send as a clean
-                  attachment.
-                </Meta>
-              </span>
-            </label>
-            <RowStatusLine status={statuses.clean} />
+            <FormatRowHeader
+              id="export-proposed"
+              title="Proposed contract, clean"
+              format={proposedKey === "cleanDocx" ? "Word" : "PDF"}
+              description={
+                proposedKey === "cleanDocx"
+                  ? "The property’s own Word file with every accepted change applied, in its original formatting."
+                  : "The contract as it would read with every accepted change applied, for review or to send as a clean attachment."
+              }
+              checked={selected.has(proposedKey)}
+              disabled={started}
+              onToggle={() => toggle(proposedKey)}
+              onSwitch={redlineAvailable ? () => switchFormat("proposed") : undefined}
+            />
+            <RowStatusLine status={statuses[proposedKey]} />
             {statuses.clean.kind === "clean" && (
               <CleanVerdictRow
                 verdict={statuses.clean.verdict}
@@ -455,37 +432,59 @@ export function ExportPicker({
             )}
           </div>
           )}
-
-          {/* Proposed contract, Word */}
-          {cleanDocxAvailable && (
-          <div className="rounded border border-[var(--border)] p-3">
-            <label
-              htmlFor="export-clean-docx"
-              aria-label="Proposed contract, clean (Word)"
-              className="flex items-start gap-2 cursor-pointer"
-            >
-              <Checkbox
-                id="export-clean-docx"
-                className="mt-0.5"
-                checked={selected.has("cleanDocx")}
-                disabled={started}
-                onChange={() => toggle("cleanDocx")}
-              />
-              <span>
-                <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Proposed contract, clean (Word)
-                </Body>
-                <Meta as="span" className="block text-[var(--text-secondary)]">
-                  The property&apos;s own Word file with every accepted change applied, in its original formatting.
-                </Meta>
-              </span>
-            </label>
-            <RowStatusLine status={statuses.cleanDocx} />
-          </div>
-          )}
         </div>
       </DialogShell>
     </>
+  );
+}
+
+/** A contract row's checkbox, title and format, with a switch to the other format where there is one. */
+function FormatRowHeader({
+  id,
+  title,
+  format,
+  description,
+  checked,
+  disabled,
+  onToggle,
+  onSwitch,
+}: {
+  id: string;
+  title: string;
+  format: "Word" | "PDF";
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+  onSwitch?: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <label htmlFor={id} aria-label={`${title} (${format})`} className="flex items-start gap-2 cursor-pointer">
+        <Checkbox id={id} className="mt-0.5" checked={checked} disabled={disabled} onChange={onToggle} />
+        <span>
+          <Body as="span" className="block font-medium text-[var(--text-primary)]">
+            {title}{" "}
+            <span className="ml-1 rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+              {format}
+            </span>
+          </Body>
+          <Meta as="span" className="mt-0.5 block text-[var(--text-secondary)]">
+            {description}
+          </Meta>
+        </span>
+      </label>
+      {onSwitch && (
+        <button
+          type="button"
+          onClick={onSwitch}
+          disabled={disabled}
+          className="shrink-0 whitespace-nowrap rounded text-xs font-medium text-[var(--cd-blue)] underline-offset-2 hover:underline disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+        >
+          Switch to {format === "Word" ? "PDF" : "Word"}
+        </button>
+      )}
+    </div>
   );
 }
 
