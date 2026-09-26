@@ -999,6 +999,62 @@ are re-run or edited. The eval answer key was re-stamped with the new standards
 fingerprint at no cost. Its 168 key items are unchanged, because the corpus never reads
 fallback wording.
 
+### Pre-demo review (2026-09-26)
+
+A whole-app review before the demo: every screen graded, the live site toured
+at desktop, tablet and phone widths, and the code read for duplication and
+structure. No paid calls. Fixed before the demo on `fix/pre-demo-polish`:
+
+- [x] Re-editing a finding after a reload started from the original proposal,
+      so saving overwrote the associate's earlier edit.
+- [x] A dropped connection during Accept, Edit or Dismiss failed silently.
+- [x] With nothing accepted yet, the client email said the contract needed no
+      changes. It now asks for decisions first, like the property email.
+- [x] Below 1024 px the findings were unreachable under the contract (iPad
+      portrait, phones). Each pane now scrolls on its own.
+- [x] Uploads over 10MB were cut off by the sign-in proxy despite the 32MB
+      promise (`experimental.proxyClientMaxBodySize`). Too-large files are
+      refused before upload.
+- [x] Dialogs ignored Escape, took no focus and weren't announced as dialogs.
+
+**Later, by priority:**
+
+- [ ] **Medium.** The "Forgot password" form lets anyone create a Supabase
+      login for any email (`signInWithOtp` without `shouldCreateUser: false`).
+      The allowlist still blocks them from the app. One line.
+- [ ] **Medium.** Opening Email → Client or Property generates a new draft on
+      every open, a few cents each. Reuse the saved draft and offer "Draft again".
+- [ ] **Medium.** A review stalled at "processing" (for example after a Render
+      restart mid-run) counts against the monthly limit until someone retries it.
+- [ ] **Low.** Four API routes return raw database error text in their 500
+      responses. Show a plain message and log the detail.
+- [ ] **Low.** The memo can be picked in the export dialog with nothing decided,
+      which gives an empty PDF. Hide it until something is accepted.
+- [ ] **Low.** The in-progress screen is four minutes of a pulsing bar. Show steps
+      (scanning, reading, checking, saving).
+- [ ] **Low.** Wording: "Round 1 of Florida Demo Resort" reads oddly; a bad
+      review link says "Try uploading again" rather than "Back to dashboard".
+- [ ] **Low.** Phone: the dashboard's recent-reviews table drops the Status
+      column, and the navigation menu doesn't close on Escape.
+
+**Code health, later:**
+
+- [ ] `lib/anthropic.ts` (1,269 lines) holds six model calls: review, client
+      email, property email, term extraction and two eval-only calls. Split by
+      concern with one shared tool-call helper; the prompt goldens make it
+      safe. 2–3 hours.
+- [ ] One shared module for the storage bucket name (defined in 10 files),
+      month names (4) and money patterns (3). About an hour.
+- [ ] Nine API routes copy the same load-and-check-owner code. One helper, like
+      the export gate (`openExport`). 1–2 hours.
+- [ ] `components/export-picker.tsx` (694 lines) repeats its four format rows
+      and two result panels. Build them from one list. About an hour.
+- [ ] The review page repeats the AI-check condition instead of
+      `isAwaitingAiUseDecision`. Five minutes.
+- [ ] `lib/tracked-changes-docx.ts`, the old redline engine, is now used only by
+      tests. The user decides whether to delete it and its tests (CLAUDE.md
+      deviation 4 kept it until the §1.5 engine passed all 12 fixtures).
+
 ### Deploy and client-presentation readiness (2026-09-22, high priority)
 
 A client presentation is expected this week. Item 13's redesign (above) is done;
