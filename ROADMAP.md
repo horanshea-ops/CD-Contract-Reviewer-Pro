@@ -1169,6 +1169,17 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               admin route, hash `ea1456de`). The library hash changed, so the
               next eval run needs a fresh baseline.
 
+- [ ] **Prompt rules for Rome run 2's misses — on `main` 2026-09-26, measured
+      by the next live run** (the demo dry run). They cover:
+      - a gratuity or service charge the contract doesn't charge is not applicable
+      - meets needs a basis naming where the contract gives every required term
+        (Rome's brand change and hotel cancellation; Florida's rate parity,
+        mandatory fees and brand change in live run `15e91734`)
+      - the event agreement and its terms and conditions are compared topic by topic
+      - five more kinds of term outside the library
+      - an attached picture's figures and dates are checked against the text
+      Score the run against `15e91734`. If it's worse, revert the merge.
+
 - [ ] **Re-reviewing the same contract without the model — decided, high
       priority, after the demo** (raised by the user 2026-09-26). An associate who
       uploads a contract the tool has already reviewed shouldn't pay for a second

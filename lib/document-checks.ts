@@ -292,7 +292,9 @@ export function pictureContext(pictures: Picture[] | null | undefined): string |
     lines.push(
       `${one ? "A picture from the contract is" : `${sent.length} pictures from the contract are`} attached after the contract text. ` +
         `Read ${one ? "it" : "them"} as part of the contract. ${one ? "Its" : "Their"} wording isn't in the contract text, ` +
-        "so don't put it in quoted_text or deal_figures. Name the picture in your reasoning instead."
+        "so don't put it in quoted_text or deal_figures. Name the picture in your reasoning instead. " +
+        "Check its figures and dates against the text: totals, rates, room counts, and its first and last nights against the arrival and departure dates. " +
+        "Record any mismatch as a note naming the picture, and use its figures in findings where they bear on a clause."
     );
   }
   if (unread.length > 0) {
