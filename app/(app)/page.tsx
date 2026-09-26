@@ -43,12 +43,8 @@ export default async function DashboardPage() {
         .limit(12),
     ]);
 
-  const stats: { label: string; value: number; note?: string }[] = [
-    {
-      label: "Reviews left this month",
-      value: allowance.remaining,
-      note: `of ${allowance.limit}, resets ${allowance.resetsOn}`,
-    },
+  const stats: { label: string; value: number }[] = [
+    { label: "Reviews left this month", value: allowance.remaining },
     { label: "In progress", value: inProgressCount ?? 0 },
     { label: "Completed this month", value: completedThisMonth ?? 0 },
     { label: "Reviews needing decisions", value: needingDecisions ?? 0 },
@@ -81,11 +77,6 @@ export default async function DashboardPage() {
               <Meta as="p" className="text-[var(--text-secondary)] mt-0.5">
                 {s.label}
               </Meta>
-              {s.note && (
-                <Meta as="p" className="text-[var(--text-muted)]">
-                  {s.note}
-                </Meta>
-              )}
             </div>
           ))}
         </div>
