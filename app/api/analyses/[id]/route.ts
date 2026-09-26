@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkDocument, pictureNotes } from "@/lib/document-checks";
+import { toNotes, withoutRepeats } from "@/lib/document-notes";
 import { previewFindings } from "@/lib/redline-engine/preflight";
 
 const STORAGE_BUCKET = "contracts";
@@ -97,6 +98,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     analysis.status === "complete"
       ? [...pictureNotes((analysis.intake_health as { pictures?: { near: string }[] } | null)?.pictures), ...checkDocument(accepted_view_text)]
       : [];
+  const document_notes = withoutRepeats(toNotes(analysis.document_notes), document_checks);
 
-  return NextResponse.json({ ...analysisFields, propertyName, findings, documentUrl, document_checks });
+  return NextResponse.json({ ...analysisFields, document_notes, propertyName, findings, documentUrl, document_checks });
 }
