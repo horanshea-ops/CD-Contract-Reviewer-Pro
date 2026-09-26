@@ -3,8 +3,8 @@ import type { StandardEntry } from "./standards/types";
 import { checkExposure } from "./exposure";
 
 /**
- * Drops findings that propose no change, and checks the rest against the
- * review's own per-clause verdicts.
+ * Drops findings that propose no change or would move the cutoff earlier,
+ * and checks the rest against the review's own per-clause verdicts.
  *
  * Every consumer of findings (redline, memo, property email) reads a finding
  * as a change to make, so one that says "no change needed" would reach the
@@ -35,7 +35,7 @@ export type ReviewGap =
 
 export interface DroppedFinding {
   finding: Finding;
-  reason: "proposes_no_change";
+  reason: "proposes_no_change" | "moves_cutoff_earlier";
 }
 
 export interface ReconciledReview {
@@ -57,11 +57,33 @@ export function proposesNoChange(finding: Finding): boolean {
   return NO_CHANGE.test(finding.proposed_language ?? "");
 }
 
+// The count in "(14 DAYS ) days prior" or "twenty-one (21) days before".
+const DAYS_BEFORE = /(\d{1,3})\s*(?:days?\s*)?\)?\s*days?\s+(?:prior|before)/i;
+
+const daysBefore = (text: string | null | undefined) => {
+  const m = (text ?? "").match(DAYS_BEFORE);
+  return m ? Number(m[1]) : null;
+};
+
+/**
+ * Whether a cutoff finding asks for a deadline further from arrival than the
+ * contract gives. More days before arrival is an earlier cutoff, which gives
+ * attendees less time at the group rate. The model has proposed this more
+ * than once, reading CD's 21-day fallback as a floor.
+ */
+export function movesCutoffEarlier(finding: Finding): boolean {
+  if (finding.clause_type !== "cutoff_date") return false;
+  const contract = daysBefore(finding.quoted_text);
+  const proposed = daysBefore(finding.proposed_language);
+  return contract !== null && proposed !== null && proposed > contract;
+}
+
 export function dropNonChanges(findings: Finding[]): { findings: Finding[]; dropped_findings: DroppedFinding[] } {
   const dropped_findings: DroppedFinding[] = [];
   const kept = findings.filter((finding) => {
-    if (!proposesNoChange(finding)) return true;
-    dropped_findings.push({ finding, reason: "proposes_no_change" });
+    const reason = proposesNoChange(finding) ? "proposes_no_change" : movesCutoffEarlier(finding) ? "moves_cutoff_earlier" : null;
+    if (!reason) return true;
+    dropped_findings.push({ finding, reason });
     return false;
   });
   return { findings: kept, dropped_findings };

@@ -1156,10 +1156,37 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               app-computed exposures still don't use picture figures. The
               review screen says which pictures were read. Unmeasured until
               the next paid Rome run (about $0.36).
-        - [ ] The model's notes and the app's checks can name the same
-              problem. Rome shows the backwards date range and the check-out
-              date twice. Consider dropping a model note a check already
-              covers.
+        - [x] The model's notes and the app's checks named the same problem
+              twice. The review screen now hides a model note that shares two
+              or more dates or amounts with an app check (2026-09-26).
+        - [x] A cutoff finding that asks for more days before arrival than
+              the contract gives is dropped with reason
+              `moves_cutoff_earlier`. Both Rome runs proposed 14 → 21 days.
+              The cause is CD's fallback wording, which fixes the cutoff at
+              21 days while the position says "no earlier than 21 days". That
+              wording is CD's to change.
+
+- [ ] **Repeat reviews without a model call — scoped, not started** (raised by
+      the user 2026-09-26). An associate who uploads a contract the tool has
+      already reviewed shouldn't pay for, or spend an allowance on, a second
+      full review.
+      - **Same file again.** Hash the accepted-view text at upload. When a
+        complete analysis by the same associate has the same hash, the same
+        `standards_hash` and the same prompt version, copy its findings and
+        notes into the new analysis instead of calling the model. A changed
+        library or prompt means a real re-review, so those must match.
+      - **A revised version (round 2 and later).** §2.1.1's diff already
+        finds the changed passages between rounds. Carry over the prior
+        round's findings on unchanged clauses, and send the model only the
+        changed clauses. That cuts cost, but it still makes a call.
+      - **Allowance.** Count a review against the monthly limit only when it
+        called the model. A copied review records the analysis it came from,
+        which needs a `reused_from` column (a migration).
+      - **Open questions.**
+        - Should a copy share decisions already made on the old review?
+        - How long does a prior review stay reusable?
+        - Can associates reuse each other's reviews? That's a data-sharing
+          question for CD.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Finding } from "@/lib/anthropic";
-import { normalizeFindings, proposesNoChange, reconcileReview, type ClauseReview } from "@/lib/analysis-review";
+import { movesCutoffEarlier, normalizeFindings, proposesNoChange, reconcileReview, type ClauseReview } from "@/lib/analysis-review";
 import type { StandardEntry } from "@/lib/standards/types";
 
 function standard(clause_type: string): StandardEntry {
@@ -177,5 +177,39 @@ describe("normalizeFindings", () => {
     const [inPlace, stillMissing] = normalizeFindings([quoted, missing]);
     expect(inPlace.is_missing_clause).toBe(false);
     expect(stillMissing.is_missing_clause).toBe(true);
+  });
+});
+
+describe("movesCutoffEarlier", () => {
+  // Shaped like a real review that proposed moving a 14-day cutoff to 21 days.
+  const cutoff = (quoted_text: string, proposed_language: string, clause_type = "cutoff_date"): Finding => ({
+    ...finding(clause_type, proposed_language),
+    quoted_text,
+  });
+
+  it("catches a proposal that moves the cutoff further from arrival", () => {
+    const backwards = cutoff(
+      "all room requests be received _ (14 DAYS ) days prior to your major arrival day of September 28th 2027",
+      "all room requests be received twenty-one (21) days prior to your major arrival day of September 28th 2027."
+    );
+    expect(movesCutoffEarlier(backwards)).toBe(true);
+
+    const result = reconcileReview({ findings: [backwards], clause_review: [verdict("cutoff_date", "falls_short")] }, STANDARDS);
+    expect(result.findings).toEqual([]);
+    expect(result.dropped_findings.map((d) => d.reason)).toEqual(["moves_cutoff_earlier"]);
+  });
+
+  it("keeps a proposal that moves the cutoff closer to arrival", () => {
+    expect(movesCutoffEarlier(cutoff("thirty (30) days prior to arrival", "twenty-one (21) days prior to arrival"))).toBe(false);
+  });
+
+  it("keeps a cutoff finding that names no day count", () => {
+    expect(movesCutoffEarlier(cutoff("rooms will be released at the cutoff date", "Group members may reserve at the group rate after 30 days before arrival"))).toBe(false);
+  });
+
+  it("leaves other deadlines alone, where more notice helps the group", () => {
+    expect(
+      movesCutoffEarlier(cutoff("at least 14 days before arrival", "at least thirty (30) days before arrival", "construction_renovation"))
+    ).toBe(false);
   });
 });
