@@ -1169,6 +1169,16 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               admin route, hash `ea1456de`). The library hash changed, so the
               next eval run needs a fresh baseline.
 
+- [ ] **Prompt rules for Rome run 2's misses — built, unmeasured** (branch
+      `prompt/rome-run2-misses`, 2026-09-26). Not on `main` until a paid Rome
+      run (about $0.40) and Florida run (about $0.40) show they help:
+      - a gratuity or service charge the contract doesn't charge is not applicable
+      - meets needs a basis naming where the contract gives every required term
+        (Rome's brand change and hotel cancellation)
+      - the event agreement and its terms and conditions are compared topic by topic
+      - five more kinds of term outside the library
+      - an attached picture's figures and dates are checked against the text
+
 - [ ] **Repeat reviews without a model call — scoped, not started** (raised by
       the user 2026-09-26). An associate who uploads a contract the tool has
       already reviewed shouldn't pay for, or spend an allowance on, a second

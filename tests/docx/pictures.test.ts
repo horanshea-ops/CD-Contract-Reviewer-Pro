@@ -125,7 +125,9 @@ describe("what the review says about pictures", () => {
   it("tells the model to read attached pictures but not quote them", () => {
     expect(pictureContext([{ near: "Room Block", readable: true }])).toBe(
       "A picture from the contract is attached after the contract text. Read it as part of the contract. " +
-        "Its wording isn't in the contract text, so don't put it in quoted_text or deal_figures. Name the picture in your reasoning instead."
+        "Its wording isn't in the contract text, so don't put it in quoted_text or deal_figures. Name the picture in your reasoning instead. " +
+        "Check its figures and dates against the text: totals, rates, room counts, and its first and last nights against the arrival and departure dates. " +
+        "Record any mismatch as a note naming the picture, and use its figures in findings where they bear on a clause."
     );
   });
 

@@ -187,7 +187,7 @@ describe("the analysis system prompt", () => {
       const text = prompt();
       expect(text).toContain("In document_notes, name each place the contract contradicts itself");
       expect(text).toContain("Record one only when you can quote both sides");
-      expect(text).toContain("checks table totals and night counts itself");
+      expect(text).toContain("checks table totals, night counts and whether dates fall in order itself");
     });
 
     it("measures an attrition trigger against the whole block, never past the standard", () => {
@@ -240,6 +240,34 @@ describe("the analysis system prompt", () => {
       expect(text).toContain("A named-storm clause matters only for hotels in hurricane or typhoon regions");
       expect(text).toContain("Give such a clause type the verdict not_applicable, say why in its basis, and record no finding for it");
       expect(text).toContain("Outside the United States, don't ask for ADA compliance by name");
+    });
+
+    it("treats a gratuity or service charge the contract doesn't charge as not applicable", () => {
+      // A Rome review proposed adding a gratuity and a service charge to a contract marked "N/A_% service charge".
+      expect(prompt()).toContain("or a gratuity or service charge the contract doesn't charge or marks N/A, has nothing to fix");
+    });
+
+    it("gives meets only when the basis names where the contract gives every required term", () => {
+      // Two Rome runs marked brand change and hotel cancellation meets, though each lacked terms the position requires.
+      const text = prompt();
+      expect(text).toContain("Before giving a clause type meets, name in its basis each term the position requires and where the contract gives it");
+      expect(text).toContain("If any term is absent or narrower than the position asks, the verdict is falls_short");
+    });
+
+    it("compares the event agreement with the terms and conditions, topic by topic", () => {
+      // A Rome review missed five places where the two parts disagreed, such as walk nights and finance charges.
+      const text = prompt();
+      expect(text).toContain("A contract often pairs an event agreement with separate terms and conditions");
+      expect(text).toContain("where a formula uses a different figure from the threshold it applies");
+    });
+
+    it("names more kinds of term outside the library", () => {
+      const text = prompt();
+      expect(text).toContain("the hotel keeping payment for a service it withdraws");
+      expect(text).toContain("a waiver of the group's right to dispute card charges");
+      expect(text).toContain("which can create a conflict of interest");
+      expect(text).toContain("a condition that delays when the group's notice takes effect");
+      expect(text).toContain("forfeiting deposits or credit when the group rebooks");
     });
 
     it("takes figures from the library or the contract, and leaves a blank rather than inventing one", () => {
