@@ -43,7 +43,7 @@ interface Write {
   payload?: unknown;
 }
 
-const db = { writes: [] as Write[], termsInsertError: null as string | null, bytes: new Uint8Array() };
+const db = { writes: [] as Write[], termsInsertError: null as string | null, bytes: new Uint8Array(), row: {} as Record<string, unknown> };
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
@@ -60,6 +60,7 @@ vi.mock("@/lib/supabase/admin", () => ({
             intake_route: "docx_native",
             original_storage_path: "a.docx",
             ai_clause_acknowledged_at: null,
+            ...db.row,
           },
           error: null,
         }),
@@ -111,11 +112,31 @@ beforeEach(() => {
   scanForAiUseTerms.mockReturnValue([]);
   db.writes = [];
   db.termsInsertError = null;
+  db.row = {};
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("TERM_EXTRACTION", "");
   create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
     params.tool_choice.name === "record_analysis" ? analysisResponse : termsResponse
   );
+});
+
+describe("a contract stopped at the AI-use check", () => {
+  // A retry skipped the check, since the decision was already recorded, and
+  // would have sent a contract the associate declined straight to the model.
+  it("never reaches the model, even if it is run again", async () => {
+    db.row = {
+      ai_clause_acknowledged_at: "2026-09-26T15:00:00.000Z",
+      ai_clause_scan_result: { matches: [{ term: "artificial intelligence" }], decision: "abort" },
+    };
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await processAnalysis("analysis-1");
+
+    expect(create).not.toHaveBeenCalled();
+    expect(updatesTo("analyses")).toEqual([
+      { status: "failed", error: expect.stringMatching(/chose not to proceed at the AI-use check/) },
+    ]);
+  });
 });
 
 describe("term extraction in processAnalysis", () => {
