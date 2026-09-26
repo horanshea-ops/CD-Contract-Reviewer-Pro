@@ -27,7 +27,7 @@ import { ORG } from "@/lib/org";
  * Nothing reports "Downloaded." until its response has resolved.
  */
 
-type ExportKey = "memo" | "markup" | "redline" | "clean";
+type ExportKey = "memo" | "markup" | "redline" | "clean" | "cleanDocx";
 type Outcome = "clean" | "partial" | "fallback";
 
 interface RedlineUnapplied {
@@ -84,6 +84,7 @@ const IDLE_STATUSES: Record<ExportKey, RowStatus> = {
   markup: { kind: "idle" },
   redline: { kind: "idle" },
   clean: { kind: "idle" },
+  cleanDocx: { kind: "idle" },
 };
 
 export function ExportPicker({
@@ -113,6 +114,7 @@ export function ExportPicker({
     markup: `/api/analyses/${analysisId}/export-markup`,
     redline: `/api/analyses/${analysisId}/export-redline-docx`,
     clean: `/api/analyses/${analysisId}/export-clean-pdf`,
+    cleanDocx: `/api/analyses/${analysisId}/export-clean-docx`,
   };
 
   // Only a fallback. The route names each file on the way out.
@@ -121,6 +123,7 @@ export function ExportPicker({
     markup: `marked-up-${short}.pdf`,
     redline: `tracked-changes-${short}.docx`,
     clean: `proposed-contract-${short}.pdf`,
+    cleanDocx: `proposed-contract-${short}.docx`,
   };
   const zipName = `exports-${short}.zip`;
 
@@ -129,6 +132,7 @@ export function ExportPicker({
   // the PDF path, and a contract uploaded as a PDF explains itself.
   const redlineAvailable = sourceFormat === "docx" && intakeRoute !== "pdf";
   const cleanAvailable = includedCount > 0;
+  const cleanDocxAvailable = redlineAvailable && cleanAvailable;
 
   const forcedDowngrade = sourceFormat !== "pdf" && intakeRoute !== "docx_native";
   const zippedCount = Object.values(statuses).filter((s) => s.kind === "zipped").length;
@@ -202,6 +206,7 @@ export function ExportPicker({
     const ready: ExportKey[] = [];
 
     if (selected.has("memo")) ready.push("memo");
+    if (selected.has("cleanDocx")) ready.push("cleanDocx");
 
     if (selected.has("markup")) {
       if (forcedDowngrade) setStatus("markup", { kind: "downgrade" });
@@ -325,7 +330,7 @@ export function ExportPicker({
           <div className="rounded border border-[var(--border)] p-3">
             <label
               htmlFor="export-markup"
-              aria-label="Marked-up PDF"
+              aria-label="Redlined contract (PDF)"
               className="flex items-start gap-2 cursor-pointer"
             >
               <Checkbox
@@ -337,10 +342,12 @@ export function ExportPicker({
               />
               <span>
                 <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Marked-up PDF
+                  Redlined contract (PDF)
                 </Body>
                 <Meta as="span" className="block text-[var(--text-secondary)]">
-                  Redlines as PDF comments and strikeouts, for a property that can&apos;t work in Word.
+                  {redlineAvailable
+                    ? "Deleted wording struck through in red and new wording underlined in blue, in the text. For a property that can’t work in Word."
+                    : "Deleted wording struck through on the original PDF, with the new wording listed on a cover page."}
                 </Meta>
               </span>
             </label>
@@ -379,7 +386,7 @@ export function ExportPicker({
           <div className="rounded border border-[var(--border)] p-3">
             <label
               htmlFor="export-redline"
-              aria-label="Tracked-changes DOCX"
+              aria-label="Redlined contract (Word, tracked changes)"
               className="flex items-start gap-2 cursor-pointer"
             >
               <Checkbox
@@ -391,7 +398,7 @@ export function ExportPicker({
               />
               <span>
                 <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Tracked-changes DOCX
+                  Redlined contract (Word, tracked changes)
                 </Body>
                 <Meta as="span" className="block text-[var(--text-secondary)]">
                   Redlines as Word tracked changes, for a property that will negotiate in the document.
@@ -416,7 +423,7 @@ export function ExportPicker({
           <div className="rounded border border-[var(--border)] p-3">
             <label
               htmlFor="export-clean"
-              aria-label="Proposed contract (clean copy)"
+              aria-label="Proposed contract, clean (PDF)"
               className="flex items-start gap-2 cursor-pointer"
             >
               <Checkbox
@@ -428,7 +435,7 @@ export function ExportPicker({
               />
               <span>
                 <Body as="span" className="block font-medium text-[var(--text-primary)]">
-                  Proposed contract (clean copy)
+                  Proposed contract, clean (PDF)
                 </Body>
                 <Meta as="span" className="block text-[var(--text-secondary)]">
                   The contract as it would read if every accepted change applied, for review or to send as a clean
@@ -446,6 +453,34 @@ export function ExportPicker({
                 onDownloadFallback={(url) => downloadOne("clean", url, fallbackName.markup)}
               />
             )}
+          </div>
+          )}
+
+          {/* Proposed contract, Word */}
+          {cleanDocxAvailable && (
+          <div className="rounded border border-[var(--border)] p-3">
+            <label
+              htmlFor="export-clean-docx"
+              aria-label="Proposed contract, clean (Word)"
+              className="flex items-start gap-2 cursor-pointer"
+            >
+              <Checkbox
+                id="export-clean-docx"
+                className="mt-0.5"
+                checked={selected.has("cleanDocx")}
+                disabled={started}
+                onChange={() => toggle("cleanDocx")}
+              />
+              <span>
+                <Body as="span" className="block font-medium text-[var(--text-primary)]">
+                  Proposed contract, clean (Word)
+                </Body>
+                <Meta as="span" className="block text-[var(--text-secondary)]">
+                  The property&apos;s own Word file with every accepted change applied, in its original formatting.
+                </Meta>
+              </span>
+            </label>
+            <RowStatusLine status={statuses.cleanDocx} />
           </div>
           )}
         </div>

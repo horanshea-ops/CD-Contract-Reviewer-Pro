@@ -44,7 +44,7 @@ export interface TextToPdfResult {
 // substituting, which would otherwise crash the whole upload on a perfectly
 // normal contract. Known list-marker-shaped symbols get a plain-text
 // equivalent; anything else unencodable is dropped rather than raising.
-const SYMBOL_SUBSTITUTIONS: Record<string, string> = {
+export const SYMBOL_SUBSTITUTIONS: Record<string, string> = {
   "☐": "-", // ☐ ballot box
   "☑": "-", // ☑ ballot box with check
   "☒": "-", // ☒ ballot box with x

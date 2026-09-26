@@ -239,3 +239,12 @@ function insertedParagraphMark(p: Element): { id: string; author: string } | nul
   if (!ins) return null;
   return { id: ins.getAttribute("w:id") ?? "", author: ins.getAttribute("w:author") ?? "" };
 }
+
+/**
+ * The whole package's text as it currently reads, every revision accepted, with
+ * paragraph boundaries flattened. Two files that should read the same compare
+ * equal here even when one merged paragraphs the other kept apart.
+ */
+export function currentText(pkg: ReadPackage): string {
+  return pkg.textParts.flatMap((p) => paragraphTexts(p.doc, acceptAll)).join(" ");
+}

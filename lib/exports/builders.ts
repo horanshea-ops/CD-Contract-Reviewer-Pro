@@ -2,6 +2,7 @@ import { buildMemo } from "./memo";
 import { buildMarkup } from "./markup";
 import { buildRedline } from "./redline";
 import { buildCleanContract } from "./clean-contract";
+import { buildCleanDocx } from "./clean-docx";
 import type { ExportContext } from "./context";
 import type { ExportBuildResult, ExportFormatKey } from "./types";
 
@@ -14,4 +15,5 @@ export const EXPORT_BUILDERS: Record<
   markup: buildMarkup,
   redline: buildRedline,
   clean: buildCleanContract,
+  cleanDocx: buildCleanDocx,
 };
