@@ -1033,17 +1033,19 @@ structure. No paid calls. Fixed before the demo on `fix/pre-demo-polish`:
 - [ ] **Low.** The structured PDFs leave out headers, footers and pictures such
       as a hotel logo, and use Liberation Sans rather than the document's font.
 
-- [ ] **Medium.** The "Forgot password" form lets anyone create a Supabase
-      login for any email (`signInWithOtp` without `shouldCreateUser: false`).
-      The allowlist still blocks them from the app. One line.
+- [x] **Medium.** The "Forgot password" form let anyone create a Supabase
+      login for any email. It now passes `shouldCreateUser: false`, and an
+      unknown email gets the same "link is on its way" reply as a known one.
 - [ ] **Medium.** Opening Email → Client or Property generates a new draft on
       every open, a few cents each. Reuse the saved draft and offer "Draft again".
 - [ ] **Medium.** A review stalled at "processing" (for example after a Render
       restart mid-run) counts against the monthly limit until someone retries it.
 - [ ] **Low.** Four API routes return raw database error text in their 500
       responses. Show a plain message and log the detail.
-- [ ] **Low.** The memo can be picked in the export dialog with nothing decided,
-      which gives an empty PDF. Hide it until something is accepted.
+- [x] **Low.** The memo could be picked in the export dialog with nothing
+      accepted, which gave an empty PDF. With nothing accepted, the dialog now
+      lists no files and says to accept a finding first, since the redlined
+      contract would be an unmarked copy too.
 - [ ] **Low.** The in-progress screen is four minutes of a pulsing bar. Show steps
       (scanning, reading, checking, saving).
 - [ ] **Low.** Wording: "Round 1 of Florida Demo Resort" reads oddly; a bad
@@ -1075,7 +1077,8 @@ A client presentation is expected this week. Item 13's redesign (above) is done;
 this is what's left before someone outside CD sees the tool. See CLAUDE.md's
 Agreed deviations item 7 for the data-handling decision behind item 7 below.
 
-- [ ] **1. Deploy to Render.** Web service connected to GitHub, `npm run build` /
+- [x] **1. Deploy to Render.** Done 2026-09-26: https://cd-contract-reviewer-pro.onrender.com,
+      auto-deploys `main`. Web service connected to GitHub, `npm run build` /
       `npm start` (unchanged commands, no code change needed). Set the five env
       vars from `.env.local` in Render's dashboard. Verify `postinstall`
       (`scripts/copy-pdf-worker.mjs`) runs in Render's build. Supersedes the
@@ -1085,13 +1088,15 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       `npm run build` passes with no warnings, and `npm start` served sign-in,
       the dashboard, upload, account, standards, a DOCX and a PDF review, and
       all four exports with no server errors.
-- [ ] **2. Starter tier ($7/mo), not Free.** Free spins down after 15 minutes
+- [x] **2. Starter tier ($7/mo), not Free.** Done 2026-09-26. Free spins down after 15 minutes
       idle with a 30-60s cold-start wake on the next request — a real risk if
       the app is opened cold in front of the client.
-- [ ] **3. One full smoke test on the deployed instance**, before anyone else
-      sees it: login, upload, a real analysis end to end, review, export, draft
-      an email.
-- [ ] **4. Clean up the demo account.** The dashboard currently shows a dozen
+- [x] **3. One full smoke test on the deployed instance**: login, upload, a real
+      analysis end to end, review, export, draft an email. Done 2026-09-26 with
+      the live Florida run (`15e91734`) and every export. Email drafting wasn't
+      exercised live, because it costs a model call.
+- [x] **4. Clean up the demo account.** Done 2026-09-26: a fresh admin account,
+      jerry.horan@conferencedirect.com, holding only Florida. The dashboard currently shows a dozen
       internal test rows ("AI Clause Gate Test," etc.) — fine for development,
       not for a client watching. Fresh associate account or a delete pass.
 - [ ] **5. Dry-run the actual redacted contract once, before the live
@@ -1108,7 +1113,14 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       - Every audit action the code writes has rows in `audit_log`.
       - The signature route was the one write without an audit entry. It now
         logs `signature_updated`.
-      Still to do: repeat these checks on Render once it's deployed.
+      Checked on Render on 2026-09-26:
+      - The disclaimer shows on the upload page, the review screen and every
+        page of Florida's memo.
+      - Render wrote Florida's `analysis_upload`, `analysis_complete` and
+        export audit rows.
+      - The property-email allowlist isn't checked live yet. Florida has no
+        saved draft, and making one is a model call. The allowlist is server
+        code with passing tests, deployed unchanged.
 - [ ] **7. A redacted real CD contract will be processed on the personal
       Anthropic account for this presentation, ahead of the build brief's own
       gate** (decided by the user, 2026-09-22). CD's Anthropic org still does

@@ -139,7 +139,9 @@ export function ExportPicker({
   // greyed with an excuse. The review page already banners a DOCX that had to take
   // the PDF path, and a contract uploaded as a PDF explains itself.
   const redlineAvailable = sourceFormat === "docx" && intakeRoute !== "pdf";
-  const cleanAvailable = includedCount > 0;
+
+  // With nothing accepted, every file would be empty or an unmarked copy of the contract.
+  const anyIncluded = includedCount > 0;
 
   // Each contract row defaults to Word where the upload has an editable Word
   // file, and offers PDF behind a switch. Without one, PDF is the only format.
@@ -306,7 +308,7 @@ export function ExportPicker({
             <Button variant="ghost" size="sm" onClick={close} disabled={busy}>
               {started ? "Close" : "Cancel"}
             </Button>
-            {!started && (
+            {!started && anyIncluded && (
               <Button size="sm" onClick={handleExport} disabled={selected.size === 0}>
                 Export selected ({selected.size})
               </Button>
@@ -314,9 +316,11 @@ export function ExportPicker({
           </>
         }
       >
-        <Meta className="text-[var(--text-secondary)] mb-3">
-          Pick one or more files to export. Several arrive as a single zip.
-        </Meta>
+        {anyIncluded && (
+          <Meta className="text-[var(--text-secondary)] mb-3">
+            Pick one or more files to export. Several arrive as a single zip.
+          </Meta>
+        )}
 
         {zippedCount > 0 && (
           <Body as="p" className="mb-3 rounded bg-[var(--surface-muted)] p-2 text-[var(--status-success)]">
@@ -324,13 +328,21 @@ export function ExportPicker({
           </Body>
         )}
 
-        {undecidedCount > 0 && (
+        {!anyIncluded && (
+          <Body as="p" className="rounded bg-[var(--surface-muted)] p-2 text-[var(--text-secondary)]">
+            Nothing to export yet. Accept or edit at least one finding, and the memo and contract files will
+            appear here.
+          </Body>
+        )}
+
+        {anyIncluded && undecidedCount > 0 && (
           <Body as="p" className="mb-3 rounded bg-[var(--surface-muted)] p-2 text-[var(--text-secondary)]">
             {undecidedCount} finding{undecidedCount === 1 ? "" : "s"} still need{undecidedCount === 1 ? "s" : ""} a
             decision and won&apos;t be in any of these exports.
           </Body>
         )}
 
+        {anyIncluded && (
         <div className="space-y-3">
           {/* Memo */}
           <div className="rounded border border-[var(--border)] p-3">
@@ -404,7 +416,6 @@ export function ExportPicker({
           </div>
 
           {/* Proposed contract */}
-          {cleanAvailable && (
           <div className="rounded border border-[var(--border)] p-3">
             <FormatRowHeader
               id="export-proposed"
@@ -431,8 +442,8 @@ export function ExportPicker({
               />
             )}
           </div>
-          )}
         </div>
+        )}
       </DialogShell>
     </>
   );
