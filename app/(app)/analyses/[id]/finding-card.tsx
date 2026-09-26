@@ -170,6 +170,10 @@ export default function FindingCard({
       setMode("view");
       setChangingDecision(false);
       showToast(`${ACTION_LABEL[action]}.`);
+    } catch {
+      const message = "Not saved. Check your connection and try again.";
+      setError(message);
+      showToast(message, "error");
     } finally {
       setSaving(false);
     }
@@ -290,7 +294,16 @@ export default function FindingCard({
           <Button size="sm" onClick={() => submitAction("accept")} loading={saving} loadingText="Accepting...">
             Accept
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => setMode("editing")} disabled={saving}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              // Start from the wording the card shows, so re-editing keeps an earlier edit.
+              setEditedLanguage(language);
+              setMode("editing");
+            }}
+            disabled={saving}
+          >
             {language.trim() ? "Edit" : "Add wording"}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>

@@ -262,6 +262,7 @@ export function ExportPicker({
         onClose={close}
         title="Export"
         maxWidth="xl"
+        dismissible={!busy}
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={close} disabled={busy}>

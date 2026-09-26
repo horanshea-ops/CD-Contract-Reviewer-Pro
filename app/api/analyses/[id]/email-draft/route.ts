@@ -40,9 +40,24 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const findings = await getEmailFindings(admin, id);
   const signatureBlock = associate.signature_block || `Best,\n${associate.name}`;
 
-  // No accepted or edited findings — nothing proposed, so there's nothing for
-  // the model to summarize. A fixed message is more reliable than asking the
-  // model to handle this as an edge case, and skips an unnecessary API call.
+  // With nothing accepted yet but findings still undecided, a "no changes" email
+  // would tell the client the contract is fine before anyone has decided.
+  if (findings.length === 0) {
+    const { data: rows } = await admin.from("findings").select("id, finding_actions(id)").eq("analysis_id", id);
+    const undecided = (rows ?? []).filter((r) => !(r.finding_actions as unknown[] | null)?.length).length;
+    if (undecided > 0) {
+      return NextResponse.json(
+        {
+          error: `${undecided} finding${undecided === 1 ? " still needs" : "s still need"} a decision. Accept or edit the ones to raise, then draft the client email.`,
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Every finding decided and none accepted: nothing proposed, so there's
+  // nothing for the model to summarize. A fixed message is more reliable than
+  // asking the model to handle this as an edge case, and skips an API call.
   let draft: { subject: string; body: string; model_id: string | null };
   if (findings.length === 0) {
     draft = {

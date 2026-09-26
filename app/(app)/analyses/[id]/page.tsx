@@ -451,8 +451,9 @@ export default function AnalysisPage() {
         </div>
       </div>
 
+      {/* Below lg the panes stack, each with its own scroll, so the findings stay reachable under a long contract. */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        <div className="lg:w-1/2 border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
+        <div className="h-[45vh] shrink-0 border-b lg:h-auto lg:shrink lg:w-1/2 lg:border-b-0 lg:border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
           {data.source_format !== "pdf" && data.intake_route !== "docx_native" && (
             <Meta as="div" className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] px-4 py-2 shrink-0">
               {getMarkupReason({ sourceFormat: data.source_format, intakeHealthReason: data.intake_health?.reason ?? null })}{" "}
@@ -489,7 +490,7 @@ export default function AnalysisPage() {
           )}
         </div>
 
-        <div className="lg:w-1/2 overflow-y-auto bg-[var(--surface-muted)]">
+        <div className="flex-1 min-h-0 lg:w-1/2 overflow-y-auto bg-[var(--surface-muted)]">
           {sortedFindings.length + notesInOther > 0 && (
             <div className="sticky top-0 z-10 bg-[var(--surface-muted)] px-4 py-3 border-b border-[var(--border)]">
               <FindingsOverviewBar
