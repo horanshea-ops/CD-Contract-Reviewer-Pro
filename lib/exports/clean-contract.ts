@@ -4,6 +4,7 @@ import { generateCleanContractPdf, type CleanContractFinding } from "../clean-co
 import { recordExport } from "../export-log";
 import type { ExportContext } from "./context";
 import { positionedLinesFor } from "./positioned-lines";
+import { buildStructuredContract, type StructuredContract } from "./structured";
 import { cachedBuild, fingerprint } from "./build-cache";
 import type { ExportBuildResult, ExportRefusalResult } from "./types";
 
@@ -17,6 +18,97 @@ import type { ExportBuildResult, ExportRefusalResult } from "./types";
  * no `exports` row, because no file was produced.
  */
 export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuildResult> {
+  const structured = await buildStructuredContract(ctx, "clean");
+  if (structured) return fromStructured(ctx, structured);
+  return fromStoredText(ctx);
+}
+
+/**
+ * A Word upload with an editable file: the tracked-changes DOCX with every
+ * change accepted, drawn with its headings, lists and tables.
+ */
+async function fromStructured(ctx: ExportContext, structured: StructuredContract): Promise<ExportBuildResult> {
+  const { admin, associate, analysis, analysisId } = ctx;
+  const { engineResult, findings, nonSubstantive } = structured.redline;
+
+  if (!findings.some((f) => f.language.trim())) return noChanges();
+
+  const refused = new Set(engineResult.unappliedIds);
+  const additions = findings
+    .filter((f) => f.is_missing_clause && f.language.trim() && !refused.has(f.id))
+    .map((f) => ({ clause_type: f.clause_type }));
+  const outcome = structured.unplaced.length ? "partial" : "clean";
+  const markupPdfUrl = `/api/analyses/${analysisId}/export-markup`;
+
+  const preflight = {
+    outcome: structured.problems.length ? "fallback" : outcome,
+    appliedCount: engineResult.appliedCount,
+    additions,
+    unplaced: structured.unplaced,
+    problems: structured.problems,
+    markupPdfUrl,
+  };
+
+  if (structured.problems.length) {
+    return {
+      kind: "refusal",
+      status: 409,
+      body: { error: "The clean contract failed its content check and was not produced.", problems: structured.problems },
+      preflight,
+      summary:
+        "The proposed contract was not exported. It failed its content check and was discarded. " +
+        "The marked-up PDF carries the same changes.",
+    };
+  }
+
+  return {
+    kind: "file",
+    filename: `proposed-contract-${analysisId.slice(0, 8)}.pdf`,
+    contentType: "application/pdf",
+    bytes: structured.pdfBytes,
+    outcome,
+    preflight,
+    commit: async () => {
+      await recordExport(admin, {
+        analysisId,
+        associateId: associate.id,
+        format: "pdf",
+        outcome,
+        findingsApplied: engineResult.appliedCount,
+        findingsUnapplied: structured.unplaced.length,
+        unappliedDetail: structured.unplaced.length ? structured.unplaced : null,
+        analysisPaths: analysis,
+      });
+
+      await logAudit({
+        actorId: associate.id,
+        action: "clean_contract_exported",
+        entityType: "analysis",
+        entityId: analysisId,
+        metadata: {
+          applied: engineResult.appliedCount,
+          additions: additions.length,
+          unplaced: structured.unplaced.length,
+          non_substantive: nonSubstantive.length,
+          outcome,
+          source_format: analysis.source_format,
+          layout: "structured",
+        },
+      });
+    },
+  };
+}
+
+function noChanges(): ExportRefusalResult {
+  return refusal(
+    400,
+    { error: "No accepted changes, so this would just be the original contract." },
+    "The proposed contract was not exported. There are no accepted changes, so it would just be the original contract."
+  );
+}
+
+/** Everything else: the text read at upload, with the changes spliced in. */
+async function fromStoredText(ctx: ExportContext): Promise<ExportBuildResult> {
   const { admin, associate, analysis, analysisId } = ctx;
 
   const source = await positionedLinesFor(ctx);
@@ -42,13 +134,7 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
     is_missing_clause: f.is_missing_clause,
   }));
 
-  if (findings.length === 0) {
-    return refusal(
-      400,
-      { error: "No accepted changes, so this would just be the original contract." },
-      "The proposed contract was not exported. There are no accepted changes, so it would just be the original contract."
-    );
-  }
+  if (findings.length === 0) return noChanges();
 
   // The property's own name where the analysis is linked to a thread, never the
   // filename — a CD filename can carry internal shorthand about the deal.
@@ -136,6 +222,7 @@ export async function buildCleanContract(ctx: ExportContext): Promise<ExportBuil
           non_substantive: nonSubstantive.length,
           outcome,
           source_format: analysis.source_format,
+          layout: "stored_text",
         },
       });
     },

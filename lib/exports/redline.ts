@@ -1,7 +1,7 @@
 import { logAudit } from "../audit";
-import { getActionedFindings } from "../get-actioned-findings";
-import { generateRedline } from "../redline-engine";
-import { UNAPPLIED_REASON_TEXT, validateRedline } from "../redline-validation";
+import { getActionedFindings, type NonSubstantiveFinding } from "../get-actioned-findings";
+import { generateRedline, type RedlineOutcome, type RevisionFinding } from "../redline-engine";
+import { UNAPPLIED_REASON_TEXT, validateRedline, type ValidationReport } from "../redline-validation";
 import { recordExport, recordResolutions } from "../export-log";
 import { storeSentFile } from "./sent-file";
 import type { ExportContext } from "./context";
@@ -26,12 +26,31 @@ const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordpro
  * A fallback still records its `exports` row, so §1.6.6's degradation rate
  * counts the attempt.
  */
-export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResult> {
+export interface LoadedRedline {
+  engineResult: RedlineOutcome;
+  report: ValidationReport;
+  findings: RevisionFinding[];
+  nonSubstantive: NonSubstantiveFinding[];
+}
+
+/** A Word upload that passed the upload check, so its own file can carry the changes. */
+export function hasEditableWordFile(analysis: ExportContext["analysis"]): boolean {
+  return analysis.source_format === "docx" && analysis.intake_route !== "pdf" && !!analysis.original_storage_path;
+}
+
+/**
+ * The engine run and its §1.6 verdict, shared by every export built from the
+ * tracked-changes file: this one, both PDFs and the clean Word copy. Cached, so
+ * one click that asks for several of them runs the engine once.
+ */
+export async function loadRedline(
+  ctx: ExportContext
+): Promise<{ ok: true; redline: LoadedRedline } | { ok: false; refusal: ExportRefusalResult }> {
   const { admin, associate, analysis, analysisId } = ctx;
   const markupPdfUrl = `/api/analyses/${analysisId}/export-markup`;
 
   if (analysis.source_format !== "docx" || !analysis.original_storage_path) {
-    return refusal(
+    return fail(
       400,
       { error: "Tracked-changes export is only available for contracts uploaded as DOCX." },
       "Tracked-changes DOCX was not exported. This contract was uploaded as a PDF, so there is no Word file to mark up."
@@ -42,7 +61,7 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
   // the associate was told so before they reviewed anything. Honour that here
   // rather than editing it anyway and leaning on §1.6 to catch the damage.
   if (analysis.intake_route === "pdf") {
-    return refusal(
+    return fail(
       400,
       {
         error:
@@ -58,7 +77,7 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
     .from(STORAGE_BUCKET)
     .download(analysis.original_storage_path);
   if (downloadError || !originalBlob) {
-    return refusal(
+    return fail(
       500,
       { error: `Could not load the original document: ${downloadError?.message}` },
       "Tracked-changes DOCX was not exported. The original document could not be loaded."
@@ -86,14 +105,23 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
       }
     );
   } catch (err) {
-    return refusal(
+    return fail(
       500,
       { error: err instanceof Error ? err.message : "Could not generate tracked changes." },
       "Tracked-changes DOCX was not exported. The tracked changes could not be generated."
     );
   }
 
-  const { engineResult, report } = built;
+  return { ok: true, redline: { ...built, findings, nonSubstantive } };
+}
+
+export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResult> {
+  const { admin, associate, analysis, analysisId } = ctx;
+  const markupPdfUrl = `/api/analyses/${analysisId}/export-markup`;
+
+  const loaded = await loadRedline(ctx);
+  if (!loaded.ok) return loaded.refusal;
+  const { engineResult, report, nonSubstantive } = loaded.redline;
   const unapplied = report.unapplied.map((u) => ({ ...u, explanation: UNAPPLIED_REASON_TEXT[u.reason] }));
 
   const preflight = {
@@ -181,6 +209,14 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
     extraHeaders: { "X-Export-Outcome": report.outcome },
     commit,
   };
+}
+
+function fail(
+  status: number,
+  body: ExportRefusalResult["body"],
+  summary: string
+): { ok: false; refusal: ExportRefusalResult } {
+  return { ok: false, refusal: refusal(status, body, summary) };
 }
 
 function refusal(

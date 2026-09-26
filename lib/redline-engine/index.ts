@@ -44,6 +44,8 @@ export interface RedlineOutcome extends RedlineEngineResult {
     applicability: Applicability;
     detail: string;
   }[];
+  /** Findings that were not applied, by id, in the order `unapplied` lists them. */
+  unappliedIds: string[];
 }
 
 /** The opening of a sentence, for naming it in a resolution detail. */
@@ -82,6 +84,7 @@ export async function generateRedline({
   const date = now.toISOString();
 
   const unapplied: UnappliedFinding[] = [];
+  const unappliedIds: string[] = [];
   const widened: WidenedChange[] = [];
   const resolutions: RedlineOutcome["resolutions"] = [];
   const editedParts = new Set<ParsedPart>();
@@ -100,6 +103,7 @@ export async function generateRedline({
       quoted_text: finding.quoted_text,
       reason,
     });
+    unappliedIds.push(finding.id);
     resolutions.push({ findingId: finding.id, spanResolution, applicability, detail });
   };
 
@@ -303,5 +307,5 @@ export async function generateRedline({
   for (const part of editedParts) pkg.zip.file(part.path, serializePart(part));
   const docxBytes = await pkg.zip.generateAsync({ type: "uint8array" });
 
-  return { docxBytes, appliedCount, unapplied, widened, ownRevisionIds: ids.ownRevisionIds, resolutions };
+  return { docxBytes, appliedCount, unapplied, widened, ownRevisionIds: ids.ownRevisionIds, resolutions, unappliedIds };
 }

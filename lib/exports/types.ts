@@ -44,6 +44,6 @@ export interface ExportRefusalResult {
   commit?: () => Promise<void>;
 }
 
-export type ExportFormatKey = "memo" | "markup" | "redline" | "clean";
+export type ExportFormatKey = "memo" | "markup" | "redline" | "clean" | "cleanDocx";
 
-export const EXPORT_FORMAT_KEYS: ExportFormatKey[] = ["memo", "markup", "redline", "clean"];
+export const EXPORT_FORMAT_KEYS: ExportFormatKey[] = ["memo", "markup", "redline", "clean", "cleanDocx"];

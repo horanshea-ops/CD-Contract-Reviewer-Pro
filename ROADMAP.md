@@ -1016,8 +1016,22 @@ structure. No paid calls. Fixed before the demo on `fix/pre-demo-polish`:
       promise (`experimental.proxyClientMaxBodySize`). Too-large files are
       refused before upload.
 - [x] Dialogs ignored Escape, took no focus and weren't announced as dialogs.
+- [x] The marked-up PDF and the proposed contract were plain text with the
+      tables and paragraph breaks lost, and the markup struck whole lines with
+      the new wording on a cover page. For Word uploads both are now drawn from
+      the tracked-changes file (`lib/structured-pdf.ts`): headings, lists,
+      tables with Word's column widths, deletions in red and insertions in
+      blue, in place. A clean Word copy was added (`lib/docx-accept.ts`).
 
 **Later, by priority:**
+
+- [ ] **Medium.** PDF uploads still get the older marked-up PDF: whole lines
+      struck on the original PDF and the new wording on a cover page. Strike
+      only the matched words and put each change's wording in a margin note
+      beside it. Their proposed contract stays plain text, since a PDF has no
+      structure to rebuild from.
+- [ ] **Low.** The structured PDFs leave out headers, footers and pictures such
+      as a hotel logo, and use Liberation Sans rather than the document's font.
 
 - [ ] **Medium.** The "Forgot password" form lets anyone create a Supabase
       login for any email (`signInWithOtp` without `shouldCreateUser: false`).
@@ -1047,7 +1061,7 @@ structure. No paid calls. Fixed before the demo on `fix/pre-demo-polish`:
       month names (4) and money patterns (3). About an hour.
 - [ ] Nine API routes copy the same load-and-check-owner code. One helper, like
       the export gate (`openExport`). 1–2 hours.
-- [ ] `components/export-picker.tsx` (694 lines) repeats its four format rows
+- [ ] `components/export-picker.tsx` (730 lines) repeats its five format rows
       and two result panels. Build them from one list. About an hour.
 - [ ] The review page repeats the AI-check condition instead of
       `isAwaitingAiUseDecision`. Five minutes.
