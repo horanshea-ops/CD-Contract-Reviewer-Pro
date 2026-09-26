@@ -1169,29 +1169,52 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               admin route, hash `ea1456de`). The library hash changed, so the
               next eval run needs a fresh baseline.
 
-- [ ] **Repeat reviews without a model call — scoped, not started** (raised by
-      the user 2026-09-26). An associate who uploads a contract the tool has
-      already reviewed shouldn't pay for, or spend an allowance on, a second
-      full review.
-      - **Same file again.** Hash the accepted-view text at upload. When a
-        complete analysis by the same associate has the same hash, the same
-        `standards_hash` and the same prompt version, copy its findings and
-        notes into the new analysis instead of calling the model. A changed
-        library or prompt means a real re-review, so those must match.
-      - **A revised version (round 2 and later).** §2.1.1's diff already
-        finds the changed passages between rounds. Carry over the prior
-        round's findings on unchanged clauses, and send the model only the
-        changed clauses. That cuts cost, but it still makes a call.
-      - **Allowance.** Done 2026-09-26: a review counts only once it calls
-        the model (the pipeline stamps `token_usage.model_called_at` first), or
-        while it is in progress. A copied review makes no call, so it won't
-        count. It can record its source in its `intake_health` JSON, with no
-        migration.
+- [ ] **Re-reviewing the same contract without the model — decided, high
+      priority, after the demo** (raised by the user 2026-09-26). An associate who
+      uploads a contract the tool has already reviewed shouldn't pay for a second
+      full review or spend an allowance on it. Build the two cases in this order.
+      - **1. Same file again — build first. About half a day to a day. No model
+        call, no migration.**
+        - At upload, hash the accepted-view text. Look for a complete analysis by
+          the same associate with the same hash, the same `standards_hash`, the
+          same model and the same prompt version.
+        - On a match, copy that review's findings, notes and the associate's
+          decisions (accepted, edited, dismissed) into the new analysis. Record
+          the source analysis in `intake_health`, and tell the associate the
+          review was copied from their review of that date.
+        - A changed library, model or prompt means a real re-review, because the
+          old findings may no longer be what the tool would say.
+        - The copy makes no model call, so it doesn't count toward the monthly
+          limit (the allowance counts `token_usage.model_called_at`, done
+          2026-09-26).
+      - **2. The property's revised version (round 2 onward) — about 25–45
+        hours.** This is MASTER_PLAN §2.1.2 plus the screens around it.
+        - §2.1.1's round comparison is built. It finds what changed between the
+          version CD sent and the one the property returned.
+        - Sort each earlier finding without the model, by looking for CD's
+          proposed wording in the returned text:
+          - accepted: CD's wording now appears
+          - rejected: the original wording is unchanged
+          - countered: the wording changed to something else
+        - Carry the associate's earlier decisions onto unchanged clauses.
+        - Flag new wording the property added elsewhere, such as a concession on
+          attrition paired with a tighter cancellation clause. Either the
+          associate reads the flagged passages, or the model reviews only them,
+          which costs a few cents rather than a full review's ~$0.37.
+        - `finding_outcomes` already exists in the schema (migration `002`).
+        - **Gate.** MASTER_PLAN holds §2.1.2 until the review's findings are
+          proven accurate, because "the property rejected this" only means
+          something once the finding is known to be right. Lifting that gate is
+          the user's call.
       - **Open questions.**
-        - Should a copy share decisions already made on the old review?
         - How long does a prior review stay reusable?
         - Can associates reuse each other's reviews? That's a data-sharing
           question for CD.
+
+- [ ] **Dashboard tiles** (user, 2026-09-26). Keep "Reviews left this month" and
+      "Reviews needing decisions". Replace "In progress", which is almost
+      always 0, and "Completed this month", which now repeats the reviews-left
+      count. The two replacements are still to be chosen.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft
