@@ -5,7 +5,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { Body, Display, Meta, Subtitle } from "@/components/ui/typography";
 import type { Insight } from "@/lib/analytics/insights";
 import type { AnalyticsScope } from "@/lib/analytics/access";
-import type { Coverage, GroupRow, Sampled, StandardShare } from "@/lib/analytics/stats";
+import type { GroupRow, Sampled, StandardShare } from "@/lib/analytics/stats";
 import { formatTermValue, termByKey } from "@/lib/analytics/terms";
 import type { ContractRecord, ContractStatus } from "@/lib/analytics/types";
 
@@ -33,7 +33,7 @@ export function TestDataBanner() {
 export function StatTiles({ tiles }: { tiles: { label: string; value: string; note?: string }[] }) {
   return (
     <Card padding="none" className="mb-6 overflow-hidden">
-      <div className="grid grid-cols-2 gap-px bg-[var(--border)] sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-px bg-[var(--border)] lg:grid-cols-4">
         {tiles.map((t) => (
           <div key={t.label} className="bg-white px-5 py-4">
             <Display className="text-[var(--cd-navy)]">{t.value}</Display>
@@ -208,10 +208,8 @@ export function GroupTable({ title, note, rows, linkFor }: { title: string; note
               <Meta as="th" className={th}>Signed</Meta>
               <Meta as="th" className={th}>Asks won</Meta>
               <Meta as="th" className={th}>Median rate</Meta>
-              <Meta as="th" className={th}>Median rounds</Meta>
               <Meta as="th" className={th}>Days to sign</Meta>
-              <Meta as="th" className={th}>Commission</Meta>
-              <Meta as="th" className={th}>Open exposure</Meta>
+              <Meta as="th" className={th}>Avg. commission</Meta>
             </tr>
           </thead>
           <tbody>
@@ -230,10 +228,8 @@ export function GroupTable({ title, note, rows, linkFor }: { title: string; note
                 <td className={td}>{g.signed}</td>
                 <td className={td}>{show(g.winRate, pct)}</td>
                 <td className={td}>{show(g.medianRate, usd)}</td>
-                <td className={td}>{show(g.medianRounds, (v) => v.toFixed(1))}</td>
                 <td className={td}>{show(g.medianDaysToSign, (v) => `${Math.round(v)}`)}</td>
-                <td className={td}>{show(g.medianCommission, (v) => `${v}%`)}</td>
-                <td className={td}>{usd(g.openExposure)}</td>
+                <td className={td}>{show(g.averageCommission, (v) => `${v.toFixed(1)}%`)}</td>
               </tr>
             ))}
           </tbody>
@@ -260,34 +256,6 @@ export function StandardsCard({ rows }: { rows: StandardShare[] }) {
             <span className="text-right font-medium text-[var(--text-primary)]">{show(s.met, pct)}</span>
           </li>
         ))}
-      </ul>
-    </Card>
-  );
-}
-
-/** How often signed contracts state each term. Figures count only the contracts that do. */
-export function CoverageCard({ rows }: { rows: Coverage[] }) {
-  return (
-    <Card>
-      <Subtitle className="text-[var(--text-primary)]">How often contracts state each term</Subtitle>
-      <Meta as="p" className="mt-0.5 text-[var(--text-secondary)]">
-        A term a contract leaves out counts as missing, not as zero. Every figure above uses only the contracts that state it.
-      </Meta>
-      <ul className="mt-3 space-y-2">
-        {rows.map((c) => {
-          const share = c.of ? (c.stated / c.of) * 100 : 0;
-          return (
-            <li key={c.key} className="grid grid-cols-[minmax(0,11rem)_1fr_5.5rem] items-center gap-3 text-sm">
-              <span className="truncate text-[var(--text-secondary)]">{c.label}</span>
-              <span className="h-2 rounded-full bg-[var(--surface-muted)]">
-                <span className="block h-2 rounded-full bg-[var(--cd-blue)]" style={{ width: `${share}%` }} />
-              </span>
-              <span className="text-right text-[var(--text-primary)]">
-                {c.stated} of {c.of}
-              </span>
-            </li>
-          );
-        })}
       </ul>
     </Card>
   );

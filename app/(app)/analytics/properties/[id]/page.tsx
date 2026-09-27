@@ -23,7 +23,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
   if (!records.length) notFound();
 
   const property = records[0].property;
-  const summary = summarize(records, data.asOf);
+  const summary = summarize(records);
   const signedHere = records.filter((r) => r.status === "signed");
 
   // A single hotel rarely has enough contracts per term, so concessions fall back to the whole brand.
@@ -62,7 +62,6 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
           { label: "Room nights signed", value: summary.roomNights.toLocaleString("en-US") },
           { label: "Median group rate", value: show(summary.medianRate, usd) },
           { label: "CD asks won", value: show(summary.winRate, pct), note: "in full or partway" },
-          { label: "Open exposure", value: usd(summary.openExposure), note: `${summary.openContracts} open contracts` },
         ]}
       />
 
@@ -70,8 +69,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
         <ChartCard title="What this hotel gives" note={`Outcome of each CD ask, across ${concessionScope}.`} height={380}>
           <ConcessionChart rows={concessions} />
         </ChartCard>
-        <ChartCard title="Group rate trend" note={`Median signed rate by event quarter, across all ${property.brand} hotels.`} height={380}>
-          <RateTrendChart points={rateTrend(brandRecords)} />
+        <ChartCard title="Group rate trend" note={`Median signed rate by event year, across all ${property.brand} hotels.`} height={380}>
+          <RateTrendChart points={rateTrend(brandRecords, "year")} />
         </ChartCard>
       </div>
 

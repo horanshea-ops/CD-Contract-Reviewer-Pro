@@ -1,5 +1,5 @@
 import { createAdminClient } from "../supabase/admin";
-import { TEST_AS_OF, testDataset } from "./test-data";
+import { testDataset } from "./test-data";
 import type { ContractRecord } from "./types";
 
 /**
@@ -16,8 +16,6 @@ export type SourceKind = "test" | "database";
 export interface AnalyticsData {
   kind: SourceKind;
   contracts: ContractRecord[];
-  /** The date "open" and "upcoming" are measured from. Fixed for test data. */
-  asOf: string;
 }
 
 export function analyticsEnabled(): boolean {
@@ -37,7 +35,7 @@ export async function loadAnalyticsData(): Promise<AnalyticsData> {
   if (sourceKind() === "test") {
     // Real associates get some test contracts, so each one sees rows of their own.
     const { data } = await createAdminClient().from("associates").select("id, name").eq("status", "active").order("created_at");
-    return { kind: "test", contracts: testDataset(data ?? []).contracts, asOf: TEST_AS_OF };
+    return { kind: "test", contracts: testDataset(data ?? []).contracts };
   }
-  return { kind: "database", contracts: [], asOf: new Date().toISOString().slice(0, 10) };
+  return { kind: "database", contracts: [] };
 }

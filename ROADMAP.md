@@ -1388,12 +1388,20 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
 
       **Framework built on test data** (branch `feature/analytics-framework`,
       2026-09-27, not merged or deployed):
-      - `/analytics`: filters in the URL, tiles, four charts, insights, you
-        against other associates, the contract library, and how often each
-        term is stated. Admins also get the Associate filter and tables by
-        associate, brand and client.
-      - `/analytics/properties/[id]`: a hotel's history, what it gives, its
-        brand's rate trend, and its latest terms against its market.
+      - `/analytics`: filters in the URL, tiles, five charts (rate trend,
+        attrition signed, what hotels give, average commission by brand,
+        contracts by month), insights, and you against other associates.
+        Admins also get the Associate filter and tables by associate, brand
+        and client.
+      - `/analytics/properties/[id]`: a hotel's contract history, what it
+        gives, its brand's yearly rate trend, and its latest terms against its
+        market.
+      - Left out by the user's call (2026-09-27):
+        - open exposure, which only grows and measures nothing
+        - the firm-wide contract library, for now
+        - the card showing how often each term is stated
+        - negotiation rounds, which can't be measured reliably, and imported
+          contracts arrive as a single round
       - Term sheet PDFs (`/api/analytics/term-sheets/[id]`) name no associate.
       - It stays hidden unless `ANALYTICS=on`. Test data needs
         `ANALYTICS_SOURCE=test` and never loads in a production build.

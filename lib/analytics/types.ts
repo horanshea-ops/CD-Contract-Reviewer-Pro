@@ -49,15 +49,12 @@ export interface ContractRecord {
   /** When the final version was signed; null while negotiating or after a loss. */
   signedAt: string | null;
   status: ContractStatus;
-  rounds: number;
   /** The hotel's first draft. */
   firstDraft: TermSnapshot;
   /** What CD asked for in its redline. */
   requested: TermSnapshot;
   /** The signed version, or the latest version while negotiating. */
   final: TermSnapshot;
-  /** CD's worst-case exposure on the current terms, in USD. */
-  exposureUsd: number;
   /** The review this contract came from, when there is one. */
   analysisId: string | null;
 }

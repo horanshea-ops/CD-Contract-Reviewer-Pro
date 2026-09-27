@@ -4,10 +4,10 @@ import { scopeFor } from "@/lib/analytics/access";
 import { applyFilters, filterOptions, parseFilters } from "@/lib/analytics/filters";
 import { insights } from "@/lib/analytics/insights";
 import { sourceKind } from "@/lib/analytics/source";
-import { askOutcome, benchmark, median, MIN_SAMPLE, sampled, summarize, termCoverage } from "@/lib/analytics/stats";
+import { askOutcome, benchmark, commissionByBrand, median, MIN_SAMPLE, sampled, summarize } from "@/lib/analytics/stats";
 import { renderTermSheetPdf } from "@/lib/analytics/term-sheet-pdf";
 import { ANALYTICS_TERMS, termByKey } from "@/lib/analytics/terms";
-import { generateTestData, TEST_AS_OF } from "@/lib/analytics/test-data";
+import { generateTestData } from "@/lib/analytics/test-data";
 import type { ContractRecord, TermSnapshot } from "@/lib/analytics/types";
 import { navLinks } from "@/components/nav-links";
 
@@ -60,6 +60,25 @@ describe("statistics", () => {
     expect(askOutcome(cutoff, withTerms({}, {}, {}))).toBeNull();
   });
 
+  it("averages each brand's commission over only the contracts that state one", () => {
+    const pct = (brand: string, commission: number | undefined, status: ContractRecord["status"] = "signed"): ContractRecord => ({
+      ...record,
+      status,
+      property: { ...record.property, brand },
+      final: commission === undefined ? {} : { "commission.commission_pct": commission },
+    });
+    const rows = commissionByBrand([
+      ...[10, 10, 8, 10, 7].map((v) => pct("A", v)),
+      pct("A", undefined),
+      pct("A", 1, "negotiating"),
+      ...[7, 8].map((v) => pct("B", v)),
+    ]);
+    expect(rows).toEqual([
+      { brand: "A", n: 5, average: 9 },
+      { brand: "B", n: 2, average: null },
+    ]);
+  });
+
   it("compares nothing for a term the contract doesn't state", () => {
     const pool = data.contracts.filter((c) => c.status === "signed").slice(0, 40);
     const rows = benchmark(withTerms({}, {}, { "deal.group_rate_usd": 200 }), pool);
@@ -77,16 +96,16 @@ describe("test data", () => {
   });
 
   it("leaves unstated terms out rather than setting them to zero or false", () => {
-    const coverage = termCoverage(data.contracts);
-    expect(coverage.some((c) => c.stated < c.of)).toBe(true);
+    const signed = data.contracts.filter((c) => c.status === "signed");
+    const stated = (key: string) => signed.filter((c) => c.final[key] !== undefined).length;
     for (const c of data.contracts) {
       for (const snapshot of [c.firstDraft, c.requested, c.final]) {
         for (const value of Object.values(snapshot)) expect(value).not.toBeUndefined();
       }
     }
     // Only resorts and luxury hotels usually state a resort fee, so most contracts leave it out.
-    const fee = coverage.find((c) => c.key === "mandatory_fees.resort_fee_usd")!;
-    expect(fee.stated).toBeLessThan(fee.of / 2);
+    expect(stated("mandatory_fees.resort_fee_usd")).toBeLessThan(signed.length / 2);
+    expect(stated("deal.fb_minimum_usd")).toBeLessThan(signed.length);
   });
 
   it("uses only the terms the tab compares", () => {
@@ -102,7 +121,7 @@ describe("test data", () => {
 
   it("hands some contracts to the real associates", () => {
     expect(data.contracts.some((c) => c.associate.id === me.id)).toBe(true);
-    expect(summarize(data.contracts, TEST_AS_OF).openContracts).toBeGreaterThan(0);
+    expect(summarize(data.contracts).signed).toBeGreaterThan(0);
   });
 });
 

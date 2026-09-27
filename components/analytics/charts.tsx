@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { Bin, TermConcession, TrendPoint, VolumePoint } from "@/lib/analytics/stats";
+import type { Bin, BrandCommission, TermConcession, TrendPoint, VolumePoint } from "@/lib/analytics/stats";
 
 const AXIS = { fontSize: 11, fill: "var(--text-muted)" };
 const GRID = "var(--border)";
@@ -55,7 +55,7 @@ export function ConcessionChart({ rows }: { rows: TermConcession[] }) {
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} layout="vertical" margin={{ top: 0, right: 12, bottom: 0, left: 0 }} barCategoryGap={4}>
         <CartesianGrid stroke={GRID} horizontal={false} />
-        <XAxis type="number" domain={[0, 100]} tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} tickFormatter={(v) => `${v}%`} />
+        <XAxis type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} tickFormatter={(v) => `${v}%`} />
         <YAxis type="category" dataKey="label" tick={AXIS} tickLine={false} axisLine={false} width={150} />
         <Tooltip
           {...TOOLTIP}
@@ -109,6 +109,32 @@ export function VolumeChart({ points }: { points: VolumePoint[] }) {
         <Bar dataKey="signed" name="Signed" stackId="a" fill="var(--cd-navy)" />
         <Bar dataKey="negotiating" name="Negotiating" stackId="a" fill="var(--cd-blue-light)" />
         <Bar dataKey="lost" name="Lost" stackId="a" fill="var(--border-strong)" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Average signed commission per brand, with CD's 10% standard marked. Brands under the sample minimum are left off. */
+export function CommissionChart({ rows, standard }: { rows: BrandCommission[]; standard: number }) {
+  const data = rows.filter((r) => r.average !== null);
+  if (!data.length) return <Empty text="Not enough signed contracts yet." />;
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} layout="vertical" margin={{ top: 16, right: 12, bottom: 0, left: 0 }} barCategoryGap={4}>
+        <CartesianGrid stroke={GRID} horizontal={false} />
+        <XAxis type="number" domain={[0, 12]} ticks={[0, 2, 4, 6, 8, 10, 12]} tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} tickFormatter={(v) => `${v}%`} />
+        <YAxis type="category" dataKey="brand" tick={AXIS} tickLine={false} axisLine={false} width={130} />
+        <Tooltip
+          {...TOOLTIP}
+          formatter={(v, _name, item) => [`${v}% average (${(item.payload as BrandCommission).n} contracts)`, "Commission"]}
+        />
+        <Bar dataKey="average" fill="var(--cd-navy)" radius={[0, 3, 3, 0]} />
+        <ReferenceLine
+          x={standard}
+          stroke="var(--status-success)"
+          strokeDasharray="4 3"
+          label={{ value: "CD standard", position: "top", fontSize: 11, fill: "var(--status-success)" }}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

@@ -10,6 +10,7 @@
  * - The two Harborline brands never give on attrition.
  * - Nashville rates climb about 9% a year, against 3–4% elsewhere.
  * - Resorts hold their F&B minimums, and luxury brands hold resort fees.
+ * - Luxury and some resort brands open lower on commission, at 7 or 8%.
  */
 
 import { ANALYTICS_TERMS, NEGOTIATED_TERMS, type NumericTerm, type TermValue } from "./terms";
@@ -52,21 +53,23 @@ interface BrandSpec {
   flexibility: number;
   /** Terms this brand never moves on. */
   holds?: string[];
+  /** The commission percentages this brand's first drafts offer. */
+  commission: number[];
 }
 
 const BRANDS: BrandSpec[] = [
-  { name: "Harborline Hotels", short: "Harborline", parent: "Northgate Hospitality", tier: "upper_upscale", flexibility: 0.55, holds: ["attrition.threshold"] },
-  { name: "Harborline Grand", short: "Harborline Grand", parent: "Northgate Hospitality", tier: "convention", flexibility: 0.45, holds: ["attrition.threshold"] },
-  { name: "Northgate Suites", short: "Northgate Suites", parent: "Northgate Hospitality", tier: "upscale", flexibility: 0.6 },
-  { name: "Crestmark Resorts", short: "Crestmark", parent: "Solstice Hotel Group", tier: "resort", flexibility: 0.4 },
-  { name: "Solstice Hotels", short: "Solstice", parent: "Solstice Hotel Group", tier: "upscale", flexibility: 0.65 },
-  { name: "Solace Collection", short: "Solace", parent: "Solstice Hotel Group", tier: "luxury", flexibility: 0.35 },
-  { name: "Arden Hotels", short: "Arden", parent: "Arden & Pike Hotels", tier: "upper_upscale", flexibility: 0.6 },
-  { name: "Pike Grand", short: "Pike Grand", parent: "Arden & Pike Hotels", tier: "convention", flexibility: 0.5 },
-  { name: "Kestrel House", short: "Kestrel House", parent: "Kestrel Hospitality", tier: "upscale", flexibility: 0.7 },
-  { name: "Verano Collection", short: "Verano", parent: "Kestrel Hospitality", tier: "luxury", flexibility: 0.3 },
-  { name: "Tidewater Inns", short: "Tidewater", parent: "Tidewater Hotel Company", tier: "upscale", flexibility: 0.75 },
-  { name: "Bluecoast Resorts", short: "Bluecoast", parent: "Tidewater Hotel Company", tier: "resort", flexibility: 0.45 },
+  { name: "Harborline Hotels", short: "Harborline", parent: "Northgate Hospitality", tier: "upper_upscale", flexibility: 0.55, holds: ["attrition.threshold"], commission: [10, 10, 8] },
+  { name: "Harborline Grand", short: "Harborline Grand", parent: "Northgate Hospitality", tier: "convention", flexibility: 0.45, holds: ["attrition.threshold"], commission: [10] },
+  { name: "Northgate Suites", short: "Northgate Suites", parent: "Northgate Hospitality", tier: "upscale", flexibility: 0.6, commission: [10, 8] },
+  { name: "Crestmark Resorts", short: "Crestmark", parent: "Solstice Hotel Group", tier: "resort", flexibility: 0.4, commission: [7, 8, 8] },
+  { name: "Solstice Hotels", short: "Solstice", parent: "Solstice Hotel Group", tier: "upscale", flexibility: 0.65, commission: [10, 10, 8] },
+  { name: "Solace Collection", short: "Solace", parent: "Solstice Hotel Group", tier: "luxury", flexibility: 0.35, commission: [7, 7, 8] },
+  { name: "Arden Hotels", short: "Arden", parent: "Arden & Pike Hotels", tier: "upper_upscale", flexibility: 0.6, commission: [10, 10, 10, 8] },
+  { name: "Pike Grand", short: "Pike Grand", parent: "Arden & Pike Hotels", tier: "convention", flexibility: 0.5, commission: [10, 8] },
+  { name: "Kestrel House", short: "Kestrel House", parent: "Kestrel Hospitality", tier: "upscale", flexibility: 0.7, commission: [10, 10] },
+  { name: "Verano Collection", short: "Verano", parent: "Kestrel Hospitality", tier: "luxury", flexibility: 0.3, commission: [7, 8] },
+  { name: "Tidewater Inns", short: "Tidewater", parent: "Tidewater Hotel Company", tier: "upscale", flexibility: 0.75, commission: [10, 8, 8] },
+  { name: "Bluecoast Resorts", short: "Bluecoast", parent: "Tidewater Hotel Company", tier: "resort", flexibility: 0.45, commission: [8, 10] },
 ];
 
 interface CitySpec {
@@ -247,7 +250,7 @@ export function generateTestData(options: TestDataOptions = {}): TestDataset {
       "cutoff_date.days_prior": stated(0.97, property.tier === "convention" ? pick([45, 60]) : pick([30, 30, 45])),
       "cancellation.top_tier_pct": stated(0.9, pick([90, 100, 100])),
       "rebates.comp_room_ratio": stated(0.85, pick([50, 50, 45])),
-      "commission.commission_pct": stated(0.9, pick([7, 8, 10, 10])),
+      "commission.commission_pct": stated(0.9, pick(brand.commission)),
       "mandatory_fees.resort_fee_usd": resortish ? stated(0.9, pick([25, 35, 45])) : stated(0.15, 20),
       "cancellation.resale_credit": stated(0.6, chance(0.4)),
       "force_majeure.covers_epidemic": stated(0.95, chance(0.35)),
@@ -286,12 +289,6 @@ export function generateTestData(options: TestDataOptions = {}): TestDataset {
       }
     }
 
-    // Exposure counts only the terms the contract states.
-    const rate = final["deal.group_rate_usd"] as number;
-    const attrition = final["attrition.threshold"] as number | undefined;
-    const fb = final["deal.fb_minimum_usd"] as number | undefined;
-    const exposureUsd = Math.round((attrition ? roomNights * rate * (attrition / 100) * 0.3 : 0) + (fb ? fb * 0.25 : 0));
-
     const signedMs = status === "signed" ? Math.min(openedMs + rounds * between(8, 25) * DAY, asOf) : null;
     const year = new Date(eventMs).getUTCFullYear();
 
@@ -307,11 +304,9 @@ export function generateTestData(options: TestDataOptions = {}): TestDataset {
       openedAt: iso(openedMs),
       signedAt: signedMs == null ? null : iso(signedMs),
       status,
-      rounds,
       firstDraft,
       requested,
       final,
-      exposureUsd,
       analysisId: null,
     });
   }

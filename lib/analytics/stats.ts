@@ -22,6 +22,10 @@ export function sampled<T>(n: number, value: T): Sampled<T> {
   return { n, value: n >= MIN_SAMPLE ? value : null };
 }
 
+export function mean(values: number[]): number | null {
+  return values.length ? values.reduce((s, v) => s + v, 0) / values.length : null;
+}
+
 export function median(values: number[]): number | null {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -31,26 +35,18 @@ export function median(values: number[]): number | null {
 
 const signed = (records: ContractRecord[]) => records.filter((r) => r.status === "signed");
 
-/** Contracts whose event hasn't ended and that aren't lost carry live exposure. */
-export function isOpen(record: ContractRecord, asOf: string): boolean {
-  return record.status !== "lost" && record.eventEnd >= asOf;
-}
-
 export interface Summary {
   contracts: number;
   signed: number;
   roomNights: number;
   medianRate: Sampled<number>;
   winRate: Sampled<number>;
-  openExposure: number;
-  openContracts: number;
 }
 
-export function summarize(records: ContractRecord[], asOf: string): Summary {
+export function summarize(records: ContractRecord[]): Summary {
   const done = signed(records);
   const rates = done.map((r) => r.final["deal.group_rate_usd"]).filter((v): v is number => typeof v === "number");
   const asks = askOutcomes(done);
-  const open = records.filter((r) => isOpen(r, asOf));
   return {
     contracts: records.length,
     signed: done.length,
@@ -58,8 +54,6 @@ export function summarize(records: ContractRecord[], asOf: string): Summary {
     roomNights: done.reduce((s, r) => s + ((r.final["deal.room_nights"] as number | undefined) ?? 0), 0),
     medianRate: sampled(rates.length, median(rates) ?? 0),
     winRate: sampled(done.length, asks.total ? ((asks.full + asks.partial) / asks.total) * 100 : 0),
-    openExposure: open.reduce((s, r) => s + r.exposureUsd, 0),
-    openContracts: open.length,
   };
 }
 
@@ -141,13 +135,13 @@ export interface TrendPoint {
 
 const quarterOf = (date: string) => `${date.slice(0, 4)} Q${Math.floor((Number(date.slice(5, 7)) - 1) / 3) + 1}`;
 
-/** Median signed group rate by event quarter. */
-export function rateTrend(records: ContractRecord[]): TrendPoint[] {
+/** Median signed group rate by event quarter, or by year where quarters would be too thin. */
+export function rateTrend(records: ContractRecord[], by: "quarter" | "year" = "quarter"): TrendPoint[] {
   const byQuarter = new Map<string, number[]>();
   for (const r of signed(records)) {
     const rate = r.final["deal.group_rate_usd"];
     if (typeof rate !== "number") continue;
-    const q = quarterOf(r.eventStart);
+    const q = by === "quarter" ? quarterOf(r.eventStart) : r.eventStart.slice(0, 4);
     byQuarter.set(q, [...(byQuarter.get(q) ?? []), rate]);
   }
   return [...byQuarter.entries()]
@@ -192,24 +186,6 @@ export function distribution(records: ContractRecord[], key: string): Bin[] {
   return [...counts.entries()].sort(([a], [b]) => a - b).map(([value, count]) => ({ value, count }));
 }
 
-export interface Coverage {
-  key: string;
-  label: string;
-  stated: number;
-  of: number;
-}
-
-/** How many signed contracts state each term. The rest are missing, not zero. */
-export function termCoverage(records: ContractRecord[]): Coverage[] {
-  const done = signed(records);
-  return ANALYTICS_TERMS.map((t) => ({
-    key: t.key,
-    label: t.label,
-    stated: done.filter((r) => r.final[t.key] !== undefined).length,
-    of: done.length,
-  }));
-}
-
 export interface StandardShare {
   key: string;
   label: string;
@@ -233,17 +209,15 @@ export interface GroupRow {
   signed: number;
   winRate: Sampled<number>;
   medianRate: Sampled<number>;
-  medianRounds: Sampled<number>;
   medianDaysToSign: Sampled<number>;
-  medianCommission: Sampled<number>;
-  openExposure: number;
+  /** Average, not median: most contracts sign at 10%, so a median hides the ones that don't. */
+  averageCommission: Sampled<number>;
 }
 
 /** One row per group (associate, brand, client), sorted by contract count. */
 export function groupTable(
   records: ContractRecord[],
-  keyOf: (r: ContractRecord) => { id: string; label: string },
-  asOf: string
+  keyOf: (r: ContractRecord) => { id: string; label: string }
 ): GroupRow[] {
   const groups = new Map<string, { label: string; records: ContractRecord[] }>();
   for (const r of records) {
@@ -267,10 +241,8 @@ export function groupTable(
         signed: done.length,
         winRate: sampled(done.length, asks.total ? ((asks.full + asks.partial) / asks.total) * 100 : 0),
         medianRate: sampled(done.length, median(nums("deal.group_rate_usd")) ?? 0),
-        medianRounds: sampled(done.length, median(done.map((r) => r.rounds)) ?? 0),
         medianDaysToSign: sampled(days.length, median(days) ?? 0),
-        medianCommission: sampled(done.length, median(nums("commission.commission_pct")) ?? 0),
-        openExposure: g.records.filter((r) => isOpen(r, asOf)).reduce((s, r) => s + r.exposureUsd, 0),
+        averageCommission: sampled(nums("commission.commission_pct").length, mean(nums("commission.commission_pct")) ?? 0),
       };
     })
     .sort((a, b) => b.contracts - a.contracts);
@@ -301,4 +273,30 @@ export function benchmark(record: ContractRecord, comparables: ContractRecord[])
       shareBetter: value === undefined ? { n: values.length, value: null } : sampled(values.length, values.length ? (better / values.length) * 100 : 0),
     };
   });
+}
+
+export interface BrandCommission {
+  brand: string;
+  n: number;
+  /** Average commission in signed contracts that state one; null below MIN_SAMPLE. */
+  average: number | null;
+}
+
+/**
+ * Average signed commission per brand, highest first. Brands under the sample
+ * minimum come last. An average, because most contracts sign at 10% and a
+ * median would hide the brands that hold at 7 or 8.
+ */
+export function commissionByBrand(records: ContractRecord[]): BrandCommission[] {
+  const byBrand = new Map<string, number[]>();
+  for (const r of signed(records)) {
+    const pct = r.final["commission.commission_pct"];
+    if (typeof pct === "number") byBrand.set(r.property.brand, [...(byBrand.get(r.property.brand) ?? []), pct]);
+  }
+  return [...byBrand.entries()]
+    .map(([brand, values]) => {
+      const s = sampled(values.length, mean(values) ?? 0);
+      return { brand, n: s.n, average: s.value === null ? null : Math.round(s.value * 10) / 10 };
+    })
+    .sort((a, b) => (b.average ?? -1) - (a.average ?? -1) || b.n - a.n);
 }
