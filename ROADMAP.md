@@ -1309,6 +1309,81 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       always 0, and "Completed this month", which now repeats the reviews-left
       count. The two replacements are still to be chosen.
 
+- [ ] **Analytics tab — future, large build** (raised by the user 2026-09-26).
+      Store the terms of every contract version, the final signed version above
+      all, and let CD and its associates query that history. A new negotiation
+      with a brand or property then starts from what CD got last time. The user
+      sees this as a main selling point, since it turns the tool from a
+      reviewer into a negotiation platform. It brings together MASTER_PLAN §2.7
+      (property history), §2.8 (benchmarks) and §2.9 (exposure rollup).
+
+      **Already built:**
+      - Term catalog `hotel-v1` (`lib/terms/catalog.ts`, §2.0.2). It has 117
+        terms: attrition, cancellation, cutoff, F&B, force majeure and more.
+        Each one is checked against the contract text.
+      - `contract_terms` table (migration `006`). It holds one row per term per
+        analysis, and a term the contract leaves out is stored as `not_stated`.
+        Extraction is switched off (`TERM_EXTRACTION`), so the table is empty.
+      - Negotiation rounds (migration `004`) and the round comparison (§2.1.1).
+      - `finding_outcomes` (migration `002`), which records whether the
+        property accepted, countered or rejected each change. It is empty until
+        §2.1.2 is built.
+      - `deal_figures` (dates, room block, rates, F&B minimum), extracted by
+        every review.
+
+      **New pieces:**
+      1. **Who the contract is with.** Add these terms: hotel name, brand,
+         parent company, address, city/market and country.
+         - A `properties` table, so that different spellings of one hotel
+           ("JW Marriott Orlando" and "JW Marriott Grande Lakes") match to one
+           record.
+         - An associate confirms each new match once.
+      2. **The final version.** Mark one version of a contract as signed. Its
+         terms become the record the analytics use. A draft shows what was
+         asked for. The signed copy shows what CD actually got.
+      3. **Historical import.** Bulk-upload past signed contracts.
+         - Extract terms only, with no review, since that's a much cheaper
+           model call.
+         - Price it before any import. At $0.10 a contract, 1,000 contracts
+           cost $100.
+         - Old signed copies are often scans. The app has no OCR, so a scan
+           gives no text today.
+         - "Training data" here means a reference database the app computes
+           statistics from. No model is trained or fine-tuned.
+      4. **The tab.** It has three views.
+         - A property or brand profile: past terms, what they conceded and
+           what they held.
+         - Benchmarks, such as "this attrition is worse than 78% of CD's
+           signed contracts in this market".
+         - Exposure across open contracts, per associate or per client.
+      5. **Insights in the review.** The review screen cites history beside a
+         finding, for example "This property signed at 75% attrition in 2025."
+
+      **Gates and open questions:**
+      - **Data.** Bulk-processing real contracts needs CD's own Anthropic org.
+        See CLAUDE.md deviation 7. That deviation covers one presentation, not
+        a historical import.
+      - **Sample size.** §2.8 says not to ship on 200 contracts. Every figure
+        shows how many contracts it rests on, and nothing is shown below a set
+        minimum.
+      - **Accuracy.** Statistics use only `verified` and `located` terms.
+        Extraction accuracy is measured against a hand-checked set before any
+        benchmark is shown.
+      - **Who sees what.** A property's past deal was made for another client.
+        CD decides whether associates see each other's contracts or only totals.
+      - **Other companies.** If other firms use the tool, each firm's data stays
+        separate. Pooling data across firms is a separate question, both
+        commercial and legal.
+
+      **Order:**
+      - Turn on term extraction and add the identity terms first. Every review
+        from then on adds to the history, so the database grows before the tab
+        exists.
+      - Then build signed versions, then the import, then the tab.
+
+      **Size:** roughly 120–200 hours, including the §2.7–§2.9 estimates. This
+      is a first guess to firm up in planning.
+
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft
   client email, Export marked-up PDF, Export tracked-changes DOCX, Export proposed
