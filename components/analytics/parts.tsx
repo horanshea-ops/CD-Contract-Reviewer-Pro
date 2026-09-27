@@ -208,7 +208,6 @@ export function GroupTable({ title, note, rows, linkFor }: { title: string; note
               <Meta as="th" className={th}>Signed</Meta>
               <Meta as="th" className={th}>Asks won</Meta>
               <Meta as="th" className={th}>Median rate</Meta>
-              <Meta as="th" className={th}>Days to sign</Meta>
               <Meta as="th" className={th}>Avg. commission</Meta>
             </tr>
           </thead>
@@ -228,7 +227,6 @@ export function GroupTable({ title, note, rows, linkFor }: { title: string; note
                 <td className={td}>{g.signed}</td>
                 <td className={td}>{show(g.winRate, pct)}</td>
                 <td className={td}>{show(g.medianRate, usd)}</td>
-                <td className={td}>{show(g.medianDaysToSign, (v) => `${Math.round(v)}`)}</td>
                 <td className={td}>{show(g.averageCommission, (v) => `${v.toFixed(1)}%`)}</td>
               </tr>
             ))}

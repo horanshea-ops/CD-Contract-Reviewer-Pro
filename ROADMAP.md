@@ -1402,6 +1402,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         - the card showing how often each term is stated
         - negotiation rounds, which can't be measured reliably, and imported
           contracts arrive as a single round
+        - days to sign, for the same reason: an imported contract has no
+          first-draft date
       - Term sheet PDFs (`/api/analytics/term-sheets/[id]`) name no associate.
       - It stays hidden unless `ANALYTICS=on`. Test data needs
         `ANALYTICS_SOURCE=test` and never loads in a production build.

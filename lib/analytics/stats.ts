@@ -209,7 +209,6 @@ export interface GroupRow {
   signed: number;
   winRate: Sampled<number>;
   medianRate: Sampled<number>;
-  medianDaysToSign: Sampled<number>;
   /** Average, not median: most contracts sign at 10%, so a median hides the ones that don't. */
   averageCommission: Sampled<number>;
 }
@@ -231,9 +230,6 @@ export function groupTable(
       const done = signed(g.records);
       const asks = askOutcomes(done);
       const nums = (key: string) => done.map((r) => r.final[key]).filter((v): v is number => typeof v === "number");
-      const days = done
-        .filter((r) => r.signedAt)
-        .map((r) => (Date.parse(r.signedAt!) - Date.parse(r.openedAt)) / 86_400_000);
       return {
         id,
         label: g.label,
@@ -241,7 +237,6 @@ export function groupTable(
         signed: done.length,
         winRate: sampled(done.length, asks.total ? ((asks.full + asks.partial) / asks.total) * 100 : 0),
         medianRate: sampled(done.length, median(nums("deal.group_rate_usd")) ?? 0),
-        medianDaysToSign: sampled(days.length, median(days) ?? 0),
         averageCommission: sampled(nums("commission.commission_pct").length, mean(nums("commission.commission_pct")) ?? 0),
       };
     })
