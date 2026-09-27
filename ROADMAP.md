@@ -1118,9 +1118,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         page of Florida's memo.
       - Render wrote Florida's `analysis_upload`, `analysis_complete` and
         export audit rows.
-      - The property-email allowlist isn't checked live yet. Florida has no
-        saved draft, and making one is a model call. The allowlist is server
-        code with passing tests, deployed unchanged.
+      - The property-email allowlist was checked live on 2026-09-27. A draft
+        on Florida carried no figures, exposure, severity or rationale.
 - [ ] **7. A redacted real CD contract will be processed on the personal
       Anthropic account for this presentation, ahead of the build brief's own
       gate** (decided by the user, 2026-09-22). CD's Anthropic org still does
@@ -1251,8 +1250,20 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               admin route, hash `ea1456de`). The library hash changed, so the
               next eval run needs a fresh baseline.
 
-- [ ] **Prompt rules for Rome run 2's misses — on `main` 2026-09-26, measured
-      by the next live run** (the demo dry run). They cover:
+- [x] **Prompt rules for Rome run 2's misses — on `main` 2026-09-26, measured
+      by the demo dry run on 2026-09-27 and kept** (`cb3daee0`, about $0.38,
+      4m02s). Against `15e91734`:
+      - Rate parity, mandatory fees and brand change each got a finding.
+        All three had been lost to "meets".
+      - Findings went from 37 to 38 and nothing was dropped. Output tokens rose
+        from 24.7k to 26.8k.
+      - A new F&B exposure of $45,000, $100,000 × (80% − 35%). It is checked
+        against the cancellation schedule, whose last tier charges 80% of the
+        F&B minimum. Total exposure went from $125,696 to $170,696.
+      - A live property email draft on `15e91734` carried no dollar figures,
+        exposure, severity, standards or rationale.
+
+      Original entry: the prompt rules were measured by the next live run (the demo dry run). They cover:
       - a gratuity or service charge the contract doesn't charge is not applicable
       - meets needs a basis naming where the contract gives every required term
         (Rome's brand change and hotel cancellation; Florida's rate parity,
