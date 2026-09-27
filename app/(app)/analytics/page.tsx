@@ -80,7 +80,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
               <CommissionChart rows={commissionByBrand(records)} standard={10} />
             </ChartCard>
             <div className="lg:col-span-2">
-              <ChartCard title="Contracts by month" note="By the month the first draft arrived.">
+              <ChartCard title="Contracts signed by month" note="By the month each contract was signed.">
                 <VolumeChart points={volumeByMonth(records)} />
               </ChartCard>
             </div>

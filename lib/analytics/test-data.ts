@@ -301,7 +301,6 @@ export function generateTestData(options: TestDataOptions = {}): TestDataset {
       eventName: `${client.name.replace(/^(Association|Society|Council|Federation|Institute|Guild|Alliance) (of|for) /, "")} ${pick(EVENT_KINDS)} ${year}`,
       eventStart: iso(eventMs),
       eventEnd: iso(eventMs + nights * DAY),
-      openedAt: iso(openedMs),
       signedAt: signedMs == null ? null : iso(signedMs),
       status,
       firstDraft,
@@ -311,7 +310,7 @@ export function generateTestData(options: TestDataOptions = {}): TestDataset {
     });
   }
 
-  contracts.sort((a, b) => b.openedAt.localeCompare(a.openedAt));
+  contracts.sort((a, b) => b.eventStart.localeCompare(a.eventStart));
   return { properties, contracts };
 }
 

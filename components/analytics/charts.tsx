@@ -95,20 +95,17 @@ export function DistributionChart({ bins, standard, unit }: { bins: Bin[]; stand
   );
 }
 
-/** Contracts opened each month, split by outcome. */
+/** Contracts signed each month. */
 export function VolumeChart({ points }: { points: VolumePoint[] }) {
-  if (!points.length) return <Empty text="No contracts yet." />;
+  if (!points.length) return <Empty text="No signed contracts yet." />;
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={points} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey="month" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} minTickGap={24} />
         <YAxis tick={AXIS} tickLine={false} axisLine={false} width={32} allowDecimals={false} />
-        <Tooltip {...TOOLTIP} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="signed" name="Signed" stackId="a" fill="var(--cd-navy)" />
-        <Bar dataKey="negotiating" name="Negotiating" stackId="a" fill="var(--cd-blue-light)" />
-        <Bar dataKey="lost" name="Lost" stackId="a" fill="var(--border-strong)" />
+        <Tooltip {...TOOLTIP} formatter={(v) => [`${v} contracts`, "Signed"]} />
+        <Bar dataKey="signed" name="Signed" fill="var(--cd-navy)" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

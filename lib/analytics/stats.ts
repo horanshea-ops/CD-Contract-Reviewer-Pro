@@ -155,20 +155,20 @@ export function rateTrend(records: ContractRecord[], by: "quarter" | "year" = "q
 export interface VolumePoint {
   month: string;
   signed: number;
-  negotiating: number;
-  lost: number;
 }
 
-/** Contracts opened per month, split by where they ended up. */
+/**
+ * Contracts signed per month. By signing date, because an imported contract
+ * carries the date it was signed but not when its first draft arrived.
+ */
 export function volumeByMonth(records: ContractRecord[]): VolumePoint[] {
-  const byMonth = new Map<string, VolumePoint>();
+  const byMonth = new Map<string, number>();
   for (const r of records) {
-    const month = r.openedAt.slice(0, 7);
-    const point = byMonth.get(month) ?? { month, signed: 0, negotiating: 0, lost: 0 };
-    point[r.status]++;
-    byMonth.set(month, point);
+    if (r.status !== "signed" || !r.signedAt) continue;
+    const month = r.signedAt.slice(0, 7);
+    byMonth.set(month, (byMonth.get(month) ?? 0) + 1);
   }
-  return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
+  return [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, signed]) => ({ month, signed }));
 }
 
 export interface Bin {

@@ -1401,7 +1401,7 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       2026-09-27, not merged or deployed):
       - `/analytics`: filters in the URL, tiles, five charts (rate trend,
         attrition signed, what hotels give, average commission by brand,
-        contracts by month), insights, and you against other associates.
+        contracts signed by month), insights, and you against other associates.
         Admins also get the Associate filter and tables by associate, brand
         and client.
       - `/analytics/properties/[id]`: a hotel's contract history, what it
@@ -1415,6 +1415,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
           contracts arrive as a single round
         - days to sign, for the same reason: an imported contract has no
           first-draft date
+      - Contracts are counted by the month they were signed, for the same
+        reason.
       - Term sheet PDFs (`/api/analytics/term-sheets/[id]`) name no associate.
       - It stays hidden unless `ANALYTICS=on`. Test data needs
         `ANALYTICS_SOURCE=test` and never loads in a production build.

@@ -44,8 +44,6 @@ export interface ContractRecord {
   eventName: string;
   eventStart: string;
   eventEnd: string;
-  /** When the first draft arrived. */
-  openedAt: string;
   /** When the final version was signed; null while negotiating or after a loss. */
   signedAt: string | null;
   status: ContractStatus;

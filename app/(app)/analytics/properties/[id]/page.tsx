@@ -33,7 +33,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
   const concessionScope = own.length ? "this hotel" : `all ${property.brand} hotels`;
 
   // The latest signed contract here, against signed contracts in the same city, or the same tier when the city is thin.
-  const latest = signedHere[0];
+  const latest = [...signedHere].sort((a, b) => b.signedAt!.localeCompare(a.signedAt!))[0];
   const cityPool = data.contracts.filter((c) => c.property.city === property.city && c.status === "signed");
   const pool = cityPool.length >= MIN_SAMPLE * 2 ? cityPool : data.contracts.filter((c) => c.property.tier === property.tier);
   const poolLabel = pool === cityPool ? `signed contracts in ${property.city}` : `signed ${TIER_LABELS[property.tier].toLowerCase()} contracts`;
