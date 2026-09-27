@@ -12,6 +12,8 @@ export interface NavAssociate {
   name: string;
   email: string;
   is_admin: boolean;
+  /** Set by the layout from the ANALYTICS switch, which only the server can read. */
+  analytics?: boolean;
 }
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -27,6 +29,15 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
   "/upload": (
     <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  ),
+  "/analytics": (
+    <path
+      d="M4 16V9M8 16V5M12 16v-5M16 16V7M3 16.5h14"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   ),
   "/admin/standards": (
     <>
@@ -52,6 +63,7 @@ export function navLinks(associate: NavAssociate | null) {
   return [
     { href: "/", label: "Dashboard" },
     { href: "/upload", label: "New review" },
+    ...(associate?.analytics ? [{ href: "/analytics", label: "Analytics" }] : []),
     ...(associate?.is_admin ? [{ href: "/admin/standards", label: "Standards library" }] : []),
   ];
 }
@@ -76,7 +88,7 @@ export function NavLinkList({
   return (
     <nav className="flex flex-col gap-1 px-3">
       {links.map((link) => {
-        const active = pathname === link.href;
+        const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
         return (
           <Link
             key={link.href}

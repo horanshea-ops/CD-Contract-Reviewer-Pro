@@ -1369,11 +1369,38 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       - **Accuracy.** Statistics use only `verified` and `located` terms.
         Extraction accuracy is measured against a hand-checked set before any
         benchmark is shown.
-      - **Who sees what.** A property's past deal was made for another client.
-        CD decides whether associates see each other's contracts or only totals.
+      - **Who sees what.** Decided by the user 2026-09-27: the tab is a
+        firm-wide library.
+        - Every associate sees every contract's terms and can open its term
+          sheet.
+        - Only admins see which associate negotiated a contract, and an
+          associate always sees their own.
+        - Each associate sees their results against all other associates,
+          counted together.
+        - The original file carries names and signatures, so it stays with its
+          associate and admins unless `ANALYTICS_SHARE_ORIGINALS=on`.
+      - **Missing is not zero** (the user, 2026-09-27). A term a contract
+        doesn't state is missing, and every figure counts only the contracts
+        that state it. The tab tracks only terms a contract states outright.
       - **Other companies.** If other firms use the tool, each firm's data stays
         separate. Pooling data across firms is a separate question, both
         commercial and legal.
+
+      **Framework built on test data** (branch `feature/analytics-framework`,
+      2026-09-27, not merged or deployed):
+      - `/analytics`: filters in the URL, tiles, four charts, insights, you
+        against other associates, the contract library, and how often each
+        term is stated. Admins also get the Associate filter and tables by
+        associate, brand and client.
+      - `/analytics/properties/[id]`: a hotel's history, what it gives, its
+        brand's rate trend, and its latest terms against its market.
+      - Term sheet PDFs (`/api/analytics/term-sheets/[id]`) name no associate.
+      - It stays hidden unless `ANALYTICS=on`. Test data needs
+        `ANALYTICS_SOURCE=test` and never loads in a production build.
+      - The test data is one file, `lib/analytics/test-data.ts`. Delete it
+        and the "test" branch in `lib/analytics/source.ts` once real
+        contracts load. Nothing is written to the database.
+      - Later: the database source, public property details, and a map.
 
       **Order:**
       - Turn on term extraction and add the identity terms first. Every review
