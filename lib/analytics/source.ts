@@ -1,5 +1,7 @@
 import { createAdminClient } from "../supabase/admin";
+import { historicalRecords, type StoredTerm } from "./historical";
 import { testDataset } from "./test-data";
+import type { HistoricalContract } from "../historical/types";
 import type { ContractRecord } from "./types";
 
 /**
@@ -7,8 +9,8 @@ import type { ContractRecord } from "./types";
  *
  * - "test": generated records (lib/analytics/test-data.ts). Only with
  *   ANALYTICS_SOURCE=test. A production build also needs ANALYTICS_DEMO=on.
- * - "database": signed contracts from reviews. Not built yet, so it has no
- *   records and the tab says so.
+ * - "database": historical contracts an admin uploaded. Signed contracts
+ *   from reviews join them later.
  */
 
 export type SourceKind = "test" | "database";
@@ -39,5 +41,25 @@ export async function loadAnalyticsData(): Promise<AnalyticsData> {
     const { data } = await createAdminClient().from("associates").select("id, name").eq("status", "active").order("created_at");
     return { kind: "test", contracts: testDataset(data ?? []).contracts };
   }
-  return { kind: "database", contracts: [] };
+  const db = createAdminClient();
+  const [{ data: contracts }, { data: associates }] = await Promise.all([
+    db.from("historical_contracts").select("*"),
+    db.from("associates").select("id, name"),
+  ]);
+  const ids = (contracts ?? []).map((c) => c.id);
+  const { data: terms } = ids.length
+    ? await db
+        .from("contract_terms")
+        .select("historical_contract_id, term_key, status, term_value, verification")
+        .in("historical_contract_id", ids)
+    : { data: [] };
+
+  return {
+    kind: "database",
+    contracts: historicalRecords(
+      (contracts ?? []) as HistoricalContract[],
+      (terms ?? []) as StoredTerm[],
+      new Map((associates ?? []).map((a) => [a.id, a.name]))
+    ),
+  };
 }

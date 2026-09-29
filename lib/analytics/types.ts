@@ -21,7 +21,8 @@ export interface PropertyRecord {
   state: string;
   country: string;
   tier: MarketTier;
-  guestRooms: number;
+  /** Unknown for uploaded historical contracts. */
+  guestRooms?: number;
 }
 
 export interface AssociateRef {
@@ -37,7 +38,7 @@ export type ContractStatus = "signed" | "negotiating" | "lost";
 export interface ContractRecord {
   id: string;
   /** "test" records come from the generator. Production shows them only for a demonstration. */
-  source: "test" | "review";
+  source: "test" | "review" | "historical";
   property: PropertyRecord;
   client: { id: string; name: string };
   associate: AssociateRef;
@@ -55,6 +56,8 @@ export interface ContractRecord {
   final: TermSnapshot;
   /** The review this contract came from, when there is one. */
   analysisId: string | null;
+  /** The historical upload this contract came from, when there is one. */
+  historicalId?: string;
 }
 
 export interface AnalyticsFilters {

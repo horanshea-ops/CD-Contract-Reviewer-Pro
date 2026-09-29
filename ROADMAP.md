@@ -413,6 +413,13 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - Add a standard.
       - Remove a standard, with a confirmation.
       - Audit every change, as edits are audited today.
+      - **Built 2026-09-28** on `feature/standards-editing`, not merged.
+        - Removing retires a standard. The row stays for the reviews that
+          quoted it, and it can be restored.
+        - Changes reach reviews run afterwards only. Past findings keep their
+          severities.
+        - Drag and drop doesn't work on phones, so the Edit form's severity
+          menu covers them.
 - [ ] **3. Admin tab.** A new admin-only nav link. "Standards library" keeps its
       own link.
       - **Users:** see every associate, invite, change the admin flag,
@@ -420,6 +427,34 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - **Historical contracts:** an upload screen like New review's, feeding
         the Analytics tab.
       - Needs the Analytics database source and its migration.
+      - **Built 2026-09-28** on `feature/admin-tab`, not merged.
+        - Adding an associate puts their email on the sign-in allowlist. No
+          email is sent.
+        - An admin can't lock themselves out, and one active admin always
+          remains.
+        - **Historical uploads are bulk and need no typing** (user, 2026-09-28:
+          CD expects 500+).
+          - Drop any number of files. Each file's text is read locally at
+            upload, repeats are skipped, and AI-restricting contracts are held.
+          - "Read waiting contracts" sends them through Anthropic's Batch
+            service at half price, about 4¢ each or roughly $20 for 500.
+          - One read fills the hotel, brand, place, client, dates and associate,
+            plus the terms. A detail is kept only when its quoted words are in
+            the contract. Parent company and tier are marked guesses.
+          - The list is a review queue (Waiting, Being read, Needs a look,
+            Ready), and an admin can correct any detail.
+          - A scanned PDF with no text layer can't have its quotes checked, so
+            its details land in "Needs a look".
+        - Reading stays behind `HISTORICAL_EXTRACTION=on`, off until CD's
+          Anthropic org exists (CLAUDE.md deviation 7). The user chose this.
+        - The Analytics database source reads uploads that have a hotel, city,
+          signed date and tier. Only checked terms count. Uploads have no draft
+          history, so the charts about CD's asks leave them out.
+        - **To go live:**
+          1. Apply migrations `011_standards_retire_and_historical.sql` then
+             `012_historical_bulk_upload.sql` in the Supabase SQL editor.
+          2. Merge both branches.
+          The standards loader reads the new column, so the order matters.
 - [ ] **4. Re-uploads of the same contract — next priority after these.** CD
       runs several rounds of review on each contract, so a re-upload should
       avoid a full paid review wherever it can. The plan is the entry

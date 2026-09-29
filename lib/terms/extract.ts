@@ -37,9 +37,11 @@ export async function extractTerms({
   };
 }
 
-/** A `contract_terms` row. Mirrors supabase/migrations/006_contract_terms.sql. */
-export interface ContractTermRow {
-  analysis_id: string;
+/** What a term row belongs to: a review, or a historical contract an admin uploaded. */
+export type TermOwner = { analysis_id: string } | { historical_contract_id: string };
+
+/** A `contract_terms` row. Mirrors supabase/migrations/006 and 011. */
+export type ContractTermRow = TermOwner & {
   term_key: string;
   status: "stated" | "not_stated";
   term_value: unknown;
@@ -49,13 +51,18 @@ export interface ContractTermRow {
   verification: Verification | null;
   confidence: string | null;
   catalog_version: string;
-}
+};
 
 /** Every catalog key gets a row, so "this contract has no cutoff date" is a query, not an absence. */
-export function termRows(analysisId: string, terms: ExtractedTerms, catalog: TermCatalog = HOTEL_TERM_CATALOG): ContractTermRow[] {
+export function termRows(
+  owner: string | TermOwner,
+  terms: ExtractedTerms,
+  catalog: TermCatalog = HOTEL_TERM_CATALOG
+): ContractTermRow[] {
   const index = catalogIndex(catalog);
+  const ownedBy: TermOwner = typeof owner === "string" ? { analysis_id: owner } : owner;
   const stated: ContractTermRow[] = terms.stated.map((t) => ({
-    analysis_id: analysisId,
+    ...ownedBy,
     term_key: t.term_key,
     status: "stated",
     term_value: t.value,
@@ -69,7 +76,7 @@ export function termRows(analysisId: string, terms: ExtractedTerms, catalog: Ter
   const notStated: ContractTermRow[] = terms.not_stated.map((key) => {
     const def = index.get(key);
     return {
-      analysis_id: analysisId,
+      ...ownedBy,
       term_key: key,
       status: "not_stated",
       term_value: null,

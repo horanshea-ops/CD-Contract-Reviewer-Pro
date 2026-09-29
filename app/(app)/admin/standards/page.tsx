@@ -29,21 +29,25 @@ export default async function StandardsAdminPage() {
   // during this session resolves immediately, without a full page reload.
   associateNames[associate.id] = associate.name;
 
+  const inUse = rows.filter((r) => !r.retired_at);
   const counts = {
-    industry_default: rows.filter((r) => r.provenance === "industry_default").length,
-    extracted: rows.filter((r) => r.provenance === "extracted").length,
-    cd_validated: rows.filter((r) => r.provenance === "cd_validated").length,
+    industry_default: inUse.filter((r) => r.provenance === "industry_default").length,
+    extracted: inUse.filter((r) => r.provenance === "extracted").length,
+    cd_validated: inUse.filter((r) => r.provenance === "cd_validated").length,
   };
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
       <Title className="text-[var(--text-primary)] tracking-tight mb-1">Standards library</Title>
-      <Body as="p" className="text-[var(--text-secondary)] mb-4">
+      <Body as="p" className="text-[var(--text-secondary)] mb-1">
         {ORG.shortName}&apos;s negotiating playbook, admin-only. Associates see individual findings during a review
         but never this list, because it&apos;s the source those findings are measured against.
       </Body>
+      <Body as="p" className="text-[var(--text-secondary)] mb-4">
+        Changes apply to reviews run from now on. Past reviews keep the severities they were given.
+      </Body>
 
-      {counts.cd_validated < rows.length && (
+      {counts.cd_validated < inUse.length && (
         <Body
           as="p"
           className="rounded-md border border-[var(--severity-medium)]/30 bg-[var(--severity-medium-bg)] px-4 py-3 mb-6 text-[var(--severity-medium)]"

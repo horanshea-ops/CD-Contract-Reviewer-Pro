@@ -47,10 +47,17 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
       <div className="mb-6 mt-2">
         <Title className="tracking-tight text-[var(--text-primary)]">{property.name}</Title>
         <Body as="p" className="text-[var(--text-secondary)]">
-          {property.brand} · {property.parentCompany} · {TIER_LABELS[property.tier]} · {property.guestRooms.toLocaleString("en-US")} guest rooms
+          {[
+            property.brand,
+            property.parentCompany,
+            TIER_LABELS[property.tier],
+            property.guestRooms && `${property.guestRooms.toLocaleString("en-US")} guest rooms`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </Body>
         <Meta as="p" className="text-[var(--text-muted)]">
-          {property.address}, {[property.city, property.state, property.country].filter(Boolean).join(", ")}
+          {[property.address, property.city, property.state, property.country].filter(Boolean).join(", ")}
         </Meta>
       </div>
 
