@@ -109,10 +109,7 @@ export default function HistoricalContracts({
       <Card padding="lg">
         <Subtitle className="text-[var(--text-primary)] mb-1">Upload a past contract</Subtitle>
         <Body as="p" className="text-[var(--text-secondary)] mb-5">
-          Signed contracts from before the tool feed the Analytics tab.{" "}
-          {extractionOn
-            ? "The tool reads each contract's terms after upload, at about 8¢ a contract."
-            : "Reading their terms is switched off until CD's own Anthropic account is set up, so for now the tool stores each file with the details you enter."}
+          Signed contracts from before the tool feed the Analytics tab.
         </Body>
 
         <form key={formKey} onSubmit={upload} className="space-y-4">
