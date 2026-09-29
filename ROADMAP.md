@@ -399,7 +399,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - Next step: try effort `medium` or `low` on Harborview. That spends money,
         so it needs the user's yes. Until then, Render stays on
         `ANTHROPIC_MODEL=claude-sonnet-5`.
-- [ ] **1. Analytics live for a demonstration (2026-09-29).**
+- [x] **1. Analytics live for a demonstration (2026-09-29).** Deployed
+      2026-09-28 (679eae3), with the three switches set on Render.
       - Runs on test data behind three Render switches: `ANALYTICS=on`,
         `ANALYTICS_SOURCE=test` and `ANALYTICS_DEMO=on`. A production build
         needs the last one before it shows test data.
@@ -407,27 +408,28 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - Nobody uses the app for real until about March 2027.
       - After the demo, turn `ANALYTICS_DEMO` off to hide the tab until real
         data exists, or leave it on.
-- [ ] **2. Standards library editing** (`app/(app)/admin/standards`).
+- [x] **2. Standards library editing** (`app/(app)/admin/standards`).
       - Drag a standard between the High, Medium and Low buckets to change its
         severity.
       - Add a standard.
       - Remove a standard, with a confirmation.
       - Audit every change, as edits are audited today.
-      - **Built 2026-09-28** on `feature/standards-editing`, not merged.
+      - **Deployed 2026-09-28** (merge 37e9e1b).
         - Removing retires a standard. The row stays for the reviews that
           quoted it, and it can be restored.
         - Changes reach reviews run afterwards only. Past findings keep their
           severities.
         - Drag and drop doesn't work on phones, so the Edit form's severity
           menu covers them.
-- [ ] **3. Admin tab.** A new admin-only nav link. "Standards library" keeps its
+- [x] **3. Admin tab.** A new admin-only nav link. "Standards library" keeps its
       own link.
       - **Users:** see every associate, invite, change the admin flag,
         deactivate.
       - **Historical contracts:** an upload screen like New review's, feeding
         the Analytics tab.
       - Needs the Analytics database source and its migration.
-      - **Built 2026-09-28** on `feature/admin-tab`, not merged.
+      - **Deployed 2026-09-28** (merge 37e9e1b). The Admin link opens
+        Historical contracts first, with Users as the second tab.
         - Adding an associate puts their email on the sign-in allowlist. No
           email is sent.
         - An admin can't lock themselves out, and one active admin always
@@ -450,11 +452,9 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         - The Analytics database source reads uploads that have a hotel, city,
           signed date and tier. Only checked terms count. Uploads have no draft
           history, so the charts about CD's asks leave them out.
-        - **To go live:**
-          1. Apply migrations `011_standards_retire_and_historical.sql` then
-             `012_historical_bulk_upload.sql` in the Supabase SQL editor.
-          2. Merge both branches.
-          The standards loader reads the new column, so the order matters.
+        - Migrations 006, 011 and 012 were applied to live before the merge.
+          006 (`contract_terms`) had never been applied, which is why 011
+          failed on the first try.
 - [ ] **4. Re-uploads of the same contract — next priority after these.** CD
       runs several rounds of review on each contract, so a re-upload should
       avoid a full paid review wherever it can. The plan is the entry
@@ -1475,7 +1475,7 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         commercial and legal.
 
       **Framework built on test data** (branch `feature/analytics-framework`,
-      2026-09-27, not merged or deployed):
+      2026-09-27, deployed 2026-09-28 as 679eae3):
       - `/analytics`: filters in the URL, tiles, five charts (rate trend,
         attrition signed, what hotels give, average commission by brand,
         contracts signed by month), insights, and you against other associates.

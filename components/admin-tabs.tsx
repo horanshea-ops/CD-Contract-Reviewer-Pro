@@ -6,8 +6,8 @@ import { cn } from "@/lib/cn";
 import { Body, Title } from "@/components/ui/typography";
 
 const TABS = [
-  { href: "/admin/users", label: "Users" },
   { href: "/admin/contracts", label: "Historical contracts" },
+  { href: "/admin/users", label: "Users" },
 ];
 
 /** The Admin tab's heading and its two sections. The standards library has its own nav link. */

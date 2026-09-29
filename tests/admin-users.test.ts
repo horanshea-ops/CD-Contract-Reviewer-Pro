@@ -122,8 +122,8 @@ describe("the Admin nav link", () => {
 
   it("lights up one link per page", () => {
     expect(activeHref("/admin/standards", admin)).toBe("/admin/standards");
-    expect(activeHref("/admin/users", admin)).toBe("/admin/users");
-    expect(activeHref("/admin/contracts", admin)).toBe("/admin/users");
+    expect(activeHref("/admin/contracts", admin)).toBe("/admin/contracts");
+    expect(activeHref("/admin/users", admin)).toBe("/admin/contracts");
     expect(activeHref("/", admin)).toBe("/");
     expect(activeHref("/analyses/123", admin)).toBeNull();
   });

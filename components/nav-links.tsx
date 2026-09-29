@@ -39,7 +39,7 @@ const ICONS: Record<string, React.ReactNode> = {
       strokeLinejoin="round"
     />
   ),
-  "/admin/users": (
+  "/admin/contracts": (
     <>
       <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" fill="none" />
       <path d="M4 16.5c.8-2.9 3.1-4.5 6-4.5s5.2 1.6 6 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
@@ -80,7 +80,7 @@ export function navLinks(associate: NavAssociate | null): NavLink[] {
     ...(associate?.is_admin
       ? [
           { href: "/admin/standards", label: "Standards library" },
-          { href: "/admin/users", label: "Admin", match: "/admin" },
+          { href: "/admin/contracts", label: "Admin", match: "/admin" },
         ]
       : []),
   ];
