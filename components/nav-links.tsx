@@ -39,6 +39,12 @@ const ICONS: Record<string, React.ReactNode> = {
       strokeLinejoin="round"
     />
   ),
+  "/admin/users": (
+    <>
+      <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <path d="M4 16.5c.8-2.9 3.1-4.5 6-4.5s5.2 1.6 6 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+    </>
+  ),
   "/admin/standards": (
     <>
       <path
@@ -59,13 +65,36 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-export function navLinks(associate: NavAssociate | null) {
+interface NavLink {
+  href: string;
+  label: string;
+  /** The paths the link covers, when wider than its own href. */
+  match?: string;
+}
+
+export function navLinks(associate: NavAssociate | null): NavLink[] {
   return [
     { href: "/", label: "Dashboard" },
     { href: "/upload", label: "New review" },
     ...(associate?.analytics ? [{ href: "/analytics", label: "Analytics" }] : []),
-    ...(associate?.is_admin ? [{ href: "/admin/standards", label: "Standards library" }] : []),
+    ...(associate?.is_admin
+      ? [
+          { href: "/admin/standards", label: "Standards library" },
+          { href: "/admin/users", label: "Admin", match: "/admin" },
+        ]
+      : []),
   ];
+}
+
+/** The one link a path belongs to: the longest prefix wins, so /admin/standards isn't also Admin. */
+export function activeHref(pathname: string, links: NavLink[]): string | null {
+  let best: NavLink | null = null;
+  for (const link of links) {
+    const prefix = link.match ?? link.href;
+    const hit = prefix === "/" ? pathname === "/" : pathname === prefix || pathname.startsWith(`${prefix}/`);
+    if (hit && (!best || prefix.length > (best.match ?? best.href).length)) best = link;
+  }
+  return best?.href ?? null;
 }
 
 /**
@@ -84,11 +113,12 @@ export function NavLinkList({
 }) {
   const pathname = usePathname();
   const links = navLinks(associate);
+  const current = activeHref(pathname, links);
 
   return (
     <nav className="flex flex-col gap-1 px-3">
       {links.map((link) => {
-        const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+        const active = link.href === current;
         return (
           <Link
             key={link.href}
