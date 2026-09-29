@@ -17,19 +17,6 @@ export function show(s: Sampled<number>, format: (v: number) => string): string 
   return s.value === null ? "Too few" : format(s.value);
 }
 
-export function TestDataBanner() {
-  return (
-    <div role="note" className="mb-6 rounded-md border border-[var(--severity-medium)] bg-[var(--severity-medium-bg)] px-4 py-3">
-      <Body as="p" className="font-medium text-[var(--severity-medium)]">
-        Test data: not real contracts
-      </Body>
-      <Meta as="p" className="mt-0.5 text-[var(--text-secondary)]">
-        Every hotel, brand, client and figure here is invented to show how the tab will work. The cities are real.
-      </Meta>
-    </div>
-  );
-}
-
 export function StatTiles({ tiles }: { tiles: { label: string; value: string; note?: string }[] }) {
   return (
     <Card padding="none" className="mb-6 overflow-hidden">
