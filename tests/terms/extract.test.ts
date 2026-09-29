@@ -84,7 +84,7 @@ describe("a term extraction pass over eval-01", () => {
     const { terms, model_id } = await extractTerms({ document: { kind: "text", text }, parts });
     const status = Object.fromEntries(terms.stated.map((t) => [t.term_key, t.verification]));
 
-    expect(model_id).toBe("claude-sonnet-5");
+    expect(model_id).toBe("claude-sonnet-5-5");
     expect(status).toEqual({
       "attrition.threshold": "verified",
       "attrition.basis": "located",

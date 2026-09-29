@@ -99,7 +99,7 @@ const termsResponse = toolResponse("record_contract_terms", {
   terms: [{ term_key: "deal.group_rate_usd", value: 289, quoted_text: "a group rate of $289.00 per room", confidence: "high" }],
 });
 
-const toolCalled = () => create.mock.calls.map((c) => c[0].tool_choice.name);
+const toolCalled = () => create.mock.calls.map((c) => c[0].tools[0].name);
 const updatesTo = (table: string) => db.writes.filter((w) => w.table === table && w.op === "update").map((w) => w.payload as Record<string, unknown>);
 const termWrites = () => db.writes.filter((w) => w.table === "contract_terms");
 
@@ -115,8 +115,8 @@ beforeEach(() => {
   db.row = {};
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("TERM_EXTRACTION", "");
-  create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
-    params.tool_choice.name === "record_analysis" ? analysisResponse : termsResponse
+  create.mockImplementation(async (params: { tools: { name: string }[] }) =>
+    params.tools[0].name === "record_analysis" ? analysisResponse : termsResponse
   );
 });
 
@@ -150,8 +150,8 @@ describe("term extraction in processAnalysis", () => {
   });
 
   it("saves the model's notes on the document, and saves none when it wrote none", async () => {
-    create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
-      params.tool_choice.name === "record_analysis"
+    create.mockImplementation(async (params: { tools: { name: string }[] }) =>
+      params.tools[0].name === "record_analysis"
         ? toolResponse("record_analysis", {
             ...analysisInput,
             document_notes: [{ headline: "The meeting dates say 2010, and the room block says 2015.", detail: "" }],
@@ -207,8 +207,8 @@ describe("term extraction in processAnalysis", () => {
 
   it("never fails the review when extraction fails", async () => {
     vi.stubEnv("TERM_EXTRACTION", "on");
-    create.mockImplementation(async (params: { tool_choice: { name: string } }) => {
-      if (params.tool_choice.name === "record_contract_terms") throw new Error("Connection error.");
+    create.mockImplementation(async (params: { tools: { name: string }[] }) => {
+      if (params.tools[0].name === "record_contract_terms") throw new Error("Connection error.");
       return analysisResponse;
     });
     vi.spyOn(console, "error").mockImplementation(() => {});

@@ -49,6 +49,7 @@ const KEY_PATH = path.join("data", "eval", "synthetic-key-v1.json");
 const RATES: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5": { input: 1, output: 5 },
   "claude-sonnet-5": { input: 2, output: 10 },
+  "claude-sonnet-5-5": { input: 2, output: 10 },
   "claude-opus-5": { input: 5, output: 25 },
 };
 

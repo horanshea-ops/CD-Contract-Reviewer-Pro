@@ -26,14 +26,18 @@ const toolResponse = (input: unknown) => ({
   usage: { input_tokens: 0, output_tokens: 0 },
 });
 
-const MODEL = "claude-sonnet-5";
+/** Sonnet 5 is forced to its tool. Sonnet 5.5 can't be, so its requests differ. */
+const MODELS = [
+  { model: "claude-sonnet-5", suffix: "" },
+  { model: "claude-sonnet-5-5", suffix: "-sonnet-5-5" },
+];
 
 beforeEach(() => {
   create.mockReset();
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
 });
 
-describe("request goldens", () => {
+describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => {
   it("analysis", async () => {
     create.mockResolvedValue(toolResponse({ clause_review: [], findings: [], document_notes: "" }));
 
@@ -46,7 +50,7 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/analysis-request.json"
+      `./fixtures/prompt-golden/analysis-request${suffix}.json`
     );
   });
 
@@ -91,7 +95,7 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/client-email-request.json"
+      `./fixtures/prompt-golden/client-email-request${suffix}.json`
     );
   });
 
@@ -105,7 +109,7 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/property-email-request.json"
+      `./fixtures/prompt-golden/property-email-request${suffix}.json`
     );
   });
 
@@ -119,7 +123,7 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/term-extraction-request.json"
+      `./fixtures/prompt-golden/term-extraction-request${suffix}.json`
     );
   });
 });

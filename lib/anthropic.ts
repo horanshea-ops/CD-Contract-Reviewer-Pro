@@ -59,6 +59,79 @@ export interface AnalysisResult {
   thinking_chars?: number;
 }
 
+/**
+ * Models that accept a forced tool_choice. Their requests force the tool, as
+ * every request did before Sonnet 5.5.
+ *
+ * Every other model, Sonnet 5.5 onward, rejects a forced tool_choice. It gets
+ * tool_choice "auto", a strict tool whose input the API checks against the
+ * schema, and a line in the system prompt telling it to call the tool.
+ */
+const FORCED_TOOL_MODELS = new Set([
+  "claude-sonnet-5",
+  "claude-opus-5",
+  "claude-opus-4-8",
+  "claude-opus-4-7",
+  "claude-opus-4-6",
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5",
+  "claude-haiku-4-5-20251001",
+]);
+
+export function forcesTool(model: string): boolean {
+  return FORCED_TOOL_MODELS.has(model);
+}
+
+/** Strict mode needs additionalProperties: false on every object in the schema. */
+export function closedSchema<T>(schema: T): T {
+  if (Array.isArray(schema)) return schema.map(closedSchema) as T;
+  if (schema === null || typeof schema !== "object") return schema;
+  const node: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    node[key] = key === "enum" || key === "required" ? value : closedSchema(value);
+  }
+  const type = node.type;
+  if (type === "object" || (Array.isArray(type) && type.includes("object"))) node.additionalProperties = false;
+  return node as T;
+}
+
+/** The tools and tool_choice for one call, shaped for the model. */
+export function toolRequest(model: string, tool: Anthropic.Messages.Tool) {
+  if (forcesTool(model)) {
+    return { tools: [tool], tool_choice: { type: "tool" as const, name: tool.name } };
+  }
+  return {
+    tools: [{ ...tool, strict: true, input_schema: closedSchema(tool.input_schema) }],
+    tool_choice: { type: "auto" as const },
+  };
+}
+
+/**
+ * The system prompt, with the tool instruction a model needs when the tool isn't
+ * forced. A prompt in blocks gets it at the end of its first block, the rules,
+ * ahead of the cached library or catalog.
+ */
+export function withToolInstruction<T extends string | Anthropic.Messages.TextBlockParam[]>(
+  system: T,
+  model: string,
+  toolName: string
+): T {
+  if (forcesTool(model)) return system;
+  const line = `\n\nRecord your answer by calling the ${toolName} tool exactly once. Don't answer in text.`;
+  if (typeof system === "string") return `${system}${line}` as T;
+  const [first, ...rest] = system;
+  return [{ ...first, text: `${first.text}${line}` }, ...rest] as T;
+}
+
+/** The model declined the request. Retrying would decline the same way, so it isn't. */
+export class RefusalError extends Error {}
+
+function checkRefusal(response: Anthropic.Messages.Message, what: string) {
+  if (response.stop_reason === "refusal") {
+    throw new RefusalError(`The model declined to ${what}. It wasn't retried, because a retry would decline the same way.`);
+  }
+}
+
 const FINDINGS_TOOL_NAME = "record_analysis";
 
 /** One figure from the contract and the words that state it. */
@@ -370,7 +443,7 @@ export async function analyzeContract({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const userContent: Anthropic.Messages.ContentBlockParam[] =
     document.kind === "pdf"
@@ -393,15 +466,16 @@ export async function analyzeContract({
       // stops a long review well before this does.
       max_tokens: 64000,
 
-      system: buildSystemPrompt(standards, standardsVersion, org),
-      tools: [findingsToolSchema(org)],
-      tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
+      system: withToolInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, FINDINGS_TOOL_NAME),
+      ...toolRequest(modelId, findingsToolSchema(org)),
       messages: [{ role: "user", content: userContent }],
     },
     // An explicit timeout lifts the SDK's non-streaming cap on max_tokens.
     // The SDK's own retries don't know about the deadline, so they're off
     // whenever there is one. The retry below does the same job within it.
     timeout === undefined ? { timeout: 600_000 } : { timeout, maxRetries: 0 });
+
+    checkRefusal(response, "review this contract");
 
     if (response.stop_reason === "max_tokens") {
       throw new CutOffError(
@@ -465,7 +539,7 @@ export async function analyzeContract({
   try {
     return await attempt();
   } catch (err) {
-    if (err instanceof CutOffError) throw err;
+    if (err instanceof CutOffError || err instanceof RefusalError) throw err;
     const left = remaining();
     if (left !== undefined && left < MIN_RETRY_MS) {
       const reason = err instanceof Error ? err.message : String(err);
@@ -552,7 +626,7 @@ export async function generateClientEmail({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const findingsBlock = findings
     .map((f, i) => {
@@ -569,12 +643,15 @@ export async function generateClientEmail({
   async function attempt(): Promise<ClientEmailResult> {
     const response = await client.messages.create({
       model: modelId,
-      max_tokens: 4000,
-      system: buildClientEmailPrompt(org),
-      tools: [clientEmailToolSchema(org)],
-      tool_choice: { type: "tool", name: CLIENT_EMAIL_TOOL_NAME },
+
+      // A model that isn't forced to the tool thinks first, and thinking counts toward this limit.
+      max_tokens: forcesTool(modelId) ? 4000 : 16000,
+
+      system: withToolInstruction(buildClientEmailPrompt(org), modelId, CLIENT_EMAIL_TOOL_NAME),
+      ...toolRequest(modelId, clientEmailToolSchema(org)),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     });
+    checkRefusal(response, "draft this email");
 
     const toolUseBlock = response.content.find(
       (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
@@ -602,6 +679,7 @@ export async function generateClientEmail({
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof RefusalError) throw err;
     console.error("generateClientEmail: first attempt failed, retrying once —", err);
     return await attempt();
   }
@@ -709,19 +787,22 @@ export async function generatePropertyEmail({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const userText = buildPropertyEmailPayload(items, propertyLabel);
 
   async function attempt(): Promise<PropertyEmailResult> {
     const response = await client.messages.create({
       model: modelId,
-      max_tokens: 2000,
-      system: buildPropertyEmailPrompt(org),
-      tools: [PROPERTY_EMAIL_TOOL_SCHEMA],
-      tool_choice: { type: "tool", name: PROPERTY_EMAIL_TOOL_NAME },
+
+      // A model that isn't forced to the tool thinks first, and thinking counts toward this limit.
+      max_tokens: forcesTool(modelId) ? 2000 : 16000,
+
+      system: withToolInstruction(buildPropertyEmailPrompt(org), modelId, PROPERTY_EMAIL_TOOL_NAME),
+      ...toolRequest(modelId, PROPERTY_EMAIL_TOOL_SCHEMA),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     });
+    checkRefusal(response, "draft this email");
 
     const toolUseBlock = response.content.find(
       (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
@@ -747,6 +828,7 @@ export async function generatePropertyEmail({
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof RefusalError) throw err;
     console.error("generatePropertyEmail: first attempt failed, retrying once —", err);
     return await attempt();
   }
@@ -889,7 +971,7 @@ export async function extractContractTerms({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const userContent: Anthropic.Messages.ContentBlockParam[] =
     document.kind === "pdf"
@@ -900,11 +982,11 @@ export async function extractContractTerms({
     const response = await client.messages.create({
       model: modelId,
       max_tokens: 16000,
-      system: buildTermExtractionPrompt(catalog),
-      tools: [termsToolSchema(catalog)],
-      tool_choice: { type: "tool", name: TERMS_TOOL_NAME },
+      system: withToolInstruction(buildTermExtractionPrompt(catalog), modelId, TERMS_TOOL_NAME),
+      ...toolRequest(modelId, termsToolSchema(catalog)),
       messages: [{ role: "user", content: userContent }],
     });
+    checkRefusal(response, "read this contract's terms");
 
     const toolUseBlock = response.content.find(
       (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
@@ -933,6 +1015,7 @@ export async function extractContractTerms({
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof RefusalError) throw err;
     console.error("extractContractTerms: first attempt failed, retrying once —", err);
     return await attempt();
   }
