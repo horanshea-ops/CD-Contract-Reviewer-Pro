@@ -6,7 +6,7 @@ import type { ContractRecord } from "./types";
  * Where the Analytics tab's contracts come from.
  *
  * - "test": generated records (lib/analytics/test-data.ts). Only with
- *   ANALYTICS_SOURCE=test, and never in a production build.
+ *   ANALYTICS_SOURCE=test. A production build also needs ANALYTICS_DEMO=on.
  * - "database": signed contracts from reviews. Not built yet, so it has no
  *   records and the tab says so.
  */
@@ -27,8 +27,10 @@ export function sharesOriginals(): boolean {
   return process.env.ANALYTICS_SHARE_ORIGINALS === "on";
 }
 
+/** Test data in production only for a demonstration, with ANALYTICS_DEMO=on as well. */
 export function sourceKind(): SourceKind {
-  return process.env.ANALYTICS_SOURCE === "test" && process.env.NODE_ENV !== "production" ? "test" : "database";
+  const allowed = process.env.NODE_ENV !== "production" || process.env.ANALYTICS_DEMO === "on";
+  return process.env.ANALYTICS_SOURCE === "test" && allowed ? "test" : "database";
 }
 
 export async function loadAnalyticsData(): Promise<AnalyticsData> {

@@ -178,11 +178,15 @@ describe("switches", () => {
     expect(res.status).toBe(404);
   });
 
-  it("never serves test data in a production build", () => {
+  it("serves test data in a production build only with ANALYTICS_DEMO on", () => {
     vi.stubEnv("ANALYTICS_SOURCE", "test");
     vi.stubEnv("NODE_ENV", "development");
     expect(sourceKind()).toBe("test");
     vi.stubEnv("NODE_ENV", "production");
+    expect(sourceKind()).toBe("database");
+    vi.stubEnv("ANALYTICS_DEMO", "on");
+    expect(sourceKind()).toBe("test");
+    vi.stubEnv("ANALYTICS_SOURCE", "");
     expect(sourceKind()).toBe("database");
   });
 });

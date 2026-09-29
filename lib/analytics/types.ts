@@ -36,7 +36,7 @@ export type ContractStatus = "signed" | "negotiating" | "lost";
 
 export interface ContractRecord {
   id: string;
-  /** "test" records come from the generator and must never reach production. */
+  /** "test" records come from the generator. Production shows them only for a demonstration. */
   source: "test" | "review";
   property: PropertyRecord;
   client: { id: string; name: string };

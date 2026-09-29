@@ -384,6 +384,48 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+### Next up, in order (user, 2026-09-28)
+
+- [ ] **0. Sonnet 5.5 change-over — built, not live.** Branch
+      `migrate/sonnet-5-5` (not merged).
+      - Sonnet 5.5 costs the same per token as Sonnet 5.
+      - It rejects a forced tool_choice. Forced-capable models keep today's
+        request byte for byte. Sonnet 5.5 gets tool_choice auto, a strict tool
+        with every object closed, and a prompt line to call the tool.
+      - The schema check passed. Both strict schemas compile.
+      - **Blocker.** Harborview's review at the default effort (`high`) ran past
+        10 minutes and was stopped. The app gives the model 240s. Sonnet 5.5
+        always thinks, and a forced Sonnet 5 call doesn't.
+      - Next step: try effort `medium` or `low` on Harborview. That spends money,
+        so it needs the user's yes. Until then, Render stays on
+        `ANTHROPIC_MODEL=claude-sonnet-5`.
+- [ ] **1. Analytics live for a demonstration (2026-09-29).**
+      - Runs on test data behind three Render switches: `ANALYTICS=on`,
+        `ANALYTICS_SOURCE=test` and `ANALYTICS_DEMO=on`. A production build
+        needs the last one before it shows test data.
+      - The test-data banner shows on every page.
+      - Nobody uses the app for real until about March 2027.
+      - After the demo, turn `ANALYTICS_DEMO` off to hide the tab until real
+        data exists, or leave it on.
+- [ ] **2. Standards library editing** (`app/(app)/admin/standards`).
+      - Drag a standard between the High, Medium and Low buckets to change its
+        severity.
+      - Add a standard.
+      - Remove a standard, with a confirmation.
+      - Audit every change, as edits are audited today.
+- [ ] **3. Admin tab.** A new admin-only nav link. "Standards library" keeps its
+      own link.
+      - **Users:** see every associate, invite, change the admin flag,
+        deactivate.
+      - **Historical contracts:** an upload screen like New review's, feeding
+        the Analytics tab.
+      - Needs the Analytics database source and its migration.
+- [ ] **4. Re-uploads of the same contract — next priority after these.** CD
+      runs several rounds of review on each contract, so a re-upload should
+      avoid a full paid review wherever it can. The plan is the entry
+      "Re-reviewing the same contract without the model" below. Case 1 (same
+      file, no model call) comes first.
+
 ### Raised by the first eval run (2026-09-10)
 
 The §2.0.1 harness measured the pipeline for the first time: recall 100%,
@@ -1419,7 +1461,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         reason.
       - Term sheet PDFs (`/api/analytics/term-sheets/[id]`) name no associate.
       - It stays hidden unless `ANALYTICS=on`. Test data needs
-        `ANALYTICS_SOURCE=test` and never loads in a production build.
+        `ANALYTICS_SOURCE=test`, and a production build also needs
+        `ANALYTICS_DEMO=on`.
       - The test data is one file, `lib/analytics/test-data.ts`. Delete it
         and the "test" branch in `lib/analytics/source.ts` once real
         contracts load. Nothing is written to the database.
