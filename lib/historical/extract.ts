@@ -1,88 +1,182 @@
 import WordExtractor from "word-extractor";
-import type { AnalyzableDocument } from "../anthropic";
-import { scanForAiUseTerms } from "../ai-use-scan";
-import { logAudit } from "../audit";
+import {
+  collectHistoricalBatch,
+  historicalRequest,
+  sendHistoricalBatch,
+  type AnalyzableDocument,
+  type HistoricalBatchResult,
+} from "../anthropic";
+import { scanForAiUseTerms, type AiUseMatch } from "../ai-use-scan";
 import { extractDocx } from "../docx";
 import { contractText } from "../docx/contract-text";
 import { extractPdfLines } from "../extract-pdf-lines";
 import type { LocatablePart } from "../redline-engine/locate";
 import { createAdminClient } from "../supabase/admin";
-import { extractionRecord, extractTerms, termRows } from "../terms/extract";
-import { HISTORICAL_BUCKET, historicalExtractionEnabled, type HistoricalContract } from "./types";
+import { HOTEL_TERM_CATALOG } from "../terms/catalog";
+import { extractionRecord, termRows } from "../terms/extract";
+import { validateTerms } from "../terms/validate";
+import { checkDetails, type DetailValues } from "./details";
+import { BATCH_SIZE, HISTORICAL_BUCKET, type HistoricalContract, type StoredText } from "./types";
 
-/** What the model reads, and the text its quotes are checked against. */
-async function readContract(bytes: Uint8Array, format: HistoricalContract["source_format"]) {
+type Db = ReturnType<typeof createAdminClient>;
+
+/**
+ * Reads a contract's text locally, at no cost. The text is what the model
+ * reads for a Word file, and what every quote it gives is checked against.
+ */
+export async function readContractText(bytes: Uint8Array, format: HistoricalContract["source_format"]): Promise<StoredText> {
   if (format === "docx") {
     const extracted = await extractDocx(bytes);
-    const text = contractText(extracted);
-    return { document: { kind: "text", text, pictures: extracted.pictures } as AnalyzableDocument, parts: extracted.parts, text };
+    // Only the text of each part is kept. The parts also carry XML nodes, which can't be stored.
+    return { contract_text: contractText(extracted), contract_parts: extracted.parts.map(({ part, text }) => ({ part, text })) };
   }
   if (format === "doc") {
-    const doc = await new WordExtractor().extract(Buffer.from(bytes));
-    const text = doc.getBody();
-    return { document: { kind: "text", text } as AnalyzableDocument, parts: [{ part: "document", text }] as LocatablePart[], text };
+    const text = (await new WordExtractor().extract(Buffer.from(bytes))).getBody();
+    return { contract_text: text, contract_parts: [{ part: "document", text }] as LocatablePart[] };
   }
   const text = (await extractPdfLines(bytes.slice())).map((l) => l.text).join("\n");
-  const pdfBase64 = Buffer.from(bytes).toString("base64");
-  return { document: { kind: "pdf", pdfBase64 } as AnalyzableDocument, parts: [{ part: "document", text }] as LocatablePart[], text };
+  return { contract_text: text, contract_parts: [{ part: "document", text }] as LocatablePart[] };
+}
+
+/** Wording that restricts AI-assisted review. A match holds the contract back until an admin decides. */
+export function aiClauseMatches(text: StoredText): AiUseMatch[] {
+  return scanForAiUseTerms(text.contract_parts.map((p) => p.text).join("\n"));
 }
 
 /**
- * Reads a historical contract's terms with the model and stores them.
- *
- * Nothing runs while HISTORICAL_EXTRACTION is off. A contract that restricts
- * AI-assisted review waits for an admin's decision, as a review does, unless
- * that admin has already chosen to go ahead.
+ * Sends up to BATCH_SIZE waiting contracts to the Batch service. A PDF goes
+ * as the file itself, so the model sees its layout; a Word file goes as text.
  */
-export async function extractHistoricalTerms(id: string, actorId: string, { aiClauseAcknowledged = false } = {}) {
-  if (!historicalExtractionEnabled()) return;
-  const db = createAdminClient();
+export async function sendWaiting(db: Db, actorId: string): Promise<{ sent: number; remaining: number }> {
+  const { data: waiting } = await db
+    .from("historical_contracts")
+    .select("id, source_format, storage_path, contract_text")
+    .eq("extraction_status", "waiting")
+    .order("created_at", { ascending: true })
+    .limit(BATCH_SIZE);
+  const rows = (waiting ?? []) as Pick<HistoricalContract & StoredText, "id" | "source_format" | "storage_path" | "contract_text">[];
+  if (rows.length === 0) return { sent: 0, remaining: 0 };
 
-  const { data: row } = await db.from("historical_contracts").select("*").eq("id", id).maybeSingle();
-  if (!row) return;
-  const contract = row as HistoricalContract;
-
-  const fail = async (error: string, model_id?: string) => {
-    await db
-      .from("historical_contracts")
-      .update({ extraction_status: "failed", term_extraction: extractionRecord({ ok: false, error, model_id }) })
-      .eq("id", id);
-  };
-
-  try {
-    const { data: blob, error: downloadError } = await db.storage.from(HISTORICAL_BUCKET).download(contract.storage_path);
-    if (downloadError || !blob) return await fail(`Could not read the stored file: ${downloadError?.message ?? "missing"}`);
-
-    const { document, parts, text } = await readContract(new Uint8Array(await blob.arrayBuffer()), contract.source_format);
-
-    if (!aiClauseAcknowledged) {
-      const matches = scanForAiUseTerms(text);
-      if (matches.length > 0) {
-        await db
-          .from("historical_contracts")
-          .update({ extraction_status: "blocked_ai_clause", term_extraction: { status: "blocked_ai_clause", matches } })
-          .eq("id", id);
-        await logAudit({
-          actorId,
-          action: "ai_clause_scan_blocked",
-          entityType: "historical_contract",
-          entityId: id,
-          metadata: { matched_terms: matches.map((m) => m.term) },
-        });
-        return;
-      }
+  const requests = [];
+  for (const row of rows) {
+    let document: AnalyzableDocument;
+    if (row.source_format === "pdf") {
+      const { data: blob } = await db.storage.from(HISTORICAL_BUCKET).download(row.storage_path);
+      if (!blob) continue;
+      document = { kind: "pdf", pdfBase64: Buffer.from(await blob.arrayBuffer()).toString("base64") };
+    } else {
+      document = { kind: "text", text: row.contract_text };
     }
+    requests.push({ custom_id: row.id, params: historicalRequest({ document, catalog: HOTEL_TERM_CATALOG }) });
+  }
 
-    const outcome = await extractTerms({ document, parts });
-    await db.from("contract_terms").delete().eq("historical_contract_id", id);
-    const inserted = await db.from("contract_terms").insert(termRows({ historical_contract_id: id }, outcome.terms));
-    if (inserted.error) return await fail(`Terms were extracted but not saved: ${inserted.error.message}`, outcome.model_id);
+  const anthropicId = await sendHistoricalBatch(requests);
+  const { data: batch } = await db
+    .from("historical_batches")
+    .insert({ anthropic_batch_id: anthropicId, sent_by: actorId, contract_count: requests.length, status: "in_progress" })
+    .select("id")
+    .single();
+  const sentIds = requests.map((r) => r.custom_id);
+  await db.from("historical_contracts").update({ extraction_status: "reading", batch_id: batch?.id ?? null }).in("id", sentIds);
 
+  const { count } = await db
+    .from("historical_contracts")
+    .select("id", { count: "exact", head: true })
+    .eq("extraction_status", "waiting");
+  return { sent: requests.length, remaining: count ?? 0 };
+}
+
+/**
+ * Stores one contract's reading. Details are checked against the contract's
+ * words first, and only fill what an admin hasn't already filled in.
+ */
+export async function storeReading(
+  db: Db,
+  row: HistoricalContract & StoredText,
+  result: HistoricalBatchResult,
+  associates: { id: string; name: string }[]
+) {
+  if (!result.ok) {
     await db
       .from("historical_contracts")
-      .update({ extraction_status: "done", term_extraction: extractionRecord({ ok: true, ...outcome }) })
-      .eq("id", id);
-  } catch (err) {
-    await fail(err instanceof Error ? err.message : String(err));
+      .update({ extraction_status: "failed", term_extraction: extractionRecord({ ok: false, error: result.error }) })
+      .eq("id", row.id);
+    return;
   }
+
+  const { reading } = result;
+  const details = checkDetails(reading.details, row.contract_parts, associates);
+  const terms = validateTerms(reading.entries, HOTEL_TERM_CATALOG, row.contract_parts);
+
+  await db.from("contract_terms").delete().eq("historical_contract_id", row.id);
+  const inserted = await db.from("contract_terms").insert(termRows({ historical_contract_id: row.id }, terms));
+  if (inserted.error) {
+    await db
+      .from("historical_contracts")
+      .update({
+        extraction_status: "failed",
+        term_extraction: extractionRecord({ ok: false, error: `Terms were read but not saved: ${inserted.error.message}`, model_id: reading.model_id }),
+      })
+      .eq("id", row.id);
+    return;
+  }
+
+  const fill: Partial<DetailValues> = {};
+  const provenance: Record<string, string | undefined> = { ...(row.details_checked ?? {}) };
+  for (const [field, value] of Object.entries(details.values) as [keyof DetailValues, string | null][]) {
+    if (value === null || row[field] != null) continue;
+    Object.assign(fill, { [field]: value });
+    provenance[field] = details.checked[field]!;
+  }
+
+  await db
+    .from("historical_contracts")
+    .update({
+      ...fill,
+      details_checked: provenance,
+      extraction_status: "done",
+      term_extraction: {
+        ...extractionRecord({
+          ok: true,
+          terms,
+          model_id: reading.model_id,
+          tokens: { input: reading.input_tokens, output: reading.output_tokens },
+        }),
+        details_dropped: details.dropped,
+      },
+    })
+    .eq("id", row.id);
+}
+
+/** Stores the results of every batch that has ended. Batches still running are left alone. */
+export async function collectEnded(db: Db): Promise<{ collected: number; stillReading: number }> {
+  const { data: open } = await db.from("historical_batches").select("id, anthropic_batch_id").eq("status", "in_progress");
+  const { data: associates } = await db.from("associates").select("id, name");
+  let collected = 0;
+
+  for (const batch of open ?? []) {
+    const results = await collectHistoricalBatch(batch.anthropic_batch_id);
+    if (!results) continue;
+
+    const { data: rows } = await db.from("historical_contracts").select("*").eq("batch_id", batch.id).eq("extraction_status", "reading");
+    const byId = new Map(((rows ?? []) as (HistoricalContract & StoredText)[]).map((r) => [r.id, r]));
+    for (const result of results) {
+      const row = byId.get(result.custom_id);
+      if (!row) continue;
+      await storeReading(db, row, result, associates ?? []);
+      byId.delete(result.custom_id);
+      collected++;
+    }
+    // A contract the batch returned nothing for is marked failed, so it can be sent again.
+    for (const row of byId.values()) {
+      await storeReading(db, row, { custom_id: row.id, ok: false, error: "The batch returned no result for it." }, []);
+    }
+    await db.from("historical_batches").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", batch.id);
+  }
+
+  const { count } = await db
+    .from("historical_contracts")
+    .select("id", { count: "exact", head: true })
+    .eq("extraction_status", "reading");
+  return { collected, stillReading: count ?? 0 };
 }

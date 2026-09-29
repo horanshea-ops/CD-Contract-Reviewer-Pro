@@ -939,6 +939,186 @@ export async function extractContractTerms({
 }
 
 // ---------------------------------------------------------------------------
+// Historical contracts. One read per contract records its details (hotel,
+// client, dates) and its terms, so an admin uploading hundreds of past
+// contracts types nothing. Sent through the Batch service at half price.
+// Same module as analyzeContract per the single-outbound-call-site rule.
+// ---------------------------------------------------------------------------
+
+const HISTORICAL_TOOL_NAME = "record_historical_contract";
+
+/** A detail stated in the contract, with the words that state it. */
+const statedDetail = (description: string) => ({
+  type: ["object", "null"],
+  description: `${description} Null when the contract doesn't state it.`,
+  properties: {
+    value: { type: "string" },
+    quoted_text: { type: "string", description: "Words copied exactly from the contract that state this detail." },
+  },
+  required: ["value", "quoted_text"],
+});
+
+export const historicalToolSchema = (catalog: TermCatalog) => ({
+  name: HISTORICAL_TOOL_NAME,
+  description: "Record this signed contract's details and every catalog term it states, each with the wording that states it.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      details: {
+        type: "object",
+        properties: {
+          hotel_name: statedDetail("The hotel or venue's name as the contract gives it, such as \"Hilton Denver City Center\"."),
+          brand: statedDetail("The hotel's brand, such as \"Hilton\" or \"Westin\", as the contract states it."),
+          city: statedDetail("The city the hotel is in."),
+          state: statedDetail("The state or province, as a two-letter code where one exists, such as \"CO\"."),
+          country: statedDetail("The country the hotel is in."),
+          client_name: statedDetail("The group or organization holding the event: the party contracting with the hotel, not ConferenceDirect."),
+          signed_date: statedDetail("The date the contract was signed, as YYYY-MM-DD. Take the latest signature date if there are several."),
+          event_start: statedDetail("The event's first date, as YYYY-MM-DD."),
+          event_end: statedDetail("The event's last date, as YYYY-MM-DD."),
+          negotiated_by: statedDetail("The ConferenceDirect associate named in the contract, such as in a contact or signature block. Their name only."),
+          parent_company: {
+            type: ["string", "null"],
+            description: "The brand's parent company, such as \"Marriott International\", from what you know of the brand. Null if you don't know.",
+          },
+          market_tier: {
+            type: ["string", "null"],
+            enum: ["luxury", "upper_upscale", "upscale", "resort", "convention", null],
+            description: "The hotel's market tier, judged from its brand and the contract. Null if you can't tell.",
+          },
+        },
+        required: [
+          "hotel_name",
+          "brand",
+          "city",
+          "state",
+          "country",
+          "client_name",
+          "signed_date",
+          "event_start",
+          "event_end",
+          "negotiated_by",
+          "parent_company",
+          "market_tier",
+        ],
+      },
+      terms: termsToolSchema(catalog).input_schema.properties.terms,
+    },
+    required: ["details", "terms"],
+  },
+});
+
+/** The term extraction rules, with the details section ahead of them. */
+export function buildHistoricalPrompt(catalog: TermCatalog) {
+  const [rules, catalogBlock] = buildTermExtractionPrompt(catalog);
+  const details = `This contract is already signed. Before its terms, record its details in "details".
+
+Details:
+- Record each detail from the contract's own words, with quoted_text copied exactly, the shortest span that states it. If the contract doesn't state a detail, give null. Never guess one.
+- parent_company and market_tier are the exceptions. Give them from what you know of the brand, or null if you don't know. They carry no quote.
+- The client is the group holding the event, never ConferenceDirect, which is the group's agent.
+- Write dates as YYYY-MM-DD.
+
+Terms:
+`;
+  return [{ ...rules, text: `${details}${rules.text}` }, catalogBlock];
+}
+
+/** The request for one historical contract, the same whether it goes in a batch or on its own. */
+export function historicalRequest({
+  document,
+  catalog,
+  model,
+}: {
+  document: AnalyzableDocument;
+  catalog: TermCatalog;
+  model?: string;
+}): Anthropic.Messages.MessageCreateParamsNonStreaming {
+  return {
+    model: model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
+    max_tokens: 16000,
+    system: buildHistoricalPrompt(catalog),
+    tools: [historicalToolSchema(catalog)],
+    tool_choice: { type: "tool", name: HISTORICAL_TOOL_NAME },
+    messages: [
+      {
+        role: "user",
+        content:
+          document.kind === "pdf"
+            ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
+            : [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }],
+      },
+    ],
+  };
+}
+
+export interface HistoricalReading {
+  /** Unchecked. Pass through checkDetails before storing anything. */
+  details: Record<string, unknown>;
+  /** Unvalidated. Pass through validateTerms before storing anything. */
+  entries: unknown[];
+  model_id: string;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+/** The recorded answer in one response, or why there isn't one. */
+export function readHistoricalResponse(response: Anthropic.Messages.Message): HistoricalReading {
+  if (response.stop_reason === "refusal") throw new Error("The model declined to read this contract.");
+  if (response.stop_reason === "max_tokens") throw new Error("The reading ran past the output limit and was cut off.");
+  const block = response.content.find((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use");
+  if (!block) throw new Error("The model didn't record the contract (no tool_use block).");
+  const input = block.input as { details?: unknown; terms?: unknown };
+  if (!input.details || typeof input.details !== "object" || !Array.isArray(input.terms)) {
+    throw new Error("The model's record was missing its details or terms.");
+  }
+  return {
+    details: input.details as Record<string, unknown>,
+    entries: input.terms,
+    model_id: response.model,
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+  };
+}
+
+function batchClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
+  return new Anthropic({ apiKey });
+}
+
+/** Sends historical contracts to the Batch service, keyed by their ids. */
+export async function sendHistoricalBatch(requests: { custom_id: string; params: Anthropic.Messages.MessageCreateParamsNonStreaming }[]) {
+  const batch = await batchClient().messages.batches.create({ requests });
+  return batch.id;
+}
+
+export type HistoricalBatchResult =
+  | { custom_id: string; ok: true; reading: HistoricalReading }
+  | { custom_id: string; ok: false; error: string };
+
+/** A batch's results once it has ended, or null while it's still running. */
+export async function collectHistoricalBatch(batchId: string): Promise<HistoricalBatchResult[] | null> {
+  const client = batchClient();
+  const batch = await client.messages.batches.retrieve(batchId);
+  if (batch.processing_status !== "ended") return null;
+
+  const results: HistoricalBatchResult[] = [];
+  for await (const item of await client.messages.batches.results(batchId)) {
+    if (item.result.type !== "succeeded") {
+      results.push({ custom_id: item.custom_id, ok: false, error: `The batch request ${item.result.type}.` });
+      continue;
+    }
+    try {
+      results.push({ custom_id: item.custom_id, ok: true, reading: readHistoricalResponse(item.result.message) });
+    } catch (err) {
+      results.push({ custom_id: item.custom_id, ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // §2.0.1 — eval corpus drafting. Same module as analyzeContract per the
 // single-outbound-call-site rule at the top of this file.
 //

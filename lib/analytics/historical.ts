@@ -1,3 +1,4 @@
+import { needsALook } from "../historical/details";
 import type { HistoricalContract } from "../historical/types";
 import { termByKey, type TermValue } from "./terms";
 import type { ContractRecord, TermSnapshot } from "./types";
@@ -31,9 +32,11 @@ function valueFor(key: string, raw: unknown): TermValue | undefined {
 }
 
 /**
- * Historical uploads as Analytics records. A term the contract doesn't state,
- * or that failed its check, stays missing. Uploads have no draft history, so
- * the first draft and CD's asks are empty, and the charts about asks leave them out.
+ * Historical uploads as Analytics records. An upload counts once it has a
+ * hotel, city, signed date and tier; one naming no brand counts as independent.
+ * A term the contract doesn't state, or that failed its check, stays missing.
+ * Uploads have no draft history, so the first draft and CD's asks are empty,
+ * and the charts about asks leave them out.
  */
 export function historicalRecords(
   contracts: HistoricalContract[],
@@ -51,30 +54,35 @@ export function historicalRecords(
   }
 
   return contracts
+    .filter((c) => !needsALook(c))
     .map((c): ContractRecord => {
-      const eventStart = c.event_start ?? c.signed_at;
+      const hotel = c.hotel_name!;
+      const city = c.city!;
+      const client = c.client_name ?? "Client not recorded";
+      const brand = c.brand ?? "Independent";
+      const eventStart = c.event_start ?? c.signed_at!;
       return {
         id: c.id,
         source: "historical",
         property: {
-          id: `h-${slug(c.hotel_name)}-${slug(c.city)}`,
-          name: c.hotel_name,
-          brand: c.brand,
-          parentCompany: c.parent_company ?? c.brand,
+          id: `h-${slug(hotel)}-${slug(city)}`,
+          name: hotel,
+          brand,
+          parentCompany: c.parent_company ?? brand,
           address: "",
-          city: c.city,
-          state: c.state,
-          country: c.country,
-          tier: c.market_tier,
+          city,
+          state: c.state ?? "",
+          country: c.country ?? "",
+          tier: c.market_tier!,
         },
-        client: { id: `hc-${slug(c.client_name)}`, name: c.client_name },
+        client: { id: `hc-${slug(client)}`, name: client },
         associate: c.negotiated_by
           ? { id: c.negotiated_by, name: associateNames.get(c.negotiated_by) ?? "Former associate" }
           : { id: "not-recorded", name: "Not recorded" },
-        eventName: `${c.client_name} at ${c.hotel_name}`,
+        eventName: `${client} at ${hotel}`,
         eventStart,
         eventEnd: c.event_end ?? eventStart,
-        signedAt: c.signed_at,
+        signedAt: c.signed_at!,
         status: "signed",
         firstDraft: {},
         requested: {},

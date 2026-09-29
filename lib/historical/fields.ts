@@ -1,67 +1,38 @@
 import { TIER_LABELS, type MarketTier } from "../analytics/types";
+import type { DetailValues } from "./details";
 
-/** The details an admin enters for a historical contract, checked before anything is stored. */
-export interface HistoricalDetails {
-  hotel_name: string;
-  brand: string;
-  parent_company: string | null;
-  city: string;
-  state: string;
-  country: string;
-  market_tier: MarketTier;
-  client_name: string;
-  negotiated_by: string | null;
-  event_start: string | null;
-  event_end: string | null;
-  signed_at: string;
-}
+const TEXT_FIELDS = ["hotel_name", "brand", "parent_company", "city", "state", "country", "client_name", "negotiated_by"] as const;
+const DATE_FIELDS = ["signed_at", "event_start", "event_end"] as const;
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 
-function text(form: FormData, name: string): string {
-  const value = form.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
+/**
+ * An admin's corrections to a historical contract's details. Only the fields
+ * sent change, and an empty one clears the detail.
+ */
+export function parseDetailEdits(body: Record<string, unknown>): { edits: Partial<DetailValues> } | { error: string } {
+  const edits: Partial<DetailValues> = {};
 
-function date(form: FormData, name: string): string | null {
-  const value = text(form, name);
-  return ISO_DATE.test(value) && !Number.isNaN(Date.parse(value)) ? value : null;
-}
+  for (const field of TEXT_FIELDS) {
+    if (!(field in body)) continue;
+    const value = typeof body[field] === "string" ? (body[field] as string).trim() : "";
+    edits[field] = value || null;
+  }
+  for (const field of DATE_FIELDS) {
+    if (!(field in body)) continue;
+    const value = typeof body[field] === "string" ? (body[field] as string).trim() : "";
+    if (value && !isIsoDate(value)) return { error: "Enter dates as a full date." };
+    edits[field] = value || null;
+  }
+  if ("market_tier" in body) {
+    const tier = body.market_tier;
+    if (tier !== null && tier !== "" && !(typeof tier === "string" && tier in TIER_LABELS)) return { error: "Choose a market tier." };
+    edits.market_tier = (tier || null) as MarketTier | null;
+  }
 
-/** The details, or the first thing wrong with them in words an admin can act on. */
-export function parseHistoricalDetails(form: FormData): { details: HistoricalDetails } | { error: string } {
-  const required: [keyof HistoricalDetails, string][] = [
-    ["hotel_name", "Enter the hotel's name."],
-    ["brand", "Enter the brand."],
-    ["city", "Enter the city."],
-    ["client_name", "Enter the client."],
-  ];
-  for (const [field, error] of required) if (!text(form, field)) return { error };
-
-  const tier = text(form, "market_tier");
-  if (!(tier in TIER_LABELS)) return { error: "Choose a market tier." };
-
-  const signed_at = date(form, "signed_at");
-  if (!signed_at) return { error: "Enter the date the contract was signed." };
-
-  const event_start = date(form, "event_start");
-  const event_end = date(form, "event_end");
-  if (event_start && event_end && event_end < event_start) return { error: "The event can't end before it starts." };
-
-  return {
-    details: {
-      hotel_name: text(form, "hotel_name"),
-      brand: text(form, "brand"),
-      parent_company: text(form, "parent_company") || null,
-      city: text(form, "city"),
-      state: text(form, "state"),
-      country: text(form, "country") || "United States",
-      market_tier: tier as MarketTier,
-      client_name: text(form, "client_name"),
-      negotiated_by: text(form, "negotiated_by") || null,
-      event_start,
-      event_end,
-      signed_at,
-    },
-  };
+  const start = edits.event_start;
+  const end = edits.event_end;
+  if (start && end && end < start) return { error: "The event can't end before it starts." };
+  if (Object.keys(edits).length === 0) return { error: "Nothing to change." };
+  return { edits };
 }

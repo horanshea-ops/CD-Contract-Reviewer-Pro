@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { analyzeContract, extractContractTerms, generateClientEmail, generatePropertyEmail } from "@/lib/anthropic";
+import { analyzeContract, extractContractTerms, generateClientEmail, generatePropertyEmail, historicalRequest } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
@@ -121,5 +121,10 @@ describe("request goldens", () => {
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
       "./fixtures/prompt-golden/term-extraction-request.json"
     );
+  });
+
+  it("historical contract", async () => {
+    const request = historicalRequest({ document: { kind: "text", text: "CONTRACT BODY" }, catalog: HOTEL_TERM_CATALOG, model: MODEL });
+    await expect(JSON.stringify(request, null, 2)).toMatchFileSnapshot("./fixtures/prompt-golden/historical-contract-request.json");
   });
 });
