@@ -384,6 +384,48 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+### Next up, in order (user, 2026-09-28)
+
+- [ ] **0. Sonnet 5.5 change-over — built, not live.** Branch
+      `migrate/sonnet-5-5` (not merged).
+      - Sonnet 5.5 costs the same per token as Sonnet 5.
+      - It rejects a forced tool_choice. Forced-capable models keep today's
+        request byte for byte. Sonnet 5.5 gets tool_choice auto, a strict tool
+        with every object closed, and a prompt line to call the tool.
+      - The schema check passed. Both strict schemas compile.
+      - **Blocker.** Harborview's review at the default effort (`high`) ran past
+        10 minutes and was stopped. The app gives the model 240s. Sonnet 5.5
+        always thinks, and a forced Sonnet 5 call doesn't.
+      - Next step: try effort `medium` or `low` on Harborview. That spends money,
+        so it needs the user's yes. Until then, Render stays on
+        `ANTHROPIC_MODEL=claude-sonnet-5`.
+- [ ] **1. Analytics live for a demonstration (2026-09-29).**
+      - Runs on test data behind three Render switches: `ANALYTICS=on`,
+        `ANALYTICS_SOURCE=test` and `ANALYTICS_DEMO=on`. A production build
+        needs the last one before it shows test data.
+      - The test-data banner shows on every page.
+      - Nobody uses the app for real until about March 2027.
+      - After the demo, turn `ANALYTICS_DEMO` off to hide the tab until real
+        data exists, or leave it on.
+- [ ] **2. Standards library editing** (`app/(app)/admin/standards`).
+      - Drag a standard between the High, Medium and Low buckets to change its
+        severity.
+      - Add a standard.
+      - Remove a standard, with a confirmation.
+      - Audit every change, as edits are audited today.
+- [ ] **3. Admin tab.** A new admin-only nav link. "Standards library" keeps its
+      own link.
+      - **Users:** see every associate, invite, change the admin flag,
+        deactivate.
+      - **Historical contracts:** an upload screen like New review's, feeding
+        the Analytics tab.
+      - Needs the Analytics database source and its migration.
+- [ ] **4. Re-uploads of the same contract — next priority after these.** CD
+      runs several rounds of review on each contract, so a re-upload should
+      avoid a full paid review wherever it can. The plan is the entry
+      "Re-reviewing the same contract without the model" below. Case 1 (same
+      file, no model call) comes first.
+
 ### Raised by the first eval run (2026-09-10)
 
 The §2.0.1 harness measured the pipeline for the first time: recall 100%,
@@ -1118,9 +1160,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         page of Florida's memo.
       - Render wrote Florida's `analysis_upload`, `analysis_complete` and
         export audit rows.
-      - The property-email allowlist isn't checked live yet. Florida has no
-        saved draft, and making one is a model call. The allowlist is server
-        code with passing tests, deployed unchanged.
+      - The property-email allowlist was checked live on 2026-09-27. A draft
+        on Florida carried no figures, exposure, severity or rationale.
 - [ ] **7. A redacted real CD contract will be processed on the personal
       Anthropic account for this presentation, ahead of the build brief's own
       gate** (decided by the user, 2026-09-22). CD's Anthropic org still does
@@ -1251,8 +1292,20 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               admin route, hash `ea1456de`). The library hash changed, so the
               next eval run needs a fresh baseline.
 
-- [ ] **Prompt rules for Rome run 2's misses — on `main` 2026-09-26, measured
-      by the next live run** (the demo dry run). They cover:
+- [x] **Prompt rules for Rome run 2's misses — on `main` 2026-09-26, measured
+      by the demo dry run on 2026-09-27 and kept** (`cb3daee0`, about $0.38,
+      4m02s). Against `15e91734`:
+      - Rate parity, mandatory fees and brand change each got a finding.
+        All three had been lost to "meets".
+      - Findings went from 37 to 38 and nothing was dropped. Output tokens rose
+        from 24.7k to 26.8k.
+      - A new F&B exposure of $45,000, $100,000 × (80% − 35%). It is checked
+        against the cancellation schedule, whose last tier charges 80% of the
+        F&B minimum. Total exposure went from $125,696 to $170,696.
+      - A live property email draft on `15e91734` carried no dollar figures,
+        exposure, severity, standards or rationale.
+
+      Original entry: the prompt rules were measured by the next live run (the demo dry run). They cover:
       - a gratuity or service charge the contract doesn't charge is not applicable
       - meets needs a basis naming where the contract gives every required term
         (Rome's brand change and hotel cancellation; Florida's rate parity,
@@ -1308,6 +1361,121 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       "Reviews needing decisions". Replace "In progress", which is almost
       always 0, and "Completed this month", which now repeats the reviews-left
       count. The two replacements are still to be chosen.
+
+- [ ] **Analytics tab — future, large build** (raised by the user 2026-09-26).
+      Store the terms of every contract version, the final signed version above
+      all, and let CD and its associates query that history. A new negotiation
+      with a brand or property then starts from what CD got last time. The user
+      sees this as a main selling point, since it turns the tool from a
+      reviewer into a negotiation platform. It brings together MASTER_PLAN §2.7
+      (property history), §2.8 (benchmarks) and §2.9 (exposure rollup).
+
+      **Already built:**
+      - Term catalog `hotel-v1` (`lib/terms/catalog.ts`, §2.0.2). It has 117
+        terms: attrition, cancellation, cutoff, F&B, force majeure and more.
+        Each one is checked against the contract text.
+      - `contract_terms` table (migration `006`). It holds one row per term per
+        analysis, and a term the contract leaves out is stored as `not_stated`.
+        Extraction is switched off (`TERM_EXTRACTION`), so the table is empty.
+      - Negotiation rounds (migration `004`) and the round comparison (§2.1.1).
+      - `finding_outcomes` (migration `002`), which records whether the
+        property accepted, countered or rejected each change. It is empty until
+        §2.1.2 is built.
+      - `deal_figures` (dates, room block, rates, F&B minimum), extracted by
+        every review.
+
+      **New pieces:**
+      1. **Who the contract is with.** Add these terms: hotel name, brand,
+         parent company, address, city/market and country.
+         - A `properties` table, so that different spellings of one hotel
+           ("JW Marriott Orlando" and "JW Marriott Grande Lakes") match to one
+           record.
+         - An associate confirms each new match once.
+      2. **The final version.** Mark one version of a contract as signed. Its
+         terms become the record the analytics use. A draft shows what was
+         asked for. The signed copy shows what CD actually got.
+      3. **Historical import.** Bulk-upload past signed contracts.
+         - Extract terms only, with no review, since that's a much cheaper
+           model call.
+         - Price it before any import. At $0.10 a contract, 1,000 contracts
+           cost $100.
+         - Old signed copies are often scans. The app has no OCR, so a scan
+           gives no text today.
+         - "Training data" here means a reference database the app computes
+           statistics from. No model is trained or fine-tuned.
+      4. **The tab.** It has three views.
+         - A property or brand profile: past terms, what they conceded and
+           what they held.
+         - Benchmarks, such as "this attrition is worse than 78% of CD's
+           signed contracts in this market".
+         - Exposure across open contracts, per associate or per client.
+      5. **Insights in the review.** The review screen cites history beside a
+         finding, for example "This property signed at 75% attrition in 2025."
+
+      **Gates and open questions:**
+      - **Data.** Bulk-processing real contracts needs CD's own Anthropic org.
+        See CLAUDE.md deviation 7. That deviation covers one presentation, not
+        a historical import.
+      - **Sample size.** §2.8 says not to ship on 200 contracts. Every figure
+        shows how many contracts it rests on, and nothing is shown below a set
+        minimum.
+      - **Accuracy.** Statistics use only `verified` and `located` terms.
+        Extraction accuracy is measured against a hand-checked set before any
+        benchmark is shown.
+      - **Who sees what.** Decided by the user 2026-09-27: the tab is a
+        firm-wide library.
+        - Every associate sees every contract's terms and can open its term
+          sheet.
+        - Only admins see which associate negotiated a contract, and an
+          associate always sees their own.
+        - Each associate sees their results against all other associates,
+          counted together.
+        - The original file carries names and signatures, so it stays with its
+          associate and admins unless `ANALYTICS_SHARE_ORIGINALS=on`.
+      - **Missing is not zero** (the user, 2026-09-27). A term a contract
+        doesn't state is missing, and every figure counts only the contracts
+        that state it. The tab tracks only terms a contract states outright.
+      - **Other companies.** If other firms use the tool, each firm's data stays
+        separate. Pooling data across firms is a separate question, both
+        commercial and legal.
+
+      **Framework built on test data** (branch `feature/analytics-framework`,
+      2026-09-27, not merged or deployed):
+      - `/analytics`: filters in the URL, tiles, five charts (rate trend,
+        attrition signed, what hotels give, average commission by brand,
+        contracts signed by month), insights, and you against other associates.
+        Admins also get the Associate filter and tables by associate, brand
+        and client.
+      - `/analytics/properties/[id]`: a hotel's contract history, what it
+        gives, its brand's yearly rate trend, and its latest terms against its
+        market.
+      - Left out by the user's call (2026-09-27):
+        - open exposure, which only grows and measures nothing
+        - the firm-wide contract library, for now
+        - the card showing how often each term is stated
+        - negotiation rounds, which can't be measured reliably, and imported
+          contracts arrive as a single round
+        - days to sign, for the same reason: an imported contract has no
+          first-draft date
+      - Contracts are counted by the month they were signed, for the same
+        reason.
+      - Term sheet PDFs (`/api/analytics/term-sheets/[id]`) name no associate.
+      - It stays hidden unless `ANALYTICS=on`. Test data needs
+        `ANALYTICS_SOURCE=test`, and a production build also needs
+        `ANALYTICS_DEMO=on`.
+      - The test data is one file, `lib/analytics/test-data.ts`. Delete it
+        and the "test" branch in `lib/analytics/source.ts` once real
+        contracts load. Nothing is written to the database.
+      - Later: the database source, public property details, and a map.
+
+      **Order:**
+      - Turn on term extraction and add the identity terms first. Every review
+        from then on adds to the history, so the database grows before the tab
+        exists.
+      - Then build signed versions, then the import, then the tab.
+
+      **Size:** roughly 120–200 hours, including the §2.7–§2.9 estimates. This
+      is a first guess to firm up in planning.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft
