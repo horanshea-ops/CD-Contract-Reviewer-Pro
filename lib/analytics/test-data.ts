@@ -232,7 +232,7 @@ export function generateTestData(options: TestDataOptions = {}): TestDataset {
     const nights = int(3, 5);
     const years = (eventMs - start) / (365 * DAY);
 
-    const peak = Math.round((property.guestRooms * between(0.2, 0.7)) / 5) * 5;
+    const peak = Math.round((property.guestRooms! * between(0.2, 0.7)) / 5) * 5;
     const roomNights = Math.round(peak * nights * between(0.7, 0.9));
     const baseRate = city.rate * TIER_RATE[property.tier] * Math.pow(1 + city.growth, years) * between(0.9, 1.1);
     const draftRate = Math.round(baseRate);

@@ -11,7 +11,7 @@ export type Tables = Record<string, Row[]>;
 
 type Filter = (row: Row) => boolean;
 
-export function fakeDb(tables: Tables) {
+export function fakeDb(tables: Tables, files: Record<string, Uint8Array> = {}) {
   function from(name: string) {
     tables[name] ??= [];
     const rows = tables[name];
@@ -94,5 +94,22 @@ export function fakeDb(tables: Tables) {
     return builder;
   }
 
-  return { from };
+  const storage = {
+    from: () => ({
+      async upload(path: string, body: Uint8Array | Buffer) {
+        files[path] = new Uint8Array(body);
+        return { data: { path }, error: null };
+      },
+      async download(path: string) {
+        const bytes = files[path];
+        return bytes ? { data: new Blob([bytes as Uint8Array<ArrayBuffer>]), error: null } : { data: null, error: { message: "not found" } };
+      },
+      async remove(paths: string[]) {
+        for (const path of paths) delete files[path];
+        return { data: null, error: null };
+      },
+    }),
+  };
+
+  return { from, storage };
 }

@@ -177,6 +177,11 @@ export function ContractsTable({
                         Review
                       </Link>
                     )}
+                    {r.historicalId && scope.canOpenOriginal(r) && (
+                      <a href={`/api/historical/${r.historicalId}/file`} target="_blank" rel="noopener" className="text-[var(--cd-navy)] underline underline-offset-2">
+                        Original
+                      </a>
+                    )}
                   </td>
                 </tr>
               ))}
