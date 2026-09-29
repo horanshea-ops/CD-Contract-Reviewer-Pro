@@ -84,7 +84,8 @@ export async function loadStandardsLibrary(): Promise<LoadedStandards> {
       .from("standards")
       .select(
         "clause_type, segment, position, fallback_language, walk_away_condition, severity_default, version, provenance"
-      );
+      )
+      .is("retired_at", null);
 
     if (error) return bundled(`Could not read the standards table: ${error.message}`);
     if (!data || data.length === 0) {
