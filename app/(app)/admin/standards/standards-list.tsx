@@ -174,10 +174,6 @@ export default function StandardsList({
         </Button>
       </div>
 
-      <Meta as="p" className="text-[var(--text-muted)] mb-4 hidden sm:block">
-        Drag a standard into another group to change its severity.
-      </Meta>
-
       {groups.length === 0 ? (
         <Body as="p" className="text-[var(--text-secondary)] py-8 text-center">
           No standards match these filters.
@@ -270,6 +266,10 @@ export default function StandardsList({
           </Card>
         </details>
       )}
+
+      <Meta as="p" className="mt-8 text-[var(--text-muted)] hidden sm:block">
+        Drag a standard into another group to change its severity.
+      </Meta>
 
       <AddStandardDialog
         open={adding}

@@ -9,7 +9,7 @@ import { TIER_LABELS } from "@/lib/analytics/types";
 import { Card } from "@/components/ui/card";
 import { Body, Meta, Subtitle, Title } from "@/components/ui/typography";
 import { ConcessionChart, RateTrendChart } from "@/components/analytics/charts";
-import { ChartCard, ContractsTable, StatTiles, TestDataBanner, pct, show, usd } from "@/components/analytics/parts";
+import { ChartCard, ContractsTable, StatTiles, pct, show, usd } from "@/components/analytics/parts";
 
 export default async function PropertyPage({ params }: { params: Promise<{ id: string }> }) {
   if (!analyticsEnabled()) notFound();
@@ -61,7 +61,6 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
         </Meta>
       </div>
 
-      {data.kind === "test" && <TestDataBanner />}
 
       <StatTiles
         tiles={[

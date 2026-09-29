@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ORG } from "@/lib/org";
-import { Body, Title } from "@/components/ui/typography";
+import { Title } from "@/components/ui/typography";
 import StandardsList, { type StandardRow } from "./standards-list";
 
 export default async function StandardsAdminPage() {
@@ -31,11 +30,7 @@ export default async function StandardsAdminPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <Title className="text-[var(--text-primary)] tracking-tight mb-1">Standards library</Title>
-      <Body as="p" className="text-[var(--text-secondary)] mb-6">
-        {ORG.shortName}&apos;s negotiating playbook, admin-only. Associates see individual findings during a review
-        but never this list, because it&apos;s the source those findings are measured against.
-      </Body>
+      <Title className="text-[var(--text-primary)] tracking-tight mb-6">Standards library</Title>
 
       <StandardsList initialStandards={rows} associateNames={associateNames} />
     </div>

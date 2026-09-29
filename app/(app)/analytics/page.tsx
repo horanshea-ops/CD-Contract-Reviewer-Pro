@@ -15,7 +15,6 @@ import {
   InsightsCard,
   StandardsCard,
   StatTiles,
-  TestDataBanner,
   pct,
   show,
   usd,
@@ -36,12 +35,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6">
         <Title className="tracking-tight text-[var(--text-primary)]">Analytics</Title>
-        <Body as="p" className="text-[var(--text-secondary)]">
-          What CD has signed before, by brand, hotel and market.
-        </Body>
       </div>
-
-      {data.kind === "test" && <TestDataBanner />}
 
       {data.contracts.length === 0 ? (
         <Card>
