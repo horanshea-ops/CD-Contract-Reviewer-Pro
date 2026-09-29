@@ -413,6 +413,13 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - Add a standard.
       - Remove a standard, with a confirmation.
       - Audit every change, as edits are audited today.
+      - **Built 2026-09-28** on `feature/standards-editing`, not merged.
+        - Removing retires a standard. The row stays for the reviews that
+          quoted it, and it can be restored.
+        - Changes reach reviews run afterwards only. Past findings keep their
+          severities.
+        - Drag and drop doesn't work on phones, so the Edit form's severity
+          menu covers them.
 - [ ] **3. Admin tab.** A new admin-only nav link. "Standards library" keeps its
       own link.
       - **Users:** see every associate, invite, change the admin flag,
@@ -420,6 +427,23 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - **Historical contracts:** an upload screen like New review's, feeding
         the Analytics tab.
       - Needs the Analytics database source and its migration.
+      - **Built 2026-09-28** on `feature/admin-tab`, not merged.
+        - Adding an associate puts their email on the sign-in allowlist. No
+          email is sent.
+        - An admin can't lock themselves out, and one active admin always
+          remains.
+        - Historical uploads store the file and the details the admin enters.
+          The model reads their terms only with `HISTORICAL_EXTRACTION=on`,
+          which stays off until CD's Anthropic org exists (CLAUDE.md
+          deviation 7).
+        - The Analytics database source now reads these uploads. Only terms
+          checked against the contract count. Uploads have no draft history,
+          so the charts about CD's asks leave them out.
+        - **To go live:**
+          1. Apply `supabase/migrations/011_standards_retire_and_historical.sql`
+             in the Supabase SQL editor.
+          2. Merge both branches.
+          The standards loader reads the new column, so the order matters.
 - [ ] **4. Re-uploads of the same contract — next priority after these.** CD
       runs several rounds of review on each contract, so a re-upload should
       avoid a full paid review wherever it can. The plan is the entry
