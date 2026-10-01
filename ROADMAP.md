@@ -460,6 +460,17 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       avoid a full paid review wherever it can. The plan is the entry
       "Re-reviewing the same contract without the model" below. Case 1 (same
       file, no model call) comes first.
+- [ ] **5. Move the project out of iCloud-synced Documents — later** (user,
+      2026-09-30). The working copy sits in `~/Documents/GitHub/ContractReviewPro`,
+      and Documents syncs to iCloud Drive.
+      - iCloud has already made duplicate files with " 2" in their names. Five
+        match the real files, and two are older copies of
+        `tests/analytics.test.ts` and `tests/helpers/fake-db.ts`. None are
+        tracked. Delete them, with the user's yes.
+      - Syncing a git folder through iCloud can also damage `.git`.
+      - Move the folder to somewhere iCloud doesn't sync, such as
+        `~/Developer/ContractReviewPro`, then add it to GitHub Desktop with
+        File → Add Local Repository. It isn't added there yet.
 
 ### Raised by the first eval run (2026-09-10)
 
