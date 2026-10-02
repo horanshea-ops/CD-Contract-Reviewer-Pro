@@ -30,6 +30,14 @@ async function main() {
       : "NO — the database has diverged from lib/standards/v1.ts"
   );
 
+  // The hash leaves compromise ranges out, so they are compared on their own.
+  const bundledRanges = new Map(STANDARDS_LIBRARY.map((e) => [e.clause_type, e.compromise_range]));
+  const rangeDiffs = loaded.entries.filter((e) => (bundledRanges.get(e.clause_type) ?? "") !== e.compromise_range);
+  console.log(
+    "ranges match bundled:",
+    rangeDiffs.length === 0 ? "yes" : `NO — ${rangeDiffs.map((e) => e.clause_type).join(", ")}`
+  );
+
   const provenance = loaded.entries.reduce<Record<string, number>>((acc, e) => {
     acc[e.provenance] = (acc[e.provenance] ?? 0) + 1;
     return acc;

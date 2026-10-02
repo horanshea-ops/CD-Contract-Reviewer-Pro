@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
-import { clauseKey, isSeverity } from "@/lib/standards/keys";
+import { clauseKey, isCategory, isLibrarySeverity } from "@/lib/standards/keys";
 import { STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
@@ -21,11 +21,18 @@ export async function POST(request: Request) {
   const fallback_language = text(body.fallback_language);
   const walk_away_condition = text(body.walk_away_condition);
   const severity_default = body.severity_default;
+  const category = body.category ?? "business";
+  const compromise_range = text(body.compromise_range);
 
   if (!clause_type) return NextResponse.json({ error: "Give the clause a name." }, { status: 400 });
   if (!position) return NextResponse.json({ error: "Write the position." }, { status: 400 });
-  if (!fallback_language) return NextResponse.json({ error: "Write the fallback language." }, { status: 400 });
-  if (!isSeverity(severity_default)) return NextResponse.json({ error: "Choose a severity." }, { status: 400 });
+  if (!isCategory(category)) return NextResponse.json({ error: "Choose a category." }, { status: 400 });
+
+  // Only business standards propose wording, so only they need it.
+  if (category === "business" && !fallback_language) {
+    return NextResponse.json({ error: "Write the fallback language." }, { status: 400 });
+  }
+  if (!isLibrarySeverity(severity_default)) return NextResponse.json({ error: "Choose a severity." }, { status: 400 });
 
   const db = createAdminClient();
 
@@ -54,10 +61,12 @@ export async function POST(request: Request) {
     .insert({
       clause_type,
       segment: "default",
+      category,
       position,
       fallback_language,
       walk_away_condition,
       severity_default,
+      compromise_range: category === "business" ? compromise_range : "",
       version: sample?.version ?? STANDARDS_LIBRARY_VERSION,
       provenance: "cd_validated",
       validated_by: associate.id,
@@ -75,7 +84,7 @@ export async function POST(request: Request) {
     action: "standard_added",
     entityType: "standard",
     entityId: data.id,
-    metadata: { clause_type, severity_default },
+    metadata: { clause_type, category, severity_default },
   });
 
   return NextResponse.json(data, { status: 201 });

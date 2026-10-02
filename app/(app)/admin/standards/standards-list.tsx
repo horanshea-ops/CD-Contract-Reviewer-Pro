@@ -9,19 +9,23 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { Body, Meta } from "@/components/ui/typography";
 import { SEVERITY_STYLE } from "@/components/severity-style";
+import { CATEGORY_KEYS, CATEGORY_STYLE } from "@/components/category-style";
 import { SeverityToggles } from "@/components/severity-toggles";
 import { clauseLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
+import type { Category, LibrarySeverity } from "@/lib/standards/types";
 
 export interface StandardRow {
   id: string;
   clause_type: string;
   segment: string;
+  category: Category;
   position: string;
   fallback_language: string;
   walk_away_condition: string;
-  severity_default: "high" | "medium" | "low" | "note";
+  severity_default: LibrarySeverity;
+  compromise_range: string;
   version: string;
   provenance: "industry_default" | "extracted" | "cd_validated";
   validated_by: string | null;
@@ -38,14 +42,23 @@ const PROVENANCE_STYLE: Record<StandardRow["provenance"], { label: string; class
   cd_validated: { label: `${ORG.shortName} validated`, className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
 };
 
-const SEVERITY_OPTIONS = ["high", "medium", "low", "note"] as const;
+const SEVERITY_OPTIONS = ["high", "medium", "low"] as const;
 type Severity = StandardRow["severity_default"];
 
-/** Plain names for the toast and the severity menus. */
-const SEVERITY_NAME: Record<Severity, string> = { high: "High", medium: "Medium", low: "Low", note: "Other" };
+/** Plain names for the severity menus. */
+const SEVERITY_NAME: Record<Severity, string> = { high: "High", medium: "Medium", low: "Low" };
+
+/** What the tool does with each category's findings, shown under its heading. */
+const CATEGORY_HINT: Record<Category, string> = {
+  business: "Proposes CD's wording in the redline.",
+  legal: "Explains the risk to the associate. Never proposes wording.",
+  other: "Notes the point without wording.",
+};
 
 /** Section labels share the finding card's style: small, semibold, uppercase. */
 const LABEL_CLASSES = "font-semibold uppercase tracking-wide";
+
+const COMPROMISE_HINT = "Where CD could settle if the property pushes back. Only the associate sees it, on the review card.";
 const PROVENANCE_OPTIONS = ["industry_default", "extracted", "cd_validated"] as const;
 
 export default function StandardsList({
@@ -59,7 +72,7 @@ export default function StandardsList({
   const [hidden, setHidden] = useState<Set<Severity>>(new Set());
   const [query, setQuery] = useState("");
   const [dragging, setDragging] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<Severity | null>(null);
+  const [dropTarget, setDropTarget] = useState<Category | null>(null);
   const [adding, setAdding] = useState(false);
   const { showToast } = useToast();
 
@@ -80,14 +93,14 @@ export default function StandardsList({
   }
 
   /** Shows the move at once, and puts it back if the save fails. */
-  async function moveTo(id: string, severity: Severity) {
+  async function moveTo(id: string, category: Category) {
     const before = standards.find((s) => s.id === id);
-    if (!before || before.severity_default === severity) return;
-    handleUpdated({ ...before, severity_default: severity });
+    if (!before || before.category === category) return;
+    handleUpdated({ ...before, category });
     const res = await fetch(`/api/admin/standards/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ severity_default: severity }),
+      body: JSON.stringify({ category }),
     }).catch(() => null);
     const body = await res?.json().catch(() => null);
     if (!res?.ok) {
@@ -96,7 +109,7 @@ export default function StandardsList({
       return;
     }
     handleUpdated(body);
-    showToast(`${clauseLabel(before.clause_type)} moved to ${SEVERITY_NAME[severity]}.`);
+    showToast(`${clauseLabel(before.clause_type)} moved to ${CATEGORY_STYLE[category].name}.`);
   }
 
   async function restore(row: StandardRow) {
@@ -111,7 +124,7 @@ export default function StandardsList({
   }
 
   const counts = useMemo(() => {
-    const tally: Record<Severity, number> = { high: 0, medium: 0, low: 0, note: 0 };
+    const tally: Record<Severity, number> = { high: 0, medium: 0, low: 0 };
     for (const s of active) tally[s.severity_default]++;
     return tally;
   }, [active]);
@@ -125,17 +138,19 @@ export default function StandardsList({
         !hidden.has(s.severity_default) &&
         (!q || clauseLabel(s.clause_type).toLowerCase().includes(q) || s.position.toLowerCase().includes(q))
     );
-    // Unfiltered, every bucket shows, empty ones too, so there is somewhere to drop.
-    return SEVERITY_OPTIONS.map((severity) => ({
-      severity,
-      rows: shown.filter((s) => s.severity_default === severity),
+    // Unfiltered, every group shows, empty ones too, so there is somewhere to drop.
+    return CATEGORY_KEYS.map((category) => ({
+      category,
+      rows: shown
+        .filter((s) => s.category === category)
+        .sort((a, b) => SEVERITY_OPTIONS.indexOf(a.severity_default) - SEVERITY_OPTIONS.indexOf(b.severity_default)),
     })).filter((group) => (filtersActive ? group.rows.length > 0 : true));
   }, [active, hidden, query, filtersActive]);
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        <SeverityToggles counts={counts} hidden={hidden} onToggle={toggleSeverity} />
+        <SeverityToggles keys={[...SEVERITY_OPTIONS]} counts={counts} hidden={hidden} onToggle={toggleSeverity} />
         {filtersActive && (
           <button
             type="button"
@@ -180,18 +195,18 @@ export default function StandardsList({
         </Body>
       ) : (
         <div className="space-y-6">
-          {groups.map(({ severity, rows }) => {
-            const draggedFrom = dragging ? active.find((s) => s.id === dragging)?.severity_default : null;
-            const canDrop = !!dragging && draggedFrom !== severity;
+          {groups.map(({ category, rows }) => {
+            const draggedFrom = dragging ? active.find((s) => s.id === dragging)?.category : null;
+            const canDrop = !!dragging && draggedFrom !== category;
             return (
               <section
-                key={severity}
-                aria-label={`${SEVERITY_NAME[severity]} standards`}
+                key={category}
+                aria-label={`${CATEGORY_STYLE[category].name} standards`}
                 onDragOver={(e) => {
                   if (!canDrop) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
-                  if (dropTarget !== severity) setDropTarget(severity);
+                  if (dropTarget !== category) setDropTarget(category);
                 }}
                 onDragLeave={(e) => {
                   if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTarget(null);
@@ -201,23 +216,28 @@ export default function StandardsList({
                   const id = e.dataTransfer.getData("text/plain") || dragging;
                   setDropTarget(null);
                   setDragging(null);
-                  if (id) void moveTo(id, severity);
+                  if (id) void moveTo(id, category);
                 }}
               >
-                <Meta as="h2" className={cn(LABEL_CLASSES, "mb-2")} style={{ color: SEVERITY_STYLE[severity].textColor }}>
-                  {SEVERITY_STYLE[severity].label} · {rows.length}
-                </Meta>
+                <div className="mb-2 flex flex-wrap items-baseline gap-x-3">
+                  <Meta as="h2" className={LABEL_CLASSES} style={{ color: CATEGORY_STYLE[category].textColor }}>
+                    {CATEGORY_STYLE[category].label} · {rows.length}
+                  </Meta>
+                  <Meta as="p" className="text-[var(--text-muted)]">
+                    {CATEGORY_HINT[category]}
+                  </Meta>
+                </div>
                 <Card
                   padding="none"
                   className={cn(
                     "overflow-hidden divide-y divide-[var(--border)] transition-shadow",
                     canDrop && "ring-1 ring-[var(--border-strong)]",
-                    dropTarget === severity && canDrop && "ring-2 ring-[var(--cd-blue)] bg-[var(--cd-blue-pale)]"
+                    dropTarget === category && canDrop && "ring-2 ring-[var(--cd-blue)] bg-[var(--cd-blue-pale)]"
                   )}
                 >
                   {rows.length === 0 ? (
                     <Body as="p" className="px-5 py-4 text-[var(--text-muted)]">
-                      No standards here. Drag one in to make it {SEVERITY_NAME[severity].toLowerCase()} severity.
+                      No standards here. Drag one in to make it {CATEGORY_STYLE[category].name.toLowerCase()}.
                     </Body>
                   ) : (
                     rows.map((s) => (
@@ -268,7 +288,7 @@ export default function StandardsList({
       )}
 
       <Meta as="p" className="mt-8 text-[var(--text-muted)] hidden sm:block">
-        Drag a standard into another group to change its severity.
+        Drag a standard into another group to change its category.
       </Meta>
 
       <AddStandardDialog
@@ -293,7 +313,15 @@ function AddStandardDialog({
   onClose: () => void;
   onAdded: (row: StandardRow) => void;
 }) {
-  const empty = { name: "", position: "", fallback_language: "", walk_away_condition: "", severity_default: "medium" as Severity };
+  const empty = {
+    name: "",
+    category: "business" as Category,
+    position: "",
+    fallback_language: "",
+    walk_away_condition: "",
+    compromise_range: "",
+    severity_default: "medium" as Severity,
+  };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -351,6 +379,32 @@ function AddStandardDialog({
         <Field label="Clause name" hint="For example, Late checkout. Reviews show it under this name.">
           <FieldInput value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
         </Field>
+        <div className="flex gap-4">
+          <Field label="Category" hint={CATEGORY_HINT[form.category]}>
+            <FieldSelect
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as Category }))}
+            >
+              {CATEGORY_KEYS.map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_STYLE[c].name}
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
+          <Field label="Severity">
+            <FieldSelect
+              value={form.severity_default}
+              onChange={(e) => setForm((f) => ({ ...f, severity_default: e.target.value as Severity }))}
+            >
+              {SEVERITY_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {SEVERITY_NAME[s]}
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
+        </div>
         <Field label="Position">
           <FieldTextarea
             value={form.position}
@@ -358,13 +412,25 @@ function AddStandardDialog({
             rows={3}
           />
         </Field>
-        <Field label="Fallback language" hint="The contract wording to propose when a contract falls short.">
-          <FieldTextarea
-            value={form.fallback_language}
-            onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
-            rows={4}
-          />
-        </Field>
+        {form.category === "business" && (
+          <>
+            <Field label="Fallback language" hint="The contract wording to propose when a contract falls short.">
+              <FieldTextarea
+                value={form.fallback_language}
+                onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
+                rows={4}
+              />
+            </Field>
+            <Field label="Compromise range" hint={COMPROMISE_HINT}>
+              <FieldTextarea
+                value={form.compromise_range}
+                onChange={(e) => setForm((f) => ({ ...f, compromise_range: e.target.value }))}
+                rows={2}
+                placeholder="Leave blank if none"
+              />
+            </Field>
+          </>
+        )}
         <Field label="Walk-away condition">
           <FieldTextarea
             value={form.walk_away_condition}
@@ -372,18 +438,6 @@ function AddStandardDialog({
             rows={2}
             placeholder="Leave blank if none"
           />
-        </Field>
-        <Field label="Severity">
-          <FieldSelect
-            value={form.severity_default}
-            onChange={(e) => setForm((f) => ({ ...f, severity_default: e.target.value as Severity }))}
-          >
-            {SEVERITY_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {SEVERITY_NAME[s]}
-              </option>
-            ))}
-          </FieldSelect>
         </Field>
         {error && (
           <Meta as="p" role="alert" className="text-[var(--severity-high)]">
@@ -417,15 +471,11 @@ function StandardItem({
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
   const { showToast } = useToast();
-  const [form, setForm] = useState({
-    position: standard.position,
-    fallback_language: standard.fallback_language,
-    walk_away_condition: standard.walk_away_condition,
-    severity_default: standard.severity_default,
-    provenance: standard.provenance,
-  });
+  const [form, setForm] = useState(formOf(standard));
 
   const provenanceStyle = PROVENANCE_STYLE[standard.provenance];
+  const severityStyle = SEVERITY_STYLE[standard.severity_default];
+  const isBusiness = standard.category === "business";
 
   async function save() {
     setSaving(true);
@@ -468,13 +518,7 @@ function StandardItem({
   }
 
   function cancel() {
-    setForm({
-      position: standard.position,
-      fallback_language: standard.fallback_language,
-      walk_away_condition: standard.walk_away_condition,
-      severity_default: standard.severity_default,
-      provenance: standard.provenance,
-    });
+    setForm(formOf(standard));
     setEditing(false);
     setError("");
   }
@@ -527,6 +571,9 @@ function StandardItem({
             </Body>
           )}
         </div>
+        <Meta as="span" className={cn(LABEL_CLASSES, "mt-0.5 shrink-0")} style={{ color: severityStyle.textColor }}>
+          {severityStyle.label}
+        </Meta>
         <StatusPill label={provenanceStyle.label} className={`shrink-0 ${provenanceStyle.className}`} />
       </button>
 
@@ -535,7 +582,14 @@ function StandardItem({
           {!editing ? (
             <div className="space-y-3">
               <Section label="Position">{standard.position}</Section>
-              <Section label="Fallback language">{standard.fallback_language}</Section>
+              {isBusiness && (
+                <>
+                  <Section label="Fallback language">{standard.fallback_language}</Section>
+                  <Section label="Compromise range">
+                    {standard.compromise_range || <span className="text-[var(--text-muted)]">None set</span>}
+                  </Section>
+                </>
+              )}
               <Section label="Walk-away">
                 {standard.walk_away_condition || <span className="text-[var(--text-muted)]">None set</span>}
               </Section>
@@ -560,13 +614,25 @@ function StandardItem({
                   rows={3}
                 />
               </Field>
-              <Field label="Fallback language">
-                <FieldTextarea
-                  value={form.fallback_language}
-                  onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
-                  rows={4}
-                />
-              </Field>
+              {form.category === "business" && (
+                <>
+                  <Field label="Fallback language">
+                    <FieldTextarea
+                      value={form.fallback_language}
+                      onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
+                      rows={4}
+                    />
+                  </Field>
+                  <Field label="Compromise range" hint={COMPROMISE_HINT}>
+                    <FieldTextarea
+                      value={form.compromise_range}
+                      onChange={(e) => setForm((f) => ({ ...f, compromise_range: e.target.value }))}
+                      rows={2}
+                      placeholder="Leave blank if none"
+                    />
+                  </Field>
+                </>
+              )}
               <Field label="Walk-away condition">
                 <FieldTextarea
                   value={form.walk_away_condition}
@@ -575,7 +641,19 @@ function StandardItem({
                   placeholder="Leave blank if none"
                 />
               </Field>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
+                <Field label="Category">
+                  <FieldSelect
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as Category }))}
+                  >
+                    {CATEGORY_KEYS.map((c) => (
+                      <option key={c} value={c}>
+                        {CATEGORY_STYLE[c].name}
+                      </option>
+                    ))}
+                  </FieldSelect>
+                </Field>
                 <Field label="Severity default">
                   <FieldSelect
                     value={form.severity_default}
@@ -644,6 +722,18 @@ function StandardItem({
       </DialogShell>
     </div>
   );
+}
+
+function formOf(s: StandardRow) {
+  return {
+    category: s.category,
+    position: s.position,
+    fallback_language: s.fallback_language,
+    walk_away_condition: s.walk_away_condition,
+    severity_default: s.severity_default,
+    compromise_range: s.compromise_range,
+    provenance: s.provenance,
+  };
 }
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {

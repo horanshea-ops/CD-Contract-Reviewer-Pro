@@ -6,6 +6,7 @@ import { ORG, type OrgProfile } from "./org";
 import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap } from "./analysis-review";
 import { toNotes, type DocumentNote } from "./document-notes";
 import { toOtherFindings } from "./other-findings";
+import { applyCategories, toFlaggedFindings, type CategorizedFinding } from "./finding-categories";
 import { checkFigures, type DealFigures } from "./exposures/figures";
 import { withComputedExposures } from "./exposures/compute";
 import { currencyOf } from "./exposure";
@@ -59,6 +60,11 @@ export interface AnalysisResult {
   thinking_chars?: number;
 }
 
+/** A fresh review, with each finding's category stamped from the library. Saved eval runs predate categories. */
+export interface CategorizedAnalysis extends AnalysisResult {
+  findings: CategorizedFinding[];
+}
+
 const FINDINGS_TOOL_NAME = "record_analysis";
 
 /** One figure from the contract and the words that state it. */
@@ -96,7 +102,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
       },
       findings: {
         type: "array",
-        description: `Deviations only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — its meets verdict in clause_review says so.`,
+        description: `Deviations on business clause types only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — its meets verdict in clause_review says so.`,
         items: {
           type: "object",
           properties: {
@@ -133,6 +139,36 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             "proposed_language",
             "model_confidence",
           ],
+        },
+      },
+      flagged_findings: {
+        type: "array",
+        description: `Deviations on legal and other clause types. These carry no contract wording: ${firm} gives no legal advice, and the reviewer decides how to raise them.`,
+        items: {
+          type: "object",
+          properties: {
+            clause_type: { type: "string" },
+            is_missing_clause: { type: "boolean" },
+            severity: { type: "string", enum: ["high", "medium", "low"] },
+            location_section: { type: ["string", "null"] },
+            quoted_text: {
+              type: ["string", "null"],
+              description:
+                "One unbroken span copied exactly from a single paragraph of the contract: the whole sentences the finding is about. Null only if is_missing_clause is true.",
+            },
+            headline: {
+              type: "string",
+              description:
+                "One line, at most about 12 words, saying what the term does to the group. Don't repeat the clause name.",
+            },
+            finding_text: {
+              type: "string",
+              description:
+                "Two or three sentences: what the term does, and how it could expose the group. Never what the contract should say instead.",
+            },
+            model_confidence: { type: "string", enum: ["high", "medium", "low"] },
+          },
+          required: ["clause_type", "is_missing_clause", "severity", "headline", "finding_text", "model_confidence"],
         },
       },
       document_notes: {
@@ -218,9 +254,30 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         },
       },
     },
-    required: ["clause_review", "findings", "document_notes", "other_findings", "deal_figures"],
+    required: ["clause_review", "findings", "flagged_findings", "document_notes", "other_findings", "deal_figures"],
   },
 });
+
+/**
+ * The library as the model reads it, built field by field.
+ *
+ * Fallback wording goes only with business standards, so the model never sees
+ * wording it could offer on a legal point. The compromise range never goes:
+ * the model proposes CD's standard, and only the associate sees the fallback.
+ */
+export function libraryForPrompt(standards: StandardEntry[]) {
+  return standards.map((s) => ({
+    clause_type: s.clause_type,
+    segment: s.segment,
+    category: s.category,
+    position: s.position,
+    ...(s.category === "business" ? { fallback_language: s.fallback_language } : {}),
+    walk_away_condition: s.walk_away_condition,
+    severity_default: s.severity_default,
+    version: s.version,
+    provenance: s.provenance,
+  }));
+}
 
 /**
  * Exported so a test can assert on the rules it carries, the same way the two
@@ -239,7 +296,10 @@ Rules:
 - A clause type with no corresponding language anywhere in the contract is missing, and its finding sets is_missing_clause to true.
 - Some clause types apply only in certain places, or only to terms the contract has. A named-storm clause matters only for hotels in hurricane or typhoon regions. A position about a deposit, fee or right the contract never creates, such as a damage deposit, or a gratuity or service charge the contract doesn't charge or marks N/A, has nothing to fix. Give such a clause type the verdict not_applicable, say why in its basis, and record no finding for it. Outside the United States, don't ask for ADA compliance by name; compare the contract's accessibility terms with the substance of the standard.
 - Record a finding for every clause whose verdict is falls_short or missing, and for no other.
-- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clause_review is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
+- Each clause type in the library has a category. A finding on a business clause type goes in findings, with proposed_language. A finding on a legal or other clause type goes in flagged_findings, which has no wording.
+- ${firm} does not give legal advice. For a legal clause type, finding_text explains in plain terms what the contract's term does and how it could expose the group, so the reviewer can tell the client it may be worth raising with the client's own counsel. Never say what the contract should say instead, never suggest wording, and never call a term unenforceable, invalid or unlawful.
+- For an other clause type, finding_text says what the term does and why it matters to the group, without suggesting wording.
+- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clause_review is what shows that. Every business finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
 - Never write "compliant", "no change recommended", "matches ${firm}'s standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
 - A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of ${firm}'s position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
 - Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and a meets verdict in clause_review says the same thing. Never say that about a clause that falls short by any margin at all.
@@ -265,7 +325,7 @@ Rules:
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
-    standards,
+    libraryForPrompt(standards),
     null,
     2
   )}`;
@@ -361,7 +421,7 @@ export async function analyzeContract({
   org = ORG,
   deadline,
   contractText,
-}: AnalyzeContractPdfArgs): Promise<AnalysisResult> {
+}: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -383,7 +443,7 @@ export async function analyzeContract({
 
   const remaining = () => (deadline === undefined ? undefined : Math.max(deadline - Date.now(), 1_000));
 
-  async function attempt(): Promise<AnalysisResult> {
+  async function attempt(): Promise<CategorizedAnalysis> {
     const timeout = remaining();
     const response = await client.messages.create({
       model: modelId,
@@ -422,6 +482,7 @@ export async function analyzeContract({
     const parsed = {
       clause_review: listField<ClauseReview>(input.clause_review),
       findings: listField<Finding>(input.findings),
+      flagged_findings: toFlaggedFindings(listField(input.flagged_findings), standards),
       document_notes: toNotes(input.document_notes),
       other_findings: toOtherFindings(listField(input.other_findings), org.shortName),
       deal_figures: checkFigures(input.deal_figures, [
@@ -443,13 +504,19 @@ export async function analyzeContract({
 
     const usage = response.usage;
 
-    const reviewed = reconcileReview({ findings: parsed.findings, clause_review: parsed.clause_review }, standards);
+    const reviewed = reconcileReview(
+      { findings: [...parsed.findings, ...parsed.flagged_findings], clause_review: parsed.clause_review },
+      standards
+    );
 
     return {
       ...reviewed,
       // Kept out of reconcileReview, which checks findings against the library's clause types.
       // Every exposure figure is the app's own, worked out from the checked figures.
-      findings: withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
+      findings: applyCategories(
+        withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
+        standards
+      ),
       document_notes: parsed.document_notes,
       deal_figures: parsed.deal_figures,
       model_id: modelId,

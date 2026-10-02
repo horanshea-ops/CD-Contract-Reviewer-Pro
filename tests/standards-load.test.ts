@@ -15,10 +15,12 @@ function entry(over: Partial<StandardEntry> = {}): StandardEntry {
   return {
     clause_type: "attrition",
     segment: "default",
+    category: "business",
     position: "Cumulative measurement, 70% threshold.",
     fallback_language: "Attrition liability will be calculated cumulatively.",
     walk_away_condition: "",
     severity_default: "high",
+    compromise_range: "",
     version: "v1-industry-default",
     provenance: "extracted",
     ...over,
@@ -55,6 +57,7 @@ describe("hashStandards", () => {
       { fallback_language: "Different replacement wording." },
       { walk_away_condition: "Below 60% pickup." },
       { severity_default: "low" },
+      { category: "legal" },
       { provenance: "cd_validated" },
       { version: "v2" },
     ];
@@ -62,6 +65,10 @@ describe("hashStandards", () => {
     for (const change of fields) {
       expect(hashStandards([entry(change)]), `changing ${Object.keys(change)[0]}`).not.toBe(baseline);
     }
+  });
+
+  it("ignores the compromise range, which the model never reads", () => {
+    expect(hashStandards([entry({ compromise_range: "Up to 80%." })])).toBe(hashStandards([entry()]));
   });
 
   it("does not collide when content moves between adjacent fields", () => {
@@ -86,6 +93,12 @@ describe("the bundled library", () => {
   it("names every clause type in snake_case", () => {
     for (const e of STANDARDS_LIBRARY) {
       expect(e.clause_type, e.clause_type).toMatch(/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/);
+    }
+  });
+
+  it("gives legal standards no compromise range", () => {
+    for (const e of STANDARDS_LIBRARY.filter((e) => e.category === "legal")) {
+      expect(e.compromise_range, e.clause_type).toBe("");
     }
   });
 

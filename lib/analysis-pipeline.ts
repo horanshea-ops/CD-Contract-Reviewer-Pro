@@ -192,6 +192,8 @@ export async function processAnalysis(analysisId: string) {
         clause_type: f.clause_type,
         is_missing_clause: f.is_missing_clause,
         severity: f.severity,
+        category: f.category,
+        compromise_range: f.compromise_range,
         exposure_amount: f.exposure_amount,
         exposure_basis: f.exposure_basis,
         exposure_formula: f.exposure_formula ?? null,
