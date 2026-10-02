@@ -9,6 +9,9 @@ const VALID_ACTIONS = ["accept", "edit", "dismiss"];
  * Records an accept/edit/dismiss on one finding — the product's memory
  * (build brief §6). Dismissal is first-class (§13): it always captures a
  * reason, never just a click.
+ *
+ * A legal finding can't be edited, because CD gives no legal advice and an
+ * edit is contract wording. Accepting one flags it for the client.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const associate = await getCurrentAssociate();
@@ -38,12 +41,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: finding } = await admin
     .from("findings")
-    .select("id, analysis_id, analyses!inner(associate_id)")
+    .select("id, analysis_id, category, analyses!inner(associate_id)")
     .eq("id", findingId)
     .maybeSingle();
 
   if (!finding) {
     return NextResponse.json({ error: "Finding not found." }, { status: 404 });
+  }
+
+  if (action === "edit" && finding.category === "legal") {
+    return NextResponse.json({ error: "Legal findings take no wording. Flag it for the client or dismiss it." }, { status: 400 });
   }
 
   const owningAssociateId = (finding as unknown as { analyses: { associate_id: string } }).analyses

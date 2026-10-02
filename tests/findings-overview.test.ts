@@ -1,23 +1,42 @@
 import { describe, expect, it } from "vitest";
-import { computeFindingsOverview } from "@/lib/findings-overview";
+import { compareFindings, computeFindingsOverview } from "@/lib/findings-overview";
 
 const finding = (over: Partial<Parameters<typeof computeFindingsOverview>[0][number]> = {}) => ({
-  severity: "medium" as const,
+  severity: "medium" as "high" | "medium" | "low" | "note",
   exposure_amount: null,
   current_action: null,
   ...over,
 });
 
 describe("computing a review's overview stats", () => {
-  it("buckets findings by severity", () => {
+  it("buckets findings by category, reading old rows' Other from their severity", () => {
     const overview = computeFindingsOverview([
-      finding({ severity: "high" }),
-      finding({ severity: "high" }),
-      finding({ severity: "low" }),
+      finding({ category: "business" }),
+      finding({ category: "legal", severity: "high" }),
+      finding({ category: "legal" }),
+      finding({ category: "other", severity: "note" }),
       finding({ severity: "note" }),
+      finding({ severity: "high" }),
     ]);
-    expect(overview.total).toBe(4);
-    expect(overview.bySeverity).toEqual({ high: 2, medium: 0, low: 1, note: 1 });
+    expect(overview.total).toBe(6);
+    expect(overview.byCategory).toEqual({ business: 2, legal: 2, other: 2 });
+  });
+
+  it("orders business, then legal, then other, each by severity", () => {
+    const list = [
+      finding({ category: "other", severity: "note" }),
+      finding({ category: "legal", severity: "low" }),
+      finding({ category: "business", severity: "low" }),
+      finding({ category: "legal", severity: "high" }),
+      finding({ category: "business", severity: "high" }),
+    ];
+    expect([...list].sort(compareFindings).map((f) => `${f.category}/${f.severity}`)).toEqual([
+      "business/high",
+      "business/low",
+      "legal/high",
+      "legal/low",
+      "other/note",
+    ]);
   });
 
   it("counts undecided, included and dismissed separately", () => {
@@ -70,7 +89,7 @@ describe("computing a review's overview stats", () => {
     const overview = computeFindingsOverview([]);
     expect(overview).toEqual({
       total: 0,
-      bySeverity: { high: 0, medium: 0, low: 0, note: 0 },
+      byCategory: { business: 0, legal: 0, other: 0 },
       undecidedCount: 0,
       includedCount: 0,
       dismissedCount: 0,
