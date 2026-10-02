@@ -582,6 +582,8 @@ Target one screen of text. Several findings under one theme should read as a sho
 
 End with a brief closing line (e.g. "Let me know if you have any questions.") but do not write a sign-off or the associate's name — a signature is appended separately after this text.
 
+Some items may be listed separately as points for the client's own counsel. ${firm} does not give legal advice and is proposing no change on these. Mention them after the proposed changes, in a sentence or two each: what the term does and why the client may want their counsel to look at it. Never suggest what such a term should say, and never present one as a change ${firm} is requesting.
+
 Prohibited, without exception:
 - Any statement of legal effect (what a clause "means" legally, or its enforceability).
 - Any assurance that the client is "protected" or "covered."
@@ -621,17 +623,31 @@ export async function generateClientEmail({
   const client = new Anthropic({ apiKey });
   const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
-  const findingsBlock = findings
+  const changes = findings.filter((f) => f.category !== "legal");
+  const counsel = findings.filter((f) => f.category === "legal");
+
+  const changesBlock = changes
     .map((f, i) => {
       const exposure =
         f.exposure_amount != null
           ? `\nExposure: ${formatCurrency(f.exposure_amount, currencyOf(f.exposure_formula))} (${f.exposure_basis})`
           : "";
-      return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
+
+      // A point raised without wording has no proposed language line.
+      const language = f.language.trim() ? `\nProposed language: ${f.language}` : "";
+
+      return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}${language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
     })
     .join("\n\n");
 
-  const userText = `Contract: ${contractLabel}\nAssociate: ${associateName}\n\nProposed changes to summarize (not yet agreed to by the property):\n\n${findingsBlock}`;
+  // Legal points carry the explanation only. No wording is ever sent for them.
+  const counselBlock = counsel
+    .map((f, i) => `[${changes.length + i + 1}] ${f.clause_type.replace(/_/g, " ")}\nWhy it may matter: ${f.finding_text}`)
+    .join("\n\n");
+
+  const userText =
+    `Contract: ${contractLabel}\nAssociate: ${associateName}\n\nProposed changes to summarize (not yet agreed to by the property):\n\n${changesBlock || "None."}` +
+    (counselBlock ? `\n\nPoints for the client's own counsel. ${org.shortName} proposes no change on these:\n\n${counselBlock}` : "");
 
   async function attempt(): Promise<ClientEmailResult> {
     const response = await client.messages.create({

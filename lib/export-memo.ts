@@ -1,11 +1,14 @@
 import { clauseLabel } from "./format";
+import { ORG } from "./org";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
 /**
  * Build brief §9, v1 export: "A clean PDF listing each accepted finding:
  * clause reference, current language, proposed language, rationale." Only
- * findings the associate has actually accepted or edited go in — this is a
- * request memo to send to a property, not a dump of every raw finding.
+ * findings the associate has accepted or edited go in.
+ *
+ * The memo is for internal review and the client, never the property. It
+ * carries CD's rationale, and legal findings flagged for the client's counsel.
  */
 
 export interface MemoFinding {
@@ -18,11 +21,22 @@ export interface MemoFinding {
   cd_standard: string;
 }
 
+/** A legal finding flagged for the client. It explains a risk and carries no wording. */
+export interface CounselItem {
+  clause_type: string;
+  severity: MemoFinding["severity"];
+  is_missing_clause: boolean;
+  quoted_text: string | null;
+  headline: string | null;
+  finding_text: string;
+}
+
 export interface MemoInput {
   contractFilename: string;
   clientName: string | null;
   associateName: string;
   findings: MemoFinding[];
+  counsel?: CounselItem[];
 }
 
 const MARGIN = 56;
@@ -100,7 +114,8 @@ export async function generateRevisionsMemo(input: MemoInput): Promise<Uint8Arra
   drawWrapped(`Prepared by ${input.associateName} · ${new Date().toLocaleDateString()}`, font, 10, 13, rgb(0.35, 0.35, 0.35));
   y -= 10;
 
-  if (input.findings.length === 0) {
+  const counsel = input.counsel ?? [];
+  if (input.findings.length === 0 && counsel.length === 0) {
     drawWrapped("No items have been accepted for this contract yet.", font, 11, 15);
   }
 
@@ -118,15 +133,51 @@ export async function generateRevisionsMemo(input: MemoInput): Promise<Uint8Arra
       drawWrapped(finding.quoted_text, font, 10, 14, rgb(0.25, 0.25, 0.25));
     }
 
-    y -= 2;
-    drawWrapped("Requested language:", boldFont, 10, 14);
-    drawWrapped(finding.language, font, 10, 14);
+    // A point raised without wording has no requested language to show.
+    if (finding.language.trim()) {
+      y -= 2;
+      drawWrapped("Requested language:", boldFont, 10, 14);
+      drawWrapped(finding.language, font, 10, 14);
+    }
 
     y -= 2;
     drawWrapped("Rationale:", boldFont, 10, 14);
     drawWrapped(finding.finding_text, font, 10, 14, rgb(0.25, 0.25, 0.25));
 
     y -= 12;
+  }
+
+  if (counsel.length > 0) {
+    ensureSpace(80);
+    y -= 10;
+    drawWrapped("For your counsel to review", boldFont, 13, 17);
+    drawWrapped(
+      `${ORG.shortName} doesn't give legal advice, so it proposes no wording on these terms. They may be worth raising with your own counsel.`,
+      font,
+      10,
+      14,
+      rgb(0.35, 0.35, 0.35)
+    );
+    y -= 4;
+
+    for (const [i, item] of counsel.entries()) {
+      ensureSpace(60);
+      y -= 6;
+      drawWrapped(`${input.findings.length + i + 1}. ${clauseLabel(item.clause_type)}`.toUpperCase(), boldFont, 11, 15);
+      if (item.headline) drawWrapped(item.headline, boldFont, 10, 14);
+
+      if (item.is_missing_clause) {
+        drawWrapped("The contract has no clause on this.", font, 10, 14, rgb(0.35, 0.35, 0.35));
+      } else if (item.quoted_text) {
+        drawWrapped("Contract says:", boldFont, 10, 14);
+        drawWrapped(item.quoted_text, font, 10, 14, rgb(0.25, 0.25, 0.25));
+      }
+
+      y -= 2;
+      drawWrapped("Why it may matter:", boldFont, 10, 14);
+      drawWrapped(item.finding_text, font, 10, 14, rgb(0.25, 0.25, 0.25));
+      y -= 12;
+    }
   }
 
   drawFooter(page);

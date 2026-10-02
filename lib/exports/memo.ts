@@ -15,13 +15,14 @@ import type { ExportBuildResult } from "./types";
 export async function buildMemo(ctx: ExportContext): Promise<ExportBuildResult> {
   const { admin, associate, analysis, analysisId } = ctx;
 
-  const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
+  const { findings, nonSubstantive, counsel } = await getActionedFindings(admin, analysisId);
 
   const pdfBytes = await generateRevisionsMemo({
     contractFilename: analysis.filename,
     clientName: analysis.clients?.name ?? null,
     associateName: associate.name,
     findings,
+    counsel,
   });
 
   return {
@@ -47,7 +48,7 @@ export async function buildMemo(ctx: ExportContext): Promise<ExportBuildResult> 
         action: "memo_exported",
         entityType: "analysis",
         entityId: analysisId,
-        metadata: { findings_included: findings.length, non_substantive: nonSubstantive.length },
+        metadata: { findings_included: findings.length, counsel_items: counsel.length, non_substantive: nonSubstantive.length },
       });
     },
   };
