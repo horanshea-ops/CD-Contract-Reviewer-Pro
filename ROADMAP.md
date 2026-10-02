@@ -455,6 +455,46 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         - Migrations 006, 011 and 012 were applied to live before the merge.
           006 (`contract_terms`) had never been applied, which is why 011
           failed on the first try.
+- [ ] **Business, legal and other standards, with compromise ranges (CD feedback,
+      2026-10-02).** CD's team stressed that CD gives no legal advice. Built on
+      branch `feature/business-legal-standards`, not merged.
+      - The standards library is grouped Business, Legal and Other. Dragging
+        between groups changes the category. High/Medium/Low stays as the
+        priority inside each group, set in the Edit form.
+      - **Business** findings propose CD's wording, as before.
+      - **Legal** findings explain the risk to the associate and never carry
+        wording. The associate can Flag for client or Dismiss. Flagged items go
+        to the memo ("For your counsel to review") and the client email,
+        explanation only. They never reach the redline, the marked-up or clean
+        copies, or the property email.
+      - Legal wording is blocked at four layers: the model never sees legal
+        fallback wording; its answer form has no wording field for them; the
+        app strips any that arrives and stamps every category from the
+        library; and the database refuses wording on a legal finding.
+      - **Other** findings are noted without wording, as before. The group
+        starts empty.
+      - Starting legal set: insurance and indemnification, hotel cancellation,
+        force majeure, governing law and venue, ADA, nondiscrimination,
+        attendee data, assignment. Termination rights, labor disputes, named
+        storm and brand change stayed Business as borderline. CD's legal team
+        may want to move some.
+      - Each business standard has a **compromise range**, shown in the card's
+        Why section. Only the associate sees it. The model never reads it,
+        and no export or email carries it. The values are provisional (see
+        "Provisional values for CD to confirm").
+      - Changes reach reviews run afterwards. Migration 013 also blanks the
+        wording on existing legal-type findings (Jerry's `cb3daee0`).
+      - **To go live:** apply migration 013 in the Supabase SQL editor, run
+        `npx tsx scripts/fill-compromise-ranges.ts --apply`, then merge.
+      - Unmeasured on a real contract. One Florida run (~$0.40) would show
+        whether the model fills `flagged_findings` correctly.
+- [ ] **Short "why" comments in the Word redline (user, 2026-10-02) — next after
+      the item above.** A very short comment on each change in the tracked-changes
+      DOCX, saying why it's proposed. The comment can reach the client and the
+      property, so it must not reveal CD's positions, compromise ranges or
+      leverage. This reverses CLAUDE.md deviation 6 in a narrower form, so it
+      needs its own plan, and CLAUDE.md should be updated when the user
+      decides. Legal findings are never in the redline, so they get no comment.
 - [ ] **4. Re-uploads of the same contract — next priority after these.** CD
       runs several rounds of review on each contract, so a re-upload should
       avoid a full paid review wherever it can. The plan is the entry
@@ -1075,6 +1115,29 @@ New reviews use these values. Existing reviews and saved eval runs keep "[X]" un
 are re-run or edited. The eval answer key was re-stamped with the new standards
 fingerprint at no cost. Its 168 key items are unchanged, because the corpus never reads
 fallback wording.
+
+**Provisional compromise ranges (2026-10-02, branch
+`feature/business-legal-standards`).** Typical industry give, not CD's numbers. Blank
+where there's no sensible numeric give. Commission is left for CD to set, because it's
+CD's own fee. Change any of them on the Standards Library screen.
+
+| Standard | Provisional compromise range | CD answer |
+|---|---|---|
+| Attrition | trigger up to 80% of the block, still cumulative; damages up to 80% of the rate | open |
+| Cancellation | room profit up to 80% of the rate; keep the scale and the resale duty | open |
+| F&B minimum | shortfall billed at 35–50%; menu pricing locked 6–12 months out | open |
+| Cutoff date | 21–30 days before arrival | open |
+| Comp rooms & rebates | one comp per 40–50 occupied room nights | open |
+| Master account billing | finance charge capped at 1–1.5% a month, after at least a 30-day dispute window | open |
+| Damage deposit | refunded within 30–45 days | open |
+| Construction & renovation | notice within 30–60 days of plans being confirmed | open |
+| Brand or ownership change | notice within 30–60 days; termination window of at least 30 days | open |
+| Labor disputes | contract-expiry notice 6–12 months ahead; cancellation for disputes within 60–90 days | open |
+| Future rate cap | increase capped at 2–4% a year; rates fixed 9–12 months out | open |
+| Rate parity | rate no higher than other groups' within 3–7 days of the event | open |
+| Facilities & services | closures or cuts over 25–35% trigger the alternatives duty | open |
+| Resale mitigation duty | damages due 30–60 days after the meeting | open |
+| Banquet service levels | ratios up to 20% looser than the standard | open |
 
 ### Pre-demo review (2026-09-26)
 

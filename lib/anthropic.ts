@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { StandardEntry } from "./standards/types";
+import type { Category, StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
@@ -27,6 +27,8 @@ export interface Finding {
   clause_type: string;
   is_missing_clause: boolean;
   severity: Severity;
+  /** Stamped from the library after the model answers. Absent on the model's raw output and on older saved runs. */
+  category?: Category;
   location_section: string | null;
   quoted_text: string | null;
   exposure_amount: number | null;

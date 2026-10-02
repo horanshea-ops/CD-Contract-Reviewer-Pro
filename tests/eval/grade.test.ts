@@ -137,6 +137,8 @@ describe("gradeLanguage", () => {
     expect(gradeLanguage([], "Anything at all.", null).graded).toBe(false);
     expect(languageWasGraded(keyItem())).toBe(false);
     expect(languageWasGraded(keyItem({ expected_language: [bound] }))).toBe(true);
+    // A legal finding carries no wording by design, so its wording isn't graded.
+    expect(languageWasGraded(keyItem({ expected_language: [bound] }), { category: "legal" })).toBe(false);
   });
 });
 
