@@ -594,6 +594,40 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       Needs Word itself, so the user runs the Word steps; the rest can be
       fixtures built from the files Word saves. Overlaps item 4 below, since
       every re-upload is one of these files.
+      - **In progress on `phase/1-11-word-round-trip` (2026-10-03).** The test
+        file is the Florida contract, marked up in Pages and exported to Word,
+        with four tracked number changes and three comments by one author.
+      - **Free pass, no model call** (`scripts/word-roundtrip-check.ts`).
+        - Extraction read all eight revisions and passed every intake check.
+        - A stand-in redline from `cb3daee0`'s findings applied 23 of 25
+          changes on top of the hotel's. All eleven oracle checks passed,
+          the reject round trip included. The clean copy and both PDFs passed.
+        - Where our change covers a hotel edit, the hotel's struck words end
+          up inside our deletion. Word never writes that shape itself, so it
+          needs a look in Word.
+        - The clean copy keeps empty change markers where our accepted
+          rewrite swallowed a hotel edit. Also needs a look in Word.
+        - The hotel's edit to the room-block table arrived with no tracked
+          change. A first upload can't detect that.
+      - **Paid run `c7148b08`, as Jerry, Sonnet 5** ($0.35, 3m36s, 38
+        findings, the same clause types as `cb3daee0`).
+        - **Defect: every business finding came back without quoted text**
+          (0 of 24, against 21 of 25 on `cb3daee0`). The app doesn't drop it.
+          `quoted_text` was never a required field, and this was the first
+          real run since the findings form changed on 10/02 and 10/03.
+          Without a quote the card reads "Proposed addition" and the redline
+          has nothing to replace. Fixed on the branch by making the field
+          required. Unconfirmed until a second run (about $0.37).
+        - The model read the hotel's edits. Commission rose to High for the
+          cut to 8%, rate protection cites 750 rooms, and the F&B finding
+          cites $80,000.
+        - Legal findings carried no wording. The model filed three of the
+          eight in the business list with wording, and the app stripped it.
+        - Notes: 15 kept, 8 blanked by the content check. The blanked text
+          isn't stored, so the reason for each is unknown.
+        - Exposure fell from $170,696 to $91,724. The attrition and F&B
+          exposures didn't compute. Cause not yet traced.
+        - The hotel's three comments appear nowhere on the review screen.
 - [ ] **Pages uploads, and other formats and comment styles (user,
       2026-10-03) — later, not scheduled.** The upload accepts only PDF, DOCX
       and DOC, so a `.pages` file is refused. To scope when it comes up:

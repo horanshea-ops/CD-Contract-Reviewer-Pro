@@ -144,6 +144,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             "clause_type",
             "is_missing_clause",
             "severity",
+            "quoted_text",
             "headline",
             "finding_text",
             "cd_standard",
