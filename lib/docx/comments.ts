@@ -19,6 +19,8 @@ export const COMMENT_LIMIT = 100;
 /** A longer comment is cut here. */
 export const COMMENT_TEXT_LIMIT = 500;
 const QUOTE_LIMIT = 200;
+/** How far either side of a comment its context reaches, in characters. */
+const CONTEXT_REACH = 80;
 
 const RELS_PATH = "word/_rels/document.xml.rels";
 const COMMENTS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments";
@@ -76,6 +78,24 @@ function quotedWording(text: string, map: MapEntry[], start: number, end: number
     out += text[i];
   }
   return clip(out, QUOTE_LIMIT);
+}
+
+/** The wording around a range, widened to whole words and cut where the paragraph ends. */
+function wordingAround(text: string, map: MapEntry[], start: number, end: number): string {
+  const boundary = (i: number) => text[i] === "\n" && isSynthetic(map[i]);
+
+  let from = start;
+  while (from > 0 && start - from < CONTEXT_REACH && !boundary(from - 1)) from--;
+  while (from > 0 && from < start && !/\s/.test(text[from - 1])) from++;
+
+  let to = end;
+  while (to < text.length && to - end < CONTEXT_REACH && !boundary(to)) to++;
+  while (to < text.length && to > end && !/\s/.test(text[to])) to--;
+
+  const wording = quotedWording(text, map, from, to);
+  const opens = from > 0 && !boundary(from - 1) ? "…" : "";
+  const closes = to < text.length && !boundary(to) ? "…" : "";
+  return wording ? `${opens}${wording}${closes}` : "";
 }
 
 interface Thread {
@@ -143,6 +163,7 @@ export async function readComments(
         start,
         end,
         quoted: anchor.start === undefined ? "" : quotedWording(part.text, part.map, start, end),
+        context: wordingAround(part.text, part.map, start, end),
         replyTo: thread.get(id)?.replyTo ?? null,
         resolved: thread.get(id)?.resolved ?? false,
       },

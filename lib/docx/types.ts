@@ -150,6 +150,8 @@ export interface DocumentComment {
   end: number;
   /** The wording in that range, without the layout markers we add. */
   quoted: string;
+  /** That wording with a few words either side, to place a comment that sits on a word or less. */
+  context: string;
   /** The comment this one replies to, when the file records threads. */
   replyTo: string | null;
   resolved: boolean;

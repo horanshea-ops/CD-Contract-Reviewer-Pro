@@ -51,6 +51,22 @@ describe("comments already in the file", () => {
     ]);
   });
 
+  it("gives the wording around a comment that sits on a single character", async () => {
+    const { comments } = await load("16-pages-export-comments.docx");
+    expect(comments[0].quoted).toBe("8");
+    expect(comments[0].context).toBe("Hotel will pay a commission of 8% of the group room rate on all occupied rooms.");
+  });
+
+  it("marks context that stops short of the paragraph's ends", async () => {
+    const long = "Every reservation in the block is held at the group rate until the cutoff date agreed between the parties, ";
+    const body = para(run(long) + start(1) + run("fourteen days") + end(1) + run(` before arrival, and ${long}`));
+    const { comments } = await extractDocx(await withComments(body, comment(1, "Earlier?")));
+
+    expect(comments[0].context.startsWith("…")).toBe(true);
+    expect(comments[0].context.endsWith("…")).toBe(true);
+    expect(comments[0].context).toContain("parties, fourteen days before arrival");
+  });
+
   it("anchors each comment on a range of the text the model reads", async () => {
     const { comments, document } = await load("16-pages-export-comments.docx");
     const last = comments[2];
