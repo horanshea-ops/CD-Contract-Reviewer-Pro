@@ -97,7 +97,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
 
     // Food and beverage
     num("fb_minimum.menu_price_lock_months", "months", "How many months before the event the hotel sets menus and pricing for the group."),
-    num("fb_minimum.shortfall_rate", "pct", "The share of any shortfall below the food and beverage minimum the group must pay. 100% means the full shortfall."),
+    num("fb_minimum.shortfall_rate", "pct", "The share of a food and beverage shortfall the group must pay, whether it spends less than the minimum or spends none of it because it cancels. Where the share varies with how far before arrival the group cancels, the share in the tier closest to arrival. 100% means the full shortfall."),
 
     // Cutoff
     num("cutoff_date.days_prior", "days", "How many days before arrival the room block cutoff falls."),
