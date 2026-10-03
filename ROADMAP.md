@@ -390,9 +390,9 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       `migrate/sonnet-5-5` (not merged).
       - Sonnet 5.5 costs the same per token as Sonnet 5.
       - It rejects a forced tool_choice. Forced-capable models keep today's
-        request byte for byte. Sonnet 5.5 gets tool_choice auto, a strict tool
-        with every object closed, and a prompt line to call the tool.
-      - The schema check passed. Both strict schemas compile.
+        request byte for byte. Sonnet 5.5 gets no tool: the schema goes as an
+        output format (`output_config.format`), with thinking `between_tools`
+        and effort `high` (user's decision, 2026-10-03).
       - **Blocker.** Harborview's review at the default effort (`high`) ran past
         10 minutes and was stopped. The app gave the model 240s then, and
         gives it 420s now. Sonnet 5.5 always thinks, and a forced Sonnet 5 call
@@ -421,18 +421,32 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         - **Streaming.** The review call asks for 64k tokens without streaming.
           `.stream().finalMessage()` follows SDK guidance and lets the deadline
           cut a slow call cleanly. Optional second step.
-        - **Branch state.** One commit, well behind `main`, which now also
-          requires `quoted_text` and sends a comments block. Its 5.5 goldens
-          predate `redline_note` and `flagged_findings`. It doesn't cover the
-          historical-contract read or the two eval calls, and the Batch service
-          rejects a forced tool on 5.5 too.
+        - **Branch state (2026-10-03).** `main` is merged in. All seven model
+          calls work on 5.5, the historical-contract read and the two eval
+          calls included. The SDK is 0.131.0, which types `between_tools`.
+          Lint, typecheck and 1,356 tests pass, and every Sonnet 5 golden
+          matches `main`.
+        - **Structured outputs, not a strict tool (user, 2026-10-03).** With
+          `tool_choice: auto` the model can answer in text, and a missed call
+          on a four-minute review leaves no time for a retry. An output format
+          holds the reply to the schema, so a miss can't happen. The tool's
+          description moves into the system prompt. A nullable enum goes as
+          `anyOf`, which the format needs.
+        - **Refusal fallback left out (user, 2026-10-03).** It retries only
+          `cyber` and `frontier_llm`, and needs the beta endpoint. A decline
+          stops once with a clear message.
+        - **Free check passed** (`scripts/check-request-shapes.ts`, the
+          token-counting endpoint). All 14 goldens are accepted. A forced tool
+          on 5.5 and `between_tools` at `xhigh` are rejected. The schema's
+          descriptions count toward the request (24,083 tokens with them,
+          22,226 without), so the model sees them.
       - **Steps.** Opus work, since it changes every model request. Each paid
         step needs its own yes.
-        1. Merge `main` into the branch. Add `between_tools` and explicit
-           effort to the non-forced path in `toolRequest`. Cover the historical
-           and eval calls. Regenerate the goldens.
-        2. Check every request shape on the token-counting endpoint. It is free
-           and rejects bad `thinking` and `tool_choice` values.
+        1. Done. Merge `main` into the branch. Add `between_tools` and
+           explicit effort to the non-forced path (`answerRequest`). Cover the
+           historical and eval calls. Regenerate the goldens.
+        2. Done. Check every request shape on the token-counting endpoint. It
+           is free and rejects bad `thinking` and `tool_choice` values.
         3. Paid, about $0.40. Run the redlined Florida file
            (`data/private/florida-property-round1.docx`, git-ignored) on 5.5
            with `between_tools` at `high`. Compare time, tokens and findings
@@ -443,6 +457,10 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
            score it against the existing baselines. Count missed tool calls.
         5. If time and scores hold, change the Render variable. Sonnet 5 stays
            one variable away.
+           - **Reminder (user, 2026-10-03).** Once 5.5 runs cleanly on the
+             tool, set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5`. The
+             code's default is already 5.5, and Render's variable is what
+             keeps production on Sonnet 5 until then.
 - [x] **1. Analytics live for a demonstration (2026-09-29).** Deployed
       2026-09-28 (679eae3), with the three switches set on Render.
       - Runs on test data behind three Render switches: `ANALYTICS=on`,
