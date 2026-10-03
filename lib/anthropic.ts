@@ -9,7 +9,7 @@ import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap
 import { toNotes, type DocumentNote } from "./document-notes";
 import { toOtherFindings } from "./other-findings";
 import { applyCategories, toFlaggedFindings, type CategorizedFinding } from "./finding-categories";
-import { checkFigures, type DealFigures } from "./exposures/figures";
+import { NO_FIGURES, type DealFigures } from "./exposures/figures";
 import { withComputedExposures } from "./exposures/compute";
 import { currencyOf } from "./exposure";
 import { formatCurrency } from "./format";
@@ -57,7 +57,7 @@ export interface AnalysisResult {
   review_gaps: ReviewGap[];
   dropped_findings: DroppedFinding[];
   document_notes: DocumentNote[];
-  /** The contract's figures the app checked and computed exposures from. Absent on runs captured before them. */
+  /** The contract's figures the exposures were computed from. reviewContract sets it. Absent on runs captured before them. */
   deal_figures?: DealFigures;
   model_id: string;
   standards_library_version: string;
@@ -206,17 +206,6 @@ function checkRefusal(response: Anthropic.Messages.Message, what: string) {
 
 const FINDINGS_TOOL_NAME = "record_analysis";
 
-/** One figure from the contract and the words that state it. */
-const figure = (description: string) => ({
-  type: ["object", "null"],
-  description,
-  properties: {
-    value: { type: "number", description: "The figure as written: 2280 for 2,280, 149 for $149.00, 469 for €469.00, 80 for 80%." },
-    quoted_text: { type: "string", description: "Words copied exactly from the contract that state this figure." },
-  },
-  required: ["value", "quoted_text"],
-});
-
 export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) => ({
   name: FINDINGS_TOOL_NAME,
   description: `Record a review of this hotel/venue contract against ${name}'s standards library: a verdict on every clause type examined, then the deviations found.`,
@@ -329,53 +318,6 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           required: ["headline", "detail"],
         },
       },
-      deal_figures: {
-        type: "object",
-        description:
-          "The contract's own figures, each with the words it comes from, for the reviewer's tool to work out exposures. Null for any figure the contract doesn't state.",
-        properties: {
-          room_block_room_nights: figure("Total room nights in the room block, as the contract totals them."),
-          group_rate: figure("The main group room rate per night, in the contract's currency."),
-          minimum_room_nights: figure("The room nights the group commits to use before attrition damages apply."),
-          attrition_threshold_pct: figure("Where the contract states the commitment as a share of the block instead: that percentage."),
-          attrition_damages_pct: figure("The percentage of the room rate owed for each room night short of the commitment."),
-          cancellation_tiers: {
-            type: "array",
-            description: "Every tier of the room cancellation schedule.",
-            items: {
-              type: "object",
-              properties: {
-                label: { type: "string", description: "The tier as the contract names it, such as \"90 Days or Less\"." },
-                room_pct: { type: "number", description: "The tier's room cancellation percentage, as written: 90 for 90%." },
-                base: {
-                  type: "string",
-                  enum: ["minimum_room_nights", "room_block", "other"],
-                  description: "Which room nights the percentage applies to.",
-                },
-                charges: {
-                  type: "string",
-                  enum: ["rate", "room_profit"],
-                  description: "Whether the percentage is of the full room rate or of room profit.",
-                },
-                quoted_text: { type: "string", description: "The contract's words for this tier, stating its percentage." },
-              },
-              required: ["label", "room_pct", "base", "charges", "quoted_text"],
-            },
-          },
-          fb_minimum: figure("The food and beverage minimum the group commits to spend, in the contract's currency."),
-          fb_shortfall_pct: figure("The percentage of a food and beverage shortfall the group owes. Null when the contract states none."),
-        },
-        required: [
-          "room_block_room_nights",
-          "group_rate",
-          "minimum_room_nights",
-          "attrition_threshold_pct",
-          "attrition_damages_pct",
-          "cancellation_tiers",
-          "fb_minimum",
-          "fb_shortfall_pct",
-        ],
-      },
       other_findings: {
         type: "array",
         description: `Every term no clause type in the standards library covers that still shifts cost, liability or control onto the group, the most consequential first. Nothing a finding or document note already says.`,
@@ -399,7 +341,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         },
       },
     },
-    required: ["clause_review", "findings", "flagged_findings", "document_notes", "other_findings", "deal_figures"],
+    required: ["clause_review", "findings", "flagged_findings", "document_notes", "other_findings"],
   },
 });
 
@@ -466,7 +408,6 @@ Rules:
 - In document_notes, name each place the contract contradicts itself, such as two different dates for the same event. Record one only when you can quote both sides, and check any arithmetic before calling a figure wrong. The reviewer's tool checks table totals, night counts and whether dates fall in order itself, so leave those out.
 - A contract often pairs an event agreement with separate terms and conditions. For each topic both parts address, such as walk, commission, finance or late charges, cancellation, renovation and deposits, compare their terms and record a note for each difference, quoting both. Also record one where a formula uses a different figure from the threshold it applies, or where a clause grants a right in one sentence and withholds it in another.
 - After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group. Examples include a default under any other agreement that lets the hotel end this one; a damages waiver that protects only the hotel; a right to demand prepayment on the hotel's own judgment; a duty to answer for a third party's acts; a right to end the agreement over a minor or technical breach, such as using the hotel's name or logo without approval; the hotel keeping payment for a service it withdraws, such as ending a function without a refund; a waiver of the group's right to dispute card charges; a bonus, points or payment to an individual planner rather than the group, which can create a conflict of interest; a condition that delays when the group's notice takes effect, such as until damages are paid; or forfeiting deposits or credit when the group rebooks. Read to the end of the contract before deciding what to record. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
-- Record the contract's figures in deal_figures, each with the words it comes from. Write percentages as they appear, 80 for 80%. Quote words that state the figure itself, since the reviewer's tool checks every figure against its quote and works out every dollar exposure from them. Leave a figure null when the contract doesn't state it; never work one out.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
@@ -522,8 +463,6 @@ export interface AnalyzeContractPdfArgs {
   /** Epoch ms by which the review must finish. Each attempt stops there, and
    *  the retry is skipped when too little time is left for it. */
   deadline?: number;
-  /** The contract as text, for checking the figures the model quotes. Defaults to a text document's own text. */
-  contractText?: string;
   /** Comments already in the file. They reach the model in a block of their own, after the contract. */
   comments?: DocumentComment[];
   /** How many comments the file holds, when that is more than `comments` carries. */
@@ -569,7 +508,6 @@ export async function analyzeContract({
   model,
   org = ORG,
   deadline,
-  contractText,
   comments,
   commentsTotal,
 }: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
@@ -634,9 +572,6 @@ export async function analyzeContract({
       flagged_findings: toFlaggedFindings(listField(input.flagged_findings), standards),
       document_notes: toNotes(input.document_notes),
       other_findings: toOtherFindings(listField(input.other_findings), org.shortName),
-      deal_figures: checkFigures(input.deal_figures, [
-        { part: "document", text: contractText ?? (document.kind === "text" ? document.text : "") },
-      ]),
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
@@ -661,13 +596,9 @@ export async function analyzeContract({
     return {
       ...reviewed,
       // Kept out of reconcileReview, which checks findings against the library's clause types.
-      // Every exposure figure is the app's own, worked out from the checked figures.
-      findings: applyCategories(
-        withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
-        standards
-      ),
+      // No finding carries an exposure here. reviewContract adds them from the reading pass's figures.
+      findings: applyCategories(withComputedExposures([...reviewed.findings, ...parsed.other_findings], NO_FIGURES), standards),
       document_notes: parsed.document_notes,
-      deal_figures: parsed.deal_figures,
       model_id: modelId,
       standards_library_version: standardsVersion,
       input_tokens: usage.input_tokens,
@@ -1092,6 +1023,8 @@ export interface ExtractContractTermsArgs {
   document: AnalyzableDocument;
   catalog: TermCatalog;
   model?: string;
+  /** Epoch ms by which the reading must finish, so it can never outlast the review it runs beside. */
+  deadline?: number;
 }
 
 export interface ExtractContractTermsResult {
@@ -1108,6 +1041,7 @@ export async function extractContractTerms({
   document,
   catalog,
   model,
+  deadline,
 }: ExtractContractTermsArgs): Promise<ExtractContractTermsResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -1129,7 +1063,9 @@ export async function extractContractTerms({
       system: withAnswerInstruction(buildTermExtractionPrompt(catalog), modelId, termsToolSchema(catalog)),
       ...answerRequest(modelId, termsToolSchema(catalog)),
       messages: [{ role: "user", content: userContent }],
-    });
+    },
+    // The SDK's own retries don't know about the deadline, so they're off whenever there is one.
+    deadline === undefined ? undefined : { timeout: Math.max(deadline - Date.now(), 1_000), maxRetries: 0 });
     checkRefusal(response, "read this contract's terms");
 
     const parsed = readAnswer(response, "extracted terms") as { terms?: unknown[] };

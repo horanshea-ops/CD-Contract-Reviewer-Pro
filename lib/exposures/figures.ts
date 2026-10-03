@@ -1,15 +1,12 @@
-import type { NumericUnit } from "../quantities";
-import type { LocatablePart } from "../redline-engine/locate";
-import { normalizeValue, verify } from "../terms/validate";
-import { USABLE_VERIFICATIONS, type ExtractedTerms, type StatedTerm, type TermDefinition } from "../terms/types";
+import { USABLE_VERIFICATIONS, type ExtractedTerms, type StatedTerm } from "../terms/types";
 
 /**
  * The contract's own figures, as the exposure calculations need them.
  *
- * The model reads each figure and quotes the words it comes from. A figure is
- * kept only when its quote is in the contract and states that figure, the
- * same check the terms pass makes. An exposure built on anything else would
- * be a number the app can't trace back to the contract.
+ * The reading pass records each term with the words it comes from, and checks
+ * each quote against the contract (lib/terms/validate.ts). A figure is kept
+ * only when its term passed that check. An exposure built on anything else
+ * would be a number the app can't trace back to the contract.
  */
 
 /** Whether a cancellation tier charges a share of the full rate or of room profit. */
@@ -62,14 +59,6 @@ export const NO_FIGURES: DealFigures = {
 type MoneyKey = "group_rate" | "fb_minimum";
 type ScalarKey = Exclude<keyof DealFigures, "cancellation_tiers" | "currency" | MoneyKey>;
 
-const UNITS: Record<ScalarKey, NumericUnit> = {
-  room_block_room_nights: "rooms",
-  minimum_room_nights: "rooms",
-  attrition_threshold_pct: "pct",
-  attrition_damages_pct: "pct",
-  fb_shortfall_pct: "pct",
-};
-
 const MONEY_KEYS: readonly MoneyKey[] = ["group_rate", "fb_minimum"];
 
 const CURRENCY_WORDS: Record<string, Currency> = { $: "$", usd: "$", "€": "€", eur: "€", euro: "€", euros: "€", "£": "£", gbp: "£" };
@@ -97,89 +86,6 @@ function amountsIn(quote: string): { value: number; currency: Currency }[] {
     if (value !== null) found.push({ value, currency: CURRENCY_WORDS[m[2].toLowerCase()] });
   }
   return found;
-}
-
-const definition = (key: string, unit: NumericUnit): TermDefinition => ({ key, kind: "number", unit, meaning: key });
-
-/** A figure's value when its quote is in the contract and states it, else null. */
-function checked(raw: unknown, key: string, unit: NumericUnit, parts: LocatablePart[]): number | null {
-  if (!raw || typeof raw !== "object") return null;
-  const { value, quoted_text } = raw as { value?: unknown; quoted_text?: unknown };
-  if (typeof quoted_text !== "string" || !quoted_text.trim()) return null;
-  const def = definition(key, unit);
-  const normalized = normalizeValue(def, value);
-  if (!normalized.ok || typeof normalized.value !== "number") return null;
-  return verify(def, normalized.value, quoted_text, null, parts) === "verified" ? normalized.value : null;
-}
-
-/** An amount and its currency when the quote is in the contract and states it, else null. */
-function checkedMoney(raw: unknown, key: string, parts: LocatablePart[]): { value: number; currency: Currency } | null {
-  if (!raw || typeof raw !== "object") return null;
-  const { value, quoted_text } = raw as { value?: unknown; quoted_text?: unknown };
-  if (typeof quoted_text !== "string" || !quoted_text.trim()) return null;
-  const def = definition(key, "usd");
-  const normalized = normalizeValue(def, value);
-  if (!normalized.ok || typeof normalized.value !== "number") return null;
-  const amount = normalized.value;
-
-  // verify() places the quote in the contract and reads dollar amounts itself.
-  const verdict = verify(def, amount, quoted_text, null, parts);
-  if (verdict === "unlocated" || verdict === "contradicted") return null;
-  if (verdict === "verified") return { value: amount, currency: "$" };
-  const match = amountsIn(quoted_text).find((a) => Math.abs(a.value - amount) < 1e-9);
-  return match ? { value: amount, currency: match.currency } : null;
-}
-
-const BASES: readonly TierBase[] = ["minimum_room_nights", "room_block", "other"];
-const CHARGES: readonly TierCharge[] = ["rate", "room_profit"];
-
-function checkedTiers(raw: unknown, parts: LocatablePart[]): CancellationTier[] {
-  if (!Array.isArray(raw)) return [];
-  const tiers: CancellationTier[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
-    const { label, room_pct, base, charges, quoted_text } = item as Record<string, unknown>;
-    if (typeof label !== "string" || !BASES.includes(base as TierBase) || !CHARGES.includes(charges as TierCharge)) continue;
-    const pct = checked({ value: room_pct, quoted_text }, "cancellation.tier", "pct", parts);
-    if (pct === null) continue;
-    tiers.push({ label: label.trim(), room_pct: pct, base: base as TierBase, charges: charges as TierCharge });
-  }
-  return tiers;
-}
-
-/** Why a figure the model gave was not kept, for the server log. Null when it gave none. */
-function rejection(raw: unknown, key: string, unit: NumericUnit, parts: LocatablePart[]): string | null {
-  if (!raw || typeof raw !== "object") return null;
-  const { value, quoted_text } = raw as { value?: unknown; quoted_text?: unknown };
-  if (value === null || value === undefined) return null;
-  if (typeof quoted_text !== "string" || !quoted_text.trim()) return "it came with no quote";
-  const def = definition(key, unit);
-  const normalized = normalizeValue(def, value);
-  if (!normalized.ok || typeof normalized.value !== "number") return "its value is not a number";
-  const verdict = verify(def, normalized.value, quoted_text, null, parts);
-  return verdict === "unlocated" ? "its quote is not in the contract" : `its quote does not state it (${verdict})`;
-}
-
-export function checkFigures(raw: unknown, parts: LocatablePart[]): DealFigures {
-  if (!raw || typeof raw !== "object") return NO_FIGURES;
-  const input = raw as Record<string, unknown>;
-  const figures: DealFigures = { ...NO_FIGURES, cancellation_tiers: checkedTiers(input.cancellation_tiers, parts) };
-  for (const key of Object.keys(UNITS) as ScalarKey[]) {
-    figures[key] = checked(input[key], key, UNITS[key], parts);
-    if (figures[key] === null) logRejected(key, rejection(input[key], key, UNITS[key], parts));
-  }
-  for (const key of MONEY_KEYS) {
-    const money = checkedMoney(input[key], key, parts);
-    figures[key] = money?.value ?? null;
-    figures.currency ??= money?.currency ?? null;
-    if (!money) logRejected(key, rejection(input[key], key, "usd", parts));
-  }
-
-  const given = Array.isArray(input.cancellation_tiers) ? input.cancellation_tiers.length : 0;
-  if (given > figures.cancellation_tiers.length) {
-    console.warn(`[exposures] kept ${figures.cancellation_tiers.length} of ${given} cancellation tiers the model gave`);
-  }
-  return figures;
 }
 
 /** The catalog term each figure is read from. */

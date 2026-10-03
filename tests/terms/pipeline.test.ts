@@ -3,7 +3,8 @@ import path from "node:path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MODEL_CALL_BUDGET_MS, STALE_ANALYSIS_MINUTES } from "@/lib/analysis-status";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
-import { answerName, type ModelRequest } from "../helpers/model-request";
+import { EXPOSURE_CATALOG } from "@/lib/review";
+import { answerName, answerSchema, type ModelRequest } from "../helpers/model-request";
 
 /**
  * processAnalysis with term extraction switched off, on, failing, and gated.
@@ -141,13 +142,17 @@ describe("a contract stopped at the AI-use check", () => {
 });
 
 describe("term extraction in processAnalysis", () => {
-  it("is off by default: one model call, no term writes", async () => {
+  it("is off by default: the reading call asks only for the exposure terms, and no term is stored", async () => {
     await processAnalysis("analysis-1");
 
-    expect(toolCalled()).toEqual(["record_analysis"]);
+    expect(toolCalled().sort()).toEqual(["record_analysis", "record_contract_terms"]);
+    const reading = create.mock.calls.map((c) => c[0]).find((body) => answerName(body) === "record_contract_terms");
+    expect(answerSchema(reading).properties.terms.items.properties.term_key.enum).toEqual(EXPOSURE_CATALOG.terms.map((t) => t.key));
     expect(termWrites()).toEqual([]);
     expect(updatesTo("analyses").some((u) => "term_extraction" in u)).toBe(false);
-    expect(updatesTo("analyses").some((u) => u.status === "complete")).toBe(true);
+
+    const complete = updatesTo("analyses").find((u) => u.status === "complete");
+    expect(complete?.token_usage).toMatchObject({ reading: { input: 100, output: 10 } });
   });
 
   it("saves the model's notes on the document, and saves none when it wrote none", async () => {
@@ -196,6 +201,8 @@ describe("term extraction in processAnalysis", () => {
     await processAnalysis("analysis-1");
 
     expect(toolCalled().sort()).toEqual(["record_analysis", "record_contract_terms"]);
+    const reading = create.mock.calls.map((c) => c[0]).find((body) => answerName(body) === "record_contract_terms");
+    expect(answerSchema(reading).properties.terms.items.properties.term_key.enum).toHaveLength(HOTEL_TERM_CATALOG.terms.length);
     const [cleared, inserted] = termWrites();
     expect(cleared.op).toBe("delete");
     expect(inserted.payload).toHaveLength(HOTEL_TERM_CATALOG.terms.length);

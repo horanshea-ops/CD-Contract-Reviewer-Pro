@@ -320,12 +320,12 @@ describe("the analysis system prompt", () => {
       expect(text).toContain("layout markers are ours");
     });
 
-    it("asks for the contract's figures with their quotes, and never a worked-out one", () => {
+    it("asks for no figures and no exposure, which the reading pass and the app work out", () => {
       // The app works out every exposure itself. A real run's own formulas applied 70% twice.
       const text = prompt();
-      expect(text).toContain("Record the contract's figures in deal_figures, each with the words it comes from.");
-      expect(text).toContain("never work one out");
+      expect(text).not.toContain("deal_figures");
       expect(text).not.toContain("exposure_formula");
+      expect(text).not.toContain("exposure_amount");
     });
   });
 });

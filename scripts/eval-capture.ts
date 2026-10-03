@@ -3,10 +3,10 @@ loadEnvLocal();
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { analyzeContract } from "../lib/anthropic";
 import { extractDocx } from "../lib/docx";
 import { contractText } from "../lib/docx/contract-text";
 import { standardsMismatch } from "../lib/eval/score";
+import { reviewContract } from "../lib/review";
 import { loadStandardsLibrary } from "../lib/standards/load";
 import type { AnswerKey, RunDocument, RunRecord } from "../lib/eval/types";
 import { withRetry } from "./with-retry";
@@ -99,11 +99,12 @@ async function main() {
       const text = contractText(extracted);
 
       const analysis = await withRetry(() =>
-        analyzeContract({
+        reviewContract({
           document: { kind: "text", text },
           standards: standards.entries,
           standardsVersion: standards.version,
           model,
+          parts: extracted.parts,
         })
       );
 

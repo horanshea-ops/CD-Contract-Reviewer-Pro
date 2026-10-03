@@ -1,11 +1,13 @@
 import { createAdminClient } from "./supabase/admin";
-import { analyzeContract, type AnalyzableDocument } from "./anthropic";
+import type { AnalyzableDocument } from "./anthropic";
 import { extractDocx, type ContractPicture, type DocumentComment } from "./docx";
 import { pictureContext } from "./document-checks";
 import { textSentToModel } from "./document-comments";
 import { contractText } from "./docx/contract-text";
 import type { LocatablePart } from "./redline-engine/locate";
-import { extractionRecord, extractTerms, termRows } from "./terms/extract";
+import { reviewContract, type ReadingOutcome } from "./review";
+import { HOTEL_TERM_CATALOG } from "./terms/catalog";
+import { extractionRecord, termRows } from "./terms/extract";
 import { loadStandardsLibrary } from "./standards/load";
 import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
@@ -167,32 +169,25 @@ export async function processAnalysis(analysisId: string) {
       }
     }
 
-    // §2.0.2 — term extraction, off unless TERM_EXTRACTION=on. It runs
-    // alongside the review and after the AI-use gate, since it also sends the
-    // contract to the model. Both outcomes resolve rather than reject, so a
-    // failed pass can never fail the review or leave a rejection unhandled.
-    const termsPass =
-      process.env.TERM_EXTRACTION === "on"
-        ? extractTerms({ document, parts: readParts ?? [{ part: "document", text: scanText }] }).then(
-            (outcome) => ({ ok: true as const, ...outcome }),
-            (err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : String(err) })
-          )
-        : null;
-
     // Marks the review as one that called the model, which is what the monthly allowance counts.
     const modelCalledAt = new Date().toISOString();
     await admin.from("analyses").update({ token_usage: { model_called_at: modelCalledAt } }).eq("id", analysisId);
 
-    const result = await analyzeContract({
+    // Both calls run after the AI-use gate, since each sends the contract to
+    // the model. The reading call reads the whole catalog when
+    // TERM_EXTRACTION=on (§2.0.2), and only the terms exposures need otherwise.
+    const storesTerms = process.env.TERM_EXTRACTION === "on";
+    const result = await reviewContract({
       document,
       standards: standards.entries,
       standardsVersion: standards.version,
       contextNote: pictureContext(pictures),
       deadline,
-      // A PDF reaches the model as a file, so its figures are checked against the text read from it.
-      contractText: scanText ?? undefined,
       comments,
       commentsTotal,
+      // A PDF reaches the model as a file, so the reader's quotes are checked against the text read from it.
+      parts: readParts ?? [{ part: "document", text: scanText }],
+      catalog: storesTerms ? HOTEL_TERM_CATALOG : undefined,
     });
 
     const unquoted = result.findings.filter((f) => f.category === "business" && !f.is_missing_clause && !f.quoted_text?.trim());
@@ -286,6 +281,8 @@ export async function processAnalysis(analysisId: string) {
           cache_read_input_tokens: result.cache_read_input_tokens,
           cache_creation_input_tokens: result.cache_creation_input_tokens,
           thinking_chars: result.thinking_chars ?? 0,
+          // The reading call's own usage, so a review's whole cost can be worked out.
+          reading: result.reading.ok ? result.reading.tokens : { error: result.reading.error },
         },
       })
       .eq("id", analysisId);
@@ -313,7 +310,7 @@ export async function processAnalysis(analysisId: string) {
       },
     });
 
-    if (termsPass) await saveTerms(admin, analysisId, await termsPass);
+    if (storesTerms) await saveTerms(admin, analysisId, result.reading);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
@@ -332,10 +329,6 @@ export async function processAnalysis(analysisId: string) {
   }
 }
 
-type TermsOutcome =
-  | ({ ok: true } & Awaited<ReturnType<typeof extractTerms>>)
-  | { ok: false; error: string };
-
 /**
  * Stores a term extraction pass. Best-effort by design: nothing reads terms
  * yet, so a failure here is logged and recorded, never raised into a review
@@ -344,7 +337,7 @@ type TermsOutcome =
  * Any earlier rows for the analysis are replaced, so a re-run never leaves two
  * passes' terms side by side.
  */
-async function saveTerms(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: TermsOutcome) {
+async function saveTerms(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: ReadingOutcome) {
   try {
     let record = extractionRecord(outcome);
 
