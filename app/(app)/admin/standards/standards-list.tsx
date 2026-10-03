@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
-import { StatusPill } from "@/components/ui/status-pill";
 import { useToast } from "@/components/ui/toast";
 import { Body, Meta } from "@/components/ui/typography";
 import { SEVERITY_STYLE } from "@/components/severity-style";
@@ -35,11 +34,11 @@ export interface StandardRow {
   retired_at: string | null;
 }
 
-// Short labels, because the banner above the list already says which are unvalidated.
-const PROVENANCE_STYLE: Record<StandardRow["provenance"], { label: string; className: string }> = {
-  industry_default: { label: "Industry default", className: "bg-[var(--severity-medium-bg)] text-[var(--severity-medium)]" },
-  extracted: { label: "Extracted", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
-  cd_validated: { label: `${ORG.shortName} validated`, className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
+/** Where a standard came from. Shown when a row is opened, and set in the Edit form. */
+const PROVENANCE_LABEL: Record<StandardRow["provenance"], string> = {
+  industry_default: "Industry default",
+  extracted: "Extracted",
+  cd_validated: `${ORG.shortName} validated`,
 };
 
 const SEVERITY_OPTIONS = ["high", "medium", "low"] as const;
@@ -473,7 +472,6 @@ function StandardItem({
   const { showToast } = useToast();
   const [form, setForm] = useState(formOf(standard));
 
-  const provenanceStyle = PROVENANCE_STYLE[standard.provenance];
   const severityStyle = SEVERITY_STYLE[standard.severity_default];
   const isBusiness = standard.category === "business";
 
@@ -524,6 +522,7 @@ function StandardItem({
   }
 
   const meta = [
+    `Source: ${PROVENANCE_LABEL[standard.provenance]}`,
     standard.segment !== "default" && `Segment: ${standard.segment}`,
     standard.provenance === "cd_validated" &&
       standard.validated_by &&
@@ -574,7 +573,6 @@ function StandardItem({
         <Meta as="span" className={cn(LABEL_CLASSES, "mt-0.5 shrink-0")} style={{ color: severityStyle.textColor }}>
           {severityStyle.label}
         </Meta>
-        <StatusPill label={provenanceStyle.label} className={`shrink-0 ${provenanceStyle.className}`} />
       </button>
 
       {open && (
@@ -673,7 +671,7 @@ function StandardItem({
                   >
                     {PROVENANCE_OPTIONS.map((p) => (
                       <option key={p} value={p}>
-                        {p}
+                        {PROVENANCE_LABEL[p]}
                       </option>
                     ))}
                   </FieldSelect>
