@@ -440,6 +440,42 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
           on 5.5 and `between_tools` at `xhigh` are rejected. The schema's
           descriptions count toward the request (24,083 tokens with them,
           22,226 without), so the model sees them.
+        - **First 5.5 run `4f803f16` failed in its first second, at no cost
+          (2026-10-03).** Anthropic refused the review's output format with
+          "The compiled grammar is too large". The token-counting endpoint had
+          accepted it, because counting checks a schema's keywords and never
+          compiles it. `scripts/check-request-shapes.ts --compile` now makes
+          the cheapest real call that does (under a cent a form).
+        - **The cap belongs to the enforcement service.** Sonnet 5 refuses the
+          same form. Six of the seven forms compile. The review form (60
+          fields) doesn't, and no change that keeps every field enforced got
+          it under the cap. It compiles without the figures section, or
+          without the legal findings list. Probes cost $0.04 in all.
+        - **One reading pass (user, 2026-10-03), on `review/one-reading-pass`,
+          cut from `migrate/sonnet-5-5`.** The user chose to split reading from
+          judging now, and to do it once. A review is two calls side by side
+          (`lib/review.ts`). The judging call writes the findings. The reading
+          call is the term pass, and exposures are worked out from its checked
+          terms (`figuresFromTerms`). It asks for the exposure terms alone when
+          `TERM_EXTRACTION` is off, and the whole catalog when on, so each
+          number is read once.
+          - Catalog `hotel-v2` adds the block's total room nights, the minimum
+            room nights, and which room nights the cancellation fee applies to.
+          - The review form and prompt lose `deal_figures`, for both models, so
+            every golden changed. `checkFigures` is retired. The exposure
+            arithmetic is untouched, and the Florida and Rome figures give the
+            same amounts fed from terms.
+          - A failed reading call is retried once, then the review completes
+            with no exposures. The review screen doesn't yet say why they are
+            missing.
+          - A review costs about $0.05 more, since the contract is sent twice.
+          - Lint, typecheck and 1,366 tests pass. The free shape check passes.
+          - **Still to do, each paid step with its own yes.** The compile sweep
+            (about $0.02). The reading call alone on Florida on Sonnet 5 (about
+            $0.07, `scripts/read-figures.ts`), which must reproduce $121,524.
+            The Florida review on Sonnet 5 and then on 5.5 (about $0.45 each),
+            compared with `c27f414d`. Then the seven-contract evals, since
+            this changes Sonnet 5 too, before any merge to `main`.
       - **Steps.** Opus work, since it changes every model request. Each paid
         step needs its own yes.
         1. Done. Merge `main` into the branch. Add `between_tools` and
