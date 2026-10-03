@@ -148,7 +148,7 @@ export async function generateRedline({
       ? ""
       : ` Leaves out ${dropped.length === 1 ? "a sentence" : `${dropped.length} sentences`} the contract already has.`) +
     reworded
-      .map((s) => ` Leaves out a rewrite of wording it doesn't quote: "${excerpt(s)}". Edit the finding to change that sentence.`)
+      .map((s) => ` Leaves out one sentence ("${excerpt(s)}"), which rewords a sentence the contract already has that this change doesn't replace.`)
       .join("");
 
   const append = (finding: RevisionFinding) => {

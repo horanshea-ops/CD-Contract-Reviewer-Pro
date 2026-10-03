@@ -336,17 +336,81 @@ function commentProblems(pkg: ReadPackage, ownCommentIds: string[]): string[] {
   return problems;
 }
 
+/** Every comment marker outside the comments part, as "tag id". */
+function markerKeys(pkg: ReadPackage): Map<string, Element[]> {
+  const found = new Map<string, Element[]>();
+  for (const part of pkg.xmlParts.values()) {
+    if (part.root === "w:comments") continue;
+    for (const tag of COMMENT_MARKERS) {
+      for (const el of elementsByTag(part.doc, tag)) {
+        const key = `${tag} ${el.getAttribute("w:id") ?? ""}`;
+        found.set(key, [...(found.get(key) ?? []), el]);
+      }
+    }
+  }
+  return found;
+}
+
+/** Ids of comments in `before` that have a marker missing from `after`. */
+export function lostCommentMarkers(before: ReadPackage, after: ReadPackage, skipIds: ReadonlySet<string> = new Set()): string[] {
+  const kept = markerKeys(after);
+  const lost = new Set<string>();
+  for (const key of markerKeys(before).keys()) {
+    const id = key.split(" ")[1];
+    if (!skipIds.has(id) && !kept.has(key)) lost.add(id);
+  }
+  return [...lost];
+}
+
+/** Whether a node sits inside one of our revisions, or in a table row we struck or added. */
+function insideOurChange(el: Element, ownRevisionIds: ReadonlySet<string>): boolean {
+  for (let node = el.parentNode as Element | null; node && node.nodeType === 1; node = node.parentNode as Element | null) {
+    if (isRevisionTag(node.nodeName) && ownRevisionIds.has(node.getAttribute("w:id") ?? "")) return true;
+    if (node.nodeName === "w:tr") {
+      const marks = [rowRevision(node, "w:del"), rowRevision(node, "w:ins")];
+      if (marks.some((m) => m && ownRevisionIds.has(m.id))) return true;
+    }
+  }
+  return false;
+}
+
+/** Problems for comments the original already held: a marker gone, or one caught inside our change. */
+function existingCommentProblems(input: ReadPackage, output: ReadPackage, ownRevisionIds: ReadonlySet<string>): string[] {
+  const problems = lostCommentMarkers(input, output).map((id) => `A comment already in the file (id ${id}) lost one of its markers.`);
+
+  const existing = new Set([...markerKeys(input).keys()]);
+  for (const [key, els] of markerKeys(output)) {
+    if (!existing.has(key)) continue;
+    if (els.some((el) => insideOurChange(el, ownRevisionIds))) {
+      problems.push(
+        `One of this export's changes wraps a comment already in the file (id ${key.split(" ")[1]}), ` +
+          `so accepting or rejecting the change would remove the comment.`
+      );
+    }
+  }
+  return problems;
+}
+
 /**
  * Comments resolve. Every reference points at a comment Word can find, no two
  * comments share an id, and each comment this export wrote has a start, an end
- * and a reference.
+ * and a reference. A comment the file already had keeps every marker, and none
+ * of them sits inside one of our changes.
  *
  * Only problems the original did not already have count. A property's file
  * with a dangling reference is theirs to fix, and fixture 14 is one.
  */
-export function checkComments(input: ReadPackage, output: ReadPackage, ownCommentIds: string[]): CheckResult {
+export function checkComments(
+  input: ReadPackage,
+  output: ReadPackage,
+  ownCommentIds: string[],
+  ownRevisionIds: ReadonlySet<string> = new Set()
+): CheckResult {
   const before = new Set(commentProblems(input, []));
-  const added = commentProblems(output, ownCommentIds).filter((p) => !before.has(p));
+  const added = [
+    ...commentProblems(output, ownCommentIds).filter((p) => !before.has(p)),
+    ...existingCommentProblems(input, output, ownRevisionIds),
+  ];
   if (added.length) return fail("comments_consistent", added[0]);
   return pass("comments_consistent", "Every comment resolves.");
 }

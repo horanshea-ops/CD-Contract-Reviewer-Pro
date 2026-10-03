@@ -52,7 +52,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   try {
     const extracted = await extractDocx(new Uint8Array(await originalBlob.arrayBuffer()));
-    return NextResponse.json({ parts: buildPreview(extracted) });
+    return NextResponse.json({
+      parts: buildPreview(extracted),
+      comments: extracted.comments,
+      commentsTotal: extracted.commentsTotal,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not read this document.";
     return NextResponse.json({ error: message }, { status: 500 });

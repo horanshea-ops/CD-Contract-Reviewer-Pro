@@ -2,7 +2,15 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { extractDocx } from "@/lib/docx";
-import { buildPartPreview, buildPreview, resolveHighlight, type PreviewBlock, type PreviewRun } from "@/lib/docx-preview";
+import {
+  buildPartPreview,
+  buildPreview,
+  rangeOrNearestWord,
+  resolveHighlight,
+  segmentRun,
+  type PreviewBlock,
+  type PreviewRun,
+} from "@/lib/docx-preview";
 
 const DIR = path.join("tests", "fixtures");
 const load = async (f: string) => extractDocx(await readFile(path.join(DIR, f)));
@@ -233,5 +241,49 @@ describe("resolveHighlight", () => {
     const covered = extracted.document.text.slice(match!.start, match!.end);
     expect(covered).toContain("365 or more");
     expect(covered).toContain("25%");
+  });
+});
+
+describe("marks on the preview", () => {
+  const run = { text: "commission of 8% of the rate", range: { start: 100, end: 128 } };
+
+  it("leaves a run whole when no mark crosses it", () => {
+    expect(segmentRun(run, [{ key: "a", start: 10, end: 20 }])).toEqual([{ text: run.text, start: 100, end: 128, marks: [] }]);
+  });
+
+  it("cuts a run at a mark's edges", () => {
+    expect(segmentRun(run, [{ key: "c1", start: 114, end: 115 }]).map((s) => [s.text, s.marks])).toEqual([
+      ["commission of ", []],
+      ["8", ["c1"]],
+      ["% of the rate", []],
+    ]);
+  });
+
+  it("gives a piece every mark that covers it when two overlap", () => {
+    const pieces = segmentRun(run, [
+      { key: "focus", start: 100, end: 116 },
+      { key: "c1", start: 114, end: 128 },
+    ]);
+    expect(pieces.map((s) => [s.text, s.marks])).toEqual([
+      ["commission of ", ["focus"]],
+      ["8%", ["focus", "c1"]],
+      [" of the rate", ["c1"]],
+    ]);
+    expect(pieces.map((s) => s.text).join("")).toBe(run.text);
+  });
+
+  it("covers a whole run that sits inside a mark that started earlier", () => {
+    expect(segmentRun(run, [{ key: "c1", start: 50, end: 500 }])).toEqual([{ text: run.text, start: 100, end: 128, marks: ["c1"] }]);
+  });
+
+  it("keeps a range that has width, and finds a word for one that has none", () => {
+    const text = "The cutoff is  before arrival.";
+    expect(rangeOrNearestWord(text, 4, 10)).toEqual({ start: 4, end: 10 });
+    const word = (at: number) => {
+      const { start, end } = rangeOrNearestWord(text, at, at);
+      return text.slice(start, end);
+    };
+    expect(word(14)).toBe("before");
+    expect(word(text.length)).toBe("arrival.");
   });
 });

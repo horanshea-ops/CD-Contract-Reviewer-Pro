@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { commentContext } from "./document-comments";
+import type { DocumentComment } from "./docx";
 import type { Category, StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
@@ -144,6 +146,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             "clause_type",
             "is_missing_clause",
             "severity",
+            "quoted_text",
             "headline",
             "finding_text",
             "cd_standard",
@@ -391,6 +394,10 @@ export interface AnalyzeContractPdfArgs {
   deadline?: number;
   /** The contract as text, for checking the figures the model quotes. Defaults to a text document's own text. */
   contractText?: string;
+  /** Comments already in the file. They reach the model in a block of their own, after the contract. */
+  comments?: DocumentComment[];
+  /** How many comments the file holds, when that is more than `comments` carries. */
+  commentsTotal?: number;
 }
 
 /**
@@ -433,6 +440,8 @@ export async function analyzeContract({
   org = ORG,
   deadline,
   contractText,
+  comments,
+  commentsTotal,
 }: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -448,6 +457,11 @@ export async function analyzeContract({
     document.kind === "pdf"
       ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
       : contractContent(document);
+
+  const commentBlock = commentContext(comments, commentsTotal);
+  if (commentBlock) {
+    userContent.push({ type: "text", text: commentBlock });
+  }
 
   if (contextNote) {
     userContent.push({ type: "text", text: contextNote });

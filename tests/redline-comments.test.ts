@@ -124,6 +124,14 @@ describe("the content check", () => {
     expect(noteProblem(note)).toContain(why === "figures" ? "figures" : why);
   });
 
+  it("refuses a filler word standing in for a note", () => {
+    for (const filler of ["placeholder", "N/A", "none", "TBD", "No comment."]) {
+      expect(noteProblem(filler), filler).toContain("full sentence");
+      expect(sanitizeNote(filler)).toBe("");
+    }
+    expect(noteProblem("Keeps the rate available longer.")).toBeNull();
+  });
+
   it("refuses a note over the length limit", () => {
     expect(noteProblem("word ".repeat(30))).toContain("at most");
   });

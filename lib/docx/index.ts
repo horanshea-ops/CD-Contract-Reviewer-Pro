@@ -1,3 +1,4 @@
+import { readComments } from "./comments";
 import { assessHealth } from "./health";
 import { findPictures } from "./pictures";
 import { NumberingResolver } from "./numbering";
@@ -12,6 +13,7 @@ export { NumberingResolver } from "./numbering";
 // §1.5 walks parts itself: it needs the DOM and the run elements, which the
 // extraction result deliberately does not carry.
 export { walkPart } from "./walk";
+export { COMMENT_LIMIT, COMMENT_TEXT_LIMIT } from "./comments";
 export type { WalkResult } from "./walk";
 export * from "./types";
 
@@ -43,10 +45,13 @@ export async function extractDocx(
   if (!document) throw new DocxParseError("word/document.xml produced no content.");
 
   const { pictures, images } = await findPictures(pkg);
+  const { comments, total } = await readComments(pkg, parts);
   return {
     parts,
     document,
     existingRevisions: summariseRevisions(parts),
+    comments,
+    commentsTotal: total,
     health: {
       ...assessHealth({ pkg, parts, fileSizeBytes: opts.fileSizeBytes ?? bytes.byteLength }),
       pictures,

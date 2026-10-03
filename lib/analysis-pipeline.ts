@@ -1,7 +1,8 @@
 import { createAdminClient } from "./supabase/admin";
 import { analyzeContract, type AnalyzableDocument } from "./anthropic";
-import { extractDocx, type ContractPicture } from "./docx";
+import { extractDocx, type ContractPicture, type DocumentComment } from "./docx";
 import { pictureContext } from "./document-checks";
+import { textSentToModel } from "./document-comments";
 import { contractText } from "./docx/contract-text";
 import type { LocatablePart } from "./redline-engine/locate";
 import { extractionRecord, extractTerms, termRows } from "./terms/extract";
@@ -86,6 +87,9 @@ export async function processAnalysis(analysisId: string) {
     let readParts: LocatablePart[] | null = null;
     // A PDF carries its pictures itself, so only extracted text needs a word about them.
     let pictures: ContractPicture[] = [];
+    // Comments already in the file. They go to the model beside the contract, never inside it.
+    let comments: DocumentComment[] = [];
+    let commentsTotal = 0;
     if (analysis.intake_route === "docx_native" && analysis.original_storage_path) {
       try {
         const { data: originalBlob, error: originalErr } = await admin.storage
@@ -97,6 +101,8 @@ export async function processAnalysis(analysisId: string) {
         document = { kind: "text", text: scanText, pictures: extracted.pictures };
         pictures = extracted.health.pictures ?? [];
         readParts = extracted.parts;
+        comments = extracted.comments;
+        commentsTotal = extracted.commentsTotal;
       } catch (extractErr) {
         // Falling back to the PDF loses table structure but still produces an
         // analysis, which beats failing the run outright. Recorded, not silent.
@@ -128,8 +134,9 @@ export async function processAnalysis(analysisId: string) {
     // has already ruled on this analysis (a resumed run after "proceed"):
     // the compliance record was written by that decision, not by re-scanning.
     if (!analysis.ai_clause_acknowledged_at) {
-      const aiMatches = scanForAiUseTerms(scanText);
-      const adjacentMatches = scanForAdjacentTerms(scanText);
+      const sent = textSentToModel(scanText, comments);
+      const aiMatches = scanForAiUseTerms(sent);
+      const adjacentMatches = scanForAdjacentTerms(sent);
 
       await admin
         .from("analyses")
@@ -184,7 +191,17 @@ export async function processAnalysis(analysisId: string) {
       deadline,
       // A PDF reaches the model as a file, so its figures are checked against the text read from it.
       contractText: scanText ?? undefined,
+      comments,
+      commentsTotal,
     });
+
+    const unquoted = result.findings.filter((f) => f.category === "business" && !f.is_missing_clause && !f.quoted_text?.trim());
+    if (unquoted.length > 0) {
+      console.warn(
+        `processAnalysis: ${analysisId} has ${unquoted.length} business finding(s) that change a clause without quoting it — ` +
+          unquoted.map((f) => f.clause_type).join(", ")
+      );
+    }
 
     if (result.findings.length > 0) {
       const findingRows = result.findings.map((f) => ({

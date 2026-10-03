@@ -1,7 +1,7 @@
 import type { Finding, Severity } from "./anthropic";
 import type { Category, StandardEntry } from "./standards/types";
 import { OTHER_CLAUSE_TYPE } from "./other-findings";
-import { sanitizeNote } from "./redline-comments/note-guard";
+import { noteProblem, sanitizeNote } from "./redline-comments/note-guard";
 
 /**
  * Every finding's category comes from the library, never from the model.
@@ -78,13 +78,11 @@ export function applyCategories(findings: Finding[], standards: StandardEntry[])
 
     if (category === "business") {
       const compromise_range = standard?.compromise_range ?? "";
-      const redline_note = sanitizeNote(finding.redline_note, {
-        cd_standard: finding.cd_standard,
-        finding_text: finding.finding_text,
-        compromise_range,
-      });
+      const context = { cd_standard: finding.cd_standard, finding_text: finding.finding_text, compromise_range };
+      const redline_note = sanitizeNote(finding.redline_note, context);
       if (finding.redline_note?.trim() && !redline_note) {
-        console.warn(`[finding-categories] blanked a redline note on ${finding.clause_type} that failed the content check`);
+        const reason = noteProblem(finding.redline_note.replace(/\s+/g, " ").trim(), context);
+        console.warn(`[finding-categories] blanked a redline note on ${finding.clause_type}: ${reason}`);
       }
       return { ...finding, category, compromise_range, redline_note };
     }

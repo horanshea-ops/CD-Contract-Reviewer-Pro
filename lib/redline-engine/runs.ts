@@ -128,6 +128,15 @@ export function replaceRun(run: Element, pieces: (Element | null)[]) {
  * run, say — are included. They sit inside the wording being replaced, so
  * leaving them out would strike the text around them and leave them behind.
  */
+/**
+ * A run that only anchors a comment. It holds no wording, and a change that
+ * wrapped it would take the comment with it when accepted or rejected.
+ */
+function isCommentAnchor(run: Element): boolean {
+  const content = childElements(run).filter((c) => c.nodeName !== "w:rPr");
+  return content.length > 0 && content.every((c) => c.nodeName === "w:commentReference");
+}
+
 export function runsForSpan(part: WalkResult, span: LocatedSpan): Element[] {
   const refs: SourceRef[] = refsInSpan(part, span);
   if (refs.length === 0) return [];
@@ -149,7 +158,7 @@ export function runsForSpan(part: WalkResult, span: LocatedSpan): Element[] {
   const covered: Element[] = [];
   for (let index = first; index <= last; index++) {
     const run = part.runs[index];
-    if (!run) continue;
+    if (!run || isCommentAnchor(run)) continue;
 
     const length = runText(run).length;
     const bound = bounds.get(index);
