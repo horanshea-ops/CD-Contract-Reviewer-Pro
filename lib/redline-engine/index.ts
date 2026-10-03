@@ -2,6 +2,7 @@ import { NumberingResolver, loadDocx, walkPart, type ParsedPart, type WalkResult
 import type { RedlineEngineResult, UnappliedFinding, UnappliedReason, WidenedChange } from "../redline-validation/types";
 import { assessApplicability } from "./applicability";
 import { fitToProposal } from "./fit";
+import { revisionsById, revisionsIn, writeComments, type CommentAnchor } from "./comments";
 import { RevisionIds } from "./ids";
 import { locateQuote } from "./locate";
 import { appendClauses } from "./paragraphs";
@@ -46,6 +47,10 @@ export interface RedlineOutcome extends RedlineEngineResult {
   }[];
   /** Findings that were not applied, by id, in the order `unapplied` lists them. */
   unappliedIds: string[];
+  /** Comment ids this run wrote, for the clean copy to strip. */
+  ownCommentIds: string[];
+  /** True when this run added comments.xml, so the clean copy removes the part again. */
+  createdCommentsPart: boolean;
 }
 
 /** The opening of a sentence, for naming it in a resolution detail. */
@@ -71,11 +76,17 @@ function revisionAncestors(run: Element): Element[] {
 export async function generateRedline({
   originalDocxBytes,
   findings,
+  comments = new Map(),
   author,
   now = new Date(),
 }: {
   originalDocxBytes: Uint8Array;
   findings: RevisionFinding[];
+  /**
+   * The comment for each finding, by id, from lib/redline-comments/assembly.ts.
+   * The only source of comment text. A finding without an entry gets no comment.
+   */
+  comments?: ReadonlyMap<string, string>;
   author: string;
   now?: Date;
 }): Promise<RedlineOutcome> {
@@ -121,7 +132,10 @@ export async function generateRedline({
 
   // Clauses the contract does not have, appended together at the end (§1.5.8)
   // rather than one appendix per finding.
-  const toAppend: string[] = [];
+  const toAppend: { findingId: string; text: string }[] = [];
+
+  // What each applied finding wrote, for anchoring its comment once every change is in.
+  const written: { findingId: string; part: string; revisionIds: string[] }[] = [];
 
   // The contract as it arrived, for spotting wording a proposal repeats. A
   // proposal keeps any sentence another finding strikes, or the contract
@@ -161,7 +175,7 @@ export async function generateRedline({
       refuse(finding, "missing_clause", "unresolved", "applicable", "The finding proposes no language to add.");
       return;
     }
-    toAppend.push(language.trim());
+    toAppend.push({ findingId: finding.id, text: language.trim() });
     appliedCount++;
     resolutions.push({
       findingId: finding.id,
@@ -172,6 +186,8 @@ export async function generateRedline({
   };
 
   for (const finding of findings) {
+    const issuedBefore = ids.ownRevisionIds.length;
+
     // A point raised without wording, such as a term outside the standards
     // library. Marking its quote against empty wording would strike it.
     if (!finding.language.trim()) {
@@ -240,6 +256,7 @@ export async function generateRedline({
     // check only wording the file really strikes.
     const applied = (detail: string) => {
       appliedCount++;
+      written.push({ findingId: finding.id, part: span.part, revisionIds: ids.ownRevisionIds.slice(issuedBefore) });
       if (struck) {
         widened.push({ clause_type: finding.clause_type, severity: finding.severity, quoted_text: finding.quoted_text, struck });
       }
@@ -299,13 +316,53 @@ export async function generateRedline({
     applied(verdict.detail);
   }
 
+  const anchors: CommentAnchor[] = [];
+
   if (toAppend.length) {
-    appendClauses({ part: pkg.document, clauses: toAppend, author, date, ids });
+    const paragraphs = appendClauses({ part: pkg.document, clauses: toAppend.map((c) => c.text), author, date, ids });
     editedParts.add(pkg.document);
+    toAppend.forEach(({ findingId }, i) => {
+      const text = comments.get(findingId);
+      if (text && paragraphs[i]) anchors.push({ changes: revisionsIn(paragraphs[i]), text });
+    });
   }
+
+  // Word has no comments in headers or footers, so a change there goes out without one.
+  const inBody = revisionsById(pkg.document);
+  for (const { findingId, part, revisionIds } of written) {
+    const text = comments.get(findingId);
+    if (!text?.trim()) continue;
+    if (part !== pkg.document.name) {
+      const resolution = resolutions.find((r) => r.findingId === findingId);
+      if (resolution) resolution.detail += " Word doesn't allow comments in headers and footers, so this change has none.";
+      continue;
+    }
+    const changes = revisionIds.map((id) => inBody.get(id)).filter((el): el is Element => !!el);
+    anchors.push({ changes, text });
+  }
+
+  const { ownCommentIds, createdCommentsPart } = await writeComments({
+    zip: pkg.zip,
+    document: pkg.document,
+    anchors,
+    author,
+    date,
+    firstId: ids.nextFree,
+  });
+  if (ownCommentIds.length) editedParts.add(pkg.document);
 
   for (const part of editedParts) pkg.zip.file(part.path, serializePart(part));
   const docxBytes = await pkg.zip.generateAsync({ type: "uint8array" });
 
-  return { docxBytes, appliedCount, unapplied, widened, ownRevisionIds: ids.ownRevisionIds, resolutions, unappliedIds };
+  return {
+    docxBytes,
+    appliedCount,
+    unapplied,
+    widened,
+    ownRevisionIds: ids.ownRevisionIds,
+    ownCommentIds,
+    createdCommentsPart,
+    resolutions,
+    unappliedIds,
+  };
 }

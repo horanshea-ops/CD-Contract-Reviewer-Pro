@@ -32,6 +32,11 @@ export class RevisionIds {
     return id;
   }
 
+  /** The lowest id not yet used. Comments start here, so they never share an id with a revision. */
+  get nextFree(): number {
+    return this.next;
+  }
+
   /** The ids this run wrote, for §1.6 to attribute revisions by id rather than by name. */
   get ownRevisionIds(): string[] {
     return [...this.issued];

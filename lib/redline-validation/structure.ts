@@ -291,3 +291,62 @@ export function checkTableStructure(
 
   return pass("table_structure_preserved", `All ${tables} table(s) kept their rows and cells.`);
 }
+
+const COMMENT_MARKERS = ["w:commentRangeStart", "w:commentRangeEnd", "w:commentReference"] as const;
+
+/** Comment problems in one package, each phrased for the associate. */
+function commentProblems(pkg: ReadPackage, ownCommentIds: string[]): string[] {
+  const commentsPart = [...pkg.xmlParts.values()].find((p) => p.root === "w:comments");
+  const bodies = new Map<string, number>();
+  if (commentsPart) {
+    for (const c of elementsByTag(commentsPart.doc, "w:comment")) {
+      const id = c.getAttribute("w:id") ?? "";
+      bodies.set(id, (bodies.get(id) ?? 0) + 1);
+    }
+  }
+
+  const markers = new Map<string, Set<string>>();
+  for (const part of pkg.xmlParts.values()) {
+    if (part === commentsPart) continue;
+    for (const tag of COMMENT_MARKERS) {
+      for (const el of elementsByTag(part.doc, tag)) {
+        const id = el.getAttribute("w:id") ?? "";
+        if (!markers.has(id)) markers.set(id, new Set());
+        markers.get(id)!.add(tag);
+      }
+    }
+  }
+
+  const problems: string[] = [];
+  for (const [id, n] of bodies) {
+    if (n > 1) problems.push(`Two comments share id ${id}, so Word can't tell which is which.`);
+  }
+  for (const [id, tags] of markers) {
+    if (tags.has("w:commentReference") && !bodies.has(id)) {
+      problems.push(`A comment marker (id ${id}) points at a comment that is not in the file.`);
+    }
+  }
+  for (const id of ownCommentIds) {
+    const tags = markers.get(id);
+    const missing = COMMENT_MARKERS.filter((t) => !tags?.has(t));
+    if (!bodies.has(id) || missing.length) {
+      problems.push(`Comment ${id} was written without ${bodies.has(id) ? missing.join(", ") : "its text"}.`);
+    }
+  }
+  return problems;
+}
+
+/**
+ * Comments resolve. Every reference points at a comment Word can find, no two
+ * comments share an id, and each comment this export wrote has a start, an end
+ * and a reference.
+ *
+ * Only problems the original did not already have count. A property's file
+ * with a dangling reference is theirs to fix, and fixture 14 is one.
+ */
+export function checkComments(input: ReadPackage, output: ReadPackage, ownCommentIds: string[]): CheckResult {
+  const before = new Set(commentProblems(input, []));
+  const added = commentProblems(output, ownCommentIds).filter((p) => !before.has(p));
+  if (added.length) return fail("comments_consistent", added[0]);
+  return pass("comments_consistent", "Every comment resolves.");
+}

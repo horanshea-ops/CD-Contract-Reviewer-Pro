@@ -12,12 +12,16 @@ import { FIXTURE_AUTHOR, FIXTURE_CORPUS, readFixture } from "./helpers/fixture-c
  * to be zero before the pilot rate means anything.
  */
 
+// Every finding carries a comment, the heavier case for the oracle.
+const NOTE = "Keeps the group's costs in line with the rooms it uses.";
+
 async function runFixture(index: number) {
   const { file, findings } = FIXTURE_CORPUS[index];
   const originalBytes = new Uint8Array(await readFixture(file));
   const engineResult = await generateRedline({
     originalDocxBytes: originalBytes,
     findings,
+    comments: new Map(findings.map((f) => [f.id, NOTE])),
     author: FIXTURE_AUTHOR,
   });
   const report = await validateRedline({ originalBytes, engineResult, author: FIXTURE_AUTHOR });
