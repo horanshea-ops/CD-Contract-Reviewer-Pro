@@ -1,5 +1,6 @@
 import { logAudit } from "../audit";
 import { getActionedFindings, type NonSubstantiveFinding } from "../get-actioned-findings";
+import { getRedlineComments } from "../redline-comments/assembly";
 import { generateRedline, type RedlineOutcome, type RevisionFinding } from "../redline-engine";
 import { UNAPPLIED_REASON_TEXT, validateRedline, type ValidationReport } from "../redline-validation";
 import { recordExport, recordResolutions } from "../export-log";
@@ -85,6 +86,8 @@ export async function loadRedline(
   }
 
   const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
+  // Comment text comes only from the allowlist, never from `findings`.
+  const comments = ctx.includeComments ? await getRedlineComments(admin, analysisId) : new Map<string, string>();
   const originalBytes = new Uint8Array(await originalBlob.arrayBuffer());
 
   // The dialog preflights this format before it downloads it, so without the
@@ -93,11 +96,12 @@ export async function loadRedline(
   try {
     built = await cachedBuild(
       `${associate.id}:${analysisId}:redline`,
-      fingerprint([analysis.original_storage_path, associate.name, findings]),
+      fingerprint([analysis.original_storage_path, associate.name, findings, [...comments]]),
       async () => {
         const engineResult = await generateRedline({
           originalDocxBytes: originalBytes,
           findings,
+          comments,
           author: associate.name,
         });
         const report = await validateRedline({ originalBytes, engineResult, author: associate.name });
@@ -174,6 +178,7 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
         outcome: report.outcome,
         matched: report.appliedCount,
         unmatched: report.unapplied.length,
+        comments: engineResult.ownCommentIds.length,
         fallback_reason: report.fallbackReason,
       },
     });

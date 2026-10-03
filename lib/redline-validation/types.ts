@@ -78,6 +78,8 @@ export interface RedlineEngineResult {
    * property's own counsel shares a name with the associate.
    */
   ownRevisionIds: string[];
+  /** The comment ids this run wrote. Each must carry a full anchor and a body. */
+  ownCommentIds?: string[];
 }
 
 export type CheckName =
@@ -88,6 +90,7 @@ export type CheckName =
   | "relationships_resolve"
   | "revision_ids_unique"
   | "revision_marks_wellformed"
+  | "comments_consistent"
   | "table_structure_preserved"
   | "paragraph_count_preserved"
   | "reject_round_trip";

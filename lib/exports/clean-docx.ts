@@ -2,7 +2,7 @@ import { logAudit } from "../audit";
 import { acceptOwnRevisions } from "../docx-accept";
 import { recordExport } from "../export-log";
 import { readPackage } from "../redline-validation";
-import { allRevisions } from "../redline-validation/package";
+import { allRevisions, elementsByTag, type ReadPackage } from "../redline-validation/package";
 import {
   checkContentTypes,
   checkPartsParse,
@@ -22,8 +22,8 @@ const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordpro
  * export's changes accepted, so it keeps the property's exact formatting.
  *
  * Checked before delivery. It must open as a Word archive, keep every part,
- * carry none of our revision marks, and read exactly as the redline does with
- * every change accepted.
+ * carry none of our revision marks or comments, and read exactly as the
+ * redline does with every change accepted.
  */
 export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildResult> {
   const { admin, associate, analysis, analysisId } = ctx;
@@ -62,8 +62,9 @@ export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildRes
     fingerprint([analysis.original_storage_path, associate.name, findings]),
     async () => {
       const own = new Set(engineResult.ownRevisionIds);
-      const bytes = await acceptOwnRevisions(engineResult.docxBytes, own);
-      return { bytes, problems: await check(engineResult.docxBytes, bytes, own) };
+      const ownComments = { ids: new Set(engineResult.ownCommentIds), createdPart: engineResult.createdCommentsPart };
+      const bytes = await acceptOwnRevisions(engineResult.docxBytes, own, ownComments);
+      return { bytes, problems: await check(engineResult.docxBytes, bytes, own, ownComments) };
     }
   );
 
@@ -110,15 +111,25 @@ export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildRes
   };
 }
 
-async function check(redlineBytes: Uint8Array, cleanBytes: Uint8Array, own: Set<string>): Promise<string[]> {
+async function check(
+  redlineBytes: Uint8Array,
+  cleanBytes: Uint8Array,
+  own: Set<string>,
+  ownComments: { ids: Set<string>; createdPart: boolean }
+): Promise<string[]> {
   const redline = await readPackage(redlineBytes);
   const clean = await readPackage(cleanBytes);
   if (!redline.ok) return [redline.error];
   if (!clean.ok) return [clean.error];
 
+  // A comments part this export created is removed on purpose, so it is not a lost part.
+  const expected = ownComments.createdPart
+    ? { ...redline.pkg, entries: redline.pkg.entries.filter((e) => !isCommentsPart(redline.pkg, e)) }
+    : redline.pkg;
+
   const problems = [
     checkPartsParse(clean.pkg),
-    checkPartsPreserved(redline.pkg, clean.pkg),
+    checkPartsPreserved(expected, clean.pkg),
     checkContentTypes(clean.pkg),
     checkRelationships(clean.pkg),
   ]
@@ -128,11 +139,32 @@ async function check(redlineBytes: Uint8Array, cleanBytes: Uint8Array, own: Set<
   const left = allRevisions(clean.pkg).filter((r) => own.has(r.id));
   if (left.length) problems.push(`${left.length} of this export's tracked changes are still in the file.`);
 
+  const comments = ownCommentsLeft(clean.pkg, ownComments.ids);
+  if (comments) problems.push(`${comments} of this export's comments are still in the file.`);
+
   const alnum = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
   if (alnum(currentText(redline.pkg)) !== alnum(currentText(clean.pkg))) {
     problems.push("The clean copy does not read the same as the tracked-changes file with every change accepted.");
   }
   return problems;
+}
+
+const COMMENT_TAGS = ["w:comment", "w:commentRangeStart", "w:commentRangeEnd", "w:commentReference"];
+
+const isCommentsPart = (pkg: ReadPackage, path: string) => pkg.xmlParts.get(path)?.root === "w:comments";
+
+/** Comments of ours, or markers for them, anywhere in the package. */
+function ownCommentsLeft(pkg: ReadPackage, ids: Set<string>): number {
+  const found = new Set<string>();
+  for (const part of pkg.xmlParts.values()) {
+    for (const tag of COMMENT_TAGS) {
+      for (const el of elementsByTag(part.doc, tag)) {
+        const id = el.getAttribute("w:id") ?? "";
+        if (ids.has(id)) found.add(id);
+      }
+    }
+  }
+  return found.size;
 }
 
 function refusal(status: number, body: ExportRefusalResult["body"], summary: string): ExportRefusalResult {

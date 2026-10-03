@@ -40,6 +40,11 @@ export interface Finding {
   finding_text: string;
   cd_standard: string;
   proposed_language: string;
+  /**
+   * The short "why" for the redline comment, which the property reads. Business
+   * findings only. Absent on findings recorded before the model was asked for one.
+   */
+  redline_note?: string;
   model_confidence: "high" | "medium" | "low";
 }
 
@@ -129,6 +134,10 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
               description:
                 "Contract wording that replaces everything in quoted_text: repeat what stays, leave out what goes. Always an actual change — never a note that no change is needed, and never an instruction to the reviewer.",
             },
+            redline_note: {
+              type: "string",
+              description: `One short, neutral sentence, at most 20 words, saying what the change does for the group. It becomes a comment in the redline the hotel receives, so write it for the hotel to read. No figures, and nothing about ${firm}, its standards, positions, fallbacks or reasons.`,
+            },
             model_confidence: { type: "string", enum: ["high", "medium", "low"] },
           },
           required: [
@@ -139,6 +148,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
             "finding_text",
             "cd_standard",
             "proposed_language",
+            "redline_note",
             "model_confidence",
           ],
         },

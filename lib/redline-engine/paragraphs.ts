@@ -101,6 +101,8 @@ function insertedParagraph(
  *
  * Placed before `w:sectPr`, which carries the section's page setup and must
  * stay the last child of the body.
+ *
+ * Returns each clause's paragraph, in order, so a comment can be anchored on it.
  */
 export function appendClauses({
   part,
@@ -114,12 +116,12 @@ export function appendClauses({
   author: string;
   date: string;
   ids: RevisionIds;
-}): void {
-  if (clauses.length === 0) return;
+}): Element[] {
+  if (clauses.length === 0) return [];
 
   const doc = part.doc;
   const body = doc.getElementsByTagName("w:body")[0];
-  if (!body) return;
+  if (!body) return [];
 
   const paragraphs = childElements(body).filter((c) => c.nodeName === "w:p");
   const model = paragraphs[paragraphs.length - 1] ?? null;
@@ -131,5 +133,9 @@ export function appendClauses({
   };
 
   add(insertedParagraph(doc, HEADING, model, ids, author, date, true));
-  for (const clause of clauses) add(insertedParagraph(doc, clause, model, ids, author, date));
+  return clauses.map((clause) => {
+    const p = insertedParagraph(doc, clause, model, ids, author, date);
+    add(p);
+    return p;
+  });
 }

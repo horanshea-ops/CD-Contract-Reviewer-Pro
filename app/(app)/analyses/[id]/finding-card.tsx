@@ -36,6 +36,10 @@ export interface Finding {
   finding_text: string;
   cd_standard: string;
   proposed_language: string;
+  /** The model's comment for the redline, after the content check. Absent before migration 014. */
+  redline_note?: string;
+  /** The associate's version. Null means use the model's; empty means no comment. */
+  edited_redline_note?: string | null;
   model_confidence: "high" | "medium" | "low";
   current_action: {
     action: "accept" | "edit" | "dismiss";
@@ -289,6 +293,8 @@ export default function FindingCard({
         </Body>
       )}
 
+      {!isLegal && language.trim() && <RedlineComment finding={finding} />}
+
       {/* A point raised without wording says so once, in the Other section's heading. */}
       {finding.export_issue && language.trim() && (
         <Meta as="p" className="mt-3 rounded-md bg-[var(--severity-medium-bg)] text-[var(--text-primary)] px-2.5 py-1.5">
@@ -408,6 +414,116 @@ export default function FindingCard({
         </Meta>
       )}
     </Card>
+  );
+}
+
+/**
+ * The comment the redline carries on this change. The property reads it, so
+ * the server checks every edit before saving it.
+ */
+function RedlineComment({ finding }: { finding: Finding }) {
+  const suggested = finding.redline_note?.trim() ?? "";
+  const [edited, setEdited] = useState<string | null>(finding.edited_redline_note ?? null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const { showToast } = useToast();
+  const note = edited ?? suggested;
+
+  async function save(next: string | null) {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/findings/${finding.id}/redline-note`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: next }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setError(body.error || "Could not save the comment.");
+        return;
+      }
+      setEdited(body.edited_redline_note);
+      setEditing(false);
+      showToast(next === "" ? "Comment removed." : "Comment saved.");
+    } catch {
+      setError("Not saved. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="mt-3 space-y-2">
+        <Field
+          label="Comment in the redline"
+          hint="The property reads this. Say what the change does, without figures."
+          error={error || undefined}
+        >
+          <FieldInput type="text" value={draft} maxLength={160} onChange={(e) => setDraft(e.target.value)} />
+        </Field>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => save(draft)} disabled={!draft.trim()} loading={saving} loadingText="Saving...">
+            Save comment
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={saving}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const start = () => {
+    setDraft(note);
+    setError("");
+    setEditing(true);
+  };
+
+  return (
+    <div className="mt-3">
+      {note ? (
+        <Meta as="p" className="text-[var(--text-secondary)]">
+          <span className="font-medium text-[var(--text-primary)]">Comment in redline</span> · {note}
+        </Meta>
+      ) : null}
+      <div className="flex flex-wrap gap-x-3">
+        <TextButton onClick={start} disabled={saving}>
+          {note ? "Edit comment" : "Add a comment for the redline"}
+        </TextButton>
+        {note && (
+          <TextButton onClick={() => save("")} disabled={saving}>
+            Remove
+          </TextButton>
+        )}
+        {edited !== null && suggested && edited !== suggested && (
+          <TextButton onClick={() => save(null)} disabled={saving}>
+            Use suggested
+          </TextButton>
+        )}
+      </div>
+      {error && (
+        <Meta as="p" role="alert" className="text-[var(--severity-high)] mt-1">
+          {error}
+        </Meta>
+      )}
+    </div>
+  );
+}
+
+function TextButton({ onClick, disabled, children }: { onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="mt-0.5 text-xs text-[var(--cd-navy)] hover:underline disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+    >
+      {children}
+    </button>
   );
 }
 

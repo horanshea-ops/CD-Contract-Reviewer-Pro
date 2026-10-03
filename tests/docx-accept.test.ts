@@ -24,14 +24,29 @@ async function read(bytes: Uint8Array) {
   return r.pkg;
 }
 
+const NOTE = "Keeps the group's costs in line with the rooms it uses.";
+
+/** The redline with a comment on every change, and its clean copy. */
+async function redlineAndAccept(index: number) {
+  const { file, findings } = FIXTURE_CORPUS[index];
+  const originalBytes = new Uint8Array(await readFixture(file));
+  const result = await generateRedline({
+    originalDocxBytes: originalBytes,
+    findings,
+    comments: new Map(findings.map((f) => [f.id, NOTE])),
+    author: FIXTURE_AUTHOR,
+  });
+  const own = new Set(result.ownRevisionIds);
+  const clean = await acceptOwnRevisions(result.docxBytes, own, {
+    ids: new Set(result.ownCommentIds),
+    createdPart: result.createdCommentsPart,
+  });
+  return { originalBytes, result, own, clean };
+}
+
 describe("accepting this export's changes", () => {
   it.each(FIXTURE_CORPUS.map((c, i) => [i, c.file] as const))("%i %s", async (index) => {
-    const { file, findings } = FIXTURE_CORPUS[index];
-    const originalBytes = new Uint8Array(await readFixture(file));
-    const result = await generateRedline({ originalDocxBytes: originalBytes, findings, author: FIXTURE_AUTHOR });
-    const own = new Set(result.ownRevisionIds);
-
-    const clean = await acceptOwnRevisions(result.docxBytes, own);
+    const { originalBytes, result, own, clean } = await redlineAndAccept(index);
     const [original, redline, accepted] = await Promise.all([read(originalBytes), read(result.docxBytes), read(clean)]);
 
     expect(accepted.parseErrors).toEqual([]);
@@ -41,6 +56,14 @@ describe("accepting this export's changes", () => {
 
     const tables = (pkg: typeof original) => elementsByTag(pkg.xmlParts.get("word/document.xml")!.doc, "w:tbl").length;
     expect(tables(accepted)).toBe(tables(original));
+
+    // Our comments go, the property's stay, and the package has the parts it arrived with.
+    const commentIds = (pkg: typeof original, tag: string) =>
+      [...pkg.xmlParts.values()].flatMap((p) => elementsByTag(p.doc, tag).map((el) => el.getAttribute("w:id")));
+    for (const tag of ["w:comment", "w:commentRangeStart", "w:commentRangeEnd", "w:commentReference"]) {
+      expect(commentIds(accepted, tag).sort()).toEqual(commentIds(original, tag).sort());
+    }
+    expect(accepted.entries).toEqual(original.entries);
   });
 
   it("applies the proposed wording", async () => {

@@ -38,11 +38,15 @@ function expectedText(blocks: PreviewBlock[], mode: StructuredPdfMode, own: Set<
   return alnum(out);
 }
 
+// Every change carries a comment. The PDFs show none, so this text must never be drawn.
+const NOTE = "Commentsentinel keeps the group's costs predictable.";
+
 async function redlined(index: number) {
   const { file, findings } = FIXTURE_CORPUS[index];
   const result = await generateRedline({
     originalDocxBytes: new Uint8Array(await readFixture(file)),
     findings,
+    comments: new Map(findings.map((f) => [f.id, NOTE])),
     author: FIXTURE_AUTHOR,
   });
   const parts = buildPreview(await extractDocx(result.docxBytes));
@@ -60,6 +64,7 @@ describe("structured PDF over the fixture corpus", () => {
       expect(pdf.overflow).toEqual([]);
       expect(await checkRenderedPdf(pdf)).toEqual([]);
       expect(alnum(pdf.drawn.join(""))).toBe(expectedText(blocks, mode, own));
+      expect(alnum(pdf.drawn.join(""))).not.toContain("commentsentinel");
     }
   });
 });

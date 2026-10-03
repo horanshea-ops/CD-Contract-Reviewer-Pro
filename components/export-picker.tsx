@@ -115,12 +115,15 @@ export function ExportPicker({
   const [started, setStarted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [statuses, setStatuses] = useState<Record<ExportKey, RowStatus>>(IDLE_STATUSES);
+  const [includeComments, setIncludeComments] = useState(true);
 
   const short = analysisId.slice(0, 8);
+  // Comments are on unless the associate turns them off, so only "off" travels.
+  const commentsQuery = includeComments ? "" : "comments=0";
   const singleUrl: Record<ExportKey, string> = {
     memo: `/api/analyses/${analysisId}/export`,
     markup: `/api/analyses/${analysisId}/export-markup`,
-    redline: `/api/analyses/${analysisId}/export-redline-docx`,
+    redline: withQuery(`/api/analyses/${analysisId}/export-redline-docx`, commentsQuery),
     clean: `/api/analyses/${analysisId}/export-clean-pdf`,
     cleanDocx: `/api/analyses/${analysisId}/export-clean-docx`,
   };
@@ -157,6 +160,7 @@ export function ExportPicker({
     setSelected(new Set());
     setRedlinedFormat("word");
     setProposedFormat("word");
+    setIncludeComments(true);
     setStarted(false);
     setBusy(false);
     setStatuses(IDLE_STATUSES);
@@ -209,7 +213,7 @@ export function ExportPicker({
   async function settlePreflight(key: "redline" | "clean"): Promise<boolean> {
     setStatus(key, { kind: "checking" });
     try {
-      const res = await fetch(`${singleUrl[key]}?preflight=1`);
+      const res = await fetch(withQuery(singleUrl[key], "preflight=1"));
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setStatus(key, {
@@ -266,7 +270,7 @@ export function ExportPicker({
     const single = ready.length === 1 ? ready[0] : null;
     const url = single
       ? singleUrl[single]
-      : `/api/analyses/${analysisId}/export-zip?formats=${ready.join(",")}`;
+      : withQuery(`/api/analyses/${analysisId}/export-zip?formats=${ready.join(",")}`, commentsQuery);
 
     try {
       await downloadFile(url, single ? fallbackName[single] : zipName);
@@ -376,6 +380,25 @@ export function ExportPicker({
               onToggle={() => toggle(redlineKey)}
               onSwitch={redlineAvailable ? () => switchFormat("redlined") : undefined}
             />
+            {redlineKey === "redline" && selected.has("redline") && (
+              <label htmlFor="export-comments" aria-label="Include comments" className="mt-2 ml-7 flex items-start gap-2">
+                <Checkbox
+                  id="export-comments"
+                  className="mt-0.5"
+                  checked={includeComments}
+                  disabled={started}
+                  onChange={() => setIncludeComments((v) => !v)}
+                />
+                <span>
+                  <Body as="span" className="block text-[var(--text-primary)]">
+                    Include comments
+                  </Body>
+                  <Meta as="span" className="block text-[var(--text-secondary)]">
+                    A short note on each change saying why it&apos;s proposed. The property reads these.
+                  </Meta>
+                </span>
+              </label>
+            )}
             {statuses.markup.kind === "downgrade" && (
               <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
                 <Body as="p" className="font-medium text-[var(--text-primary)]">
@@ -447,6 +470,12 @@ export function ExportPicker({
       </DialogShell>
     </>
   );
+}
+
+/** Appends a query string to a URL that may already have one. */
+function withQuery(url: string, query: string): string {
+  if (!query) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}${query}`;
 }
 
 /** A contract row's checkbox, title and format, with a switch to the other format where there is one. */

@@ -99,6 +99,10 @@
                   "type": "string",
                   "description": "Contract wording that replaces everything in quoted_text: repeat what stays, leave out what goes. Always an actual change — never a note that no change is needed, and never an instruction to the reviewer."
                 },
+                "redline_note": {
+                  "type": "string",
+                  "description": "One short, neutral sentence, at most 20 words, saying what the change does for the group. It becomes a comment in the redline the hotel receives, so write it for the hotel to read. No figures, and nothing about CD, its standards, positions, fallbacks or reasons."
+                },
                 "model_confidence": {
                   "type": "string",
                   "enum": [
@@ -116,6 +120,7 @@
                 "finding_text",
                 "cd_standard",
                 "proposed_language",
+                "redline_note",
                 "model_confidence"
               ]
             }
