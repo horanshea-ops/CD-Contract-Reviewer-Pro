@@ -180,14 +180,9 @@ export function figuresFromTerms(terms: ExtractedTerms): DealFigures {
   } else {
     const schedule = stated(TIER_TERMS.schedule)?.value;
     const nearest = Array.isArray(schedule) ? [...schedule].sort((a, b) => a.days_prior_min - b.days_prior_min)[0] : null;
-    figures.cancellation_tiers = [
-      {
-        label: nearest?.label.trim() || "closest to arrival",
-        room_pct: pct,
-        base: BASE_OF[choice(TIER_TERMS.base) ?? ""] ?? "other",
-        charges,
-      },
-    ];
+    const base = BASE_OF[choice(TIER_TERMS.base) ?? ""] ?? "other";
+    if (base === "other") console.warn("[exposures] no cancellation figure, because the reading pass didn't say which room nights the percentage applies to");
+    figures.cancellation_tiers = [{ label: nearest?.label.trim() || "closest to arrival", room_pct: pct, base, charges }];
   }
 
   return figures;
