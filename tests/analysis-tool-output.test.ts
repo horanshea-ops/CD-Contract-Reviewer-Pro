@@ -26,6 +26,7 @@ const FINDING = {
   finding_text: "Too high.",
   cd_standard: "70%.",
   proposed_language: "The threshold is seventy percent (70%).",
+  redline_note: "Ties damages to the rooms the group actually uses.",
   model_confidence: "high",
 };
 
@@ -63,6 +64,19 @@ describe("analyzeContract's tool output", () => {
         compromise_range: STANDARDS_LIBRARY.find((s) => s.clause_type === "attrition")!.compromise_range,
       },
     ]);
+  });
+
+  it("blanks a redline note that fails the content check", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    create.mockResolvedValueOnce(
+      response({
+        findings: [{ ...FINDING, redline_note: "Brings attrition to our 70% standard." }],
+        clause_review: [{ clause_type: "attrition", verdict: "falls_short", basis: "Threshold is 90%." }],
+        document_notes: "",
+      })
+    );
+    const result = await run();
+    expect(result.findings[0].redline_note).toBe("");
   });
 
   it("works exposure figures out from the contract's checked figures, and notes arrive as short items", async () => {

@@ -1,6 +1,7 @@
 import type { Finding, Severity } from "./anthropic";
 import type { Category, StandardEntry } from "./standards/types";
 import { OTHER_CLAUSE_TYPE } from "./other-findings";
+import { sanitizeNote } from "./redline-comments/note-guard";
 
 /**
  * Every finding's category comes from the library, never from the model.
@@ -18,6 +19,8 @@ export interface CategorizedFinding extends Finding {
   category: Category;
   /** CD's fallback on a business standard, for the associate only. Empty for every other category. */
   compromise_range: string;
+  /** The redline comment, after the content check. Empty when it failed, and for every non-business finding. */
+  redline_note: string;
 }
 
 const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
@@ -74,12 +77,21 @@ export function applyCategories(findings: Finding[], standards: StandardEntry[])
     const category: Category = standard?.category ?? "other";
 
     if (category === "business") {
-      return { ...finding, category, compromise_range: standard?.compromise_range ?? "" };
+      const compromise_range = standard?.compromise_range ?? "";
+      const redline_note = sanitizeNote(finding.redline_note, {
+        cd_standard: finding.cd_standard,
+        finding_text: finding.finding_text,
+        compromise_range,
+      });
+      if (finding.redline_note?.trim() && !redline_note) {
+        console.warn(`[finding-categories] blanked a redline note on ${finding.clause_type} that failed the content check`);
+      }
+      return { ...finding, category, compromise_range, redline_note };
     }
 
     if (finding.proposed_language && finding.clause_type !== OTHER_CLAUSE_TYPE) {
       console.warn(`[finding-categories] stripped wording from a ${category} finding on ${finding.clause_type}`);
     }
-    return { ...finding, category, compromise_range: "", proposed_language: "" };
+    return { ...finding, category, compromise_range: "", proposed_language: "", redline_note: "" };
   });
 }

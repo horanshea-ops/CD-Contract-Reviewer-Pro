@@ -194,6 +194,7 @@ export async function processAnalysis(analysisId: string) {
         severity: f.severity,
         category: f.category,
         compromise_range: f.compromise_range,
+        redline_note: f.redline_note,
         exposure_amount: f.exposure_amount,
         exposure_basis: f.exposure_basis,
         exposure_formula: f.exposure_formula ?? null,
