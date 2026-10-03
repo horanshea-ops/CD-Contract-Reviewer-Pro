@@ -738,6 +738,22 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         8. **The raw model answer isn't stored.** Two questions today (why
            the quotes vanished, why a figure was absent) could only be
            inferred. A debug column or log would settle them directly.
+        9. **Show existing comments the way Word does (user, 2026-10-03).**
+           The list at the top of the document pane is a first version and
+           is to be replaced.
+           - A "Show document comments" button opens a comment view.
+           - In that view the findings pane collapses, and the document
+             takes most of the screen.
+           - Each comment sits in a margin on the right, beside the wording
+             it belongs to, as in Word. Replies sit under their parent, and
+             a resolved comment is marked.
+           - Leaving the view brings the findings pane back as it was.
+           - To settle in the plan: whether the hotel's tracked changes get
+             margin notes too, what happens when several comments crowd one
+             paragraph, and how it behaves on a narrow screen.
+           - No model call is involved, so it doesn't wait on Sonnet 5.5.
+             The data it needs is already returned by the preview route
+             (`comments`, with each one's range in the text).
       - **Known and accepted.** The hotel's table edit arrived untracked. A
         first upload has nothing to compare it with, and a re-upload is
         caught by the round diff. The marked-up PDF shows the hotel's edits
