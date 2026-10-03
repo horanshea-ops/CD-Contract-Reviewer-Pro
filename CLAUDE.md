@@ -82,6 +82,7 @@ override it.
    reasoning stays in the app sidebar and the memo export. Same principle as
    §1.8.3: CD's internal position is negotiating leverage and must not reach the
    property by accident. The redline carries the changes and nothing else.
+   Narrowed by deviation 8, which allows a short neutral "why" and nothing more.
 
 7. **A redacted real CD contract will be processed on the personal Anthropic
    account, ahead of the build brief's own gate** (decided by the user,
@@ -95,6 +96,20 @@ override it.
    presentation. CD's Anthropic org still does not exist as of this writing;
    this deviation does not change that, and does not extend to any other
    real CD contract beyond what's needed for this one presentation.
+
+8. **Short "why" comments return to the redline, narrowly** (decided by the
+   user, 2026-10-03; narrows deviation 6). Each applied change carries one
+   Word comment of at most 25 words saying what the change does for the
+   group. It never carries finding_text, cd_standard, compromise_range,
+   severity, exposure, or anything naming CD's position.
+   - The model writes the note (`redline_note`, business findings only). The
+     associate can edit or remove it on the card. Legal findings get none.
+   - Enforced in layers, not by the prompt alone: `lib/redline-comments/note-guard.ts`
+     checks the words when the review runs, when the associate saves, and at
+     export; `lib/redline-comments/assembly.ts` is the narrowed SELECT and the
+     only source of comment text; migration 014 refuses a note on a legal finding.
+   - The clean Word copy strips our comments. The PDFs show none.
+   - An "Include comments" checkbox, on by default, turns them off per export.
 
 Read this as binding, not advisory. Claude's default house style in recent iterations — the announcing, the colon-hinged sentences, the stacked abstraction, the unspecified density — is a dramatic sink on my productivity and my joy in using Claude. When responses follow this guide, Claude is genuinely useful and pleasant to me. When they drift, every response costs me decoding and editing. Drift happens most in long, abstract conversations, so re-check these rules/focus on them/keep them in mind exactly when the material turns philosophical or dense or the thread runs long. If a rule here conflicts with your instinct for how smart prose sounds, the rule wins. These are instructions for better communications with humans. 
 

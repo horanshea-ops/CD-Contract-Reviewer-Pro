@@ -495,13 +495,29 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - Reviews from before this change keep explanations written under the old
         rules, which can state CD's position on a legal point. Read a legal
         explanation before flagging it on an old review.
-- [ ] **Short "why" comments in the Word redline (user, 2026-10-02) — next after
-      the item above.** A very short comment on each change in the tracked-changes
-      DOCX, saying why it's proposed. The comment can reach the client and the
-      property, so it must not reveal CD's positions, compromise ranges or
-      leverage. This reverses CLAUDE.md deviation 6 in a narrower form, so it
-      needs its own plan, and CLAUDE.md should be updated when the user
-      decides. Legal findings are never in the redline, so they get no comment.
+- [x] **Short "why" comments in the Word redline (user, 2026-10-02; built
+      2026-10-03 on `phase/1-5-11-redline-comments`).** Each applied change in
+      the tracked-changes DOCX carries one short Word comment saying what it
+      does for the group. CLAUDE.md deviation 8 records the decision.
+      - The model writes `redline_note` on business findings. The associate
+        can edit, remove or restore it on the card. Legal findings get none.
+      - The note never carries CD's position. A content check refuses figures,
+        words like "standard" or "fallback", notes over 25 words, and notes
+        repeating CD's own wording on the finding. It runs at review time, when
+        the associate saves, and at export. The export reads notes through a
+        narrowed SELECT, the same pattern as §1.8.3.
+      - Comments sit outside every revision, with ids above every revision id.
+        §1.6 gained `comments_consistent`, and the whole fixture corpus passes
+        with a comment on every change, fixture 15's existing comment included.
+      - The clean Word copy strips our comments and keeps the property's. The
+        PDFs show none. An "Include comments" checkbox in the export dialog is
+        on by default.
+      - Migration 014 adds the two note columns. Apply it before deploying.
+      - Unmeasured on a real contract. Reviews from before this change have no
+        notes, so their comments come only from what the associate types. One
+        Florida run (~$0.40) would show note quality and how often the check
+        blanks a note. Not run, by the user's choice.
+      - Cost: about 800–1,000 extra output tokens per review, roughly $0.01.
 - [ ] **4. Re-uploads of the same contract — next priority after these.** CD
       runs several rounds of review on each contract, so a re-upload should
       avoid a full paid review wherever it can. The plan is the entry
