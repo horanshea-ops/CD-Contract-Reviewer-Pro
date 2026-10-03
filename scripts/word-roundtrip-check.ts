@@ -135,6 +135,12 @@ async function extraction(bytes: Uint8Array) {
   const rev = extracted.existingRevisions;
   console.log(`\nExisting tracked changes: ${rev.count} by ${rev.authors.join(", ") || "nobody"}`);
 
+  console.log(`\nComments read: ${extracted.comments.length} of ${extracted.commentsTotal}`);
+  for (const c of extracted.comments) {
+    const thread = `${c.replyTo ? ` (reply to #${c.replyTo})` : ""}${c.resolved ? " (resolved)" : ""}`;
+    console.log(`  #${c.id} ${c.author}${thread}: "${clip(c.text, 70)}"  on  "${clip(c.quoted, 70)}"`);
+  }
+
   for (const part of extracted.parts) {
     try {
       const marks = revisionMarks(part);
