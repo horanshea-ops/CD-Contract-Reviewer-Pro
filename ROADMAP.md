@@ -394,11 +394,51 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         with every object closed, and a prompt line to call the tool.
       - The schema check passed. Both strict schemas compile.
       - **Blocker.** Harborview's review at the default effort (`high`) ran past
-        10 minutes and was stopped. The app gives the model 240s. Sonnet 5.5
-        always thinks, and a forced Sonnet 5 call doesn't.
-      - Next step: try effort `medium` or `low` on Harborview. That spends money,
-        so it needs the user's yes. Until then, Render stays on
-        `ANTHROPIC_MODEL=claude-sonnet-5`.
+        10 minutes and was stopped. The app gave the model 240s then, and
+        gives it 420s now. Sonnet 5.5 always thinks, and a forced Sonnet 5 call
+        doesn't (the Rome run recorded 0 thinking characters).
+      - Until it's measured, Render stays on `ANTHROPIC_MODEL=claude-sonnet-5`.
+      - **Scoped 2026-10-03, to build after the Word round-trip item.**
+        Anthropic's notes on Sonnet 5.5 change the approach.
+        - **Thinking.** `thinking: {type: "between_tools"}` turns upfront
+          thinking off. A review is one tool call, so nothing is left to think
+          between. This is the closest match to a forced Sonnet 5 call and the
+          likely fix for the timeout. It is allowed at effort `high` or below
+          only, and takes no other field inside `thinking`.
+        - **Effort.** The levels are recalibrated on 5.5. Set
+          `output_config.effort` explicitly. Test `high` first, then `medium`.
+        - **Forced tool choice.** The branch's `auto` plus a strict tool is one
+          route. Structured outputs (`output_config.format`) is the other, and
+          it guarantees the format. Count missed tool calls in the eval run. If
+          any occur, move the review call to structured outputs.
+        - **Preserved thinking.** No change needed. Every call in the app is a
+          single request and never replays an earlier answer. CD's future org
+          will be enforced by default and is still unaffected. Any later
+          multi-turn feature must keep its history append-only.
+        - **Refusals.** 5.5 declines in five categories. Server-side fallback
+          retries only `cyber` and `frontier_llm`, neither likely on a hotel
+          contract. Included by default unless the user declines.
+        - **Streaming.** The review call asks for 64k tokens without streaming.
+          `.stream().finalMessage()` follows SDK guidance and lets the deadline
+          cut a slow call cleanly. Optional second step.
+        - **Branch state.** One commit, 40 behind `main`. Its 5.5 goldens
+          predate `redline_note` and `flagged_findings`. It doesn't cover the
+          historical-contract read or the two eval calls, and the Batch service
+          rejects a forced tool on 5.5 too.
+      - **Steps.** Opus work, since it changes every model request. Each paid
+        step needs its own yes.
+        1. Merge `main` into the branch. Add `between_tools` and explicit
+           effort to the non-forced path in `toolRequest`. Cover the historical
+           and eval calls. Regenerate the goldens.
+        2. Check every request shape on the token-counting endpoint. It is free
+           and rejects bad `thinking` and `tool_choice` values.
+        3. Paid, about $0.40. Run the redlined Florida file from the Word
+           round-trip item on 5.5 with `between_tools` at `high`. Compare time,
+           tokens and findings with that item's Sonnet 5 run on the same file.
+        4. Paid, about $0.65 to $0.80. Run the seven-contract eval set and
+           score it against the existing baselines. Count missed tool calls.
+        5. If time and scores hold, change the Render variable. Sonnet 5 stays
+           one variable away.
 - [x] **1. Analytics live for a demonstration (2026-09-29).** Deployed
       2026-09-28 (679eae3), with the three switches set on Render.
       - Runs on test data behind three Render switches: `ANALYTICS=on`,
