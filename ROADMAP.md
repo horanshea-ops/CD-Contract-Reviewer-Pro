@@ -523,6 +523,19 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         Florida run (~$0.40) would show note quality and how often the check
         blanks a note. Not run, by the user's choice.
       - Cost: about 800–1,000 extra output tokens per review, roughly $0.01.
+- [ ] **Ask CD: a "confirm with legal" comment on legal findings (user,
+      2026-10-03) — future update, not scheduled.** Legal findings make no
+      change, so today they get no comment in the redline. Ask CD whether they
+      want a short flag on those clauses. Points to raise with them:
+      - The redline goes to the property. A flag shows the hotel which clauses
+        the group's side considers legally open, which is leverage.
+      - The comment would sit on the hotel's own wording with nothing proposed
+        beside it, which invites "what do you want?", and CD gives no legal
+        advice.
+      - The memo's counsel section already flags these items for the client.
+      - If CD wants them in a Word file, the safer shape is a separate
+        client-only export with its own filename and a "not for the property"
+        marker. It would never be a checkbox on the property redline.
 - [ ] **Incoming tracked changes and comments in a real Word round trip
       (user, 2026-10-03) — next.** Every fixture with tracked changes or
       comments was built by us. None has been through real Word, so it is
