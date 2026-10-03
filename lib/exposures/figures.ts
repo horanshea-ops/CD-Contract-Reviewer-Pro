@@ -172,8 +172,12 @@ export function figuresFromTerms(terms: ExtractedTerms): DealFigures {
 
   // The schedule's top tier is the only one an exposure reads.
   const pct = number(TIER_TERMS.pct);
-  const charges = CHARGES_OF[choice(TIER_TERMS.charges) ?? ""];
-  if (pct !== null && charges) {
+  const basis = choice(TIER_TERMS.charges);
+  const charges = CHARGES_OF[basis ?? ""];
+  if (pct === null || !charges) {
+    const missing = pct === null ? "the top tier's percentage" : `what the percentage is charged on (${basis ?? "not stated"})`;
+    console.warn(`[exposures] no cancellation figure, because the reading pass didn't give ${missing}`);
+  } else {
     const schedule = stated(TIER_TERMS.schedule)?.value;
     const nearest = Array.isArray(schedule) ? [...schedule].sort((a, b) => a.days_prior_min - b.days_prior_min)[0] : null;
     figures.cancellation_tiers = [

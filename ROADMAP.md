@@ -488,10 +488,38 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
             holds that number anywhere. The reader quoted the whole table row,
             so any number in the row would have verified. Worth tightening
             before exposures are relied on.
-          - **Still to do, each paid step with its own yes.** The Florida
-            review on Sonnet 5 and then on 5.5 (about $0.45 each), compared
-            with `c27f414d`. Then the seven-contract evals, since this changes
-            Sonnet 5 too, before any merge to `main`.
+          - **Florida review `4f803f16` on Sonnet 5.5, split, as Jerry
+            (2026-10-03, $0.50).** Against `c27f414d` (Sonnet 5, one call):
+            - Time 3m27s against 4m07s. No thinking. No failed answer, no retry.
+            - Cost $0.50 against $0.40: judging $0.43 (32.9k tokens out against
+              29.2k) plus reading $0.07.
+            - 68 findings against 51 (business 50, legal 12, other 6). The same
+              32 clause types on both. Twelve clause types gained findings, so
+              the extra ones are more places, not more topics.
+            - 39 of 39 changed clauses quoted. Five quotes are still whole
+              table rows, the cancellation tiers.
+            - Notes: 39 kept, 11 blanked (8 for figures, 2 for repeating
+              internal wording, 1 for naming ConferenceDirect), against 20 and
+              15.
+            - Severity departs from the library default on 4 findings against
+              8.
+            - Redline from its findings: 44 of 49 applied against 28 of 34.
+              Every oracle check, the clean copy and both PDFs passed. The five
+              left out are the table-row quotes.
+            - **Exposure $65,800: attrition $29,800 and F&B $36,000, and no
+              cancellation figure.** The 5.5 reader gave no usable top tier or
+              damages basis, where Sonnet 5 as reader gave both twice. The
+              terms aren't stored with extraction off, so the cause is unseen.
+              The app now logs which piece was missing.
+            - The first try stalled on a network drop before any model call and
+              cost nothing. The row sat at "processing" until the ten-minute
+              stale rule allowed a retry.
+          - **Still to do, each paid step with its own yes.** The reading call
+            alone on Florida on 5.5 (about $0.07), to see why cancellation
+            went missing. The Florida review on Sonnet 5 with the split (about
+            $0.45), if the split's own effect needs isolating. Then the
+            seven-contract evals, since this changes Sonnet 5 too, before any
+            merge to `main`.
       - **Steps.** Opus work, since it changes every model request. Each paid
         step needs its own yes.
         1. Done. Merge `main` into the branch. Add `between_tools` and
