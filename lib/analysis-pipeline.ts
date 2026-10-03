@@ -186,6 +186,14 @@ export async function processAnalysis(analysisId: string) {
       contractText: scanText ?? undefined,
     });
 
+    const unquoted = result.findings.filter((f) => f.category === "business" && !f.is_missing_clause && !f.quoted_text?.trim());
+    if (unquoted.length > 0) {
+      console.warn(
+        `processAnalysis: ${analysisId} has ${unquoted.length} business finding(s) that change a clause without quoting it — ` +
+          unquoted.map((f) => f.clause_type).join(", ")
+      );
+    }
+
     if (result.findings.length > 0) {
       const findingRows = result.findings.map((f) => ({
         analysis_id: analysisId,

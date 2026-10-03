@@ -147,17 +147,41 @@ function checkedTiers(raw: unknown, parts: LocatablePart[]): CancellationTier[] 
   return tiers;
 }
 
+/** Why a figure the model gave was not kept, for the server log. Null when it gave none. */
+function rejection(raw: unknown, key: string, unit: NumericUnit, parts: LocatablePart[]): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  const { value, quoted_text } = raw as { value?: unknown; quoted_text?: unknown };
+  if (value === null || value === undefined) return null;
+  if (typeof quoted_text !== "string" || !quoted_text.trim()) return "it came with no quote";
+  const def = definition(key, unit);
+  const normalized = normalizeValue(def, value);
+  if (!normalized.ok || typeof normalized.value !== "number") return "its value is not a number";
+  const verdict = verify(def, normalized.value, quoted_text, null, parts);
+  return verdict === "unlocated" ? "its quote is not in the contract" : `its quote does not state it (${verdict})`;
+}
+
 export function checkFigures(raw: unknown, parts: LocatablePart[]): DealFigures {
   if (!raw || typeof raw !== "object") return NO_FIGURES;
   const input = raw as Record<string, unknown>;
   const figures: DealFigures = { ...NO_FIGURES, cancellation_tiers: checkedTiers(input.cancellation_tiers, parts) };
   for (const key of Object.keys(UNITS) as ScalarKey[]) {
     figures[key] = checked(input[key], key, UNITS[key], parts);
+    if (figures[key] === null) logRejected(key, rejection(input[key], key, UNITS[key], parts));
   }
   for (const key of MONEY_KEYS) {
     const money = checkedMoney(input[key], key, parts);
     figures[key] = money?.value ?? null;
     figures.currency ??= money?.currency ?? null;
+    if (!money) logRejected(key, rejection(input[key], key, "usd", parts));
+  }
+
+  const given = Array.isArray(input.cancellation_tiers) ? input.cancellation_tiers.length : 0;
+  if (given > figures.cancellation_tiers.length) {
+    console.warn(`[exposures] kept ${figures.cancellation_tiers.length} of ${given} cancellation tiers the model gave`);
   }
   return figures;
+}
+
+function logRejected(key: string, reason: string | null) {
+  if (reason) console.warn(`[exposures] dropped ${key} because ${reason}`);
 }
