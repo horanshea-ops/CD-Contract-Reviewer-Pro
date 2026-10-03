@@ -6,6 +6,7 @@ import { contractText } from "@/lib/docx/contract-text";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 import { extractionRecord, extractTerms, termRows } from "@/lib/terms/extract";
 import type { TermCatalog } from "@/lib/terms/types";
+import { answerSchema } from "../helpers/model-request";
 
 /**
  * One extraction pass end to end, with the model mocked: the request it sends,
@@ -62,7 +63,7 @@ describe("a term extraction pass over eval-01", () => {
     const request = create.mock.calls[0][0];
     expect(request.system[1].text).toContain("TERM CATALOG (version hotel-v1)");
     expect(request.system[1].cache_control).toEqual({ type: "ephemeral" });
-    expect(request.tools[0].input_schema.properties.terms.items.properties.term_key.enum).toHaveLength(
+    expect(answerSchema(request).properties.terms.items.properties.term_key.enum).toHaveLength(
       HOTEL_TERM_CATALOG.terms.length
     );
     expect(request.messages[0].content[0].text).toBe(`CONTRACT TEXT:\n\n${text}`);
@@ -154,7 +155,7 @@ describe("a catalog from another vertical", () => {
     });
 
     const request = create.mock.calls[0][0];
-    expect(request.tools[0].input_schema.properties.terms.items.properties.term_key.enum).toEqual([
+    expect(answerSchema(request).properties.terms.items.properties.term_key.enum).toEqual([
       "uptime.monthly_pct",
       "support.response_hours",
     ]);

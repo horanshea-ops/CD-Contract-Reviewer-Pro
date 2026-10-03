@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   analyzeContract,
-  closedSchema,
+  answerRequest,
+  draftEvalClauses,
   extractContractTerms,
   forcesTool,
+  formatSchema,
   generateClientEmail,
   generatePropertyEmail,
+  historicalRequest,
+  readAnswer,
+  readBackEvalTerms,
   RefusalError,
-  toolRequest,
 } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
@@ -15,26 +19,30 @@ import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 /**
  * How each model is asked for its answer.
  *
- * Sonnet 5 and older are forced to the tool. Sonnet 5.5 rejects a forced
- * tool_choice, so it gets "auto" and a strict tool. Strict schemas must close
- * every object and stay inside the API's complexity limits, or every call 400s.
+ * Sonnet 5 and older are forced to a tool. Sonnet 5.5 rejects a forced
+ * tool_choice and disabled thinking, so it gets no tool: the schema goes as an
+ * output format, with thinking "between_tools" and a stated effort. An output
+ * format must close every object and stay inside the API's complexity limits,
+ * or every call 400s.
  */
 
 const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
-    messages = { create };
+    messages = { create, stream: (params: unknown) => ({ finalMessage: () => create(params) }) };
   },
 }));
 
-const toolResponse = (input: unknown) => ({
-  content: [{ type: "tool_use", id: "toolu_test", name: "tool", input }],
-  stop_reason: "tool_use",
-  usage: { input_tokens: 0, output_tokens: 0 },
+const usage = { input_tokens: 0, output_tokens: 0 };
+
+const jsonResponse = (answer: unknown) => ({
+  content: [{ type: "text", text: JSON.stringify(answer) }],
+  stop_reason: "end_turn",
+  usage,
 });
 
-const refusal = { content: [], stop_reason: "refusal", usage: { input_tokens: 0, output_tokens: 0 } };
+const refusal = { content: [], stop_reason: "refusal", usage };
 
 const NEW = "claude-sonnet-5-5";
 
@@ -43,14 +51,21 @@ beforeEach(() => {
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
 });
 
-/** The tool each app call sends to Sonnet 5.5. */
-async function strictTools() {
-  create.mockResolvedValue(toolResponse({ clause_review: [], findings: [], subject: "s", body: "b", terms: [] }));
+/** The request each call sends to Sonnet 5.5. */
+async function unforcedRequests() {
+  create.mockResolvedValue(
+    jsonResponse({ clause_review: [], findings: [], subject: "s", body: "b", terms: [], clauses: [], answers: [] })
+  );
   await analyzeContract({ document: { kind: "text", text: "C" }, standards: STANDARDS_LIBRARY, standardsVersion: STANDARDS_LIBRARY_VERSION, model: NEW });
   await generateClientEmail({ findings: [], associateName: "A", contractLabel: "L", model: NEW });
   await generatePropertyEmail({ items: [], propertyLabel: "P", model: NEW });
   await extractContractTerms({ document: { kind: "text", text: "C" }, catalog: HOTEL_TERM_CATALOG, model: NEW });
-  return create.mock.calls.map((c) => c[0]);
+  await draftEvalClauses({ hotel: "H", group: "G", city: "C", state: "S", dates: "D", voice: "terse", clauses: [], model: NEW });
+  await readBackEvalTerms({ contractText: "C", questions: [], model: NEW });
+  return [
+    ...create.mock.calls.map((c) => c[0]),
+    historicalRequest({ document: { kind: "text", text: "C" }, catalog: HOTEL_TERM_CATALOG, model: NEW }),
+  ];
 }
 
 type Schema = Record<string, unknown>;
@@ -79,6 +94,8 @@ function complexity(schema: unknown) {
 }
 
 describe("the request shape for each model", () => {
+  const tool = { name: "t", description: "Record it.", input_schema: { type: "object" as const, properties: {} } };
+
   it("forces the tool only for models that accept it", () => {
     expect(forcesTool("claude-sonnet-5")).toBe(true);
     expect(forcesTool("claude-haiku-4-5")).toBe(true);
@@ -87,12 +104,25 @@ describe("the request shape for each model", () => {
   });
 
   it("leaves a forced model's tool untouched", () => {
-    const tool = { name: "t", input_schema: { type: "object" as const, properties: {} } };
-    expect(toolRequest("claude-sonnet-5", tool)).toEqual({ tools: [tool], tool_choice: { type: "tool", name: "t" } });
+    expect(answerRequest("claude-sonnet-5", tool)).toEqual({ tools: [tool], tool_choice: { type: "tool", name: "t" } });
+  });
+
+  it("gives Sonnet 5.5 the schema as an output format, with no thinking ahead of the answer", () => {
+    expect(answerRequest(NEW, tool)).toEqual({
+      thinking: { type: "between_tools" },
+      output_config: {
+        effort: "high",
+        format: { type: "json_schema", schema: { type: "object", properties: {}, additionalProperties: false } },
+      },
+    });
+  });
+
+  it("leaves between_tools off any other unforced model, which would reject it", () => {
+    expect(answerRequest("claude-some-future-model", tool)).not.toHaveProperty("thinking");
   });
 
   it("closes every object, including nullable ones, and leaves enums and required lists alone", () => {
-    const closed = closedSchema({
+    const closed = formatSchema({
       type: "object",
       properties: {
         a: { type: ["object", "null"], properties: { b: { type: "string", enum: ["object"] } }, required: ["b"] },
@@ -108,31 +138,66 @@ describe("the request shape for each model", () => {
       },
     });
   });
+
+  it("writes a nullable enum as anyOf, which an output format accepts where an enum beside two types is refused", () => {
+    expect(formatSchema({ type: ["string", "null"], enum: ["luxury", "resort", null], description: "The tier." })).toEqual({
+      description: "The tier.",
+      anyOf: [{ type: "string", enum: ["luxury", "resort"] }, { type: "null" }],
+    });
+  });
 });
 
 describe("Sonnet 5.5 requests", () => {
-  it("send one strict tool with tool_choice auto, and tell the model to call it", async () => {
-    for (const params of await strictTools()) {
-      expect(params.tool_choice).toEqual({ type: "auto" });
-      expect(params.tools).toHaveLength(1);
-      expect(params.tools[0].strict).toBe(true);
+  it("cover all seven calls", async () => {
+    expect(await unforcedRequests()).toHaveLength(7);
+  });
+
+  it("carry no tool, skip thinking, state the effort, and say the reply is the record", async () => {
+    for (const params of await unforcedRequests()) {
+      expect(params).not.toHaveProperty("tools");
+      expect(params).not.toHaveProperty("tool_choice");
+      expect(params.thinking).toEqual({ type: "between_tools" });
+      expect(params.output_config.effort).toBe("high");
+      expect(params.output_config.format.type).toBe("json_schema");
       const system = typeof params.system === "string" ? params.system : params.system[0].text;
-      expect(system).toContain(`calling the ${params.tools[0].name} tool exactly once`);
+      expect(system).toContain("Your whole reply is one JSON record in the required format");
     }
   });
 
-  it("close every object and stay inside the strict complexity limits", async () => {
-    for (const { tools } of await strictTools()) {
-      walk(tools[0].input_schema, (node) => {
+  it("close every object and stay inside the output format's complexity limits", async () => {
+    for (const { output_config } of await unforcedRequests()) {
+      const schema = output_config.format.schema;
+      walk(schema, (node) => {
         const type = node.type;
         if (type === "object" || (Array.isArray(type) && type.includes("object"))) {
           expect(node.additionalProperties).toBe(false);
         }
       });
-      const { optional, unions } = complexity(tools[0].input_schema);
+      const { optional, unions } = complexity(schema);
       expect(optional).toBeLessThanOrEqual(24);
       expect(unions).toBeLessThanOrEqual(16);
     }
+  });
+});
+
+describe("reading the answer", () => {
+  const message = (content: unknown[], stop_reason = "end_turn") => ({ content, stop_reason, usage }) as never;
+
+  it("takes a forced model's tool input", () => {
+    expect(readAnswer(message([{ type: "tool_use", id: "t", name: "n", input: { a: 1 } }], "tool_use"), "x")).toEqual({ a: 1 });
+  });
+
+  it("parses an unforced model's JSON text, past any thinking block", () => {
+    const content = [{ type: "thinking", thinking: "", signature: "s" }, { type: "text", text: '{"a":1}' }];
+    expect(readAnswer(message(content), "x")).toEqual({ a: 1 });
+  });
+
+  it("says so when there is no answer, or the answer was cut off mid-record", () => {
+    expect(() => readAnswer(message([]), "findings")).toThrow(/did not return findings/);
+    expect(() => readAnswer(message([{ type: "text", text: '{"a":' }], "max_tokens"), "findings")).toThrow(
+      /isn't valid JSON. stop_reason=max_tokens/
+    );
+    expect(() => readAnswer(message([{ type: "text", text: "[]" }]), "findings")).toThrow(/isn't a JSON object/);
   });
 });
 

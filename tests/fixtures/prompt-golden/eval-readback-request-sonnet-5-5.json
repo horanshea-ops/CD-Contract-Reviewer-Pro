@@ -1,0 +1,59 @@
+{
+  "model": "claude-sonnet-5-5",
+  "max_tokens": 16000,
+  "system": "You are reading a hotel group sales agreement and reporting what it says. You are not reviewing it, judging it, or suggesting changes.\n\nFor each question, answer with one of the options given for that question, and quote the wording your answer rests on.\n\nAnswer only from what the contract states. If the contract does not address a question, answer \"unstated\" and leave the quote empty — do not infer an answer from what a contract of this kind usually says, and do not treat silence as a \"no\".\n\nRead the whole document before answering. A term may sit in an exhibit, a table, a header or a footer rather than in the clause you expect.\n\nYour whole reply is one JSON record in the required format, with nothing before or after it. Record what the contract actually says for each term asked about.",
+  "thinking": {
+    "type": "between_tools"
+  },
+  "output_config": {
+    "effort": "high",
+    "format": {
+      "type": "json_schema",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "answer": {
+                  "type": "string",
+                  "description": "One of the options offered for that question."
+                },
+                "quote": {
+                  "type": "string",
+                  "description": "The wording the answer is based on, copied from the contract. Empty if unstated."
+                }
+              },
+              "required": [
+                "id",
+                "answer",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "CONTRACT:\n\nCONTRACT BODY\n\nQUESTIONS:\n\n[q1] Does the contract allow resale of unused rooms?\n    Options: yes | no | unstated"
+        }
+      ]
+    }
+  ]
+}

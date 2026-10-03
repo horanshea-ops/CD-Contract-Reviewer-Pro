@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { analyzeContract, extractContractTerms, generateClientEmail, generatePropertyEmail, historicalRequest } from "@/lib/anthropic";
+import {
+  analyzeContract,
+  draftEvalClauses,
+  extractContractTerms,
+  generateClientEmail,
+  generatePropertyEmail,
+  historicalRequest,
+  readBackEvalTerms,
+} from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
@@ -16,7 +24,7 @@ const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
-    messages = { create };
+    messages = { create, stream: (params: unknown) => ({ finalMessage: () => create(params) }) };
   },
 }));
 
@@ -173,6 +181,45 @@ describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => 
     const request = historicalRequest({ document: { kind: "text", text: "CONTRACT BODY" }, catalog: HOTEL_TERM_CATALOG, model: MODEL });
     await expect(JSON.stringify(request, null, 2)).toMatchFileSnapshot(
       `./fixtures/prompt-golden/historical-contract-request${suffix}.json`
+    );
+  });
+
+  it("eval clause draft", async () => {
+    create.mockResolvedValue(toolResponse({ clauses: [] }));
+
+    await draftEvalClauses({
+      hotel: "Hotel Example",
+      group: "Example Association",
+      city: "Tampa",
+      state: "FL",
+      dates: "March 3-6, 2027",
+      voice: "terse",
+      clauses: [
+        {
+          clause_type: "attrition",
+          section_title: "Attrition",
+          fields: [{ field: "threshold", label: "Attrition threshold", directive: 'State the threshold as "eighty percent (80%)".' }],
+        },
+      ],
+      model: MODEL,
+    });
+
+    await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/eval-draft-request${suffix}.json`
+    );
+  });
+
+  it("eval term read-back", async () => {
+    create.mockResolvedValue(toolResponse({ answers: [] }));
+
+    await readBackEvalTerms({
+      contractText: "CONTRACT BODY",
+      questions: [{ id: "q1", question: "Does the contract allow resale of unused rooms?", options: ["yes", "no", "unstated"] }],
+      model: MODEL,
+    });
+
+    await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/eval-readback-request${suffix}.json`
     );
   });
 });

@@ -78,9 +78,9 @@ export interface CategorizedAnalysis extends AnalysisResult {
  * Models that accept a forced tool_choice. Their requests force the tool, as
  * every request did before Sonnet 5.5.
  *
- * Every other model, Sonnet 5.5 onward, rejects a forced tool_choice. It gets
- * tool_choice "auto", a strict tool whose input the API checks against the
- * schema, and a line in the system prompt telling it to call the tool.
+ * Every other model, Sonnet 5.5 onward, rejects a forced tool_choice. Its
+ * request carries no tool. The API holds the reply to the tool's schema, so
+ * the answer comes back as JSON text in the same shape.
  */
 const FORCED_TOOL_MODELS = new Set([
   "claude-sonnet-5",
@@ -97,45 +97,102 @@ export function forcesTool(model: string): boolean {
   return FORCED_TOOL_MODELS.has(model);
 }
 
-/** Strict mode needs additionalProperties: false on every object in the schema. */
-export function closedSchema<T>(schema: T): T {
-  if (Array.isArray(schema)) return schema.map(closedSchema) as T;
+/**
+ * Models that take thinking "between_tools", which skips the thinking ahead of
+ * the answer. A forced call never thought first, so this keeps a review as
+ * quick as it was. Every other model rejects the setting.
+ */
+const BETWEEN_TOOLS_MODELS = new Set(["claude-sonnet-5-5"]);
+
+type Effort = NonNullable<Anthropic.Messages.OutputConfig["effort"]>;
+
+/**
+ * A tool's schema as an output format takes it. Every object is closed with
+ * additionalProperties: false. An enum beside a list of types is refused, so
+ * a nullable enum is written as anyOf.
+ */
+export function formatSchema<T>(schema: T): T {
+  if (Array.isArray(schema)) return schema.map(formatSchema) as T;
   if (schema === null || typeof schema !== "object") return schema;
   const node: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(schema)) {
-    node[key] = key === "enum" || key === "required" ? value : closedSchema(value);
+    node[key] = key === "enum" || key === "required" ? value : formatSchema(value);
   }
-  const type = node.type;
+
+  const { type, enum: values, ...rest } = node;
+  if (Array.isArray(type) && Array.isArray(values)) {
+    const anyOf = type.map((t) => (t === "null" ? { type: "null" } : { type: t, enum: values.filter((v) => v !== null) }));
+    return { ...rest, anyOf } as T;
+  }
+
   if (type === "object" || (Array.isArray(type) && type.includes("object"))) node.additionalProperties = false;
   return node as T;
 }
 
-/** The tools and tool_choice for one call, shaped for the model. */
-export function toolRequest(model: string, tool: Anthropic.Messages.Tool) {
+/**
+ * How one call asks for its answer, shaped for the model.
+ *
+ * Effort is stated for an unforced model because its levels differ from
+ * Sonnet 5's, and "between_tools" is refused above "high".
+ */
+export function answerRequest(model: string, tool: Anthropic.Messages.Tool, effort: Effort = "high") {
   if (forcesTool(model)) {
     return { tools: [tool], tool_choice: { type: "tool" as const, name: tool.name } };
   }
   return {
-    tools: [{ ...tool, strict: true, input_schema: closedSchema(tool.input_schema) }],
-    tool_choice: { type: "auto" as const },
+    ...(BETWEEN_TOOLS_MODELS.has(model) ? { thinking: { type: "between_tools" as const } } : {}),
+    output_config: {
+      effort,
+      format: { type: "json_schema" as const, schema: formatSchema(tool.input_schema) as Record<string, unknown> },
+    },
   };
 }
 
 /**
- * The system prompt, with the tool instruction a model needs when the tool isn't
- * forced. A prompt in blocks gets it at the end of its first block, the rules,
- * ahead of the cached library or catalog.
+ * The system prompt, with what an unforced model needs in place of the tool:
+ * a line saying the reply is the record, and the tool's description. A prompt
+ * in blocks gets it at the end of its first block, the rules, ahead of the
+ * cached library or catalog.
  */
-export function withToolInstruction<T extends string | Anthropic.Messages.TextBlockParam[]>(
+export function withAnswerInstruction<T extends string | Anthropic.Messages.TextBlockParam[]>(
   system: T,
   model: string,
-  toolName: string
+  tool: Anthropic.Messages.Tool
 ): T {
   if (forcesTool(model)) return system;
-  const line = `\n\nRecord your answer by calling the ${toolName} tool exactly once. Don't answer in text.`;
+  const line = `\n\nYour whole reply is one JSON record in the required format, with nothing before or after it. ${tool.description ?? ""}`.trimEnd();
   if (typeof system === "string") return `${system}${line}` as T;
   const [first, ...rest] = system;
   return [{ ...first, text: `${first.text}${line}` }, ...rest] as T;
+}
+
+/**
+ * The model's answer as an object. A forced model answers in a tool call, and
+ * an unforced one in JSON text.
+ */
+export function readAnswer(response: Anthropic.Messages.Message, what: string): Record<string, unknown> {
+  const call = response.content.find((block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use");
+  if (call) return call.input as Record<string, unknown>;
+
+  const text = response.content
+    .filter((block): block is Anthropic.Messages.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("")
+    .trim();
+  if (!text) throw new Error(`Model did not return ${what} (no tool_use block or JSON text in response).`);
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Model returned ${what} that isn't valid JSON. stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
+    );
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`Model returned ${what} that isn't a JSON object. stop_reason=${response.stop_reason}`);
+  }
+  return parsed as Record<string, unknown>;
 }
 
 /** The model declined the request. Retrying would decline the same way, so it isn't. */
@@ -552,8 +609,8 @@ export async function analyzeContract({
       // stops a long review well before this does.
       max_tokens: 64000,
 
-      system: withToolInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, FINDINGS_TOOL_NAME),
-      ...toolRequest(modelId, findingsToolSchema(org)),
+      system: withAnswerInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, findingsToolSchema(org)),
+      ...answerRequest(modelId, findingsToolSchema(org)),
       messages: [{ role: "user", content: userContent }],
     },
     // An explicit timeout lifts the SDK's non-streaming cap on max_tokens.
@@ -570,15 +627,7 @@ export async function analyzeContract({
       );
     }
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-
-    if (!toolUseBlock) {
-      throw new Error("Model did not return structured findings (no tool_use block in response).");
-    }
-
-    const input = toolUseBlock.input as Record<string, unknown>;
+    const input = readAnswer(response, "structured findings");
     const parsed = {
       clause_review: listField<ClauseReview>(input.clause_review),
       findings: listField<Finding>(input.findings),
@@ -753,23 +802,16 @@ export async function generateClientEmail({
     const response = await client.messages.create({
       model: modelId,
 
-      // A model that isn't forced to the tool thinks first, and thinking counts toward this limit.
+      // An unforced model may think first, and thinking counts toward this limit.
       max_tokens: forcesTool(modelId) ? 4000 : 16000,
 
-      system: withToolInstruction(buildClientEmailPrompt(org), modelId, CLIENT_EMAIL_TOOL_NAME),
-      ...toolRequest(modelId, clientEmailToolSchema(org)),
+      system: withAnswerInstruction(buildClientEmailPrompt(org), modelId, clientEmailToolSchema(org)),
+      ...answerRequest(modelId, clientEmailToolSchema(org)),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     });
     checkRefusal(response, "draft this email");
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-    if (!toolUseBlock) {
-      throw new Error("Model did not return a structured email draft (no tool_use block in response).");
-    }
-
-    const parsed = toolUseBlock.input as { subject?: string; body?: string };
+    const parsed = readAnswer(response, "a structured email draft") as { subject?: string; body?: string };
     if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
       throw new Error(
         `Model returned malformed JSON (missing subject or body). stop_reason=${response.stop_reason}`
@@ -904,23 +946,16 @@ export async function generatePropertyEmail({
     const response = await client.messages.create({
       model: modelId,
 
-      // A model that isn't forced to the tool thinks first, and thinking counts toward this limit.
+      // An unforced model may think first, and thinking counts toward this limit.
       max_tokens: forcesTool(modelId) ? 2000 : 16000,
 
-      system: withToolInstruction(buildPropertyEmailPrompt(org), modelId, PROPERTY_EMAIL_TOOL_NAME),
-      ...toolRequest(modelId, PROPERTY_EMAIL_TOOL_SCHEMA),
+      system: withAnswerInstruction(buildPropertyEmailPrompt(org), modelId, PROPERTY_EMAIL_TOOL_SCHEMA),
+      ...answerRequest(modelId, PROPERTY_EMAIL_TOOL_SCHEMA),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     });
     checkRefusal(response, "draft this email");
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-    if (!toolUseBlock) {
-      throw new Error("Model did not return a structured email draft (no tool_use block in response).");
-    }
-
-    const parsed = toolUseBlock.input as { subject?: string; body?: string };
+    const parsed = readAnswer(response, "a structured email draft") as { subject?: string; body?: string };
     if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
       throw new Error(`Model returned malformed JSON (missing subject or body). stop_reason=${response.stop_reason}`);
     }
@@ -1091,20 +1126,13 @@ export async function extractContractTerms({
     const response = await client.messages.create({
       model: modelId,
       max_tokens: 16000,
-      system: withToolInstruction(buildTermExtractionPrompt(catalog), modelId, TERMS_TOOL_NAME),
-      ...toolRequest(modelId, termsToolSchema(catalog)),
+      system: withAnswerInstruction(buildTermExtractionPrompt(catalog), modelId, termsToolSchema(catalog)),
+      ...answerRequest(modelId, termsToolSchema(catalog)),
       messages: [{ role: "user", content: userContent }],
     });
     checkRefusal(response, "read this contract's terms");
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-    if (!toolUseBlock) {
-      throw new Error("Model did not return extracted terms (no tool_use block in response).");
-    }
-
-    const parsed = toolUseBlock.input as { terms?: unknown[] };
+    const parsed = readAnswer(response, "extracted terms") as { terms?: unknown[] };
     if (!Array.isArray(parsed.terms)) {
       throw new Error(
         `Model returned malformed term extraction (no terms array). stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
@@ -1226,12 +1254,12 @@ export function historicalRequest({
   catalog: TermCatalog;
   model?: string;
 }): Anthropic.Messages.MessageCreateParamsNonStreaming {
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
   return {
-    model: model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
+    model: modelId,
     max_tokens: 16000,
-    system: buildHistoricalPrompt(catalog),
-    tools: [historicalToolSchema(catalog)],
-    tool_choice: { type: "tool", name: HISTORICAL_TOOL_NAME },
+    system: withAnswerInstruction(buildHistoricalPrompt(catalog), modelId, historicalToolSchema(catalog)),
+    ...answerRequest(modelId, historicalToolSchema(catalog)),
     messages: [
       {
         role: "user",
@@ -1258,9 +1286,7 @@ export interface HistoricalReading {
 export function readHistoricalResponse(response: Anthropic.Messages.Message): HistoricalReading {
   if (response.stop_reason === "refusal") throw new Error("The model declined to read this contract.");
   if (response.stop_reason === "max_tokens") throw new Error("The reading ran past the output limit and was cut off.");
-  const block = response.content.find((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use");
-  if (!block) throw new Error("The model didn't record the contract (no tool_use block).");
-  const input = block.input as { details?: unknown; terms?: unknown };
+  const input = readAnswer(response, "a record of the contract") as { details?: unknown; terms?: unknown };
   if (!input.details || typeof input.details !== "object" || !Array.isArray(input.terms)) {
     throw new Error("The model's record was missing its details or terms.");
   }
@@ -1277,6 +1303,15 @@ function batchClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
   return new Anthropic({ apiKey });
+}
+
+/**
+ * A request's input tokens. The endpoint bills nothing and rejects a request
+ * the model wouldn't accept, so it is also a free check of a request's shape.
+ */
+export async function countRequestTokens(params: Anthropic.Messages.MessageCountTokensParams): Promise<number> {
+  const { input_tokens } = await batchClient().messages.countTokens(params);
+  return input_tokens;
 }
 
 /** Sends historical contracts to the Batch service, keyed by their ids. */
@@ -1490,21 +1525,14 @@ export async function draftEvalClauses({
     .stream({
       model: modelId,
       max_tokens: 16000,
-      system: buildEvalDraftPrompt(voice),
-      tools: [DRAFT_TOOL_SCHEMA],
-      tool_choice: { type: "tool", name: DRAFT_TOOL_NAME },
+      system: withAnswerInstruction(buildEvalDraftPrompt(voice), modelId, DRAFT_TOOL_SCHEMA),
+      ...answerRequest(modelId, DRAFT_TOOL_SCHEMA),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     })
     .finalMessage();
+  checkRefusal(response, "draft these clauses");
 
-  const toolUseBlock = response.content.find(
-    (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-  );
-  if (!toolUseBlock) {
-    throw new Error("Model did not return drafted clauses (no tool_use block in response).");
-  }
-
-  const parsed = toolUseBlock.input as { clauses?: DraftedClauseResult[] };
+  const parsed = readAnswer(response, "drafted clauses") as { clauses?: DraftedClauseResult[] };
   if (!Array.isArray(parsed.clauses)) {
     throw new Error(`Model returned malformed clause draft. stop_reason=${response.stop_reason}`);
   }
@@ -1608,9 +1636,8 @@ export async function readBackEvalTerms({
     .stream({
       model: modelId,
       max_tokens: 16000,
-      system: buildEvalReadBackPrompt(),
-      tools: [READBACK_TOOL_SCHEMA],
-      tool_choice: { type: "tool", name: READBACK_TOOL_NAME },
+      system: withAnswerInstruction(buildEvalReadBackPrompt(), modelId, READBACK_TOOL_SCHEMA),
+      ...answerRequest(modelId, READBACK_TOOL_SCHEMA),
       messages: [
         {
           role: "user",
@@ -1619,15 +1646,9 @@ export async function readBackEvalTerms({
       ],
     })
     .finalMessage();
+  checkRefusal(response, "read these terms back");
 
-  const toolUseBlock = response.content.find(
-    (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-  );
-  if (!toolUseBlock) {
-    throw new Error("Model did not return term read-back (no tool_use block in response).");
-  }
-
-  const parsed = toolUseBlock.input as { answers?: ReadBackEvalTermsResult["answers"] };
+  const parsed = readAnswer(response, "a term read-back") as { answers?: ReadBackEvalTermsResult["answers"] };
   if (!Array.isArray(parsed.answers)) {
     throw new Error(`Model returned malformed term read-back. stop_reason=${response.stop_reason}`);
   }
