@@ -1314,6 +1314,17 @@ export async function countRequestTokens(params: Anthropic.Messages.MessageCount
   return input_tokens;
 }
 
+/**
+ * Sends a request for one output token, and returns what it was billed.
+ *
+ * The counting endpoint doesn't compile an output format's schema, so a schema
+ * too large to compile only fails here. Paid, at the request's input tokens.
+ */
+export async function sendOneTokenRequest(params: Omit<Anthropic.Messages.MessageCreateParamsNonStreaming, "max_tokens">) {
+  const { usage } = await batchClient().messages.create({ ...params, max_tokens: 1 }, { maxRetries: 0 });
+  return { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens };
+}
+
 /** Sends historical contracts to the Batch service, keyed by their ids. */
 export async function sendHistoricalBatch(requests: { custom_id: string; params: Anthropic.Messages.MessageCreateParamsNonStreaming }[]) {
   const batch = await batchClient().messages.batches.create({ requests });

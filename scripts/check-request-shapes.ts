@@ -3,18 +3,24 @@ loadEnvLocal();
 
 import { readdir, readFile } from "fs/promises";
 import path from "path";
-import { countRequestTokens } from "../lib/anthropic";
+import { countRequestTokens, sendOneTokenRequest } from "../lib/anthropic";
 
 /**
- * Checks every pinned model request against the API without paying for one.
+ * Checks every pinned model request against the API.
  *
  * The token-counting endpoint bills nothing and rejects a request the model
  * wouldn't accept: a forced tool on Sonnet 5.5, a thinking setting it refuses,
- * or an output format whose schema won't compile. The requests are the goldens
- * in tests/fixtures/prompt-golden, which are byte for byte what the app sends.
+ * or a schema keyword an output format doesn't allow. The requests are the
+ * goldens in tests/fixtures/prompt-golden, byte for byte what the app sends.
+ *
+ * It does not compile the schema. A schema too large to compile passes the
+ * count and fails the real call ("The compiled grammar is too large").
+ * --compile catches that. It sends each output format with a one-word prompt
+ * for one output token, which costs under a cent per request.
  *
  * Run it after any change to how a request is built:
  *   npx tsx scripts/check-request-shapes.ts
+ *   npx tsx scripts/check-request-shapes.ts --compile   (paid, a few cents)
  */
 
 const GOLDENS = path.join("tests", "fixtures", "prompt-golden");
@@ -51,6 +57,32 @@ function withoutDescriptions<T>(schema: T): T {
   return node as T;
 }
 
+/** Sonnet 5.5 rates, in dollars per million tokens. */
+const RATE = { input: 2, output: 10 };
+
+/** Sends each output format with a one-word prompt, so the API compiles its schema. */
+async function compileFormats(files: string[]) {
+  console.log("Every output format must compile on a real call (paid):");
+  let spent = 0;
+  for (const file of files.filter((f) => f.includes("sonnet-5-5"))) {
+    const { model, thinking, output_config } = await load(file);
+    try {
+      const usage = await sendOneTokenRequest({
+        model,
+        thinking,
+        output_config,
+        messages: [{ role: "user", content: "Record nothing." }],
+      } as never);
+      const cost = (usage.input_tokens * RATE.input + usage.output_tokens * RATE.output) / 1_000_000;
+      spent += cost;
+      report(true, file, `${usage.input_tokens} tokens in, $${cost.toFixed(4)}`);
+    } catch (err) {
+      report(false, file, err instanceof Error ? err.message : String(err));
+    }
+  }
+  console.log(`Spent $${spent.toFixed(4)}.\n`);
+}
+
 let failures = 0;
 
 function report(ok: boolean, label: string, detail: string) {
@@ -60,6 +92,8 @@ function report(ok: boolean, label: string, detail: string) {
 
 async function main() {
   const files = (await readdir(GOLDENS)).filter((f) => f.includes("-request") && f.endsWith(".json")).sort();
+
+  if (process.argv.includes("--compile")) await compileFormats(files);
 
   console.log("Every pinned request must be accepted:");
   for (const file of files) {
