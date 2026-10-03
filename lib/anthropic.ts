@@ -1004,7 +1004,7 @@ Rules:
 - Each meaning names exactly one figure. Where a clause states several numbers, record the one the meaning describes.
 - Read the whole document before answering, including tables, exhibits, headers and footers. A term may sit anywhere.
 - Report percentages as the number written (90 for 90%, 1.5 for 1.5%), dollar amounts as plain numbers (289 for $289.00), days, months, hours and rooms as plain numbers, and dates as YYYY-MM-DD. For an enum, give one of the listed values, or "other" if none fits.
-- quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that states it.
+- quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that holds the value itself, never the cell that labels its row or column.
 - Quote one continuous span where you can. If you must shorten a long one, mark each cut with "..." and keep every piece word for word and in its original order.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Never include a "#", a "|", or a reconstructed list number inside quoted_text.
 - If the contract states a term more than once with different values, record each as its own entry. If it repeats the same value, one entry is enough.
