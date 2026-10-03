@@ -77,6 +77,7 @@ describe("request goldens", () => {
         {
           clause_type: "attrition",
           severity: "high",
+          category: "business",
           is_missing_clause: false,
           quoted_text: "eighty percent (80%)",
           language: "seventy percent (70%)",

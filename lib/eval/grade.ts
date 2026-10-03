@@ -76,9 +76,14 @@ export function gradePair(item: KeyItem, finding: Finding, location: LocationSta
     severity: gradeSeverity(item, finding),
     quote: gradeQuote(location),
     exposure: gradeExposure(item, finding),
-    language: { passed: language.passed, checks: language.checks },
+    language: { passed: language.passed, checks: language.checks, graded: languageWasGraded(item, finding) },
   };
 }
 
-/** Whether this pair's language verdict belongs in the rate, or only in the audit trail. */
-export const languageWasGraded = (item: KeyItem) => item.expected_language.length > 0;
+/**
+ * Whether this pair's language verdict belongs in the rate, or only in the audit trail.
+ *
+ * Legal and other findings carry no wording by design, so their wording isn't graded.
+ */
+export const languageWasGraded = (item: KeyItem, finding?: Pick<Finding, "category">) =>
+  item.expected_language.length > 0 && (finding?.category ?? "business") === "business";

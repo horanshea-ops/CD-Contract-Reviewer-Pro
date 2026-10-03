@@ -1,13 +1,14 @@
 "use client";
 
-import type { FindingsOverview, FindingSeverity } from "@/lib/findings-overview";
+import type { FindingsOverview } from "@/lib/findings-overview";
+import type { Category } from "@/lib/standards/types";
 import { formatCurrency } from "@/lib/format";
 import { Body, Meta } from "@/components/ui/typography";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SeverityToggles } from "@/components/severity-toggles";
+import { CategoryToggles } from "@/components/severity-toggles";
 
 /**
- * Sticky strip above the findings list — severity counts doubling as filter
+ * Sticky strip above the findings list — category counts doubling as filter
  * toggles, the undecided count, a hide-decided toggle, and the review's total
  * exposure when any finding has a figure. Counts always reflect the whole
  * review, not the active filter, so they read as an honest total rather than
@@ -15,27 +16,27 @@ import { SeverityToggles } from "@/components/severity-toggles";
  */
 export default function FindingsOverviewBar({
   overview,
-  hiddenSeverities,
-  onToggleSeverity,
+  hiddenCategories,
+  onToggleCategory,
   hideDecided,
   onToggleHideDecided,
 }: {
   overview: FindingsOverview;
-  hiddenSeverities: Set<FindingSeverity>;
-  onToggleSeverity: (severity: FindingSeverity) => void;
+  hiddenCategories: Set<Category>;
+  onToggleCategory: (category: Category) => void;
   hideDecided: boolean;
   onToggleHideDecided: () => void;
 }) {
-  const filtersActive = hiddenSeverities.size > 0 || hideDecided;
+  const filtersActive = hiddenCategories.size > 0 || hideDecided;
 
   function clearFilters() {
-    for (const severity of hiddenSeverities) onToggleSeverity(severity);
+    for (const category of hiddenCategories) onToggleCategory(category);
     if (hideDecided) onToggleHideDecided();
   }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <SeverityToggles counts={overview.bySeverity} hidden={hiddenSeverities} onToggle={onToggleSeverity} />
+      <CategoryToggles counts={overview.byCategory} hidden={hiddenCategories} onToggle={onToggleCategory} />
 
       {overview.undecidedCount > 0 && (
         <Meta as="span" className="text-[var(--text-muted)]">

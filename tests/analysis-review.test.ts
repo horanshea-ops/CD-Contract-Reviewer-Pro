@@ -7,10 +7,12 @@ function standard(clause_type: string): StandardEntry {
   return {
     clause_type,
     segment: "default",
+    category: "business",
     position: "",
     fallback_language: "",
     walk_away_condition: "",
     severity_default: "medium",
+    compromise_range: "",
     version: "v1",
     provenance: "extracted",
   };

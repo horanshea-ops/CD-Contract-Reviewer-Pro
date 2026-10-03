@@ -1,6 +1,8 @@
 import type { createAdminClient } from "./supabase/admin";
 import type { RevisionFinding } from "./redline-engine/types";
 import { assertsNoChange } from "./proposed-language";
+import type { CounselItem } from "./export-memo";
+import { findingCategory } from "./findings-overview";
 
 const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2, note: 3 };
 
@@ -22,8 +24,11 @@ export interface NonSubstantiveFinding {
 }
 
 export interface ActionedFindings {
+  /** Changes to the contract. Never holds a legal finding. */
   findings: RevisionFinding[];
   nonSubstantive: NonSubstantiveFinding[];
+  /** Legal findings flagged for the client. They carry an explanation and no wording, and reach no contract export. */
+  counsel: CounselItem[];
 }
 
 /**
@@ -40,7 +45,9 @@ export async function getActionedFindings(
 ): Promise<ActionedFindings> {
   const { data: findingRowsRaw } = await admin
     .from("findings")
-    .select("id, clause_type, severity, is_missing_clause, quoted_text, location_section, finding_text, cd_standard, proposed_language")
+    .select(
+      "id, clause_type, severity, category, is_missing_clause, quoted_text, location_section, headline, finding_text, cd_standard, proposed_language"
+    )
     .eq("analysis_id", analysisId);
   const findingRows = findingRowsRaw ?? [];
   type FindingRow = (typeof findingRows)[number];
@@ -66,7 +73,22 @@ export async function getActionedFindings(
     .filter((x): x is { f: FindingRow; action: { action: string; edited_language: string | null } } =>
       x.action != null && (x.action.action === "accept" || x.action.action === "edit")
     )
-    .sort((a, b) => SEVERITY_ORDER[a.f.severity] - SEVERITY_ORDER[b.f.severity])
+    .sort((a, b) => SEVERITY_ORDER[a.f.severity] - SEVERITY_ORDER[b.f.severity]);
+
+  // CD gives no legal advice, so a legal finding is never a change, even one edited before categories existed.
+  const isLegal = ({ f }: (typeof actioned)[number]) => findingCategory(f) === "legal";
+
+  const counsel: CounselItem[] = actioned.filter(isLegal).map(({ f }) => ({
+    clause_type: f.clause_type,
+    severity: f.severity,
+    is_missing_clause: f.is_missing_clause,
+    quoted_text: f.quoted_text,
+    headline: f.headline,
+    finding_text: f.finding_text,
+  }));
+
+  const changes = actioned
+    .filter((x) => !isLegal(x))
     .map(({ f, action }) => ({
       id: f.id,
       location_section: f.location_section,
@@ -79,12 +101,13 @@ export async function getActionedFindings(
       cd_standard: f.cd_standard,
     }));
 
-  const nonSubstantive = actioned
+  const nonSubstantive = changes
     .filter((f) => assertsNoChange(f.language))
     .map((f) => ({ clause_type: f.clause_type, language: f.language }));
 
   return {
-    findings: actioned.filter((f) => !assertsNoChange(f.language)),
+    findings: changes.filter((f) => !assertsNoChange(f.language)),
     nonSubstantive,
+    counsel,
   };
 }

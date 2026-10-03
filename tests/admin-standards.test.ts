@@ -3,7 +3,7 @@ import { fakeDb, type Tables } from "./helpers/fake-db";
 import { clauseKey } from "@/lib/standards/keys";
 
 /**
- * Editing the standards library: moving a standard between severities,
+ * Editing the standards library: moving a standard between categories,
  * adding one, and removing one by retiring it. Every route is admin-only,
  * every change is audited, and a removed standard stops reaching the model.
  */
@@ -31,10 +31,12 @@ function standard(clause_type: string, over: Record<string, unknown> = {}) {
     id: `std-${clause_type}`,
     clause_type,
     segment: "default",
+    category: "business",
     position: "p",
     fallback_language: "f",
     walk_away_condition: "",
     severity_default: "medium",
+    compromise_range: "",
     version: "v1-industry-default",
     provenance: "industry_default",
     retired_at: null,
@@ -68,7 +70,39 @@ describe("who can edit", () => {
   });
 });
 
-describe("moving a standard between severities", () => {
+describe("moving a standard between categories", () => {
+  it("saves the new category and audits it", async () => {
+    const res = await edit(json({ category: "legal" }), params("std-attrition"));
+    expect(res.status).toBe(200);
+    expect(state.tables.standards.find((s) => s.id === "std-attrition")!.category).toBe("legal");
+    expect(state.audit[0]).toMatchObject({ action: "standard_updated", metadata: { category: "legal" } });
+  });
+
+  it("keeps the fallback language, so moving back restores it", async () => {
+    await edit(json({ category: "legal" }), params("std-attrition"));
+    await edit(json({ category: "business" }), params("std-attrition"));
+    expect(state.tables.standards.find((s) => s.id === "std-attrition")!.fallback_language).toBe("f");
+  });
+
+  it("refuses a category that doesn't exist", async () => {
+    expect((await edit(json({ category: "advisory" }), params("std-attrition"))).status).toBe(400);
+  });
+});
+
+describe("editing severity and the compromise range", () => {
+  it("saves a compromise range", async () => {
+    expect((await edit(json({ compromise_range: "Up to 80%." }), params("std-attrition"))).status).toBe(200);
+    expect(state.tables.standards.find((s) => s.id === "std-attrition")!.compromise_range).toBe("Up to 80%.");
+  });
+
+  it("refuses a compromise range that isn't text", async () => {
+    expect((await edit(json({ compromise_range: 80 }), params("std-attrition"))).status).toBe(400);
+  });
+
+  it("refuses Other as a severity, now that Other is a category", async () => {
+    expect((await edit(json({ severity_default: "note" }), params("std-attrition"))).status).toBe(400);
+  });
+
   it("saves the new severity and audits it", async () => {
     const res = await edit(json({ severity_default: "high" }), params("std-attrition"));
     expect(res.status).toBe(200);
@@ -95,6 +129,18 @@ describe("adding a standard", () => {
     expect(taken.status).toBe(409);
     const removed = await add(json({ name: "Old clause", position: "p", fallback_language: "f", severity_default: "high" }));
     expect((await removed.json()).error).toMatch(/Restore it/);
+  });
+
+  it("adds a legal standard without fallback language or a range", async () => {
+    const res = await add(
+      json({ name: "Arbitration", category: "legal", position: "p", compromise_range: "x", severity_default: "medium" })
+    );
+    expect(res.status).toBe(201);
+    expect(state.tables.standards.find((s) => s.clause_type === "arbitration")).toMatchObject({
+      category: "legal",
+      fallback_language: "",
+      compromise_range: "",
+    });
   });
 
   it("needs a name, position, fallback language and severity", async () => {

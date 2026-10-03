@@ -41,7 +41,8 @@ export async function redlineRun(run: RunRecord, originals: Map<string, Uint8Arr
     const findings = document.analysis.findings;
     const kept = findings
       .map((f, index) => ({ f, index }))
-      .filter(({ f }) => !assertsNoChange(f.proposed_language));
+      // Legal findings never reach the redline, as in the app.
+      .filter(({ f }) => f.category !== "legal" && !assertsNoChange(f.proposed_language));
 
     const revisionFindings: RevisionFinding[] = kept.map(({ f, index }) => ({
       id: `${document.contract}#${index}`,

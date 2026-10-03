@@ -55,7 +55,14 @@ describe("analyzeContract's tool output", () => {
     );
     const result = await run();
     expect(create).toHaveBeenCalledTimes(1);
-    expect(result.findings).toEqual([{ ...FINDING, exposure_formula: null }]);
+    expect(result.findings).toEqual([
+      {
+        ...FINDING,
+        exposure_formula: null,
+        category: "business",
+        compromise_range: STANDARDS_LIBRARY.find((s) => s.clause_type === "attrition")!.compromise_range,
+      },
+    ]);
   });
 
   it("works exposure figures out from the contract's checked figures, and notes arrive as short items", async () => {
@@ -115,6 +122,50 @@ describe("analyzeContract's tool output", () => {
       ["general", "note", ""],
     ]);
     expect(result.review_gaps.filter((g) => g.clause_type === "general")).toEqual([]);
+  });
+
+  it("stamps categories from the library and keeps legal findings wordless", async () => {
+    const indemnity = STANDARDS_LIBRARY.find((s) => s.clause_type === "insurance_indemnification")!;
+    create.mockResolvedValueOnce(
+      response({
+        findings: [
+          FINDING,
+          // A legal clause type in the business list loses its wording.
+          { ...FINDING, clause_type: "governing_law_venue", proposed_language: "Governed by Group's state law." },
+          // An unknown clause type is treated as other, so it carries no wording either.
+          { ...FINDING, clause_type: "made_up_clause", proposed_language: "Something." },
+        ],
+        flagged_findings: [
+          {
+            clause_type: "insurance_indemnification",
+            is_missing_clause: false,
+            severity: "high",
+            quoted_text: "Group shall indemnify Hotel for all claims.",
+            headline: "Group covers the hotel's own negligence",
+            finding_text: "The group would answer for claims the hotel causes.",
+            model_confidence: "high",
+            proposed_language: "Each party indemnifies the other.",
+          },
+        ],
+        clause_review: [],
+        document_notes: [],
+        other_findings: [],
+      })
+    );
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await run();
+    const byType = Object.fromEntries(result.findings.map((f) => [f.clause_type, f]));
+
+    expect(byType.attrition).toMatchObject({ category: "business", proposed_language: FINDING.proposed_language });
+    expect(byType.governing_law_venue).toMatchObject({ category: "legal", proposed_language: "", compromise_range: "" });
+    expect(byType.made_up_clause).toMatchObject({ category: "other", proposed_language: "" });
+    expect(byType.insurance_indemnification).toMatchObject({
+      category: "legal",
+      proposed_language: "",
+      cd_standard: indemnity.position,
+      headline: "Group covers the hotel's own negligence",
+      severity: "high",
+    });
   });
 
   it("retries, then says what the malformed field held", async () => {

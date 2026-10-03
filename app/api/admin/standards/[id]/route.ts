@@ -2,9 +2,18 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
-import { isSeverity } from "@/lib/standards/keys";
+import { isCategory, isLibrarySeverity } from "@/lib/standards/keys";
 
-const EDITABLE_FIELDS = ["position", "fallback_language", "walk_away_condition", "severity_default", "provenance"];
+const EDITABLE_FIELDS = [
+  "category",
+  "position",
+  "fallback_language",
+  "walk_away_condition",
+  "severity_default",
+  "compromise_range",
+  "provenance",
+];
+const TEXT_FIELDS = ["position", "fallback_language", "walk_away_condition", "compromise_range"];
 
 /**
  * Edits one standards library entry. Admin-only — the library is CD's
@@ -27,8 +36,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No editable fields provided." }, { status: 400 });
   }
-  if ("severity_default" in updates && !isSeverity(updates.severity_default)) {
+  if ("severity_default" in updates && !isLibrarySeverity(updates.severity_default)) {
     return NextResponse.json({ error: "Choose a severity." }, { status: 400 });
+  }
+  if ("category" in updates && !isCategory(updates.category)) {
+    return NextResponse.json({ error: "Choose a category." }, { status: 400 });
+  }
+  for (const field of TEXT_FIELDS) {
+    if (field in updates && typeof updates[field] !== "string") {
+      return NextResponse.json({ error: "Text fields must be text." }, { status: 400 });
+    }
   }
 
   const admin = createAdminClient();
@@ -65,6 +82,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       clause_type: data.clause_type,
       fields_changed: Object.keys(updates),
       ...("severity_default" in body ? { severity_default: data.severity_default } : {}),
+      ...("category" in body ? { category: data.category } : {}),
     },
   });
 

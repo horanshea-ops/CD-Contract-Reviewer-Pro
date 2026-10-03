@@ -11,6 +11,8 @@ import { clauseLabel, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
+import { findingCategory } from "@/lib/findings-overview";
+import type { Category } from "@/lib/standards/types";
 import ChangeView from "./change-view";
 
 export interface Finding {
@@ -18,6 +20,10 @@ export interface Finding {
   clause_type: string;
   is_missing_clause: boolean;
   severity: "high" | "medium" | "low" | "note";
+  /** Absent only before migration 013. */
+  category?: Category;
+  /** CD's fallback on a business standard. For the associate's eyes only. */
+  compromise_range?: string;
   exposure_amount: number | null;
   exposure_basis: string | null;
   /** Null on findings recorded before the app worked exposure figures out itself. */
@@ -102,6 +108,9 @@ const ACTION_LABEL: Record<string, string> = {
   dismiss: "Dismissed",
 };
 
+// A legal finding is flagged for the client rather than accepted, and never edited.
+const LEGAL_ACTION_LABEL: Record<string, string> = { ...ACTION_LABEL, accept: "Flagged for client" };
+
 export default function FindingCard({
   finding,
   onActionRecorded,
@@ -135,6 +144,10 @@ export default function FindingCard({
 
   const style = SEVERITY_STYLE[finding.severity];
   const section = sectionRef(finding.location_section);
+  const isLegal = findingCategory(finding) === "legal";
+  const actionLabel = isLegal ? LEGAL_ACTION_LABEL : ACTION_LABEL;
+  const compromise = finding.compromise_range?.trim() ?? "";
+  const hasWhy = !!finding.headline || !!compromise;
   const language =
     finding.current_action?.action === "edit" && finding.current_action.edited_language
       ? finding.current_action.edited_language
@@ -169,7 +182,7 @@ export default function FindingCard({
       });
       setMode("view");
       setChangingDecision(false);
-      showToast(`${ACTION_LABEL[action]}.`);
+      showToast(`${actionLabel[action]}.`);
     } catch {
       const message = "Not saved. Check your connection and try again.";
       setError(message);
@@ -251,7 +264,7 @@ export default function FindingCard({
       )}
 
       <div className="mt-2 flex flex-wrap gap-x-4">
-        {finding.headline && (
+        {hasWhy && (
           <Disclosure open={whyOpen} onToggle={() => setWhyOpen((v) => !v)}>
             Why
           </Disclosure>
@@ -263,6 +276,11 @@ export default function FindingCard({
       {whyOpen && finding.headline && (
         <Body as="p" className="mt-1 text-[var(--text-secondary)]">
           {finding.finding_text}
+        </Body>
+      )}
+      {whyOpen && compromise && (
+        <Body as="p" className="mt-1 text-[var(--text-secondary)]">
+          <span className="font-medium text-[var(--text-primary)]">Compromise range</span> · {compromise}
         </Body>
       )}
       {standardOpen && (
@@ -281,7 +299,7 @@ export default function FindingCard({
       {mode === "view" && finding.current_action && !changingDecision && (
         <div className="mt-4 flex items-center gap-3">
           <Meta as="span" className="font-medium text-[var(--text-secondary)]">
-            {ACTION_LABEL[finding.current_action.action]}
+            {actionLabel[finding.current_action.action]}
           </Meta>
           <Button variant="secondary" size="sm" onClick={() => setChangingDecision(true)}>
             Change decision
@@ -291,21 +309,28 @@ export default function FindingCard({
 
       {mode === "view" && (!finding.current_action || changingDecision) && (
         <div className="flex gap-2 mt-4">
-          <Button size="sm" onClick={() => submitAction("accept")} loading={saving} loadingText="Accepting...">
-            Accept
-          </Button>
           <Button
-            variant="secondary"
             size="sm"
-            onClick={() => {
-              // Start from the wording the card shows, so re-editing keeps an earlier edit.
-              setEditedLanguage(language);
-              setMode("editing");
-            }}
-            disabled={saving}
+            onClick={() => submitAction("accept")}
+            loading={saving}
+            loadingText={isLegal ? "Flagging..." : "Accepting..."}
           >
-            {language.trim() ? "Edit" : "Add wording"}
+            {isLegal ? "Flag for client" : "Accept"}
           </Button>
+          {!isLegal && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                // Start from the wording the card shows, so re-editing keeps an earlier edit.
+                setEditedLanguage(language);
+                setMode("editing");
+              }}
+              disabled={saving}
+            >
+              {language.trim() ? "Edit" : "Add wording"}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>
             Dismiss
           </Button>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildSystemPrompt, findingsToolSchema } from "@/lib/anthropic";
+import { buildSystemPrompt, findingsToolSchema, libraryForPrompt } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 
 /**
@@ -30,6 +30,28 @@ describe("the analysis system prompt", () => {
     expect(blocks).toHaveLength(2);
     expect(blocks[0].cache_control).toBeUndefined();
     expect(blocks[1].cache_control).toEqual({ type: "ephemeral" });
+  });
+
+  it("sends legal standards without fallback wording, and no standard's compromise range", () => {
+    const library = libraryForPrompt(STANDARDS_LIBRARY);
+    const legal = library.filter((s) => s.category === "legal");
+    expect(legal.length).toBeGreaterThan(0);
+    for (const s of legal) expect(s, s.clause_type).not.toHaveProperty("fallback_language");
+    for (const s of library.filter((s) => s.category === "business")) expect(s).toHaveProperty("fallback_language");
+    for (const s of library) expect(s).not.toHaveProperty("compromise_range");
+
+    const text = prompt();
+    for (const s of STANDARDS_LIBRARY.filter((s) => s.compromise_range)) {
+      expect(text, s.clause_type).not.toContain(s.compromise_range);
+    }
+  });
+
+  it("routes legal and other findings to flagged_findings, explained and never worded", () => {
+    const text = prompt();
+    expect(text).toContain("A finding on a legal or other clause type goes in flagged_findings, which has no wording.");
+    expect(text).toContain("does not give legal advice");
+    expect(text).toContain("Never say what the contract should say instead, never suggest wording");
+    expect(text).toContain("Every business finding is read downstream as a change to make");
   });
 
   it("still refuses to present itself as legal advice", () => {
@@ -313,8 +335,15 @@ describe("the findings tool schema", () => {
   const properties = schema.input_schema.properties;
 
   it("tells the model what belongs in findings", () => {
-    expect(properties.findings.description).toContain("Deviations only");
+    expect(properties.findings.description).toContain("Deviations on business clause types only");
     expect(properties.findings.description).toContain("meets verdict in clause_review");
+  });
+
+  it("gives flagged findings no wording field", () => {
+    const flagged = properties.flagged_findings.items;
+    expect(Object.keys(flagged.properties)).not.toContain("proposed_language");
+    expect(Object.keys(flagged.properties)).not.toContain("cd_standard");
+    expect(schema.input_schema.required).toContain("flagged_findings");
   });
 
   it("says proposed_language is always an actual change", () => {
