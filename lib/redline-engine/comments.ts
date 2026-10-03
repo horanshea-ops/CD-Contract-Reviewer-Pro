@@ -263,3 +263,64 @@ async function addContentType(zip: JSZip, commentsPath: string) {
   root.appendChild(override);
   zip.file("[Content_Types].xml", xmlWithProlog(serialize(types)));
 }
+
+/**
+ * Removes the comments one export wrote, leaving the property's own. When the
+ * export created comments.xml, the part, its relationship and its content type
+ * go too, so the package is back to the shape it arrived in.
+ *
+ * `parts` are edited in place and serialized by the caller.
+ */
+export async function stripComments({
+  zip,
+  parts,
+  ownCommentIds,
+  createdCommentsPart,
+}: {
+  zip: JSZip;
+  parts: ParsedPart[];
+  ownCommentIds: ReadonlySet<string>;
+  createdCommentsPart: boolean;
+}): Promise<void> {
+  if (ownCommentIds.size === 0) return;
+  const ours = (el: Element) => ownCommentIds.has(el.getAttribute("w:id") ?? "");
+
+  for (const part of parts) {
+    for (const tag of ["w:commentRangeStart", "w:commentRangeEnd"]) {
+      for (const el of elements(part.doc, tag).filter(ours)) el.parentNode?.removeChild(el);
+    }
+    for (const ref of elements(part.doc, "w:commentReference").filter(ours)) {
+      const run = ref.parentNode as Element | null;
+      ref.parentNode?.removeChild(ref);
+      if (run?.nodeName === "w:r" && childElements(run).every((c) => c.nodeName === "w:rPr")) {
+        run.parentNode?.removeChild(run);
+      }
+    }
+  }
+
+  const rels = await loadRels(zip);
+  const rel = elements(rels, "Relationship").find((r) => r.getAttribute("Type") === COMMENTS_REL);
+  if (!rel) return;
+  const commentsPath = resolveTarget(rel.getAttribute("Target") ?? "");
+
+  if (createdCommentsPart) {
+    zip.remove(commentsPath);
+    rel.parentNode?.removeChild(rel);
+    zip.file(DOC_RELS_PATH, xmlWithProlog(serialize(rels)));
+    const typesFile = zip.file("[Content_Types].xml");
+    if (typesFile) {
+      const types = parseXml(await typesFile.async("string"), "[Content_Types].xml");
+      for (const o of elements(types, "Override")) {
+        if (o.getAttribute("PartName") === `/${commentsPath}`) o.parentNode?.removeChild(o);
+      }
+      zip.file("[Content_Types].xml", xmlWithProlog(serialize(types)));
+    }
+    return;
+  }
+
+  const file = zip.file(commentsPath);
+  if (!file) return;
+  const comments = parseXml(await file.async("string"), commentsPath);
+  for (const c of elements(comments, "w:comment").filter(ours)) c.parentNode?.removeChild(c);
+  zip.file(commentsPath, xmlWithProlog(serialize(comments)));
+}
