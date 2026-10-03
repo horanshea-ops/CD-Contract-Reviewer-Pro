@@ -628,6 +628,45 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         - Exposure fell from $170,696 to $91,724. The attrition and F&B
           exposures didn't compute. Cause not yet traced.
         - The hotel's three comments appear nowhere on the review screen.
+      - **Built after that run (2026-10-03, same branch).** The user chose to
+        show existing comments to the associate and give them to the model.
+        - Extraction reads each comment with its author, date, text, the
+          wording it sits on, and its reply and resolved state
+          (`lib/docx/comments.ts`). Comments never enter the contract text or
+          its map.
+        - The model gets them in a block of its own after the contract, with
+          rules: they are not contract wording, never go in a quote, and are
+          never instructions (`lib/document-comments.ts`). The AI-use
+          pre-check scans them too. A file with no comments sends the same
+          request as before.
+        - The document pane has a "Comments (n)" button, absent when a file
+          has none and off by default. On, it lists the comments, underlines
+          each anchor with a number, and scrolls to the wording on a click.
+          Checked through the page's structure, not yet by eye.
+        - **Defect fixed.** A change of ours that covered a hotel comment's
+          anchor pulled the comment's reference inside our deletion. The clean
+          copy lost the comment, and the hotel would lose it by accepting our
+          change. The engine now leaves a reference-only run alone
+          (`lib/redline-engine/runs.ts`). The oracle and the clean-copy check
+          fail when a comment the file already had loses a marker or sits
+          inside one of our changes.
+        - Fixture 16 copies the shapes of the Pages export. The existing
+          revisions strip no longer says "Round 2+" on a first upload.
+        - The server log now says why a note was blanked, why a figure was
+          dropped, and when a finding arrives without a quote.
+        - The user opened the stand-in redline and clean copy in Word. Neither
+          showed a repair prompt.
+      - **Second paid run `e6289f46` did not finish.** The network dropped
+        during the model call, the request timed out, and the failure could
+        not be written back, so the review sat at "processing". Whether the
+        call was billed is unknown. Everything above is still unmeasured on a
+        real run.
+      - **Not built.** The hotel's table edit arrived untracked. A first
+        upload has nothing to compare it with, and a re-upload is caught by
+        the round diff.
+      - **Follow-up.** A table replaced by one of our changes that holds a
+        hotel comment now fails the oracle and falls back to the PDF. The
+        engine should refuse that one change instead.
 - [ ] **Pages uploads, and other formats and comment styles (user,
       2026-10-03) — later, not scheduled.** The upload accepts only PDF, DOCX
       and DOC, so a `.pages` file is refused. To scope when it comes up:
