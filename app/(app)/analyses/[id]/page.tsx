@@ -10,7 +10,9 @@ import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
 import { ResizableSplit } from "./resizable-split";
 import type { HighlightRect } from "@/lib/locate-text";
-import { computeFindingsOverview, SEVERITY_ORDER, type FindingSeverity } from "@/lib/findings-overview";
+import { compareFindings, computeFindingsOverview, findingCategory } from "@/lib/findings-overview";
+import type { Category } from "@/lib/standards/types";
+import { CATEGORY_STYLE } from "@/components/category-style";
 import { ExportPicker } from "@/components/export-picker";
 import { EmailPicker } from "@/components/email-picker";
 import { AiClauseReview } from "@/components/ai-clause-review";
@@ -96,7 +98,7 @@ export default function AnalysisPage() {
   const [offline, setOffline] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState("");
-  const [hiddenSeverities, setHiddenSeverities] = useState<Set<FindingSeverity>>(new Set());
+  const [hiddenCategories, setHiddenCategories] = useState<Set<Category>>(new Set());
   const [hideDecided, setHideDecided] = useState(false);
   const pollNow = useRef<() => void>(() => {});
 
@@ -157,12 +159,12 @@ export default function AnalysisPage() {
 
   const sortedFindings = useMemo(() => {
     if (!data) return [];
-    return [...data.findings].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+    return [...data.findings].sort(compareFindings);
   }, [data]);
 
   const visibleFindings = useMemo(
-    () => sortedFindings.filter((f) => !hiddenSeverities.has(f.severity) && !(hideDecided && f.current_action)),
-    [sortedFindings, hiddenSeverities, hideDecided]
+    () => sortedFindings.filter((f) => !hiddenCategories.has(findingCategory(f)) && !(hideDecided && f.current_action)),
+    [sortedFindings, hiddenCategories, hideDecided]
   );
 
   const handleSelectFinding = useCallback(
@@ -265,11 +267,11 @@ export default function AnalysisPage() {
     document.getElementById(`finding-${next.id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
-  function toggleSeverity(severity: FindingSeverity) {
-    setHiddenSeverities((prev) => {
+  function toggleCategory(category: Category) {
+    setHiddenCategories((prev) => {
       const next = new Set(prev);
-      if (next.has(severity)) next.delete(severity);
-      else next.add(severity);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
       return next;
     });
   }
@@ -398,11 +400,12 @@ export default function AnalysisPage() {
   // Notes sit in the Other bucket with the findings outside CD's standards, so its count includes them.
   const bucketOverview = {
     ...overview,
-    bySeverity: { ...overview.bySeverity, note: overview.bySeverity.note + notesInOther },
+    byCategory: { ...overview.byCategory, other: overview.byCategory.other + notesInOther },
   };
-  const mainFindings = visibleFindings.filter((f) => f.severity !== "note");
-  const otherFindings = visibleFindings.filter((f) => f.severity === "note");
-  const showOther = !hiddenSeverities.has("note") && (otherFindings.length > 0 || notesInOther > 0);
+  const businessFindings = visibleFindings.filter((f) => findingCategory(f) === "business");
+  const legalFindings = visibleFindings.filter((f) => findingCategory(f) === "legal");
+  const otherFindings = visibleFindings.filter((f) => findingCategory(f) === "other");
+  const showOther = !hiddenCategories.has("other") && (otherFindings.length > 0 || notesInOther > 0);
   const card = (f: Finding) => (
     <FindingCard
       key={f.id}
@@ -498,8 +501,8 @@ export default function AnalysisPage() {
               <div className="sticky top-0 z-10 bg-[var(--surface-muted)] px-4 py-3 border-b border-[var(--border)]">
                 <FindingsOverviewBar
                   overview={bucketOverview}
-                  hiddenSeverities={hiddenSeverities}
-                  onToggleSeverity={toggleSeverity}
+                  hiddenCategories={hiddenCategories}
+                  onToggleCategory={toggleCategory}
                   hideDecided={hideDecided}
                   onToggleHideDecided={toggleHideDecided}
                 />
@@ -510,19 +513,32 @@ export default function AnalysisPage() {
                 <Body as="p" className="text-[var(--text-secondary)]">
                   No findings. Nothing flagged against the standards library.
                 </Body>
-              ) : mainFindings.length === 0 && !showOther ? (
+              ) : businessFindings.length + legalFindings.length === 0 && !showOther ? (
                 <Body as="p" className="text-[var(--text-secondary)]">
                   No findings match this filter.
                 </Body>
-              ) : (
-                mainFindings.map(card)
+              ) : null}
+              {businessFindings.length > 0 && (
+                <section aria-label="Business" className="space-y-3">
+                  <SectionHeading category="business">proposed changes to the contract</SectionHeading>
+                  {businessFindings.map(card)}
+                </section>
+              )}
+              {legalFindings.length > 0 && (
+                <section aria-label="Legal" className="space-y-3 pt-2">
+                  <SectionHeading category="legal">for the client&apos;s counsel</SectionHeading>
+                  <Meta as="p" className="text-[var(--text-muted)] -mt-2">
+                    {ORG.shortName} doesn&apos;t give legal advice, so these explain a risk and propose no wording. Flag one
+                    to list it in the client memo and email, for the client to raise with their counsel.
+                  </Meta>
+                  {legalFindings.map(card)}
+                </section>
               )}
               {showOther && (
                 <section aria-label="Other" className="space-y-3 pt-2">
-                  <Meta as="h2" className="text-[var(--text-secondary)]">
-                    <span className="font-semibold uppercase tracking-wide">Other</span>
-                    {` · outside ${ORG.shortName}'s standards, and notes on the document`}
-                  </Meta>
+                  <SectionHeading category="other">
+                    points raised without wording, and notes on the document
+                  </SectionHeading>
                   {otherFindings.length > 0 && (
                     <Meta as="p" className="text-[var(--text-muted)] -mt-2">
                       These points carry no proposed wording. Accepting one puts it in the memo; use Add wording to put a
@@ -538,5 +554,18 @@ export default function AnalysisPage() {
         }
       />
     </div>
+  );
+}
+
+function SectionHeading({ category, children }: { category: Category; children: React.ReactNode }) {
+  const style = CATEGORY_STYLE[category];
+  return (
+    <Meta as="h2" className="text-[var(--text-secondary)]">
+      <span className="font-semibold uppercase tracking-wide" style={{ color: style.textColor }}>
+        {style.name}
+      </span>
+      {" · "}
+      {children}
+    </Meta>
   );
 }

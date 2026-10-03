@@ -143,6 +143,13 @@ function revisionFrom(node: Element): RevisionInfo {
   };
 }
 
+/** Where a comment's markers sit, as offsets into the accepted-view text. */
+export interface CommentAnchorOffsets {
+  start?: number;
+  end?: number;
+  reference?: number;
+}
+
 export interface WalkResult extends ExtractedPart {
   paragraphCount: number;
   runCount: number;
@@ -156,11 +163,24 @@ export interface WalkResult extends ExtractedPart {
    * that assigns the indices hands back what it walked.
    */
   runs: Element[];
+  /** Comment markers met on the walk, by comment id. They add nothing to the text. */
+  commentAnchors: Map<string, CommentAnchorOffsets>;
 }
 
 export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkResult {
   const sink = new Sink();
   const runs: Element[] = [];
+  const commentAnchors = new Map<string, CommentAnchorOffsets>();
+
+  /** Notes where a comment marker sits. The first marker of each kind wins. */
+  function markComment(node: Element, kind: keyof CommentAnchorOffsets) {
+    const id = node.getAttribute("w:id");
+    if (id === null) return;
+    const anchor = commentAnchors.get(id) ?? {};
+    anchor[kind] ??= sink.text.length;
+    commentAnchors.set(id, anchor);
+  }
+
   let paragraphIndex = -1;
   let runIndex = -1;
   let tableCount = 0;
@@ -233,6 +253,9 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
           break;
         case "w:noBreakHyphen":
           sink.synthetic("-");
+          break;
+        case "w:commentReference":
+          markComment(child, "reference");
           break;
         default:
           break; // w:rPr, w:sym, w:drawing, w:footnoteReference and friends
@@ -336,7 +359,9 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
         walkChildren(child, ctx, field);
         continue;
       }
-      // bookmarkStart/End, proofErr, commentRangeStart/End, lastRenderedPageBreak: no text.
+      if (name === "w:commentRangeStart") { markComment(child, "start"); continue; }
+      if (name === "w:commentRangeEnd") { markComment(child, "end"); continue; }
+      // bookmarkStart/End, proofErr, lastRenderedPageBreak: no text.
     }
   }
 
@@ -352,5 +377,6 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     runCount: runIndex + 1,
     tableCount,
     runs,
+    commentAnchors,
   };
 }

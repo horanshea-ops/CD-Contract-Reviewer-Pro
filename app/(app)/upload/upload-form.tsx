@@ -1,41 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FIELD_LABEL_CLASSES, Field, FieldInput, FieldSelect } from "@/components/ui/field";
+import { ContractDropZone } from "@/components/contract-drop-zone";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Body, Meta, Title } from "@/components/ui/typography";
-import { cn } from "@/lib/cn";
 
 interface OpenThread {
   id: string;
   propertyName: string;
   clientName: string | null;
   roundCount: number;
-}
-
-const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".doc"];
-const UNSUPPORTED_TYPE_MESSAGE = "Unsupported file type. Upload a PDF, DOCX, or DOC contract.";
-const MAX_FILE_BYTES = 32 * 1024 * 1024;
-
-// Drag-and-drop bypasses the file input's `accept` filter entirely, and a
-// dropped file's `type` can be empty depending on OS/browser — checking the
-// extension is what actually works for both paths.
-function hasAcceptedExtension(filename: string): boolean {
-  const lower = filename.toLowerCase();
-  return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
-}
-
-function tooLargeMessage(bytes: number): string {
-  return `This file is ${formatFileSize(bytes)}. The limit is 32MB.`;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function UploadForm() {
@@ -48,8 +27,6 @@ export default function UploadForm() {
   const [threadId, setThreadId] = useState("");
   const [status, setStatus] = useState<"idle" | "uploading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [dragActive, setDragActive] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/threads")
@@ -57,39 +34,6 @@ export default function UploadForm() {
       .then((body) => setThreads(body.threads ?? []))
       .catch(() => setThreads([]));
   }, []);
-
-  function handleDrop(e: React.DragEvent<HTMLLabelElement>) {
-    e.preventDefault();
-    setDragActive(false);
-    const dropped = e.dataTransfer.files?.[0];
-    if (!dropped) return;
-    if (!hasAcceptedExtension(dropped.name) || dropped.size > MAX_FILE_BYTES) {
-      setFile(null);
-      setStatus("error");
-      setErrorMessage(hasAcceptedExtension(dropped.name) ? tooLargeMessage(dropped.size) : UNSUPPORTED_TYPE_MESSAGE);
-      return;
-    }
-    setStatus("idle");
-    setErrorMessage("");
-    setFile(dropped);
-
-    // Keep the input in step with a dropped file, or its `required` check
-    // would block a submit the page itself considers ready.
-    if (fileInput.current) fileInput.current.files = e.dataTransfer.files;
-  }
-
-  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selected = e.target.files?.[0] ?? null;
-    if (selected && (!hasAcceptedExtension(selected.name) || selected.size > MAX_FILE_BYTES)) {
-      setFile(null);
-      setStatus("error");
-      setErrorMessage(hasAcceptedExtension(selected.name) ? tooLargeMessage(selected.size) : UNSUPPORTED_TYPE_MESSAGE);
-      return;
-    }
-    setStatus("idle");
-    setErrorMessage("");
-    setFile(selected);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -149,59 +93,21 @@ export default function UploadForm() {
         </Body>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="contract-file" className={FIELD_LABEL_CLASSES}>
-              Contract
-            </label>
-            <input
-              ref={fileInput}
-              id="contract-file"
-              type="file"
-              accept=".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
-              required
-              onChange={handleFileInputChange}
-              className="peer sr-only"
-            />
-            <label
-              htmlFor="contract-file"
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragActive(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                setDragActive(false);
-              }}
-              onDrop={handleDrop}
-              className={cn(
-                "flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed px-4 py-5 text-center transition-colors",
-                "peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--cd-blue)]",
-                dragActive
-                  ? "border-[var(--cd-blue)] bg-[var(--cd-blue-pale)]"
-                  : "border-[var(--border-strong)] hover:bg-[var(--surface-muted)]"
-              )}
-            >
-              {file ? (
-                <>
-                  <Body as="span" className="font-medium text-[var(--text-primary)] break-all">
-                    {file.name}
-                  </Body>
-                  <Meta as="span" className="text-[var(--text-muted)]">
-                    {formatFileSize(file.size)} · <span className="text-[var(--cd-navy)] underline">Change</span>
-                  </Meta>
-                </>
-              ) : (
-                <>
-                  <Body as="span" className="text-[var(--text-primary)]">
-                    Drop a contract here, or <span className="font-medium text-[var(--cd-navy)] underline">browse</span>
-                  </Body>
-                  <Meta as="span" className="text-[var(--text-muted)]">
-                    PDF, DOCX or DOC, up to 32MB
-                  </Meta>
-                </>
-              )}
-            </label>
-          </div>
+          <ContractDropZone
+            id="contract-file"
+            file={file}
+            onFile={(picked) => {
+              setFile(picked);
+              if (picked) {
+                setStatus("idle");
+                setErrorMessage("");
+              }
+            }}
+            onError={(message) => {
+              setStatus("error");
+              setErrorMessage(message);
+            }}
+          />
 
           <fieldset>
             <legend className={FIELD_LABEL_CLASSES}>Negotiation</legend>

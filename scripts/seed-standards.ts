@@ -41,10 +41,12 @@ async function main() {
   }).map((entry) => ({
     clause_type: entry.clause_type,
     segment: entry.segment,
+    category: entry.category,
     position: entry.position,
     fallback_language: entry.fallback_language,
     walk_away_condition: entry.walk_away_condition,
     severity_default: entry.severity_default,
+    compromise_range: entry.compromise_range,
     version: entry.version,
     provenance: entry.provenance,
   }));

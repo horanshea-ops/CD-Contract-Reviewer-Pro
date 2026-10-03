@@ -384,6 +384,397 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+### Next up, in order (user, 2026-09-28)
+
+- [ ] **0. Sonnet 5.5 change-over — built, not live.** Branch
+      `migrate/sonnet-5-5` (not merged).
+      - Sonnet 5.5 costs the same per token as Sonnet 5.
+      - It rejects a forced tool_choice. Forced-capable models keep today's
+        request byte for byte. Sonnet 5.5 gets tool_choice auto, a strict tool
+        with every object closed, and a prompt line to call the tool.
+      - The schema check passed. Both strict schemas compile.
+      - **Blocker.** Harborview's review at the default effort (`high`) ran past
+        10 minutes and was stopped. The app gave the model 240s then, and
+        gives it 420s now. Sonnet 5.5 always thinks, and a forced Sonnet 5 call
+        doesn't (the Rome run recorded 0 thinking characters).
+      - Until it's measured, Render stays on `ANTHROPIC_MODEL=claude-sonnet-5`.
+      - **Scoped 2026-10-03, to build after the Word round-trip item.**
+        Anthropic's notes on Sonnet 5.5 change the approach.
+        - **Thinking.** `thinking: {type: "between_tools"}` turns upfront
+          thinking off. A review is one tool call, so nothing is left to think
+          between. This is the closest match to a forced Sonnet 5 call and the
+          likely fix for the timeout. It is allowed at effort `high` or below
+          only, and takes no other field inside `thinking`.
+        - **Effort.** The levels are recalibrated on 5.5. Set
+          `output_config.effort` explicitly. Test `high` first, then `medium`.
+        - **Forced tool choice.** The branch's `auto` plus a strict tool is one
+          route. Structured outputs (`output_config.format`) is the other, and
+          it guarantees the format. Count missed tool calls in the eval run. If
+          any occur, move the review call to structured outputs.
+        - **Preserved thinking.** No change needed. Every call in the app is a
+          single request and never replays an earlier answer. CD's future org
+          will be enforced by default and is still unaffected. Any later
+          multi-turn feature must keep its history append-only.
+        - **Refusals.** 5.5 declines in five categories. Server-side fallback
+          retries only `cyber` and `frontier_llm`, neither likely on a hotel
+          contract. Included by default unless the user declines.
+        - **Streaming.** The review call asks for 64k tokens without streaming.
+          `.stream().finalMessage()` follows SDK guidance and lets the deadline
+          cut a slow call cleanly. Optional second step.
+        - **Branch state.** One commit, well behind `main`, which now also
+          requires `quoted_text` and sends a comments block. Its 5.5 goldens
+          predate `redline_note` and `flagged_findings`. It doesn't cover the
+          historical-contract read or the two eval calls, and the Batch service
+          rejects a forced tool on 5.5 too.
+      - **Steps.** Opus work, since it changes every model request. Each paid
+        step needs its own yes.
+        1. Merge `main` into the branch. Add `between_tools` and explicit
+           effort to the non-forced path in `toolRequest`. Cover the historical
+           and eval calls. Regenerate the goldens.
+        2. Check every request shape on the token-counting endpoint. It is free
+           and rejects bad `thinking` and `tool_choice` values.
+        3. Paid, about $0.40. Run the redlined Florida file
+           (`data/private/florida-property-round1.docx`, git-ignored) on 5.5
+           with `between_tools` at `high`. Compare time, tokens and findings
+           with `c27f414d`, the Sonnet 5 run on the same file and the same
+           code (4m07s, 24.8k in, 29.2k out, 51 findings, 27 of 27 changed
+           clauses quoted, $121,524 exposure).
+        4. Paid, about $0.65 to $0.80. Run the seven-contract eval set and
+           score it against the existing baselines. Count missed tool calls.
+        5. If time and scores hold, change the Render variable. Sonnet 5 stays
+           one variable away.
+- [x] **1. Analytics live for a demonstration (2026-09-29).** Deployed
+      2026-09-28 (679eae3), with the three switches set on Render.
+      - Runs on test data behind three Render switches: `ANALYTICS=on`,
+        `ANALYTICS_SOURCE=test` and `ANALYTICS_DEMO=on`. A production build
+        needs the last one before it shows test data.
+      - The test-data banner shows on every page.
+      - Nobody uses the app for real until about March 2027.
+      - After the demo, turn `ANALYTICS_DEMO` off to hide the tab until real
+        data exists, or leave it on.
+- [x] **2. Standards library editing** (`app/(app)/admin/standards`).
+      - Drag a standard between the High, Medium and Low buckets to change its
+        severity.
+      - Add a standard.
+      - Remove a standard, with a confirmation.
+      - Audit every change, as edits are audited today.
+      - **Deployed 2026-09-28** (merge 37e9e1b).
+        - Removing retires a standard. The row stays for the reviews that
+          quoted it, and it can be restored.
+        - Changes reach reviews run afterwards only. Past findings keep their
+          severities.
+        - Drag and drop doesn't work on phones, so the Edit form's severity
+          menu covers them.
+- [x] **3. Admin tab.** A new admin-only nav link. "Standards library" keeps its
+      own link.
+      - **Users:** see every associate, invite, change the admin flag,
+        deactivate.
+      - **Historical contracts:** an upload screen like New review's, feeding
+        the Analytics tab.
+      - Needs the Analytics database source and its migration.
+      - **Deployed 2026-09-28** (merge 37e9e1b). The Admin link opens
+        Historical contracts first, with Users as the second tab.
+        - Adding an associate puts their email on the sign-in allowlist. No
+          email is sent.
+        - An admin can't lock themselves out, and one active admin always
+          remains.
+        - **Historical uploads are bulk and need no typing** (user, 2026-09-28:
+          CD expects 500+).
+          - Drop any number of files. Each file's text is read locally at
+            upload, repeats are skipped, and AI-restricting contracts are held.
+          - "Read waiting contracts" sends them through Anthropic's Batch
+            service at half price, about 4¢ each or roughly $20 for 500.
+          - One read fills the hotel, brand, place, client, dates and associate,
+            plus the terms. A detail is kept only when its quoted words are in
+            the contract. Parent company and tier are marked guesses.
+          - The list is a review queue (Waiting, Being read, Needs a look,
+            Ready), and an admin can correct any detail.
+          - A scanned PDF with no text layer can't have its quotes checked, so
+            its details land in "Needs a look".
+        - Reading stays behind `HISTORICAL_EXTRACTION=on`, off until CD's
+          Anthropic org exists (CLAUDE.md deviation 7). The user chose this.
+        - The Analytics database source reads uploads that have a hotel, city,
+          signed date and tier. Only checked terms count. Uploads have no draft
+          history, so the charts about CD's asks leave them out.
+        - Migrations 006, 011 and 012 were applied to live before the merge.
+          006 (`contract_terms`) had never been applied, which is why 011
+          failed on the first try.
+- [x] **Business, legal and other standards, with compromise ranges (CD feedback,
+      2026-10-02).** CD's team stressed that CD gives no legal advice. Merged to
+      `main` 2026-10-02 (a27751e) and deployed by Render.
+      - The standards library is grouped Business, Legal and Other. Dragging
+        between groups changes the category. High/Medium/Low stays as the
+        priority inside each group, set in the Edit form.
+      - **Business** findings propose CD's wording, as before.
+      - **Legal** findings explain the risk to the associate and never carry
+        wording. The associate can Flag for client or Dismiss. Flagged items go
+        to the memo ("For your counsel to review") and the client email,
+        explanation only. They never reach the redline, the marked-up or clean
+        copies, or the property email.
+      - Legal wording is blocked at four layers: the model never sees legal
+        fallback wording; its answer form has no wording field for them; the
+        app strips any that arrives and stamps every category from the
+        library; and the database refuses wording on a legal finding.
+      - **Other** findings are noted without wording, as before. The group
+        starts empty.
+      - Starting legal set: insurance and indemnification, hotel cancellation,
+        force majeure, governing law and venue, ADA, nondiscrimination,
+        attendee data, assignment. Termination rights, labor disputes, named
+        storm and brand change stayed Business as borderline. CD's legal team
+        may want to move some.
+      - Each business standard has a **compromise range**, shown in the card's
+        Why section. Only the associate sees it. The model never reads it,
+        and no export or email carries it. The values are provisional (see
+        "Provisional values for CD to confirm").
+      - Changes reach reviews run afterwards. Migration 013 also blanks the
+        wording on existing legal-type findings (Jerry's `cb3daee0`).
+      - Migration 013 applied and ranges filled before the merge (15 standards,
+        287 existing business findings). Verified live on Harborview and Florida:
+        sections, legal buttons, the refused edit, and a redline and memo built
+        from Harborview's three accepted legal findings.
+      - Collapsed standards rows show only severity. Provenance shows as
+        "Source: ..." when a row is opened.
+      - Unmeasured on a real contract. One Florida run (~$0.40) would show
+        whether the model fills `flagged_findings` correctly.
+      - Reviews from before this change keep explanations written under the old
+        rules, which can state CD's position on a legal point. Read a legal
+        explanation before flagging it on an old review.
+- [x] **Short "why" comments in the Word redline (user, 2026-10-02; built
+      2026-10-03 on `phase/1-5-11-redline-comments`).** Each applied change in
+      the tracked-changes DOCX carries one short Word comment saying what it
+      does for the group. CLAUDE.md deviation 8 records the decision.
+      - The model writes `redline_note` on business findings. The associate
+        can edit, remove or restore it on the card. Legal findings get none.
+      - The note never carries CD's position. A content check refuses figures,
+        words like "standard" or "fallback", notes over 25 words, and notes
+        repeating CD's own wording on the finding. It runs at review time, when
+        the associate saves, and at export. The export reads notes through a
+        narrowed SELECT, the same pattern as §1.8.3.
+      - Comments sit outside every revision, with ids above every revision id.
+        §1.6 gained `comments_consistent`, and the whole fixture corpus passes
+        with a comment on every change, fixture 15's existing comment included.
+      - The clean Word copy strips our comments and keeps the property's. The
+        PDFs show none. An "Include comments" checkbox in the export dialog is
+        on by default.
+      - Migration 014 adds the two note columns. Applied 2026-10-03.
+      - Verified live on Harborview: three notes typed on the card reached the
+        tracked-changes file, each covering its own change, authored by the
+        associate. comments=0 gave a file with no comments part, and the clean
+        Word copy carried none. The card and the route refused a figure, the
+        word "industry", and a note on a legal finding.
+      - Unmeasured on a real contract. Reviews from before this change have no
+        notes, so their comments come only from what the associate types. One
+        Florida run (~$0.40) would show note quality and how often the check
+        blanks a note. Not run, by the user's choice.
+      - Cost: about 800–1,000 extra output tokens per review, roughly $0.01.
+- [ ] **Ask CD: a "confirm with legal" comment on legal findings (user,
+      2026-10-03) — future update, not scheduled.** Legal findings make no
+      change, so today they get no comment in the redline. Ask CD whether they
+      want a short flag on those clauses. Points to raise with them:
+      - The redline goes to the property. A flag shows the hotel which clauses
+        the group's side considers legally open, which is leverage.
+      - The comment would sit on the hotel's own wording with nothing proposed
+        beside it, which invites "what do you want?", and CD gives no legal
+        advice.
+      - The memo's counsel section already flags these items for the client.
+      - If CD wants them in a Word file, the safer shape is a separate
+        client-only export with its own filename and a "not for the property"
+        marker. It would never be a checkbox on the property redline.
+- [ ] **Incoming tracked changes and comments in a real Word round trip
+      (user, 2026-10-03) — next.** Every fixture with tracked changes or
+      comments was built by us. None has been through real Word, so it is
+      unknown how our changes and comments layer onto a file the property
+      has worked on. To test:
+      - A property's file that arrives with their own tracked changes and
+        comments, through review, redline, clean copy and both PDFs.
+      - Our redline opened in Word, with some changes accepted, some
+        rejected, replies added to our comments, new changes of theirs, and
+        saved. Word adds commentsExtended, commentsIds and people.xml, and
+        may renumber ids.
+      - That saved file uploaded as the next round. Check extraction reads
+        it as the property sent it, our new changes nest correctly inside
+        theirs, new comment ids don't collide, and the §1.6 oracle passes.
+      - Whether Reject All in Word gives back what the oracle says it will.
+      Needs Word itself, so the user runs the Word steps; the rest can be
+      fixtures built from the files Word saves. Overlaps item 4 below, since
+      every re-upload is one of these files.
+      - **In progress on `phase/1-11-word-round-trip` (2026-10-03).** The test
+        file is the Florida contract, marked up in Pages and exported to Word,
+        with four tracked number changes and three comments by one author.
+      - **Free pass, no model call** (`scripts/word-roundtrip-check.ts`).
+        - Extraction read all eight revisions and passed every intake check.
+        - A stand-in redline from `cb3daee0`'s findings applied 23 of 25
+          changes on top of the hotel's. All eleven oracle checks passed,
+          the reject round trip included. The clean copy and both PDFs passed.
+        - Where our change covers a hotel edit, the hotel's struck words end
+          up inside our deletion. Word never writes that shape itself, so it
+          needs a look in Word.
+        - The clean copy keeps empty change markers where our accepted
+          rewrite swallowed a hotel edit. Also needs a look in Word.
+        - The hotel's edit to the room-block table arrived with no tracked
+          change. A first upload can't detect that.
+      - **Paid run `c7148b08`, as Jerry, Sonnet 5** ($0.35, 3m36s, 38
+        findings, the same clause types as `cb3daee0`).
+        - **Defect: every business finding came back without quoted text**
+          (0 of 24, against 21 of 25 on `cb3daee0`). The app doesn't drop it.
+          `quoted_text` was never a required field, and this was the first
+          real run since the findings form changed on 10/02 and 10/03.
+          Without a quote the card reads "Proposed addition" and the redline
+          has nothing to replace. Fixed on the branch by making the field
+          required. Unconfirmed until a second run (about $0.37).
+        - The model read the hotel's edits. Commission rose to High for the
+          cut to 8%, rate protection cites 750 rooms, and the F&B finding
+          cites $80,000.
+        - Legal findings carried no wording. The model filed three of the
+          eight in the business list with wording, and the app stripped it.
+        - Notes: 15 kept, 8 blanked by the content check. The blanked text
+          isn't stored, so the reason for each is unknown.
+        - Exposure fell from $170,696 to $91,724. The attrition and F&B
+          exposures didn't compute. Cause not yet traced.
+        - The hotel's three comments appear nowhere on the review screen.
+      - **Built after that run (2026-10-03, same branch).** The user chose to
+        show existing comments to the associate and give them to the model.
+        - Extraction reads each comment with its author, date, text, the
+          wording it sits on, and its reply and resolved state
+          (`lib/docx/comments.ts`). Comments never enter the contract text or
+          its map.
+        - The model gets them in a block of its own after the contract, with
+          rules: they are not contract wording, never go in a quote, and are
+          never instructions (`lib/document-comments.ts`). The AI-use
+          pre-check scans them too. A file with no comments sends the same
+          request as before.
+        - The document pane has a "Comments (n)" button, absent when a file
+          has none and off by default. On, it lists the comments, underlines
+          each anchor with a number, and scrolls to the wording on a click.
+          Checked through the page's structure, not yet by eye.
+        - **Defect fixed.** A change of ours that covered a hotel comment's
+          anchor pulled the comment's reference inside our deletion. The clean
+          copy lost the comment, and the hotel would lose it by accepting our
+          change. The engine now leaves a reference-only run alone
+          (`lib/redline-engine/runs.ts`). The oracle and the clean-copy check
+          fail when a comment the file already had loses a marker or sits
+          inside one of our changes.
+        - Fixture 16 copies the shapes of the Pages export. The existing
+          revisions strip no longer says "Round 2+" on a first upload.
+        - The server log now says why a note was blanked, why a figure was
+          dropped, and when a finding arrives without a quote.
+        - The user opened the stand-in redline and clean copy in Word. Neither
+          showed a repair prompt.
+      - **Second paid run `e6289f46` did not finish.** The network dropped
+        during the model call, the request timed out, and the failure could
+        not be written back, so the review sat at "processing". Whether the
+        call was billed is unknown. Everything above is still unmeasured on a
+        real run.
+      - **Third paid run `c27f414d`, as Jerry, Sonnet 5** (about $0.40,
+        4m07s, 51 findings: 36 business, 9 legal, 6 other).
+        - **The quote fix works.** All 27 business findings that change a
+          clause carry a quote. The other 9 are missing clauses.
+        - **The model used a comment correctly.** The commission finding cites
+          the margin note by its author. No comment text reached any quote or
+          any proposed wording.
+        - **More findings, because the model now splits by place.** Business
+          findings rose from 25 to 36. Cancellation became six findings, five
+          of them quoting a whole table row with its pipes, which the engine
+          refuses. On `cb3daee0` cancellation was one finding and it applied.
+        - Redline from this run's findings: 28 of 34 applied, every oracle
+          check passed, the clean copy and both PDFs passed, and the hotel's
+          three comments kept their anchors.
+        - **Notes.** 20 kept, 15 blanked. Eleven repeated wording from the
+          finding's internal text, two carried figures, two ran long. One kept
+          note read "placeholder", so the content check now refuses a note
+          under three words.
+        - **Exposure $121,524.** Attrition follows the edited block (70% of
+          2,900). Four of five cancellation tiers passed their check. The
+          model gave no F&B shortfall rate this time, so no F&B exposure.
+        - Legal findings carried no wording. One was filed in the business
+          list with wording, and the app stripped it.
+      - **Merged to `main` 2026-10-03** with the user's yes. Lint, typecheck
+        and the full suite (1,331 tests) passed first. The lost review
+        `e6289f46` was removed at the user's request.
+      - **Still to address, in the order the user set (2026-10-03).** The
+        Sonnet 5.5 change-over (item 0) comes first, so that every change to
+        how the model reviews is judged on the model that will run the tool.
+        1. **A rewritten sentence the finding didn't quote must not be left
+           out (user, 2026-10-03: "it shouldn't happen").** Today, when a
+           proposal rewords a contract sentence that the finding's quote
+           doesn't cover, the redline drops that sentence and shows a yellow
+           warning. The associate is left to raise it by hand. Two fixes,
+           both wanted:
+           - Engine. It already finds the contract sentence the rewrite
+             matches (`lib/redline-engine/restated.ts`). It should strike that
+             sentence and insert the rewrite, the way it widens a
+             mid-sentence change today, and list it on the export screen as
+             a widened change. No model call is involved.
+           - Prompt. The quote must cover every sentence the proposal
+             rewords. Judge this on Sonnet 5.5.
+           The warning should then be rare, and reserved for a rewrite whose
+           original the engine can't place.
+        2. **The model splits findings by place.** Business findings rose
+           from 25 to 36 once quotes were required. Cancellation became six
+           findings, five quoting a whole table row, which the engine
+           refuses. Decide on 5.5 whether to ask for one finding per clause
+           with one quote, or to let the engine take a row-wide change.
+        3. **The content check blanks 15 of 35 notes.** Eleven for repeating
+           wording from the finding's internal text. Loosening the overlap
+           rule is a leak trade, so it is the user's call. Reading the
+           blanked notes first needs them logged or stored.
+        4. **F&B exposure went missing.** The model gave no shortfall rate on
+           `c27f414d`. One of five cancellation tiers failed its check.
+        5. **Word round trip, by the user in real Word.** Open
+           `data/private/run3/florida-property-round1-redline.docx` under a
+           hotel-side name. Accept two changes, reject two, reply to two
+           comments, resolve one, add a change, add a second author and a
+           table-row edit. Save as `florida-property-round2.docx`. Reject All
+           on a separate copy. Then run `scripts/word-roundtrip-check.ts` on
+           both. This is the only test of Word's own comment-thread parts,
+           and of our round-1 notes coming back inside a round-2 file.
+        6. **A replaced table that holds a hotel comment** fails the oracle
+           and falls back to the PDF. The engine should refuse that one
+           change instead.
+        7. **Tell the user what looked wrong on the export screen.** The
+           warning's wording was rewritten on the card and in the export
+           detail. The user saw it "come up weird" on the export screen, and
+           where is not yet known.
+        8. **The raw model answer isn't stored.** Two questions today (why
+           the quotes vanished, why a figure was absent) could only be
+           inferred. A debug column or log would settle them directly.
+        9. **Show existing comments the way Word does (user, 2026-10-03).**
+           The list at the top of the document pane is a first version and
+           is to be replaced.
+           - A "Show document comments" button opens a comment view.
+           - In that view the findings pane collapses, and the document
+             takes most of the screen.
+           - Each comment sits in a margin on the right, beside the wording
+             it belongs to, as in Word. Replies sit under their parent, and
+             a resolved comment is marked.
+           - Leaving the view brings the findings pane back as it was.
+           - To settle in the plan: whether the hotel's tracked changes get
+             margin notes too, what happens when several comments crowd one
+             paragraph, and how it behaves on a narrow screen.
+           - No model call is involved, so it doesn't wait on Sonnet 5.5.
+             The data it needs is already returned by the preview route
+             (`comments`, with each one's range in the text).
+      - **Known and accepted.** The hotel's table edit arrived untracked. A
+        first upload has nothing to compare it with, and a re-upload is
+        caught by the round diff. The marked-up PDF shows the hotel's edits
+        as plain text and shows no comments.
+- [ ] **Pages uploads, and other formats and comment styles (user,
+      2026-10-03) — later, not scheduled.** The upload accepts only PDF, DOCX
+      and DOC, so a `.pages` file is refused. To scope when it comes up:
+      - Whether to accept `.pages` directly, or tell the associate to export
+        it to Word first.
+      - Which other formats and comment styles hotels send (Google Docs
+        exports, PDF annotations, comments typed into the text).
+      - What a Pages export loses. On the Florida test file (2026-10-03) it
+        kept four tracked text changes and three comments, but it dropped the
+        initials footer, emptied the page-number fields, and exported an edit
+        to the room-block table as plain text with no tracked change.
+- [ ] **4. Re-uploads of the same contract — next priority after these.** CD
+      runs several rounds of review on each contract, so a re-upload should
+      avoid a full paid review wherever it can. The plan is the entry
+      "Re-reviewing the same contract without the model" below. Case 1 (same
+      file, no model call) comes first.
+
 ### Raised by the first eval run (2026-09-10)
 
 The §2.0.1 harness measured the pipeline for the first time: recall 100%,
@@ -999,6 +1390,29 @@ are re-run or edited. The eval answer key was re-stamped with the new standards
 fingerprint at no cost. Its 168 key items are unchanged, because the corpus never reads
 fallback wording.
 
+**Provisional compromise ranges (2026-10-02, branch
+`feature/business-legal-standards`).** Typical industry give, not CD's numbers. Blank
+where there's no sensible numeric give. Commission is left for CD to set, because it's
+CD's own fee. Change any of them on the Standards Library screen.
+
+| Standard | Provisional compromise range | CD answer |
+|---|---|---|
+| Attrition | trigger up to 80% of the block, still cumulative; damages up to 80% of the rate | open |
+| Cancellation | room profit up to 80% of the rate; keep the scale and the resale duty | open |
+| F&B minimum | shortfall billed at 35–50%; menu pricing locked 6–12 months out | open |
+| Cutoff date | 21–30 days before arrival | open |
+| Comp rooms & rebates | one comp per 40–50 occupied room nights | open |
+| Master account billing | finance charge capped at 1–1.5% a month, after at least a 30-day dispute window | open |
+| Damage deposit | refunded within 30–45 days | open |
+| Construction & renovation | notice within 30–60 days of plans being confirmed | open |
+| Brand or ownership change | notice within 30–60 days; termination window of at least 30 days | open |
+| Labor disputes | contract-expiry notice 6–12 months ahead; cancellation for disputes within 60–90 days | open |
+| Future rate cap | increase capped at 2–4% a year; rates fixed 9–12 months out | open |
+| Rate parity | rate no higher than other groups' within 3–7 days of the event | open |
+| Facilities & services | closures or cuts over 25–35% trigger the alternatives duty | open |
+| Resale mitigation duty | damages due 30–60 days after the meeting | open |
+| Banquet service levels | ratios up to 20% looser than the standard | open |
+
 ### Pre-demo review (2026-09-26)
 
 A whole-app review before the demo: every screen graded, the live site toured
@@ -1118,9 +1532,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         page of Florida's memo.
       - Render wrote Florida's `analysis_upload`, `analysis_complete` and
         export audit rows.
-      - The property-email allowlist isn't checked live yet. Florida has no
-        saved draft, and making one is a model call. The allowlist is server
-        code with passing tests, deployed unchanged.
+      - The property-email allowlist was checked live on 2026-09-27. A draft
+        on Florida carried no figures, exposure, severity or rationale.
 - [ ] **7. A redacted real CD contract will be processed on the personal
       Anthropic account for this presentation, ahead of the build brief's own
       gate** (decided by the user, 2026-09-22). CD's Anthropic org still does
@@ -1251,8 +1664,20 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
               admin route, hash `ea1456de`). The library hash changed, so the
               next eval run needs a fresh baseline.
 
-- [ ] **Prompt rules for Rome run 2's misses — on `main` 2026-09-26, measured
-      by the next live run** (the demo dry run). They cover:
+- [x] **Prompt rules for Rome run 2's misses — on `main` 2026-09-26, measured
+      by the demo dry run on 2026-09-27 and kept** (`cb3daee0`, about $0.38,
+      4m02s). Against `15e91734`:
+      - Rate parity, mandatory fees and brand change each got a finding.
+        All three had been lost to "meets".
+      - Findings went from 37 to 38 and nothing was dropped. Output tokens rose
+        from 24.7k to 26.8k.
+      - A new F&B exposure of $45,000, $100,000 × (80% − 35%). It is checked
+        against the cancellation schedule, whose last tier charges 80% of the
+        F&B minimum. Total exposure went from $125,696 to $170,696.
+      - A live property email draft on `15e91734` carried no dollar figures,
+        exposure, severity, standards or rationale.
+
+      Original entry: the prompt rules were measured by the next live run (the demo dry run). They cover:
       - a gratuity or service charge the contract doesn't charge is not applicable
       - meets needs a basis naming where the contract gives every required term
         (Rome's brand change and hotel cancellation; Florida's rate parity,
@@ -1308,6 +1733,121 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       "Reviews needing decisions". Replace "In progress", which is almost
       always 0, and "Completed this month", which now repeats the reviews-left
       count. The two replacements are still to be chosen.
+
+- [ ] **Analytics tab — future, large build** (raised by the user 2026-09-26).
+      Store the terms of every contract version, the final signed version above
+      all, and let CD and its associates query that history. A new negotiation
+      with a brand or property then starts from what CD got last time. The user
+      sees this as a main selling point, since it turns the tool from a
+      reviewer into a negotiation platform. It brings together MASTER_PLAN §2.7
+      (property history), §2.8 (benchmarks) and §2.9 (exposure rollup).
+
+      **Already built:**
+      - Term catalog `hotel-v1` (`lib/terms/catalog.ts`, §2.0.2). It has 117
+        terms: attrition, cancellation, cutoff, F&B, force majeure and more.
+        Each one is checked against the contract text.
+      - `contract_terms` table (migration `006`). It holds one row per term per
+        analysis, and a term the contract leaves out is stored as `not_stated`.
+        Extraction is switched off (`TERM_EXTRACTION`), so the table is empty.
+      - Negotiation rounds (migration `004`) and the round comparison (§2.1.1).
+      - `finding_outcomes` (migration `002`), which records whether the
+        property accepted, countered or rejected each change. It is empty until
+        §2.1.2 is built.
+      - `deal_figures` (dates, room block, rates, F&B minimum), extracted by
+        every review.
+
+      **New pieces:**
+      1. **Who the contract is with.** Add these terms: hotel name, brand,
+         parent company, address, city/market and country.
+         - A `properties` table, so that different spellings of one hotel
+           ("JW Marriott Orlando" and "JW Marriott Grande Lakes") match to one
+           record.
+         - An associate confirms each new match once.
+      2. **The final version.** Mark one version of a contract as signed. Its
+         terms become the record the analytics use. A draft shows what was
+         asked for. The signed copy shows what CD actually got.
+      3. **Historical import.** Bulk-upload past signed contracts.
+         - Extract terms only, with no review, since that's a much cheaper
+           model call.
+         - Price it before any import. At $0.10 a contract, 1,000 contracts
+           cost $100.
+         - Old signed copies are often scans. The app has no OCR, so a scan
+           gives no text today.
+         - "Training data" here means a reference database the app computes
+           statistics from. No model is trained or fine-tuned.
+      4. **The tab.** It has three views.
+         - A property or brand profile: past terms, what they conceded and
+           what they held.
+         - Benchmarks, such as "this attrition is worse than 78% of CD's
+           signed contracts in this market".
+         - Exposure across open contracts, per associate or per client.
+      5. **Insights in the review.** The review screen cites history beside a
+         finding, for example "This property signed at 75% attrition in 2025."
+
+      **Gates and open questions:**
+      - **Data.** Bulk-processing real contracts needs CD's own Anthropic org.
+        See CLAUDE.md deviation 7. That deviation covers one presentation, not
+        a historical import.
+      - **Sample size.** §2.8 says not to ship on 200 contracts. Every figure
+        shows how many contracts it rests on, and nothing is shown below a set
+        minimum.
+      - **Accuracy.** Statistics use only `verified` and `located` terms.
+        Extraction accuracy is measured against a hand-checked set before any
+        benchmark is shown.
+      - **Who sees what.** Decided by the user 2026-09-27: the tab is a
+        firm-wide library.
+        - Every associate sees every contract's terms and can open its term
+          sheet.
+        - Only admins see which associate negotiated a contract, and an
+          associate always sees their own.
+        - Each associate sees their results against all other associates,
+          counted together.
+        - The original file carries names and signatures, so it stays with its
+          associate and admins unless `ANALYTICS_SHARE_ORIGINALS=on`.
+      - **Missing is not zero** (the user, 2026-09-27). A term a contract
+        doesn't state is missing, and every figure counts only the contracts
+        that state it. The tab tracks only terms a contract states outright.
+      - **Other companies.** If other firms use the tool, each firm's data stays
+        separate. Pooling data across firms is a separate question, both
+        commercial and legal.
+
+      **Framework built on test data** (branch `feature/analytics-framework`,
+      2026-09-27, deployed 2026-09-28 as 679eae3):
+      - `/analytics`: filters in the URL, tiles, five charts (rate trend,
+        attrition signed, what hotels give, average commission by brand,
+        contracts signed by month), insights, and you against other associates.
+        Admins also get the Associate filter and tables by associate, brand
+        and client.
+      - `/analytics/properties/[id]`: a hotel's contract history, what it
+        gives, its brand's yearly rate trend, and its latest terms against its
+        market.
+      - Left out by the user's call (2026-09-27):
+        - open exposure, which only grows and measures nothing
+        - the firm-wide contract library, for now
+        - the card showing how often each term is stated
+        - negotiation rounds, which can't be measured reliably, and imported
+          contracts arrive as a single round
+        - days to sign, for the same reason: an imported contract has no
+          first-draft date
+      - Contracts are counted by the month they were signed, for the same
+        reason.
+      - Term sheet PDFs (`/api/analytics/term-sheets/[id]`) name no associate.
+      - It stays hidden unless `ANALYTICS=on`. Test data needs
+        `ANALYTICS_SOURCE=test`, and a production build also needs
+        `ANALYTICS_DEMO=on`.
+      - The test data is one file, `lib/analytics/test-data.ts`. Delete it
+        and the "test" branch in `lib/analytics/source.ts` once real
+        contracts load. Nothing is written to the database.
+      - Later: the database source, public property details, and a map.
+
+      **Order:**
+      - Turn on term extraction and add the identity terms first. Every review
+        from then on adds to the history, so the database grows before the tab
+        exists.
+      - Then build signed versions, then the import, then the tab.
+
+      **Size:** roughly 120–200 hours, including the §2.7–§2.9 estimates. This
+      is a first guess to firm up in planning.
 
 - **Export and email button consolidation — §1.12, DONE** (8be8f09 for the Export
   picker, 8216b40 for the Email picker). Raised by the user 2026-09-09. The analysis header now carries six controls: Export memo, Draft

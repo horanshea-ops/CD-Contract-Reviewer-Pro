@@ -3,44 +3,61 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Field, FieldSelect, FieldTextarea } from "@/components/ui/field";
-import { StatusPill } from "@/components/ui/status-pill";
+import { DialogShell } from "@/components/ui/dialog-shell";
+import { Field, FieldInput, FieldSelect, FieldTextarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { Body, Meta } from "@/components/ui/typography";
 import { SEVERITY_STYLE } from "@/components/severity-style";
+import { CATEGORY_KEYS, CATEGORY_STYLE } from "@/components/category-style";
 import { SeverityToggles } from "@/components/severity-toggles";
 import { clauseLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
+import type { Category, LibrarySeverity } from "@/lib/standards/types";
 
 export interface StandardRow {
   id: string;
   clause_type: string;
   segment: string;
+  category: Category;
   position: string;
   fallback_language: string;
   walk_away_condition: string;
-  severity_default: "high" | "medium" | "low" | "note";
+  severity_default: LibrarySeverity;
+  compromise_range: string;
   version: string;
   provenance: "industry_default" | "extracted" | "cd_validated";
   validated_by: string | null;
   validated_at: string | null;
   updated_by: string | null;
   updated_at: string;
+  retired_at: string | null;
 }
 
-// Short labels, because the banner above the list already says which are unvalidated.
-const PROVENANCE_STYLE: Record<StandardRow["provenance"], { label: string; className: string }> = {
-  industry_default: { label: "Industry default", className: "bg-[var(--severity-medium-bg)] text-[var(--severity-medium)]" },
-  extracted: { label: "Extracted", className: "bg-[var(--cd-blue-pale)] text-[var(--cd-navy)]" },
-  cd_validated: { label: `${ORG.shortName} validated`, className: "bg-[var(--status-success-bg)] text-[var(--status-success)]" },
+/** Where a standard came from. Shown when a row is opened, and set in the Edit form. */
+const PROVENANCE_LABEL: Record<StandardRow["provenance"], string> = {
+  industry_default: "Industry default",
+  extracted: "Extracted",
+  cd_validated: `${ORG.shortName} validated`,
 };
 
-const SEVERITY_OPTIONS = ["high", "medium", "low", "note"] as const;
+const SEVERITY_OPTIONS = ["high", "medium", "low"] as const;
 type Severity = StandardRow["severity_default"];
+
+/** Plain names for the severity menus. */
+const SEVERITY_NAME: Record<Severity, string> = { high: "High", medium: "Medium", low: "Low" };
+
+/** What the tool does with each category's findings, shown under its heading. */
+const CATEGORY_HINT: Record<Category, string> = {
+  business: "Proposes CD's wording in the redline.",
+  legal: "Explains the risk to the associate. Never proposes wording.",
+  other: "Notes the point without wording.",
+};
 
 /** Section labels share the finding card's style: small, semibold, uppercase. */
 const LABEL_CLASSES = "font-semibold uppercase tracking-wide";
+
+const COMPROMISE_HINT = "Where CD could settle if the property pushes back. Only the associate sees it, on the review card.";
 const PROVENANCE_OPTIONS = ["industry_default", "extracted", "cd_validated"] as const;
 
 export default function StandardsList({
@@ -53,6 +70,13 @@ export default function StandardsList({
   const [standards, setStandards] = useState(initialStandards);
   const [hidden, setHidden] = useState<Set<Severity>>(new Set());
   const [query, setQuery] = useState("");
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<Category | null>(null);
+  const [adding, setAdding] = useState(false);
+  const { showToast } = useToast();
+
+  const active = useMemo(() => standards.filter((s) => !s.retired_at), [standards]);
+  const retired = useMemo(() => standards.filter((s) => s.retired_at), [standards]);
 
   function handleUpdated(updated: StandardRow) {
     setStandards((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
@@ -67,31 +91,65 @@ export default function StandardsList({
     });
   }
 
+  /** Shows the move at once, and puts it back if the save fails. */
+  async function moveTo(id: string, category: Category) {
+    const before = standards.find((s) => s.id === id);
+    if (!before || before.category === category) return;
+    handleUpdated({ ...before, category });
+    const res = await fetch(`/api/admin/standards/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category }),
+    }).catch(() => null);
+    const body = await res?.json().catch(() => null);
+    if (!res?.ok) {
+      handleUpdated(before);
+      showToast(body?.error || "Could not move the standard. Try again.", "error");
+      return;
+    }
+    handleUpdated(body);
+    showToast(`${clauseLabel(before.clause_type)} moved to ${CATEGORY_STYLE[category].name}.`);
+  }
+
+  async function restore(row: StandardRow) {
+    const res = await fetch(`/api/admin/standards/${row.id}/restore`, { method: "POST" }).catch(() => null);
+    const body = await res?.json().catch(() => null);
+    if (!res?.ok) {
+      showToast(body?.error || "Could not restore the standard. Try again.", "error");
+      return;
+    }
+    handleUpdated(body);
+    showToast(`${clauseLabel(row.clause_type)} restored.`);
+  }
+
   const counts = useMemo(() => {
-    const tally: Record<Severity, number> = { high: 0, medium: 0, low: 0, note: 0 };
-    for (const s of standards) tally[s.severity_default]++;
+    const tally: Record<Severity, number> = { high: 0, medium: 0, low: 0 };
+    for (const s of active) tally[s.severity_default]++;
     return tally;
-  }, [standards]);
+  }, [active]);
+
+  const filtersActive = hidden.size > 0 || query.trim() !== "";
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const shown = standards.filter(
+    const shown = active.filter(
       (s) =>
         !hidden.has(s.severity_default) &&
         (!q || clauseLabel(s.clause_type).toLowerCase().includes(q) || s.position.toLowerCase().includes(q))
     );
-    return SEVERITY_OPTIONS.map((severity) => ({
-      severity,
-      rows: shown.filter((s) => s.severity_default === severity),
-    })).filter((group) => group.rows.length > 0);
-  }, [standards, hidden, query]);
-
-  const filtersActive = hidden.size > 0 || query.trim() !== "";
+    // Unfiltered, every group shows, empty ones too, so there is somewhere to drop.
+    return CATEGORY_KEYS.map((category) => ({
+      category,
+      rows: shown
+        .filter((s) => s.category === category)
+        .sort((a, b) => SEVERITY_OPTIONS.indexOf(a.severity_default) - SEVERITY_OPTIONS.indexOf(b.severity_default)),
+    })).filter((group) => (filtersActive ? group.rows.length > 0 : true));
+  }, [active, hidden, query, filtersActive]);
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        <SeverityToggles counts={counts} hidden={hidden} onToggle={toggleSeverity} />
+        <SeverityToggles keys={[...SEVERITY_OPTIONS]} counts={counts} hidden={hidden} onToggle={toggleSeverity} />
         {filtersActive && (
           <button
             type="button"
@@ -125,6 +183,9 @@ export default function StandardsList({
             className="w-full rounded-md border border-[var(--border-strong)] pl-8 pr-3 py-1.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--cd-blue)]"
           />
         </div>
+        <Button size="sm" onClick={() => setAdding(true)}>
+          Add standard
+        </Button>
       </div>
 
       {groups.length === 0 ? (
@@ -133,21 +194,257 @@ export default function StandardsList({
         </Body>
       ) : (
         <div className="space-y-6">
-          {groups.map(({ severity, rows }) => (
-            <section key={severity}>
-              <Meta as="h2" className={cn(LABEL_CLASSES, "mb-2")} style={{ color: SEVERITY_STYLE[severity].textColor }}>
-                {SEVERITY_STYLE[severity].label} · {rows.length}
-              </Meta>
-              <Card padding="none" className="overflow-hidden divide-y divide-[var(--border)]">
-                {rows.map((s) => (
-                  <StandardItem key={s.id} standard={s} associateNames={associateNames} onUpdated={handleUpdated} />
-                ))}
-              </Card>
-            </section>
-          ))}
+          {groups.map(({ category, rows }) => {
+            const draggedFrom = dragging ? active.find((s) => s.id === dragging)?.category : null;
+            const canDrop = !!dragging && draggedFrom !== category;
+            return (
+              <section
+                key={category}
+                aria-label={`${CATEGORY_STYLE[category].name} standards`}
+                onDragOver={(e) => {
+                  if (!canDrop) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (dropTarget !== category) setDropTarget(category);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTarget(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData("text/plain") || dragging;
+                  setDropTarget(null);
+                  setDragging(null);
+                  if (id) void moveTo(id, category);
+                }}
+              >
+                <div className="mb-2 flex flex-wrap items-baseline gap-x-3">
+                  <Meta as="h2" className={LABEL_CLASSES} style={{ color: CATEGORY_STYLE[category].textColor }}>
+                    {CATEGORY_STYLE[category].label} · {rows.length}
+                  </Meta>
+                  <Meta as="p" className="text-[var(--text-muted)]">
+                    {CATEGORY_HINT[category]}
+                  </Meta>
+                </div>
+                <Card
+                  padding="none"
+                  className={cn(
+                    "overflow-hidden divide-y divide-[var(--border)] transition-shadow",
+                    canDrop && "ring-1 ring-[var(--border-strong)]",
+                    dropTarget === category && canDrop && "ring-2 ring-[var(--cd-blue)] bg-[var(--cd-blue-pale)]"
+                  )}
+                >
+                  {rows.length === 0 ? (
+                    <Body as="p" className="px-5 py-4 text-[var(--text-muted)]">
+                      No standards here. Drag one in to make it {CATEGORY_STYLE[category].name.toLowerCase()}.
+                    </Body>
+                  ) : (
+                    rows.map((s) => (
+                      <StandardItem
+                        key={s.id}
+                        standard={s}
+                        associateNames={associateNames}
+                        onUpdated={handleUpdated}
+                        dragging={dragging === s.id}
+                        onDragStart={() => setDragging(s.id)}
+                        onDragEnd={() => {
+                          setDragging(null);
+                          setDropTarget(null);
+                        }}
+                      />
+                    ))
+                  )}
+                </Card>
+              </section>
+            );
+          })}
         </div>
       )}
+
+      {retired.length > 0 && (
+        <details className="mt-8">
+          <summary className="cursor-pointer text-sm text-[var(--text-secondary)]">
+            Removed standards · {retired.length}
+          </summary>
+          <Card padding="none" className="mt-2 overflow-hidden divide-y divide-[var(--border)]">
+            {retired.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 px-5 py-3">
+                <div className="min-w-0 flex-1">
+                  <Body as="span" className="block font-medium text-[var(--text-primary)]">
+                    {clauseLabel(s.clause_type)}
+                  </Body>
+                  <Meta as="span" className="block text-[var(--text-muted)]">
+                    Removed {new Date(s.retired_at!).toLocaleDateString()}. It isn&apos;t used in reviews.
+                  </Meta>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => restore(s)}>
+                  Restore
+                </Button>
+              </div>
+            ))}
+          </Card>
+        </details>
+      )}
+
+      <Meta as="p" className="mt-8 text-[var(--text-muted)] hidden sm:block">
+        Drag a standard into another group to change its category.
+      </Meta>
+
+      <AddStandardDialog
+        open={adding}
+        onClose={() => setAdding(false)}
+        onAdded={(row) => {
+          setStandards((prev) => [...prev, row]);
+          setAdding(false);
+          showToast(`${clauseLabel(row.clause_type)} added.`);
+        }}
+      />
     </div>
+  );
+}
+
+function AddStandardDialog({
+  open,
+  onClose,
+  onAdded,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onAdded: (row: StandardRow) => void;
+}) {
+  const empty = {
+    name: "",
+    category: "business" as Category,
+    position: "",
+    fallback_language: "",
+    walk_away_condition: "",
+    compromise_range: "",
+    severity_default: "medium" as Severity,
+  };
+  const [form, setForm] = useState(empty);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function close() {
+    setForm(empty);
+    setError("");
+    onClose();
+  }
+
+  async function save() {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/standards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      }).catch(() => null);
+      const body = await res?.json().catch(() => null);
+      if (!res?.ok) {
+        setError(body?.error || "Could not add the standard. Try again.");
+        return;
+      }
+      setForm(empty);
+      onAdded(body);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <DialogShell
+      open={open}
+      onClose={close}
+      title="Add a standard"
+      maxWidth="xl"
+      scrollBody
+      dismissible={!saving}
+      footer={
+        <>
+          <Button variant="ghost" size="sm" onClick={close} disabled={saving}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={save} loading={saving} loadingText="Adding...">
+            Add standard
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <Body as="p" className="text-[var(--text-secondary)]">
+          It&apos;s used from the next review on, marked as validated by you.
+        </Body>
+        <Field label="Clause name" hint="For example, Late checkout. Reviews show it under this name.">
+          <FieldInput value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+        </Field>
+        <div className="flex gap-4">
+          <Field label="Category" hint={CATEGORY_HINT[form.category]}>
+            <FieldSelect
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as Category }))}
+            >
+              {CATEGORY_KEYS.map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_STYLE[c].name}
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
+          <Field label="Severity">
+            <FieldSelect
+              value={form.severity_default}
+              onChange={(e) => setForm((f) => ({ ...f, severity_default: e.target.value as Severity }))}
+            >
+              {SEVERITY_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {SEVERITY_NAME[s]}
+                </option>
+              ))}
+            </FieldSelect>
+          </Field>
+        </div>
+        <Field label="Position">
+          <FieldTextarea
+            value={form.position}
+            onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
+            rows={3}
+          />
+        </Field>
+        {form.category === "business" && (
+          <>
+            <Field label="Fallback language" hint="The contract wording to propose when a contract falls short.">
+              <FieldTextarea
+                value={form.fallback_language}
+                onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
+                rows={4}
+              />
+            </Field>
+            <Field label="Compromise range" hint={COMPROMISE_HINT}>
+              <FieldTextarea
+                value={form.compromise_range}
+                onChange={(e) => setForm((f) => ({ ...f, compromise_range: e.target.value }))}
+                rows={2}
+                placeholder="Leave blank if none"
+              />
+            </Field>
+          </>
+        )}
+        <Field label="Walk-away condition">
+          <FieldTextarea
+            value={form.walk_away_condition}
+            onChange={(e) => setForm((f) => ({ ...f, walk_away_condition: e.target.value }))}
+            rows={2}
+            placeholder="Leave blank if none"
+          />
+        </Field>
+        {error && (
+          <Meta as="p" role="alert" className="text-[var(--severity-high)]">
+            {error}
+          </Meta>
+        )}
+      </div>
+    </DialogShell>
   );
 }
 
@@ -155,25 +452,28 @@ function StandardItem({
   standard,
   associateNames,
   onUpdated,
+  dragging,
+  onDragStart,
+  onDragEnd,
 }: {
   standard: StandardRow;
   associateNames: Record<string, string>;
   onUpdated: (updated: StandardRow) => void;
+  dragging: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
   const { showToast } = useToast();
-  const [form, setForm] = useState({
-    position: standard.position,
-    fallback_language: standard.fallback_language,
-    walk_away_condition: standard.walk_away_condition,
-    severity_default: standard.severity_default,
-    provenance: standard.provenance,
-  });
+  const [form, setForm] = useState(formOf(standard));
 
-  const provenanceStyle = PROVENANCE_STYLE[standard.provenance];
+  const severityStyle = SEVERITY_STYLE[standard.severity_default];
+  const isBusiness = standard.category === "business";
 
   async function save() {
     setSaving(true);
@@ -198,19 +498,31 @@ function StandardItem({
     }
   }
 
+  async function remove() {
+    setRemoving(true);
+    try {
+      const res = await fetch(`/api/admin/standards/${standard.id}`, { method: "DELETE" }).catch(() => null);
+      const body = await res?.json().catch(() => null);
+      if (!res?.ok) {
+        showToast(body?.error || "Could not remove the standard. Try again.", "error");
+        return;
+      }
+      setConfirmingRemove(false);
+      onUpdated(body);
+      showToast(`${clauseLabel(standard.clause_type)} removed. Restore it from Removed standards.`);
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   function cancel() {
-    setForm({
-      position: standard.position,
-      fallback_language: standard.fallback_language,
-      walk_away_condition: standard.walk_away_condition,
-      severity_default: standard.severity_default,
-      provenance: standard.provenance,
-    });
+    setForm(formOf(standard));
     setEditing(false);
     setError("");
   }
 
   const meta = [
+    `Source: ${PROVENANCE_LABEL[standard.provenance]}`,
     standard.segment !== "default" && `Segment: ${standard.segment}`,
     standard.provenance === "cd_validated" &&
       standard.validated_by &&
@@ -223,12 +535,21 @@ function StandardItem({
   ].filter(Boolean);
 
   return (
-    <div>
+    <div
+      draggable={!editing}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", standard.id);
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+      className={cn(dragging && "opacity-40")}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-start gap-3 px-5 py-3 text-left hover:bg-[var(--surface-muted)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+        className="flex w-full items-start gap-3 px-5 py-3 text-left hover:bg-[var(--surface-muted)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--cd-blue)] sm:cursor-grab"
       >
         <svg
           width="10"
@@ -249,7 +570,9 @@ function StandardItem({
             </Body>
           )}
         </div>
-        <StatusPill label={provenanceStyle.label} className={`shrink-0 ${provenanceStyle.className}`} />
+        <Meta as="span" className={cn(LABEL_CLASSES, "mt-0.5 shrink-0")} style={{ color: severityStyle.textColor }}>
+          {severityStyle.label}
+        </Meta>
       </button>
 
       {open && (
@@ -257,13 +580,23 @@ function StandardItem({
           {!editing ? (
             <div className="space-y-3">
               <Section label="Position">{standard.position}</Section>
-              <Section label="Fallback language">{standard.fallback_language}</Section>
+              {isBusiness && (
+                <>
+                  <Section label="Fallback language">{standard.fallback_language}</Section>
+                  <Section label="Compromise range">
+                    {standard.compromise_range || <span className="text-[var(--text-muted)]">None set</span>}
+                  </Section>
+                </>
+              )}
               <Section label="Walk-away">
                 {standard.walk_away_condition || <span className="text-[var(--text-muted)]">None set</span>}
               </Section>
               <div className="flex flex-wrap items-center gap-3">
                 <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
                   Edit
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirmingRemove(true)}>
+                  Remove
                 </Button>
                 <Meta as="span" className="text-[var(--text-muted)]">
                   {meta.join(" · ")}
@@ -279,13 +612,25 @@ function StandardItem({
                   rows={3}
                 />
               </Field>
-              <Field label="Fallback language">
-                <FieldTextarea
-                  value={form.fallback_language}
-                  onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
-                  rows={4}
-                />
-              </Field>
+              {form.category === "business" && (
+                <>
+                  <Field label="Fallback language">
+                    <FieldTextarea
+                      value={form.fallback_language}
+                      onChange={(e) => setForm((f) => ({ ...f, fallback_language: e.target.value }))}
+                      rows={4}
+                    />
+                  </Field>
+                  <Field label="Compromise range" hint={COMPROMISE_HINT}>
+                    <FieldTextarea
+                      value={form.compromise_range}
+                      onChange={(e) => setForm((f) => ({ ...f, compromise_range: e.target.value }))}
+                      rows={2}
+                      placeholder="Leave blank if none"
+                    />
+                  </Field>
+                </>
+              )}
               <Field label="Walk-away condition">
                 <FieldTextarea
                   value={form.walk_away_condition}
@@ -294,7 +639,19 @@ function StandardItem({
                   placeholder="Leave blank if none"
                 />
               </Field>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
+                <Field label="Category">
+                  <FieldSelect
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as Category }))}
+                  >
+                    {CATEGORY_KEYS.map((c) => (
+                      <option key={c} value={c}>
+                        {CATEGORY_STYLE[c].name}
+                      </option>
+                    ))}
+                  </FieldSelect>
+                </Field>
                 <Field label="Severity default">
                   <FieldSelect
                     value={form.severity_default}
@@ -302,7 +659,7 @@ function StandardItem({
                   >
                     {SEVERITY_OPTIONS.map((s) => (
                       <option key={s} value={s}>
-                        {s}
+                        {SEVERITY_NAME[s]}
                       </option>
                     ))}
                   </FieldSelect>
@@ -314,7 +671,7 @@ function StandardItem({
                   >
                     {PROVENANCE_OPTIONS.map((p) => (
                       <option key={p} value={p}>
-                        {p}
+                        {PROVENANCE_LABEL[p]}
                       </option>
                     ))}
                   </FieldSelect>
@@ -338,8 +695,43 @@ function StandardItem({
           )}
         </div>
       )}
+
+      <DialogShell
+        open={confirmingRemove}
+        onClose={() => setConfirmingRemove(false)}
+        title={`Remove ${clauseLabel(standard.clause_type)}?`}
+        maxWidth="md"
+        dismissible={!removing}
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingRemove(false)} disabled={removing}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={remove} loading={removing} loadingText="Removing...">
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <Body as="p" className="text-[var(--text-secondary)]">
+          Reviews from now on won&apos;t check contracts against it. Past reviews keep their findings. You can
+          restore it from Removed standards at the bottom of this page.
+        </Body>
+      </DialogShell>
     </div>
   );
+}
+
+function formOf(s: StandardRow) {
+  return {
+    category: s.category,
+    position: s.position,
+    fallback_language: s.fallback_language,
+    walk_away_condition: s.walk_away_condition,
+    severity_default: s.severity_default,
+    compromise_range: s.compromise_range,
+    provenance: s.provenance,
+  };
 }
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {

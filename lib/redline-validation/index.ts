@@ -1,5 +1,6 @@
 import { readPackage } from "./package";
 import {
+  checkComments,
   checkContentTypes,
   checkPartsParse,
   checkPartsPreserved,
@@ -73,6 +74,7 @@ export async function validateRedline({
     () => checkRelationships(output),
     () => checkRevisionIds(output),
     () => checkRevisionMarks(output),
+    () => checkComments(input, output, engineResult.ownCommentIds ?? [], own.ownIds),
     () => checkTableStructure(input, output, own),
   ];
   for (const run of structural) {

@@ -47,7 +47,7 @@ describe("previewFindings", () => {
           "Reservations received after the cutoff date will be accepted on a space and rate available basis at the group rate.",
       })
     );
-    expect(out?.export_issue).toContain("quotes none of it");
+    expect(out?.export_issue).toContain("without saying which wording to replace");
   });
 
   it("names the reworded sentence the redline leaves out, and gives the wording that will go in", () => {
@@ -60,7 +60,7 @@ describe("previewFindings", () => {
     );
     expect(out).toEqual({
       export_issue:
-        "Part of this won't go in: the redline leaves out a rewrite of wording it doesn't quote (\"On the cutoff date, after consultation with you…\"). Raise that change another way, or use Edit.",
+        "The redline leaves out one sentence of this change (\"On the cutoff date, after consultation with you…\"). That sentence rewords one the contract already has, and this change doesn't replace the original, so adding it would leave both versions. The rest goes in as shown. Raise that sentence separately if it matters.",
       redline_language: "Reservations received after the cutoff date will be accepted at the group rate.",
     });
   });

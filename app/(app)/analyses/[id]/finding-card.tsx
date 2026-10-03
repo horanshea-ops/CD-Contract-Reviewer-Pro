@@ -11,6 +11,8 @@ import { clauseLabel, formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
+import { findingCategory } from "@/lib/findings-overview";
+import type { Category } from "@/lib/standards/types";
 import ChangeView from "./change-view";
 
 export interface Finding {
@@ -18,6 +20,10 @@ export interface Finding {
   clause_type: string;
   is_missing_clause: boolean;
   severity: "high" | "medium" | "low" | "note";
+  /** Absent only before migration 013. */
+  category?: Category;
+  /** CD's fallback on a business standard. For the associate's eyes only. */
+  compromise_range?: string;
   exposure_amount: number | null;
   exposure_basis: string | null;
   /** Null on findings recorded before the app worked exposure figures out itself. */
@@ -30,6 +36,10 @@ export interface Finding {
   finding_text: string;
   cd_standard: string;
   proposed_language: string;
+  /** The model's comment for the redline, after the content check. Absent before migration 014. */
+  redline_note?: string;
+  /** The associate's version. Null means use the model's; empty means no comment. */
+  edited_redline_note?: string | null;
   model_confidence: "high" | "medium" | "low";
   current_action: {
     action: "accept" | "edit" | "dismiss";
@@ -102,6 +112,9 @@ const ACTION_LABEL: Record<string, string> = {
   dismiss: "Dismissed",
 };
 
+// A legal finding is flagged for the client rather than accepted, and never edited.
+const LEGAL_ACTION_LABEL: Record<string, string> = { ...ACTION_LABEL, accept: "Flagged for client" };
+
 export default function FindingCard({
   finding,
   onActionRecorded,
@@ -135,6 +148,10 @@ export default function FindingCard({
 
   const style = SEVERITY_STYLE[finding.severity];
   const section = sectionRef(finding.location_section);
+  const isLegal = findingCategory(finding) === "legal";
+  const actionLabel = isLegal ? LEGAL_ACTION_LABEL : ACTION_LABEL;
+  const compromise = finding.compromise_range?.trim() ?? "";
+  const hasWhy = !!finding.headline || !!compromise;
   const language =
     finding.current_action?.action === "edit" && finding.current_action.edited_language
       ? finding.current_action.edited_language
@@ -169,7 +186,7 @@ export default function FindingCard({
       });
       setMode("view");
       setChangingDecision(false);
-      showToast(`${ACTION_LABEL[action]}.`);
+      showToast(`${actionLabel[action]}.`);
     } catch {
       const message = "Not saved. Check your connection and try again.";
       setError(message);
@@ -251,7 +268,7 @@ export default function FindingCard({
       )}
 
       <div className="mt-2 flex flex-wrap gap-x-4">
-        {finding.headline && (
+        {hasWhy && (
           <Disclosure open={whyOpen} onToggle={() => setWhyOpen((v) => !v)}>
             Why
           </Disclosure>
@@ -265,11 +282,18 @@ export default function FindingCard({
           {finding.finding_text}
         </Body>
       )}
+      {whyOpen && compromise && (
+        <Body as="p" className="mt-1 text-[var(--text-secondary)]">
+          <span className="font-medium text-[var(--text-primary)]">Compromise range</span> · {compromise}
+        </Body>
+      )}
       {standardOpen && (
         <Body as="p" className="mt-1 text-[var(--text-primary)]">
           {finding.cd_standard}
         </Body>
       )}
+
+      {!isLegal && language.trim() && <RedlineComment finding={finding} />}
 
       {/* A point raised without wording says so once, in the Other section's heading. */}
       {finding.export_issue && language.trim() && (
@@ -281,7 +305,7 @@ export default function FindingCard({
       {mode === "view" && finding.current_action && !changingDecision && (
         <div className="mt-4 flex items-center gap-3">
           <Meta as="span" className="font-medium text-[var(--text-secondary)]">
-            {ACTION_LABEL[finding.current_action.action]}
+            {actionLabel[finding.current_action.action]}
           </Meta>
           <Button variant="secondary" size="sm" onClick={() => setChangingDecision(true)}>
             Change decision
@@ -291,21 +315,28 @@ export default function FindingCard({
 
       {mode === "view" && (!finding.current_action || changingDecision) && (
         <div className="flex gap-2 mt-4">
-          <Button size="sm" onClick={() => submitAction("accept")} loading={saving} loadingText="Accepting...">
-            Accept
-          </Button>
           <Button
-            variant="secondary"
             size="sm"
-            onClick={() => {
-              // Start from the wording the card shows, so re-editing keeps an earlier edit.
-              setEditedLanguage(language);
-              setMode("editing");
-            }}
-            disabled={saving}
+            onClick={() => submitAction("accept")}
+            loading={saving}
+            loadingText={isLegal ? "Flagging..." : "Accepting..."}
           >
-            {language.trim() ? "Edit" : "Add wording"}
+            {isLegal ? "Flag for client" : "Accept"}
           </Button>
+          {!isLegal && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                // Start from the wording the card shows, so re-editing keeps an earlier edit.
+                setEditedLanguage(language);
+                setMode("editing");
+              }}
+              disabled={saving}
+            >
+              {language.trim() ? "Edit" : "Add wording"}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => setMode("dismissing")} disabled={saving}>
             Dismiss
           </Button>
@@ -383,6 +414,116 @@ export default function FindingCard({
         </Meta>
       )}
     </Card>
+  );
+}
+
+/**
+ * The comment the redline carries on this change. The property reads it, so
+ * the server checks every edit before saving it.
+ */
+function RedlineComment({ finding }: { finding: Finding }) {
+  const suggested = finding.redline_note?.trim() ?? "";
+  const [edited, setEdited] = useState<string | null>(finding.edited_redline_note ?? null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const { showToast } = useToast();
+  const note = edited ?? suggested;
+
+  async function save(next: string | null) {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/findings/${finding.id}/redline-note`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: next }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setError(body.error || "Could not save the comment.");
+        return;
+      }
+      setEdited(body.edited_redline_note);
+      setEditing(false);
+      showToast(next === "" ? "Comment removed." : "Comment saved.");
+    } catch {
+      setError("Not saved. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="mt-3 space-y-2">
+        <Field
+          label="Comment in the redline"
+          hint="The property reads this. Say what the change does, without figures."
+          error={error || undefined}
+        >
+          <FieldInput type="text" value={draft} maxLength={160} onChange={(e) => setDraft(e.target.value)} />
+        </Field>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => save(draft)} disabled={!draft.trim()} loading={saving} loadingText="Saving...">
+            Save comment
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={saving}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const start = () => {
+    setDraft(note);
+    setError("");
+    setEditing(true);
+  };
+
+  return (
+    <div className="mt-3">
+      {note ? (
+        <Meta as="p" className="text-[var(--text-secondary)]">
+          <span className="font-medium text-[var(--text-primary)]">Comment in redline</span> · {note}
+        </Meta>
+      ) : null}
+      <div className="flex flex-wrap gap-x-3">
+        <TextButton onClick={start} disabled={saving}>
+          {note ? "Edit comment" : "Add a comment for the redline"}
+        </TextButton>
+        {note && (
+          <TextButton onClick={() => save("")} disabled={saving}>
+            Remove
+          </TextButton>
+        )}
+        {edited !== null && suggested && edited !== suggested && (
+          <TextButton onClick={() => save(null)} disabled={saving}>
+            Use suggested
+          </TextButton>
+        )}
+      </div>
+      {error && (
+        <Meta as="p" role="alert" className="text-[var(--severity-high)] mt-1">
+          {error}
+        </Meta>
+      )}
+    </div>
+  );
+}
+
+function TextButton({ onClick, disabled, children }: { onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="mt-0.5 text-xs text-[var(--cd-navy)] hover:underline disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
+    >
+      {children}
+    </button>
   );
 }
 

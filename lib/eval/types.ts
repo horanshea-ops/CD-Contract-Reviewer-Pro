@@ -209,7 +209,8 @@ export interface Grade {
   };
   quote: QuoteVerdict;
   exposure: ExposureVerdict;
-  language: { passed: boolean; checks: LanguageCheck[] };
+  /** graded is false where no wording was expected, such as a legal finding. Absent on grades from before categories. */
+  language: { passed: boolean; checks: LanguageCheck[]; graded?: boolean };
 }
 
 /** One pairing, with everything a human needs to check it by eye. */

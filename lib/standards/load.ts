@@ -36,7 +36,12 @@ export interface LoadedStandards {
   fallbackReason?: string;
 }
 
-/** Field order and row order are fixed here so the hash tracks content, not incidental ordering. */
+/**
+ * Field order and row order are fixed here so the hash tracks content, not incidental ordering.
+ *
+ * compromise_range is left out because the model never reads it, so editing it
+ * changes no review output.
+ */
 function canonicalize(entries: StandardEntry[]): string {
   const sorted = [...entries].sort((a, b) =>
     a.clause_type === b.clause_type
@@ -48,6 +53,7 @@ function canonicalize(entries: StandardEntry[]): string {
     sorted.map((e) => [
       e.clause_type,
       e.segment,
+      e.category,
       e.position,
       e.fallback_language,
       e.walk_away_condition,
@@ -83,8 +89,9 @@ export async function loadStandardsLibrary(): Promise<LoadedStandards> {
     const { data, error } = await admin
       .from("standards")
       .select(
-        "clause_type, segment, position, fallback_language, walk_away_condition, severity_default, version, provenance"
-      );
+        "clause_type, segment, category, position, fallback_language, walk_away_condition, severity_default, compromise_range, version, provenance"
+      )
+      .is("retired_at", null);
 
     if (error) return bundled(`Could not read the standards table: ${error.message}`);
     if (!data || data.length === 0) {

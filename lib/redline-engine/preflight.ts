@@ -103,7 +103,7 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
     if (!f.quoted_text && rewritesExistingWording(language, contractText)) {
       previews.set(f.id, {
         export_issue:
-          "Won't go into the redline: it rewrites wording already in the contract but quotes none of it, so there is nothing to mark up. Raise it with the property another way.",
+          "This change won't go into the redline. It rewords wording the contract already has without saying which wording to replace, so adding it would leave both versions. Raise it with the property separately.",
         redline_language: null,
       });
       continue;
@@ -114,7 +114,7 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
     previews.set(f.id, {
       export_issue:
         restated.reworded.length > 0
-          ? `Part of this won't go in: the redline leaves out a rewrite of wording it doesn't quote ("${opening(restated.reworded[0])}"). Raise that change another way, or use Edit.`
+          ? `The redline leaves out one sentence of this change ("${opening(restated.reworded[0])}"). That sentence rewords one the contract already has, and this change doesn't replace the original, so adding it would leave both versions. The rest goes in as shown. Raise that sentence separately if it matters.`
           : null,
       redline_language: changed ? restated.language : null,
     });

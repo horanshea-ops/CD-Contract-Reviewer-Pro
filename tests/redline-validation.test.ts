@@ -79,6 +79,7 @@ describe("a correctly marked-up document", () => {
       "relationships_resolve",
       "revision_ids_unique",
       "revision_marks_wellformed",
+      "comments_consistent",
       "table_structure_preserved",
       "paragraph_count_preserved",
       "reject_round_trip",

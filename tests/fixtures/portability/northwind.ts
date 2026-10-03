@@ -18,8 +18,10 @@ export const NORTHWIND_VERSION = "northwind-test-v1";
 
 const entry = (over: Pick<StandardEntry, "clause_type" | "position" | "fallback_language">): StandardEntry => ({
   segment: "default",
+  category: "business",
   walk_away_condition: "",
   severity_default: "medium",
+  compromise_range: "",
   version: NORTHWIND_VERSION,
   provenance: "industry_default",
   ...over,

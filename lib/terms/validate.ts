@@ -151,7 +151,7 @@ function cutQuoteFound(parts: LocatablePart[], quote: string): boolean {
   return false;
 }
 
-const quoteFound = (parts: LocatablePart[], quote: string, section: string | null) => {
+export const quoteFound = (parts: LocatablePart[], quote: string, section: string | null) => {
   // Several matches still prove the wording is in the contract, which is all
   // verification asks. Which occurrence is meant matters for a redline, not here.
   const result = locateQuote(parts, quote, section);

@@ -571,6 +571,78 @@ const fixture15 = [
   ),
 ].join("");
 
+// --- Fixture 16: the shapes of a Pages export with changes and comments ---
+// Copied from a real file a property's side marked up in Pages and exported
+// to Word. Comments and revisions share one id sequence, each comment opens
+// with an empty paragraph, a changed number is an insertion followed by a
+// deletion, and one comment runs from one paragraph into the next.
+const W14_NS = 'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"';
+
+function pagesComment(id: number, paraId: number, text: string) {
+  const hex = (n: number) => n.toString(16).toUpperCase().padStart(8, "0");
+  return (
+    `<w:comment w:id="${id}" w:author="${COUNTERPARTY}" w:date="${CP_DATE}">` +
+    `<w:p w14:paraId="${hex(paraId)}"/>` +
+    `<w:p w14:paraId="${hex(paraId + 1)}">${run(text)}</w:p>` +
+    `</w:comment>`
+  );
+}
+
+const commentStart = (id: number) => `<w:commentRangeStart w:id="${id}"/>`;
+const commentEnd = (id: number) => `<w:commentRangeEnd w:id="${id}"/><w:r><w:commentReference w:id="${id}"/></w:r>`;
+
+const FIXTURE16_PARTS: ExtraParts = {
+  contentTypes: CONTENT_TYPES.replace(
+    "</Types>",
+    `  <Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>
+</Types>`
+  ),
+  docRels: DOC_RELS.replace(
+    "</Relationships>",
+    `  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>
+</Relationships>`
+  ),
+  files: {
+    "word/comments.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:comments ${W_NS} ${W14_NS}>${pagesComment(21, 0x1111ffff, "Subject to negotiation.")}${pagesComment(
+      24,
+      0x11120001,
+      "Agreed."
+    )}${pagesComment(26, 0x11120003, "Can this be extended further?")}</w:comments>`,
+  },
+};
+
+const fixture16 = [
+  heading("HOTEL GROUP SALES AGREEMENT"),
+  heading("1. Commission"),
+  para(
+    run("Hotel will pay a commission of ") +
+      commentStart(21) +
+      ins(22, COUNTERPARTY, CP_DATE, run("8")) +
+      del(23, COUNTERPARTY, CP_DATE, "10") +
+      commentEnd(21) +
+      run("% of the group room rate on all occupied rooms.")
+  ),
+  heading("2. Rate Protection"),
+  para(
+    run("The group rate will be matched if another group occupying at least 7") +
+      ins(27, COUNTERPARTY, CP_DATE, run("50")) +
+      del(28, COUNTERPARTY, CP_DATE, "00") +
+      run(" rooms is offered a lower rate.")
+  ),
+  heading("3. Resort Fee"),
+  para(commentStart(24) + run("No mandatory resort fee applies to rooms in the block.")),
+  para(run("Taxes are charged as required by law.") + commentEnd(24)),
+  heading("4. Rate Availability"),
+  para(
+    run("The group rate is offered ") +
+      commentStart(26) +
+      run("three days after the last night of the block") +
+      commentEnd(26) +
+      run(" for attendees extending their stay.")
+  ),
+].join("");
+
 async function main() {
   await mkdir(path.join("tests", "fixtures"), { recursive: true });
   console.log("Generating synthetic DOCX fixtures:");
@@ -589,6 +661,7 @@ async function main() {
   await writeDocx("13-nested-merged-tables.docx", fixture13);
   await writeDocx("14-revision-id-collisions.docx", fixture14);
   await writeDocx("15-links-footnotes-comments.docx", fixture15, FIXTURE15_PARTS);
+  await writeDocx("16-pages-export-comments.docx", fixture16, FIXTURE16_PARTS);
   console.log("Done.");
 }
 

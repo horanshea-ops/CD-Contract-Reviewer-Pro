@@ -40,6 +40,8 @@
     "pdfjs-dist": "^6.3.289",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-is": "^19.2.8",
+    "recharts": "^3.10.1",
     "unpdf": "^1.8.1",
     "word-extractor": "^1.0.4"
   },

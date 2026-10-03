@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { analyzeContract, extractContractTerms, generateClientEmail, generatePropertyEmail } from "@/lib/anthropic";
+import { analyzeContract, extractContractTerms, generateClientEmail, generatePropertyEmail, historicalRequest } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
@@ -54,6 +54,47 @@ describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => 
     );
   });
 
+  it("analysis with comments adds one block after the contract and changes nothing else", async () => {
+    create.mockResolvedValue(toolResponse({ clause_review: [], findings: [], document_notes: "" }));
+    const args = {
+      document: { kind: "text" as const, text: "CONTRACT BODY" },
+      standards: STANDARDS_LIBRARY,
+      standardsVersion: STANDARDS_LIBRARY_VERSION,
+      contextNote: "CONTEXT NOTE",
+      model: MODEL,
+    };
+
+    await analyzeContract(args);
+    await analyzeContract({
+      ...args,
+      comments: [
+        {
+          id: "21",
+          author: "Dana Reyes",
+          date: "2026-02-14T10:30:00Z",
+          text: "Subject to negotiation.",
+          part: "document",
+          start: 31,
+          end: 32,
+          quoted: "8",
+          context: "Hotel will pay a commission of 8% of the group room rate.",
+          replyTo: null,
+          resolved: false,
+        },
+      ],
+    });
+
+    const [plain, withComments] = create.mock.calls.map((c) => c[0]);
+    const { messages: plainMessages, ...plainRest } = plain;
+    const { messages, ...rest } = withComments;
+
+    expect(rest).toEqual(plainRest);
+    expect(messages[0].content).toHaveLength(plainMessages[0].content.length + 1);
+    await expect(JSON.stringify(messages, null, 2)).toMatchFileSnapshot(
+      "./fixtures/prompt-golden/analysis-comments-messages.json"
+    );
+  });
+
   it("analysis with a picture adds a label and the image after the contract text", async () => {
     create.mockResolvedValue(toolResponse({ clause_review: [], findings: [], document_notes: "" }));
 
@@ -81,6 +122,7 @@ describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => 
         {
           clause_type: "attrition",
           severity: "high",
+          category: "business",
           is_missing_clause: false,
           quoted_text: "eighty percent (80%)",
           language: "seventy percent (70%)",
@@ -124,6 +166,13 @@ describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => 
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
       `./fixtures/prompt-golden/term-extraction-request${suffix}.json`
+    );
+  });
+
+  it("historical contract", async () => {
+    const request = historicalRequest({ document: { kind: "text", text: "CONTRACT BODY" }, catalog: HOTEL_TERM_CATALOG, model: MODEL });
+    await expect(JSON.stringify(request, null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/historical-contract-request${suffix}.json`
     );
   });
 });

@@ -1,5 +1,7 @@
 import type { createAdminClient } from "../supabase/admin";
 import { assertsNoChange } from "../proposed-language";
+import { findingCategory } from "../findings-overview";
+import type { Category } from "../standards/types";
 
 /**
  * §1.8.1 — input assembly for a client email: accepted/edited findings
@@ -14,6 +16,8 @@ import { assertsNoChange } from "../proposed-language";
 export interface EmailFinding {
   clause_type: string;
   severity: "high" | "medium" | "low" | "note";
+  /** A legal finding reaches the email as a point for the client's counsel, with no wording. */
+  category: Category;
   is_missing_clause: boolean;
   quoted_text: string | null;
   language: string;
@@ -28,6 +32,8 @@ export interface FindingRow {
   id: string;
   clause_type: string;
   severity: "high" | "medium" | "low" | "note";
+  /** Absent only on rows from before migration 013. */
+  category?: Category | null;
   is_missing_clause: boolean;
   quoted_text: string | null;
   finding_text: string;
@@ -66,12 +72,20 @@ export function assembleEmailFindings(findingRows: FindingRow[], actionRows: Act
       (x): x is { f: FindingRow; action: ActionRow } =>
         x.action != null && (x.action.action === "accept" || x.action.action === "edit")
     )
-    .map(({ f, action }) => ({
+    .map(({ f, action }) => ({ f, action, category: findingCategory(f) }))
+    .map(({ f, action, category }) => ({
       clause_type: f.clause_type,
       severity: f.severity,
+      category,
       is_missing_clause: f.is_missing_clause,
       quoted_text: f.quoted_text,
-      language: action.action === "edit" && action.edited_language ? action.edited_language : f.proposed_language,
+      // CD gives no legal advice, so a legal finding carries no wording, even one edited before categories existed.
+      language:
+        category === "legal"
+          ? ""
+          : action.action === "edit" && action.edited_language
+            ? action.edited_language
+            : f.proposed_language,
       finding_text: f.finding_text,
       exposure_amount: f.exposure_amount,
       exposure_basis: f.exposure_basis,
@@ -89,7 +103,7 @@ export async function getEmailFindings(
   const { data: findingRows } = await admin
     .from("findings")
     .select(
-      "id, clause_type, severity, is_missing_clause, quoted_text, finding_text, proposed_language, exposure_amount, exposure_basis, exposure_formula"
+      "id, clause_type, severity, category, is_missing_clause, quoted_text, finding_text, proposed_language, exposure_amount, exposure_basis, exposure_formula"
     )
     .eq("analysis_id", analysisId);
 

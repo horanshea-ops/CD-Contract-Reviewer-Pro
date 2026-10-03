@@ -14,7 +14,11 @@ import { assertsNoChange } from "../proposed-language";
  *
  * Excluded, and unreachable from here: severity, exposure_amount,
  * exposure_basis, finding_text (why CD flagged it), cd_standard (CD's internal
- * and fallback position). All of it is leverage.
+ * and fallback position), compromise_range (how far CD will move). All of it
+ * is leverage.
+ *
+ * Legal findings never reach the property at all. CD gives no legal advice,
+ * so they carry no wording, and they are points for the client's own counsel.
  */
 
 /**
@@ -35,6 +39,8 @@ export interface PropertyEmailItem {
 export interface PropertyFindingRow {
   id: string;
   clause_type: string;
+  /** Read only to drop legal findings. It never reaches the payload. Absent only before migration 013. */
+  category?: string | null;
   is_missing_clause: boolean;
   proposed_language: string;
 }
@@ -66,6 +72,7 @@ export function assemblePropertyEmailItems(
   }
 
   return findingRows
+    .filter((f) => f.category !== "legal")
     .map((f) => ({ f, action: latestActionByFinding.get(f.id) }))
     .filter(
       (x): x is { f: PropertyFindingRow; action: PropertyActionRow } =>
@@ -92,8 +99,9 @@ export async function getPropertyEmailItems(
 ): Promise<PropertyEmailItem[]> {
   const { data: findingRows } = await admin
     .from("findings")
-    .select("id, clause_type, is_missing_clause, proposed_language")
-    .eq("analysis_id", analysisId);
+    .select("id, clause_type, category, is_missing_clause, proposed_language")
+    .eq("analysis_id", analysisId)
+    .neq("category", "legal");
 
   const findingIds = (findingRows ?? []).map((f) => f.id);
   const { data: actionRows } = findingIds.length

@@ -1,34 +1,40 @@
 "use client";
 
 import { SEVERITY_STYLE } from "@/components/severity-style";
+import { CATEGORY_KEYS, CATEGORY_STYLE } from "@/components/category-style";
 import type { FindingSeverity } from "@/lib/findings-overview";
+import type { Category } from "@/lib/standards/types";
 import { cn } from "@/lib/cn";
 
 const SEVERITY_KEYS: FindingSeverity[] = ["high", "medium", "low", "note"];
 
 /**
- * One button per severity, showing its count and toggling it on or off. The
- * counts are always the full totals, not what the active filter leaves.
+ * One button per key, showing its count and toggling it on or off. The counts
+ * are always the full totals, not what the active filter leaves.
  */
-export function SeverityToggles({
+function Toggles<K extends string>({
+  keys,
+  styleOf,
   counts,
   hidden,
   onToggle,
 }: {
-  counts: Record<FindingSeverity, number>;
-  hidden: Set<FindingSeverity>;
-  onToggle: (severity: FindingSeverity) => void;
+  keys: K[];
+  styleOf: (key: K) => { label: string; textColor: string; bg: string };
+  counts: Record<K, number>;
+  hidden: Set<K>;
+  onToggle: (key: K) => void;
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      {SEVERITY_KEYS.map((severity) => {
-        const style = SEVERITY_STYLE[severity];
-        const off = hidden.has(severity);
+      {keys.map((key) => {
+        const style = styleOf(key);
+        const off = hidden.has(key);
         return (
           <button
-            key={severity}
+            key={key}
             type="button"
-            onClick={() => onToggle(severity)}
+            onClick={() => onToggle(key)}
             aria-pressed={!off}
             style={off ? undefined : { background: style.bg, color: style.textColor }}
             className={cn(
@@ -36,10 +42,38 @@ export function SeverityToggles({
               off ? "border-[var(--border)] text-[var(--text-muted)] bg-transparent" : "border-transparent"
             )}
           >
-            {counts[severity]} {style.label}
+            {counts[key]} {style.label}
           </button>
         );
       })}
     </div>
+  );
+}
+
+export function SeverityToggles<K extends FindingSeverity>({
+  keys = SEVERITY_KEYS as K[],
+  counts,
+  hidden,
+  onToggle,
+}: {
+  keys?: K[];
+  counts: Record<K, number>;
+  hidden: Set<K>;
+  onToggle: (severity: K) => void;
+}) {
+  return <Toggles keys={keys} styleOf={(k) => SEVERITY_STYLE[k]} counts={counts} hidden={hidden} onToggle={onToggle} />;
+}
+
+export function CategoryToggles({
+  counts,
+  hidden,
+  onToggle,
+}: {
+  counts: Record<Category, number>;
+  hidden: Set<Category>;
+  onToggle: (category: Category) => void;
+}) {
+  return (
+    <Toggles keys={CATEGORY_KEYS} styleOf={(k) => CATEGORY_STYLE[k]} counts={counts} hidden={hidden} onToggle={onToggle} />
   );
 }

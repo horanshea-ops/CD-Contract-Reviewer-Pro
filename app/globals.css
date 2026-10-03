@@ -33,6 +33,11 @@
   --severity-note: #686e7a;
   --severity-note-bg: #f6f8fb;
 
+  /* Finding categories. Business reuses the brand navy; legal gets its own
+     muted plum so it never reads as a severity. */
+  --category-legal: #5b3f8c;
+  --category-legal-bg: #f2eef9;
+
   /* Tokenizes the one color in the app that wasn't sourced from this system
      (standards-list's "CD validated" badge used raw Tailwind emerald-50/700
      directly) — same visual values, just promoted to the token system. */

@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
-import { getCurrentAssociate } from "@/lib/current-associate";
+import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
+import { isCategory, isLibrarySeverity } from "@/lib/standards/keys";
 
-const EDITABLE_FIELDS = ["position", "fallback_language", "walk_away_condition", "severity_default", "provenance"];
+const EDITABLE_FIELDS = [
+  "category",
+  "position",
+  "fallback_language",
+  "walk_away_condition",
+  "severity_default",
+  "compromise_range",
+  "provenance",
+];
+const TEXT_FIELDS = ["position", "fallback_language", "walk_away_condition", "compromise_range"];
 
 /**
  * Edits one standards library entry. Admin-only — the library is CD's
@@ -12,13 +22,8 @@ const EDITABLE_FIELDS = ["position", "fallback_language", "walk_away_condition",
  * brief). Checked server-side, not just by hiding the nav link.
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const associate = await getCurrentAssociate();
-  if (!associate) {
-    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
-  }
-  if (!associate.is_admin) {
-    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
-  }
+  const { admin: associate, denied } = await requireAdmin();
+  if (denied) return denied;
 
   const { id } = await params;
   const body = await request.json();
@@ -30,6 +35,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No editable fields provided." }, { status: 400 });
+  }
+  if ("severity_default" in updates && !isLibrarySeverity(updates.severity_default)) {
+    return NextResponse.json({ error: "Choose a severity." }, { status: 400 });
+  }
+  if ("category" in updates && !isCategory(updates.category)) {
+    return NextResponse.json({ error: "Choose a category." }, { status: 400 });
+  }
+  for (const field of TEXT_FIELDS) {
+    if (field in updates && typeof updates[field] !== "string") {
+      return NextResponse.json({ error: "Text fields must be text." }, { status: 400 });
+    }
   }
 
   const admin = createAdminClient();
@@ -62,7 +78,51 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     action: "standard_updated",
     entityType: "standard",
     entityId: id,
-    metadata: { clause_type: data.clause_type, fields_changed: Object.keys(updates) },
+    metadata: {
+      clause_type: data.clause_type,
+      fields_changed: Object.keys(updates),
+      ...("severity_default" in body ? { severity_default: data.severity_default } : {}),
+      ...("category" in body ? { category: data.category } : {}),
+    },
+  });
+
+  return NextResponse.json(data);
+}
+
+/**
+ * Removes a standard by retiring it. The row stays, so reviews that quoted it
+ * keep their history, and it can be restored. It stops reaching the model.
+ */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { admin: associate, denied } = await requireAdmin();
+  if (denied) return denied;
+
+  const { id } = await params;
+  const db = createAdminClient();
+
+  const { count } = await db.from("standards").select("id", { count: "exact", head: true }).is("retired_at", null);
+  if ((count ?? 0) <= 1) {
+    return NextResponse.json({ error: "The library needs at least one standard." }, { status: 409 });
+  }
+
+  const now = new Date().toISOString();
+  const { data, error } = await db
+    .from("standards")
+    .update({ retired_at: now, retired_by: associate.id, updated_by: associate.id, updated_at: now })
+    .eq("id", id)
+    .is("retired_at", null)
+    .select()
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ error: "Could not remove the standard. Try again." }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Standard not found, or already removed." }, { status: 404 });
+
+  await logAudit({
+    actorId: associate.id,
+    action: "standard_retired",
+    entityType: "standard",
+    entityId: id,
+    metadata: { clause_type: data.clause_type },
   });
 
   return NextResponse.json(data);

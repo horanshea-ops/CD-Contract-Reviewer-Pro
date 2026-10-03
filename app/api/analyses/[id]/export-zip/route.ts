@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: requested.error }, { status: 400 });
   }
 
-  const gate = await openExport(id);
+  const gate = await openExport(id, request);
   if (!gate.ok) return gate.response;
 
   const entries: ZipEntry[] = [];

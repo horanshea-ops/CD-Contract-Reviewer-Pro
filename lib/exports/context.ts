@@ -32,11 +32,13 @@ export interface ExportContext {
   associate: CurrentAssociate;
   analysis: ExportAnalysis;
   analysisId: string;
+  /** Whether the tracked-changes file carries a comment on each change. On unless the request says `comments=0`. */
+  includeComments: boolean;
 }
 
 export type ExportGate = { ok: true; ctx: ExportContext } | { ok: false; response: NextResponse };
 
-export async function openExport(analysisId: string): Promise<ExportGate> {
+export async function openExport(analysisId: string, request?: Request): Promise<ExportGate> {
   const associate = await getCurrentAssociate();
   if (!associate) {
     return { ok: false, response: NextResponse.json({ error: "Not authenticated." }, { status: 401 }) };
@@ -64,5 +66,6 @@ export async function openExport(analysisId: string): Promise<ExportGate> {
     };
   }
 
-  return { ok: true, ctx: { admin, associate, analysis, analysisId } };
+  const includeComments = request ? new URL(request.url).searchParams.get("comments") !== "0" : true;
+  return { ok: true, ctx: { admin, associate, analysis, analysisId, includeComments } };
 }

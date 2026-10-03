@@ -274,7 +274,7 @@ function attributesOf(contracts: ContractResult[], key: AnswerKey): AttributeRat
     severity_confusion[pair.key_severity][pair.finding_severity] += 1;
 
     const item = itemsById.get(pair.key_item_id);
-    if (item && languageWasGraded(item)) {
+    if (item && (grade.language.graded ?? languageWasGraded(item))) {
       language_graded += 1;
       if (grade.language.passed) language_passed += 1;
     }

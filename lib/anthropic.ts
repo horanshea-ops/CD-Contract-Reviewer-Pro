@@ -1,11 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { StandardEntry } from "./standards/types";
+import { commentContext } from "./document-comments";
+import type { DocumentComment } from "./docx";
+import type { Category, StandardEntry } from "./standards/types";
 import type { EmailFinding } from "./email-drafting/input-assembly";
 import type { PropertyEmailItem } from "./email-drafting/property-assembly";
 import { ORG, type OrgProfile } from "./org";
 import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap } from "./analysis-review";
 import { toNotes, type DocumentNote } from "./document-notes";
 import { toOtherFindings } from "./other-findings";
+import { applyCategories, toFlaggedFindings, type CategorizedFinding } from "./finding-categories";
 import { checkFigures, type DealFigures } from "./exposures/figures";
 import { withComputedExposures } from "./exposures/compute";
 import { currencyOf } from "./exposure";
@@ -26,6 +29,8 @@ export interface Finding {
   clause_type: string;
   is_missing_clause: boolean;
   severity: Severity;
+  /** Stamped from the library after the model answers. Absent on the model's raw output and on older saved runs. */
+  category?: Category;
   location_section: string | null;
   quoted_text: string | null;
   exposure_amount: number | null;
@@ -37,6 +42,11 @@ export interface Finding {
   finding_text: string;
   cd_standard: string;
   proposed_language: string;
+  /**
+   * The short "why" for the redline comment, which the property reads. Business
+   * findings only. Absent on findings recorded before the model was asked for one.
+   */
+  redline_note?: string;
   model_confidence: "high" | "medium" | "low";
 }
 
@@ -57,6 +67,11 @@ export interface AnalysisResult {
   cache_creation_input_tokens: number;
   /** Characters of thinking the model wrote before its answer. Thinking is billed as output. Absent on older runs. */
   thinking_chars?: number;
+}
+
+/** A fresh review, with each finding's category stamped from the library. Saved eval runs predate categories. */
+export interface CategorizedAnalysis extends AnalysisResult {
+  findings: CategorizedFinding[];
 }
 
 /**
@@ -169,7 +184,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
       },
       findings: {
         type: "array",
-        description: `Deviations only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — its meets verdict in clause_review says so.`,
+        description: `Deviations on business clause types only. One entry per clause whose language falls short of ${firm}'s position, plus any clause ${firm}'s standards call for that this contract is missing. A clause that already matches ${firm}'s position does not belong here — its meets verdict in clause_review says so.`,
         items: {
           type: "object",
           properties: {
@@ -194,18 +209,54 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
               description:
                 "Contract wording that replaces everything in quoted_text: repeat what stays, leave out what goes. Always an actual change — never a note that no change is needed, and never an instruction to the reviewer.",
             },
+            redline_note: {
+              type: "string",
+              description: `One short, neutral sentence, at most 20 words, saying what the change does for the group. It becomes a comment in the redline the hotel receives, so write it for the hotel to read. No figures, and nothing about ${firm}, its standards, positions, fallbacks or reasons.`,
+            },
             model_confidence: { type: "string", enum: ["high", "medium", "low"] },
           },
           required: [
             "clause_type",
             "is_missing_clause",
             "severity",
+            "quoted_text",
             "headline",
             "finding_text",
             "cd_standard",
             "proposed_language",
+            "redline_note",
             "model_confidence",
           ],
+        },
+      },
+      flagged_findings: {
+        type: "array",
+        description: `Deviations on legal and other clause types. These carry no contract wording: ${firm} gives no legal advice, and the reviewer decides how to raise them.`,
+        items: {
+          type: "object",
+          properties: {
+            clause_type: { type: "string" },
+            is_missing_clause: { type: "boolean" },
+            severity: { type: "string", enum: ["high", "medium", "low"] },
+            location_section: { type: ["string", "null"] },
+            quoted_text: {
+              type: ["string", "null"],
+              description:
+                "One unbroken span copied exactly from a single paragraph of the contract: the whole sentences the finding is about. Null only if is_missing_clause is true.",
+            },
+            headline: {
+              type: "string",
+              description:
+                "One line, at most about 12 words, saying what the term does to the group. Don't repeat the clause name.",
+            },
+            finding_text: {
+              type: "string",
+              description:
+                "Two or three sentences: what the term does, and how it could expose the group. Never what the contract should say instead.",
+            },
+            model_confidence: { type: "string", enum: ["high", "medium", "low"] },
+          },
+          required: ["clause_type", "is_missing_clause", "severity", "headline", "finding_text", "model_confidence"],
         },
       },
       document_notes: {
@@ -291,9 +342,30 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         },
       },
     },
-    required: ["clause_review", "findings", "document_notes", "other_findings", "deal_figures"],
+    required: ["clause_review", "findings", "flagged_findings", "document_notes", "other_findings", "deal_figures"],
   },
 });
+
+/**
+ * The library as the model reads it, built field by field.
+ *
+ * Fallback wording goes only with business standards, so the model never sees
+ * wording it could offer on a legal point. The compromise range never goes:
+ * the model proposes CD's standard, and only the associate sees the fallback.
+ */
+export function libraryForPrompt(standards: StandardEntry[]) {
+  return standards.map((s) => ({
+    clause_type: s.clause_type,
+    segment: s.segment,
+    category: s.category,
+    position: s.position,
+    ...(s.category === "business" ? { fallback_language: s.fallback_language } : {}),
+    walk_away_condition: s.walk_away_condition,
+    severity_default: s.severity_default,
+    version: s.version,
+    provenance: s.provenance,
+  }));
+}
 
 /**
  * Exported so a test can assert on the rules it carries, the same way the two
@@ -312,7 +384,10 @@ Rules:
 - A clause type with no corresponding language anywhere in the contract is missing, and its finding sets is_missing_clause to true.
 - Some clause types apply only in certain places, or only to terms the contract has. A named-storm clause matters only for hotels in hurricane or typhoon regions. A position about a deposit, fee or right the contract never creates, such as a damage deposit, or a gratuity or service charge the contract doesn't charge or marks N/A, has nothing to fix. Give such a clause type the verdict not_applicable, say why in its basis, and record no finding for it. Outside the United States, don't ask for ADA compliance by name; compare the contract's accessibility terms with the substance of the standard.
 - Record a finding for every clause whose verdict is falls_short or missing, and for no other.
-- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clause_review is what shows that. Every finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
+- Each clause type in the library has a category. A finding on a business clause type goes in findings, with proposed_language. A finding on a legal or other clause type goes in flagged_findings, which has no wording.
+- ${firm} does not give legal advice. For a legal clause type, finding_text explains in plain terms what the contract's term does and how it could expose the group, so the reviewer can tell the client it may be worth raising with the client's own counsel. Never say what the contract should say instead, never suggest wording, and never call a term unenforceable, invalid or unlawful.
+- For an other clause type, finding_text says what the term does and why it matters to the group, without suggesting wording.
+- A clause that already matches ${firm}'s position is NOT a finding. Do not record one to show that you looked — clause_review is what shows that. Every business finding is read downstream as a change to make: it is marked up in the contract, listed in the memo to the client, and named in the email to the property. A finding reporting that a clause is fine becomes a proposed change to a clause that was already fine, sent to the hotel.
 - Never write "compliant", "no change recommended", "matches ${firm}'s standard" or anything like them in finding_text or proposed_language. If that is what you would be writing, there is no finding to record.
 - A deviation is a finding however narrow the margin. Compare mechanically: if the contract's term sits on the wrong side of ${firm}'s position, record it. A threshold one point the wrong side is a finding. A deadline two days late is a finding. Do not weigh whether a gap is wide enough to be worth raising — that judgement belongs to the associate reading your output, who can see the whole deal and what was traded for what. You cannot, and a narrow gap is the kind most easily missed by the person you are helping.
 - Leaving a clause out of findings is a statement that it MEETS ${firm}'s position, and a meets verdict in clause_review says the same thing. Never say that about a clause that falls short by any margin at all.
@@ -338,7 +413,7 @@ Rules:
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
-    standards,
+    libraryForPrompt(standards),
     null,
     2
   )}`;
@@ -392,6 +467,10 @@ export interface AnalyzeContractPdfArgs {
   deadline?: number;
   /** The contract as text, for checking the figures the model quotes. Defaults to a text document's own text. */
   contractText?: string;
+  /** Comments already in the file. They reach the model in a block of their own, after the contract. */
+  comments?: DocumentComment[];
+  /** How many comments the file holds, when that is more than `comments` carries. */
+  commentsTotal?: number;
 }
 
 /**
@@ -434,7 +513,9 @@ export async function analyzeContract({
   org = ORG,
   deadline,
   contractText,
-}: AnalyzeContractPdfArgs): Promise<AnalysisResult> {
+  comments,
+  commentsTotal,
+}: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -450,13 +531,18 @@ export async function analyzeContract({
       ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
       : contractContent(document);
 
+  const commentBlock = commentContext(comments, commentsTotal);
+  if (commentBlock) {
+    userContent.push({ type: "text", text: commentBlock });
+  }
+
   if (contextNote) {
     userContent.push({ type: "text", text: contextNote });
   }
 
   const remaining = () => (deadline === undefined ? undefined : Math.max(deadline - Date.now(), 1_000));
 
-  async function attempt(): Promise<AnalysisResult> {
+  async function attempt(): Promise<CategorizedAnalysis> {
     const timeout = remaining();
     const response = await client.messages.create({
       model: modelId,
@@ -496,6 +582,7 @@ export async function analyzeContract({
     const parsed = {
       clause_review: listField<ClauseReview>(input.clause_review),
       findings: listField<Finding>(input.findings),
+      flagged_findings: toFlaggedFindings(listField(input.flagged_findings), standards),
       document_notes: toNotes(input.document_notes),
       other_findings: toOtherFindings(listField(input.other_findings), org.shortName),
       deal_figures: checkFigures(input.deal_figures, [
@@ -517,13 +604,19 @@ export async function analyzeContract({
 
     const usage = response.usage;
 
-    const reviewed = reconcileReview({ findings: parsed.findings, clause_review: parsed.clause_review }, standards);
+    const reviewed = reconcileReview(
+      { findings: [...parsed.findings, ...parsed.flagged_findings], clause_review: parsed.clause_review },
+      standards
+    );
 
     return {
       ...reviewed,
       // Kept out of reconcileReview, which checks findings against the library's clause types.
       // Every exposure figure is the app's own, worked out from the checked figures.
-      findings: withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
+      findings: applyCategories(
+        withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
+        standards
+      ),
       document_notes: parsed.document_notes,
       deal_figures: parsed.deal_figures,
       model_id: modelId,
@@ -589,6 +682,8 @@ Target one screen of text. Several findings under one theme should read as a sho
 
 End with a brief closing line (e.g. "Let me know if you have any questions.") but do not write a sign-off or the associate's name — a signature is appended separately after this text.
 
+Some items may be listed separately as points for the client's own counsel. ${firm} does not give legal advice and is proposing no change on these. Mention them after the proposed changes, in a sentence or two each: what the term does and why the client may want their counsel to look at it. Never suggest what such a term should say, and never present one as a change ${firm} is requesting.
+
 Prohibited, without exception:
 - Any statement of legal effect (what a clause "means" legally, or its enforceability).
 - Any assurance that the client is "protected" or "covered."
@@ -628,17 +723,31 @@ export async function generateClientEmail({
   const client = new Anthropic({ apiKey });
   const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
-  const findingsBlock = findings
+  const changes = findings.filter((f) => f.category !== "legal");
+  const counsel = findings.filter((f) => f.category === "legal");
+
+  const changesBlock = changes
     .map((f, i) => {
       const exposure =
         f.exposure_amount != null
           ? `\nExposure: ${formatCurrency(f.exposure_amount, currencyOf(f.exposure_formula))} (${f.exposure_basis})`
           : "";
-      return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}\nProposed language: ${f.language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
+
+      // A point raised without wording has no proposed language line.
+      const language = f.language.trim() ? `\nProposed language: ${f.language}` : "";
+
+      return `[${i + 1}] ${f.clause_type.replace(/_/g, " ")}${f.is_missing_clause ? " (added — not present in the original)" : ""}${language}\nWhy it was flagged: ${f.finding_text}${exposure}`;
     })
     .join("\n\n");
 
-  const userText = `Contract: ${contractLabel}\nAssociate: ${associateName}\n\nProposed changes to summarize (not yet agreed to by the property):\n\n${findingsBlock}`;
+  // Legal points carry the explanation only. No wording is ever sent for them.
+  const counselBlock = counsel
+    .map((f, i) => `[${changes.length + i + 1}] ${f.clause_type.replace(/_/g, " ")}\nWhy it may matter: ${f.finding_text}`)
+    .join("\n\n");
+
+  const userText =
+    `Contract: ${contractLabel}\nAssociate: ${associateName}\n\nProposed changes to summarize (not yet agreed to by the property):\n\n${changesBlock || "None."}` +
+    (counselBlock ? `\n\nPoints for the client's own counsel. ${org.shortName} proposes no change on these:\n\n${counselBlock}` : "");
 
   async function attempt(): Promise<ClientEmailResult> {
     const response = await client.messages.create({
@@ -1019,6 +1128,186 @@ export async function extractContractTerms({
     console.error("extractContractTerms: first attempt failed, retrying once —", err);
     return await attempt();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Historical contracts. One read per contract records its details (hotel,
+// client, dates) and its terms, so an admin uploading hundreds of past
+// contracts types nothing. Sent through the Batch service at half price.
+// Same module as analyzeContract per the single-outbound-call-site rule.
+// ---------------------------------------------------------------------------
+
+const HISTORICAL_TOOL_NAME = "record_historical_contract";
+
+/** A detail stated in the contract, with the words that state it. */
+const statedDetail = (description: string) => ({
+  type: ["object", "null"],
+  description: `${description} Null when the contract doesn't state it.`,
+  properties: {
+    value: { type: "string" },
+    quoted_text: { type: "string", description: "Words copied exactly from the contract that state this detail." },
+  },
+  required: ["value", "quoted_text"],
+});
+
+export const historicalToolSchema = (catalog: TermCatalog) => ({
+  name: HISTORICAL_TOOL_NAME,
+  description: "Record this signed contract's details and every catalog term it states, each with the wording that states it.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      details: {
+        type: "object",
+        properties: {
+          hotel_name: statedDetail("The hotel or venue's name as the contract gives it, such as \"Hilton Denver City Center\"."),
+          brand: statedDetail("The hotel's brand, such as \"Hilton\" or \"Westin\", as the contract states it."),
+          city: statedDetail("The city the hotel is in."),
+          state: statedDetail("The state or province, as a two-letter code where one exists, such as \"CO\"."),
+          country: statedDetail("The country the hotel is in."),
+          client_name: statedDetail("The group or organization holding the event: the party contracting with the hotel, not ConferenceDirect."),
+          signed_date: statedDetail("The date the contract was signed, as YYYY-MM-DD. Take the latest signature date if there are several."),
+          event_start: statedDetail("The event's first date, as YYYY-MM-DD."),
+          event_end: statedDetail("The event's last date, as YYYY-MM-DD."),
+          negotiated_by: statedDetail("The ConferenceDirect associate named in the contract, such as in a contact or signature block. Their name only."),
+          parent_company: {
+            type: ["string", "null"],
+            description: "The brand's parent company, such as \"Marriott International\", from what you know of the brand. Null if you don't know.",
+          },
+          market_tier: {
+            type: ["string", "null"],
+            enum: ["luxury", "upper_upscale", "upscale", "resort", "convention", null],
+            description: "The hotel's market tier, judged from its brand and the contract. Null if you can't tell.",
+          },
+        },
+        required: [
+          "hotel_name",
+          "brand",
+          "city",
+          "state",
+          "country",
+          "client_name",
+          "signed_date",
+          "event_start",
+          "event_end",
+          "negotiated_by",
+          "parent_company",
+          "market_tier",
+        ],
+      },
+      terms: termsToolSchema(catalog).input_schema.properties.terms,
+    },
+    required: ["details", "terms"],
+  },
+});
+
+/** The term extraction rules, with the details section ahead of them. */
+export function buildHistoricalPrompt(catalog: TermCatalog) {
+  const [rules, catalogBlock] = buildTermExtractionPrompt(catalog);
+  const details = `This contract is already signed. Before its terms, record its details in "details".
+
+Details:
+- Record each detail from the contract's own words, with quoted_text copied exactly, the shortest span that states it. If the contract doesn't state a detail, give null. Never guess one.
+- parent_company and market_tier are the exceptions. Give them from what you know of the brand, or null if you don't know. They carry no quote.
+- The client is the group holding the event, never ConferenceDirect, which is the group's agent.
+- Write dates as YYYY-MM-DD.
+
+Terms:
+`;
+  return [{ ...rules, text: `${details}${rules.text}` }, catalogBlock];
+}
+
+/** The request for one historical contract, the same whether it goes in a batch or on its own. */
+export function historicalRequest({
+  document,
+  catalog,
+  model,
+}: {
+  document: AnalyzableDocument;
+  catalog: TermCatalog;
+  model?: string;
+}): Anthropic.Messages.MessageCreateParamsNonStreaming {
+  return {
+    model: model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
+    max_tokens: 16000,
+    system: buildHistoricalPrompt(catalog),
+    tools: [historicalToolSchema(catalog)],
+    tool_choice: { type: "tool", name: HISTORICAL_TOOL_NAME },
+    messages: [
+      {
+        role: "user",
+        content:
+          document.kind === "pdf"
+            ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
+            : [{ type: "text", text: `CONTRACT TEXT:\n\n${document.text}` }],
+      },
+    ],
+  };
+}
+
+export interface HistoricalReading {
+  /** Unchecked. Pass through checkDetails before storing anything. */
+  details: Record<string, unknown>;
+  /** Unvalidated. Pass through validateTerms before storing anything. */
+  entries: unknown[];
+  model_id: string;
+  input_tokens: number;
+  output_tokens: number;
+}
+
+/** The recorded answer in one response, or why there isn't one. */
+export function readHistoricalResponse(response: Anthropic.Messages.Message): HistoricalReading {
+  if (response.stop_reason === "refusal") throw new Error("The model declined to read this contract.");
+  if (response.stop_reason === "max_tokens") throw new Error("The reading ran past the output limit and was cut off.");
+  const block = response.content.find((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use");
+  if (!block) throw new Error("The model didn't record the contract (no tool_use block).");
+  const input = block.input as { details?: unknown; terms?: unknown };
+  if (!input.details || typeof input.details !== "object" || !Array.isArray(input.terms)) {
+    throw new Error("The model's record was missing its details or terms.");
+  }
+  return {
+    details: input.details as Record<string, unknown>,
+    entries: input.terms,
+    model_id: response.model,
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+  };
+}
+
+function batchClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
+  return new Anthropic({ apiKey });
+}
+
+/** Sends historical contracts to the Batch service, keyed by their ids. */
+export async function sendHistoricalBatch(requests: { custom_id: string; params: Anthropic.Messages.MessageCreateParamsNonStreaming }[]) {
+  const batch = await batchClient().messages.batches.create({ requests });
+  return batch.id;
+}
+
+export type HistoricalBatchResult =
+  | { custom_id: string; ok: true; reading: HistoricalReading }
+  | { custom_id: string; ok: false; error: string };
+
+/** A batch's results once it has ended, or null while it's still running. */
+export async function collectHistoricalBatch(batchId: string): Promise<HistoricalBatchResult[] | null> {
+  const client = batchClient();
+  const batch = await client.messages.batches.retrieve(batchId);
+  if (batch.processing_status !== "ended") return null;
+
+  const results: HistoricalBatchResult[] = [];
+  for await (const item of await client.messages.batches.results(batchId)) {
+    if (item.result.type !== "succeeded") {
+      results.push({ custom_id: item.custom_id, ok: false, error: `The batch request ${item.result.type}.` });
+      continue;
+    }
+    try {
+      results.push({ custom_id: item.custom_id, ok: true, reading: readHistoricalResponse(item.result.message) });
+    } catch (err) {
+      results.push({ custom_id: item.custom_id, ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return results;
 }
 
 // ---------------------------------------------------------------------------

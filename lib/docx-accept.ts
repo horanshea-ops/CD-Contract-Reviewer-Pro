@@ -1,4 +1,5 @@
 import { loadDocx } from "./docx";
+import { stripComments } from "./redline-engine/comments";
 import { serializePart } from "./redline-engine/serialize";
 
 /**
@@ -18,6 +19,9 @@ import { serializePart } from "./redline-engine/serialize";
  *
  * A table left with no rows is removed, and so is a paragraph left empty by
  * the merge.
+ *
+ * The export's own comments go too. They explain changes that, once accepted,
+ * no longer show. The property's comments stay.
  */
 
 const REVISION = new Set(["w:ins", "w:del", "w:moveFrom", "w:moveTo"]);
@@ -113,11 +117,19 @@ export function acceptOwnRevisionsInDoc(doc: Document, ownIds: ReadonlySet<strin
   }
 }
 
-export async function acceptOwnRevisions(docxBytes: Uint8Array, ownIds: ReadonlySet<string>): Promise<Uint8Array> {
+export async function acceptOwnRevisions(
+  docxBytes: Uint8Array,
+  ownIds: ReadonlySet<string>,
+  ownComments: { ids: ReadonlySet<string>; createdPart: boolean } = { ids: new Set(), createdPart: false }
+): Promise<Uint8Array> {
   const pkg = await loadDocx(docxBytes);
-  for (const part of pkg.textParts) {
-    acceptOwnRevisionsInDoc(part.doc, ownIds);
-    pkg.zip.file(part.path, serializePart(part));
-  }
+  for (const part of pkg.textParts) acceptOwnRevisionsInDoc(part.doc, ownIds);
+  await stripComments({
+    zip: pkg.zip,
+    parts: pkg.textParts,
+    ownCommentIds: ownComments.ids,
+    createdCommentsPart: ownComments.createdPart,
+  });
+  for (const part of pkg.textParts) pkg.zip.file(part.path, serializePart(part));
   return pkg.zip.generateAsync({ type: "uint8array" });
 }

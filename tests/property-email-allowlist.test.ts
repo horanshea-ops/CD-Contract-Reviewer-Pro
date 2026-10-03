@@ -17,6 +17,7 @@ const RATIONALE = "Cancellation fee is well above market and CD should push back
 const CD_STANDARD = "CD standard is 50%; CD will not go above 60% without sign-off.";
 const EXPOSURE_BASIS = "difference between 75% and 50% of projected room revenue";
 const HEADLINE = "Fee far above market with no mitigation duty";
+const COMPROMISE = "Settle anywhere up to 60% if the hotel pushes back.";
 
 /**
  * Deliberately polluted. Every excluded field is present, as it would be if a
@@ -38,6 +39,8 @@ function pollutedRow(overrides: Record<string, unknown> = {}): PropertyFindingRo
     cd_standard: CD_STANDARD,
     quoted_text: "seventy-five percent (75%) of anticipated revenue",
     walk_away: "Do not sign above 65%.",
+    compromise_range: COMPROMISE,
+    category: "business",
     ...overrides,
   } as unknown as PropertyFindingRow;
 }
@@ -51,6 +54,23 @@ function action(overrides: Partial<PropertyActionRow> = {}): PropertyActionRow {
     ...overrides,
   };
 }
+
+describe("legal findings and compromise ranges", () => {
+  it("never carries the compromise range", () => {
+    const items = assemblePropertyEmailItems([pollutedRow()], [action()]);
+    expect(buildPropertyEmailPayload(items, "The Grand Riverside Hotel")).not.toContain(COMPROMISE);
+  });
+
+  it("drops a legal finding, even one accepted or edited with wording", () => {
+    const legal = pollutedRow({ id: "f2", category: "legal", clause_type: "governing_law_venue", proposed_language: "" });
+    const items = assemblePropertyEmailItems(
+      [pollutedRow(), legal],
+      [action(), action({ finding_id: "f2", action: "edit", edited_language: "Governed by Group's state law." })]
+    );
+    expect(items.map((i) => i.clause_type)).toEqual(["cancellation"]);
+    expect(buildPropertyEmailPayload(items, "The Grand Riverside Hotel")).not.toContain("Group's state law");
+  });
+});
 
 describe("property email allowlist", () => {
   const items = assemblePropertyEmailItems([pollutedRow()], [action()]);

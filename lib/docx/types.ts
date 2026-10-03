@@ -134,11 +134,38 @@ export interface IntakeHealth {
   pictures?: ContractPicture[];
 }
 
+/**
+ * A comment already in the file. Comments are read beside the contract text
+ * and never into it, so no quote or edit can land on one.
+ */
+export interface DocumentComment {
+  id: string;
+  author: string;
+  /** ISO string, or empty when the file gives none. */
+  date: string;
+  text: string;
+  part: PartName;
+  /** Half-open range into the part's `text`. Zero-width when the comment sits on no live wording. */
+  start: number;
+  end: number;
+  /** The wording in that range, without the layout markers we add. */
+  quoted: string;
+  /** That wording with a few words either side, to place a comment that sits on a word or less. */
+  context: string;
+  /** The comment this one replies to, when the file records threads. */
+  replyTo: string | null;
+  resolved: boolean;
+}
+
 export interface ExtractedDocument {
   parts: ExtractedPart[];
   /** The main document body. Convenience accessor; also present in `parts`. */
   document: ExtractedPart;
   existingRevisions: ExistingRevisions;
+  /** Comments already in the file, in reading order, up to COMMENT_LIMIT. */
+  comments: DocumentComment[];
+  /** How many the file holds, which can exceed `comments.length`. */
+  commentsTotal: number;
   health: IntakeHealth;
   /** The readable pictures in `health.pictures`, with their data. Never stored. */
   pictures: PictureImage[];
