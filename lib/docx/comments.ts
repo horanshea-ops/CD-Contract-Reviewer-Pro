@@ -98,6 +98,19 @@ function wordingAround(text: string, map: MapEntry[], start: number, end: number
   return wording ? `${opens}${wording}${closes}` : "";
 }
 
+/**
+ * The range drawn in to its first and last characters of wording. A marker can
+ * sit a paragraph away from the words it belongs to, with only layout between.
+ */
+function tighten(text: string, map: MapEntry[], start: number, end: number): { start: number; end: number } {
+  const wording = (i: number) => !isSynthetic(map[i]) && !/\s/.test(text[i]);
+  let from = start;
+  let to = end;
+  while (from < to && !wording(from)) from++;
+  while (to > from && !wording(to - 1)) to--;
+  return from < to ? { start: from, end: to } : { start, end: start };
+}
+
 interface Thread {
   replyTo: string | null;
   resolved: boolean;
@@ -149,8 +162,8 @@ export async function readComments(
     const part = parts[partOrder];
     const anchor = part.commentAnchors.get(id)!;
 
-    const start = anchor.start ?? anchor.reference ?? anchor.end ?? 0;
-    const end = Math.max(start, anchor.end ?? anchor.reference ?? start);
+    const from = anchor.start ?? anchor.reference ?? anchor.end ?? 0;
+    const { start, end } = tighten(part.text, part.map, from, Math.max(from, anchor.end ?? anchor.reference ?? from));
 
     found.push({
       partOrder,

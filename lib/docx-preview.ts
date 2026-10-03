@@ -196,6 +196,60 @@ export function buildPreview(extracted: ExtractedDocument): PreviewPart[] {
   return extracted.parts.map((p) => ({ part: p.part, text: p.text, blocks: buildPartPreview(p) }));
 }
 
+/** A stretch of a part's text to mark on screen: a highlight, or the wording a comment sits on. */
+export interface PreviewMark {
+  key: string;
+  start: number;
+  end: number;
+}
+
+export interface RunSegment {
+  text: string;
+  start: number;
+  end: number;
+  /** Keys of the marks covering this piece. */
+  marks: string[];
+}
+
+/** Cuts a run at the edges of every mark crossing it, so each piece is covered by a fixed set of marks. */
+export function segmentRun(run: { text: string; range: { start: number; end: number } }, marks: PreviewMark[]): RunSegment[] {
+  const { start, end } = run.range;
+  const inside = (n: number) => n > start && n < end;
+  const cuts = [...new Set([start, end, ...marks.flatMap((m) => [m.start, m.end]).filter(inside)])].sort((a, b) => a - b);
+
+  const segments: RunSegment[] = [];
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    const [from, to] = [cuts[i], cuts[i + 1]];
+    segments.push({
+      text: run.text.slice(from - start, to - start),
+      start: from,
+      end: to,
+      marks: marks.filter((m) => m.start < to && m.end > from).map((m) => m.key),
+    });
+  }
+  return segments;
+}
+
+/**
+ * A range to scroll to and highlight. A comment on struck wording has no width,
+ * so the word that follows it stands in, or the word before it at the end of the text.
+ */
+export function rangeOrNearestWord(text: string, start: number, end: number): { start: number; end: number } {
+  if (end > start) return { start, end };
+
+  let from = start;
+  while (from < text.length && /\s/.test(text[from])) from++;
+  let to = from;
+  while (to < text.length && !/\s/.test(text[to])) to++;
+  if (to > from) return { start: from, end: to };
+
+  to = start;
+  while (to > 0 && /\s/.test(text[to - 1])) to--;
+  from = to;
+  while (from > 0 && !/\s/.test(text[from - 1])) from--;
+  return { start: from, end: to };
+}
+
 export interface PreviewMatch {
   part: string;
   start: number;

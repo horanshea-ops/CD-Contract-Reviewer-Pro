@@ -95,6 +95,18 @@ describe("comments already in the file", () => {
     expect(commentsTotal).toBe(0);
   });
 
+  it("ends the range on the last word when the end marker sits in a later paragraph", async () => {
+    const body = para(start(1) + run("Deposit due at signing.")) + para(run("")) + para(end(1) + run("Balance due later."));
+    const { comments, document } = await extractDocx(await withComments(body, comment(1, "When?")));
+    expect(document.text.slice(comments[0].start, comments[0].end)).toBe("Deposit due at signing.");
+  });
+
+  it("starts the range on the first word when the start marker sits before a heading", async () => {
+    const body = start(1) + para(run("Deposit"), `<w:pPr><w:pStyle w:val="Heading1"/></w:pPr>`) + para(run("Due at signing.") + end(1));
+    const { comments, document } = await extractDocx(await withComments(body, comment(1, "Check.")));
+    expect(document.text.slice(comments[0].start, comments[0].start + 7)).toBe("Deposit");
+  });
+
   it("leaves a comment on struck wording with nothing quoted", async () => {
     const body = para(run("The cutoff is ") + start(1) + del(5, "Dana Reyes", delRun("thirty days")) + end(1) + run(" before arrival."));
     const { comments, document } = await extractDocx(await withComments(body, comment(1, "Removed.")));
