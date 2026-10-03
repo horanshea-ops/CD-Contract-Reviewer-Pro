@@ -421,7 +421,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         - **Streaming.** The review call asks for 64k tokens without streaming.
           `.stream().finalMessage()` follows SDK guidance and lets the deadline
           cut a slow call cleanly. Optional second step.
-        - **Branch state.** One commit, 40 behind `main`. Its 5.5 goldens
+        - **Branch state.** One commit, well behind `main`, which now also
+          requires `quoted_text` and sends a comments block. Its 5.5 goldens
           predate `redline_note` and `flagged_findings`. It doesn't cover the
           historical-contract read or the two eval calls, and the Batch service
           rejects a forced tool on 5.5 too.
@@ -432,9 +433,12 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
            and eval calls. Regenerate the goldens.
         2. Check every request shape on the token-counting endpoint. It is free
            and rejects bad `thinking` and `tool_choice` values.
-        3. Paid, about $0.40. Run the redlined Florida file from the Word
-           round-trip item on 5.5 with `between_tools` at `high`. Compare time,
-           tokens and findings with that item's Sonnet 5 run on the same file.
+        3. Paid, about $0.40. Run the redlined Florida file
+           (`data/private/florida-property-round1.docx`, git-ignored) on 5.5
+           with `between_tools` at `high`. Compare time, tokens and findings
+           with `c27f414d`, the Sonnet 5 run on the same file and the same
+           code (4m07s, 24.8k in, 29.2k out, 51 findings, 27 of 27 changed
+           clauses quoted, $121,524 exposure).
         4. Paid, about $0.65 to $0.80. Run the seven-contract eval set and
            score it against the existing baselines. Count missed tool calls.
         5. If time and scores hold, change the Render variable. Sonnet 5 stays
@@ -684,12 +688,60 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
           model gave no F&B shortfall rate this time, so no F&B exposure.
         - Legal findings carried no wording. One was filed in the business
           list with wording, and the app stripped it.
-      - **Not built.** The hotel's table edit arrived untracked. A first
-        upload has nothing to compare it with, and a re-upload is caught by
-        the round diff.
-      - **Follow-up.** A table replaced by one of our changes that holds a
-        hotel comment now fails the oracle and falls back to the PDF. The
-        engine should refuse that one change instead.
+      - **Merged to `main` 2026-10-03** with the user's yes. Lint, typecheck
+        and the full suite (1,331 tests) passed first. The lost review
+        `e6289f46` was removed at the user's request.
+      - **Still to address, in the order the user set (2026-10-03).** The
+        Sonnet 5.5 change-over (item 0) comes first, so that every change to
+        how the model reviews is judged on the model that will run the tool.
+        1. **A rewritten sentence the finding didn't quote must not be left
+           out (user, 2026-10-03: "it shouldn't happen").** Today, when a
+           proposal rewords a contract sentence that the finding's quote
+           doesn't cover, the redline drops that sentence and shows a yellow
+           warning. The associate is left to raise it by hand. Two fixes,
+           both wanted:
+           - Engine. It already finds the contract sentence the rewrite
+             matches (`lib/redline-engine/restated.ts`). It should strike that
+             sentence and insert the rewrite, the way it widens a
+             mid-sentence change today, and list it on the export screen as
+             a widened change. No model call is involved.
+           - Prompt. The quote must cover every sentence the proposal
+             rewords. Judge this on Sonnet 5.5.
+           The warning should then be rare, and reserved for a rewrite whose
+           original the engine can't place.
+        2. **The model splits findings by place.** Business findings rose
+           from 25 to 36 once quotes were required. Cancellation became six
+           findings, five quoting a whole table row, which the engine
+           refuses. Decide on 5.5 whether to ask for one finding per clause
+           with one quote, or to let the engine take a row-wide change.
+        3. **The content check blanks 15 of 35 notes.** Eleven for repeating
+           wording from the finding's internal text. Loosening the overlap
+           rule is a leak trade, so it is the user's call. Reading the
+           blanked notes first needs them logged or stored.
+        4. **F&B exposure went missing.** The model gave no shortfall rate on
+           `c27f414d`. One of five cancellation tiers failed its check.
+        5. **Word round trip, by the user in real Word.** Open
+           `data/private/run3/florida-property-round1-redline.docx` under a
+           hotel-side name. Accept two changes, reject two, reply to two
+           comments, resolve one, add a change, add a second author and a
+           table-row edit. Save as `florida-property-round2.docx`. Reject All
+           on a separate copy. Then run `scripts/word-roundtrip-check.ts` on
+           both. This is the only test of Word's own comment-thread parts,
+           and of our round-1 notes coming back inside a round-2 file.
+        6. **A replaced table that holds a hotel comment** fails the oracle
+           and falls back to the PDF. The engine should refuse that one
+           change instead.
+        7. **Tell the user what looked wrong on the export screen.** The
+           warning's wording was rewritten on the card and in the export
+           detail. The user saw it "come up weird" on the export screen, and
+           where is not yet known.
+        8. **The raw model answer isn't stored.** Two questions today (why
+           the quotes vanished, why a figure was absent) could only be
+           inferred. A debug column or log would settle them directly.
+      - **Known and accepted.** The hotel's table edit arrived untracked. A
+        first upload has nothing to compare it with, and a re-upload is
+        caught by the round diff. The marked-up PDF shows the hotel's edits
+        as plain text and shows no comments.
 - [ ] **Pages uploads, and other formats and comment styles (user,
       2026-10-03) — later, not scheduled.** The upload accepts only PDF, DOCX
       and DOC, so a `.pages` file is refused. To scope when it comes up:
