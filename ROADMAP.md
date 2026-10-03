@@ -455,9 +455,9 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         - Migrations 006, 011 and 012 were applied to live before the merge.
           006 (`contract_terms`) had never been applied, which is why 011
           failed on the first try.
-- [ ] **Business, legal and other standards, with compromise ranges (CD feedback,
-      2026-10-02).** CD's team stressed that CD gives no legal advice. Built on
-      branch `feature/business-legal-standards`, not merged.
+- [x] **Business, legal and other standards, with compromise ranges (CD feedback,
+      2026-10-02).** CD's team stressed that CD gives no legal advice. Merged to
+      `main` 2026-10-02 (a27751e) and deployed by Render.
       - The standards library is grouped Business, Legal and Other. Dragging
         between groups changes the category. High/Medium/Low stays as the
         priority inside each group, set in the Edit form.
@@ -484,10 +484,17 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         "Provisional values for CD to confirm").
       - Changes reach reviews run afterwards. Migration 013 also blanks the
         wording on existing legal-type findings (Jerry's `cb3daee0`).
-      - **To go live:** apply migration 013 in the Supabase SQL editor, run
-        `npx tsx scripts/fill-compromise-ranges.ts --apply`, then merge.
+      - Migration 013 applied and ranges filled before the merge (15 standards,
+        287 existing business findings). Verified live on Harborview and Florida:
+        sections, legal buttons, the refused edit, and a redline and memo built
+        from Harborview's three accepted legal findings.
+      - Collapsed standards rows show only severity. Provenance shows as
+        "Source: ..." when a row is opened.
       - Unmeasured on a real contract. One Florida run (~$0.40) would show
         whether the model fills `flagged_findings` correctly.
+      - Reviews from before this change keep explanations written under the old
+        rules, which can state CD's position on a legal point. Read a legal
+        explanation before flagging it on an old review.
 - [ ] **Short "why" comments in the Word redline (user, 2026-10-02) — next after
       the item above.** A very short comment on each change in the tracked-changes
       DOCX, saying why it's proposed. The comment can reach the client and the
