@@ -1,7 +1,7 @@
 import type { NumericUnit } from "../quantities";
 import type { LocatablePart } from "../redline-engine/locate";
 import { normalizeValue, verify } from "../terms/validate";
-import type { TermDefinition } from "../terms/types";
+import { USABLE_VERIFICATIONS, type ExtractedTerms, type StatedTerm, type TermDefinition } from "../terms/types";
 
 /**
  * The contract's own figures, as the exposure calculations need them.
@@ -179,6 +179,107 @@ export function checkFigures(raw: unknown, parts: LocatablePart[]): DealFigures 
   if (given > figures.cancellation_tiers.length) {
     console.warn(`[exposures] kept ${figures.cancellation_tiers.length} of ${given} cancellation tiers the model gave`);
   }
+  return figures;
+}
+
+/** The catalog term each figure is read from. */
+const SCALAR_TERMS: Record<ScalarKey, string> = {
+  room_block_room_nights: "deal.room_block_room_nights",
+  minimum_room_nights: "attrition.minimum_room_nights",
+  attrition_threshold_pct: "attrition.threshold",
+  attrition_damages_pct: "attrition.liability_rate",
+  fb_shortfall_pct: "fb_minimum.shortfall_rate",
+};
+
+const MONEY_TERMS: Record<MoneyKey, string> = {
+  group_rate: "deal.group_rate_usd",
+  fb_minimum: "deal.fb_minimum_usd",
+};
+
+const TIER_TERMS = {
+  pct: "cancellation.top_tier_pct",
+  charges: "cancellation.damages_basis",
+  base: "cancellation.damages_room_nights",
+  schedule: "cancellation.schedule",
+};
+
+/** Every catalog term an exposure is worked out from. A reading pass must ask for at least these. */
+export const EXPOSURE_TERM_KEYS: readonly string[] = [
+  ...Object.values(SCALAR_TERMS),
+  ...Object.values(MONEY_TERMS),
+  ...Object.values(TIER_TERMS),
+];
+
+const CHARGES_OF: Record<string, TierCharge> = { gross_revenue: "rate", room_profit: "room_profit" };
+const BASE_OF: Record<string, TierBase> = { minimum_commitment: "minimum_room_nights", room_block: "room_block" };
+
+/**
+ * The figures as the reading pass's checked terms give them.
+ *
+ * A number is kept only when its quote is in the contract and states it. An
+ * amount in another currency can't be checked that way, so it is kept when its
+ * quote is in the contract and carries that amount with a currency mark. A
+ * term the contract states with two different values gives no figure.
+ */
+export function figuresFromTerms(terms: ExtractedTerms): DealFigures {
+  const conflicted = new Set(terms.conflicts);
+  const stated = (key: string): StatedTerm | null => {
+    if (conflicted.has(key)) {
+      logRejected(key, "the contract states it with more than one value");
+      return null;
+    }
+    return terms.stated.find((t) => t.term_key === key) ?? null;
+  };
+
+  const number = (key: string): number | null => {
+    const term = stated(key);
+    if (!term) return null;
+    if (term.verification !== "verified" || typeof term.value !== "number") {
+      logRejected(key, `its quote does not state it (${term.verification})`);
+      return null;
+    }
+    return term.value;
+  };
+
+  const money = (key: string): { value: number; currency: Currency } | null => {
+    const term = stated(key);
+    if (!term || typeof term.value !== "number") return null;
+    const amount = term.value;
+    if (term.verification === "verified") return { value: amount, currency: "$" };
+    const match = term.verification === "located" ? amountsIn(term.quoted_text).find((a) => Math.abs(a.value - amount) < 1e-9) : null;
+    if (!match) logRejected(key, `its quote does not state it (${term.verification})`);
+    return match ? { value: amount, currency: match.currency } : null;
+  };
+
+  const choice = (key: string): string | null => {
+    const term = stated(key);
+    return term && USABLE_VERIFICATIONS.includes(term.verification) && typeof term.value === "string" ? term.value : null;
+  };
+
+  const figures: DealFigures = { ...NO_FIGURES, cancellation_tiers: [] };
+  for (const key of Object.keys(SCALAR_TERMS) as ScalarKey[]) figures[key] = number(SCALAR_TERMS[key]);
+  for (const key of MONEY_KEYS) {
+    const amount = money(MONEY_TERMS[key]);
+    figures[key] = amount?.value ?? null;
+    figures.currency ??= amount?.currency ?? null;
+  }
+
+  // The schedule's top tier is the only one an exposure reads.
+  const pct = number(TIER_TERMS.pct);
+  const charges = CHARGES_OF[choice(TIER_TERMS.charges) ?? ""];
+  if (pct !== null && charges) {
+    const schedule = stated(TIER_TERMS.schedule)?.value;
+    const nearest = Array.isArray(schedule) ? [...schedule].sort((a, b) => a.days_prior_min - b.days_prior_min)[0] : null;
+    figures.cancellation_tiers = [
+      {
+        label: nearest?.label.trim() || "closest to arrival",
+        room_pct: pct,
+        base: BASE_OF[choice(TIER_TERMS.base) ?? ""] ?? "other",
+        charges,
+      },
+    ];
+  }
+
   return figures;
 }
 
