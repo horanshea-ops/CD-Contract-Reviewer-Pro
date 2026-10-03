@@ -381,7 +381,7 @@ export function ExportPicker({
               onSwitch={redlineAvailable ? () => switchFormat("redlined") : undefined}
             />
             {redlineKey === "redline" && selected.has("redline") && (
-              <label htmlFor="export-comments" className="mt-2 ml-7 flex items-start gap-2">
+              <label htmlFor="export-comments" aria-label="Include comments" className="mt-2 ml-7 flex items-start gap-2">
                 <Checkbox
                   id="export-comments"
                   className="mt-0.5"
