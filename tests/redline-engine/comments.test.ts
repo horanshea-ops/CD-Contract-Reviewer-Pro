@@ -245,10 +245,45 @@ describe("the comments_consistent check", () => {
   }
 
   /** Checks an output against a plain original, unless the original is given. */
-  async function check(docBody: string, commentsXml: string | null, own: string[] = [], original?: { body: string; comments: string | null }) {
+  async function check(
+    docBody: string,
+    commentsXml: string | null,
+    own: string[] = [],
+    original?: { body: string; comments: string | null },
+    ownRevisions: string[] = []
+  ) {
     const input = original ? await pkg(original.body, original.comments) : await pkg(para(run(CLAUSE)), null);
-    return checkComments(input, await pkg(docBody, commentsXml), own);
+    return checkComments(input, await pkg(docBody, commentsXml), own, new Set(ownRevisions));
   }
+
+  it("fails when one of our changes wraps a comment the file already had", async () => {
+    const original = { body: body("1"), comments: COMMENTS(comment("1")) };
+    const wrapped = para(
+      `<w:commentRangeStart w:id="1"/><w:commentRangeEnd w:id="1"/>` +
+        `<w:del w:id="900" w:author="Us"><w:r><w:commentReference w:id="1"/></w:r>` +
+        `<w:r><w:delText xml:space="preserve">${CLAUSE}</w:delText></w:r></w:del>`
+    );
+    const result = await check(wrapped, original.comments, [], original, ["900"]);
+    expect(result.passed).toBe(false);
+    expect(result.detail).toContain("wraps a comment");
+  });
+
+  it("fails when a comment the file already had loses a marker", async () => {
+    const original = { body: body("1"), comments: COMMENTS(comment("1")) };
+    const lost = para(`<w:commentRangeStart w:id="1"/>${run(CLAUSE)}<w:commentRangeEnd w:id="1"/>`);
+    const result = await check(lost, original.comments, [], original);
+    expect(result.passed).toBe(false);
+    expect(result.detail).toContain("lost");
+  });
+
+  it("passes a comment the property wrapped in its own change", async () => {
+    const theirs = para(
+      `<w:commentRangeStart w:id="1"/><w:ins w:id="5" w:author="Them">${run(CLAUSE)}` +
+        `<w:r><w:commentReference w:id="1"/></w:r></w:ins><w:commentRangeEnd w:id="1"/>`
+    );
+    const original = { body: theirs, comments: COMMENTS(comment("1")) };
+    expect((await check(theirs, original.comments, [], original, ["900"])).passed).toBe(true);
+  });
 
   it("passes a document whose comments resolve", async () => {
     expect((await check(body("1"), COMMENTS(comment("1")), ["1"])).passed).toBe(true);

@@ -75,6 +75,18 @@ export const FIXTURE_CORPUS: FixtureCase[] = [
     ],
   },
   {
+    // Both findings cover wording the property changed, so our change wraps theirs.
+    file: "16-pages-export-comments.docx",
+    findings: [
+      finding({
+        clause_type: "commission",
+        quoted_text: "Hotel will pay a commission of 8% of the group room rate on all occupied rooms.",
+        language: "Hotel will pay a commission of 10% of the group room rate on all rooms, within thirty (30) days of departure.",
+      }),
+      finding({ clause_type: "rate_parity", quoted_text: "at least 750 rooms", language: "at least 500 rooms" }),
+    ],
+  },
+  {
     // Every corpus needs a document where nothing can be located, so the
     // Partial path is exercised rather than assumed.
     file: "01-clean-simple.docx",

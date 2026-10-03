@@ -8,6 +8,7 @@ import {
   checkPartsParse,
   checkPartsPreserved,
   checkRelationships,
+  lostCommentMarkers,
 } from "../redline-validation/structure";
 import { currentText } from "../redline-validation/views";
 import { cachedBuild, fingerprint } from "./build-cache";
@@ -142,6 +143,9 @@ export async function checkCleanCopy(
 
   const comments = ownCommentsLeft(clean.pkg, ownComments.ids);
   if (comments) problems.push(`${comments} of this export's comments are still in the file.`);
+
+  const lost = lostCommentMarkers(redline.pkg, clean.pkg, ownComments.ids);
+  if (lost.length) problems.push(`${lost.length} comment(s) already in the file would no longer show in the clean copy.`);
 
   const alnum = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
   if (alnum(currentText(redline.pkg)) !== alnum(currentText(clean.pkg))) {
