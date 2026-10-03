@@ -11,6 +11,7 @@ import { acceptOwnRevisions } from "../lib/docx-accept";
 import { checkCleanCopy } from "../lib/exports/clean-docx";
 import { findingCategory } from "../lib/findings-overview";
 import { assertsNoChange } from "../lib/proposed-language";
+import { noteProblem } from "../lib/redline-comments/note-guard";
 import { generateRedline, type RevisionFinding } from "../lib/redline-engine";
 import { UNAPPLIED_REASON_TEXT, validateRedline } from "../lib/redline-validation";
 import { diffProjections, projectMapped, revisionMarks } from "../lib/round-diff";
@@ -223,8 +224,19 @@ async function standInFindings(idPrefix: string): Promise<{ findings: RevisionFi
       finding_text: f.finding_text,
       cd_standard: f.cd_standard,
     })),
-    notes: new Map(usable.map((f) => [f.id, f.redline_note?.trim() || STAND_IN_NOTE])),
+    notes: standInNotes(usable),
   };
+}
+
+/**
+ * The review's own notes, each put through the content check the export uses.
+ * A review from before notes existed gets one fixed sentence on every change,
+ * so comment placement is still exercised.
+ */
+function standInNotes(findings: { id: string; redline_note: string | null }[]): Map<string, string> {
+  if (!findings.some((f) => f.redline_note?.trim())) return new Map(findings.map((f) => [f.id, STAND_IN_NOTE]));
+  const kept = findings.filter((f) => f.redline_note?.trim() && !noteProblem(f.redline_note));
+  return new Map(kept.map((f) => [f.id, f.redline_note!.trim()]));
 }
 
 /** A redline, clean copy and both PDFs on top of the file, each put through its own check. */

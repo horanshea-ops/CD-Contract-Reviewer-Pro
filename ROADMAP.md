@@ -661,6 +661,29 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
         not be written back, so the review sat at "processing". Whether the
         call was billed is unknown. Everything above is still unmeasured on a
         real run.
+      - **Third paid run `c27f414d`, as Jerry, Sonnet 5** (about $0.40,
+        4m07s, 51 findings: 36 business, 9 legal, 6 other).
+        - **The quote fix works.** All 27 business findings that change a
+          clause carry a quote. The other 9 are missing clauses.
+        - **The model used a comment correctly.** The commission finding cites
+          the margin note by its author. No comment text reached any quote or
+          any proposed wording.
+        - **More findings, because the model now splits by place.** Business
+          findings rose from 25 to 36. Cancellation became six findings, five
+          of them quoting a whole table row with its pipes, which the engine
+          refuses. On `cb3daee0` cancellation was one finding and it applied.
+        - Redline from this run's findings: 28 of 34 applied, every oracle
+          check passed, the clean copy and both PDFs passed, and the hotel's
+          three comments kept their anchors.
+        - **Notes.** 20 kept, 15 blanked. Eleven repeated wording from the
+          finding's internal text, two carried figures, two ran long. One kept
+          note read "placeholder", so the content check now refuses a note
+          under three words.
+        - **Exposure $121,524.** Attrition follows the edited block (70% of
+          2,900). Four of five cancellation tiers passed their check. The
+          model gave no F&B shortfall rate this time, so no F&B exposure.
+        - Legal findings carried no wording. One was filed in the business
+          list with wording, and the app stripped it.
       - **Not built.** The hotel's table edit arrived untracked. A first
         upload has nothing to compare it with, and a re-upload is caught by
         the round diff.

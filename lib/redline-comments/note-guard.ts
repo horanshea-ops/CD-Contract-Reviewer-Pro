@@ -13,6 +13,8 @@
 
 export const NOTE_MAX_WORDS = 25;
 export const NOTE_MAX_CHARS = 160;
+/** Fewer words than this is a label or a filler word, such as "placeholder" or "N/A", and the hotel would read it. */
+export const NOTE_MIN_WORDS = 3;
 
 /**
  * Words that describe CD's side of the negotiation rather than what a change
@@ -72,6 +74,9 @@ export function noteProblem(note: string, context: NoteContext = {}): string | n
   const text = note.trim();
   if (!text) return null;
 
+  if (words(text).length < NOTE_MIN_WORDS) {
+    return "Say what the change does for the group in a full sentence, or leave the comment empty.";
+  }
   if (text.length > NOTE_MAX_CHARS || words(text).length > NOTE_MAX_WORDS) {
     return `Keep the comment to one short sentence, at most ${NOTE_MAX_WORDS} words.`;
   }
