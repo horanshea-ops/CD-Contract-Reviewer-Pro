@@ -594,6 +594,17 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       Needs Word itself, so the user runs the Word steps; the rest can be
       fixtures built from the files Word saves. Overlaps item 4 below, since
       every re-upload is one of these files.
+- [ ] **Pages uploads, and other formats and comment styles (user,
+      2026-10-03) — later, not scheduled.** The upload accepts only PDF, DOCX
+      and DOC, so a `.pages` file is refused. To scope when it comes up:
+      - Whether to accept `.pages` directly, or tell the associate to export
+        it to Word first.
+      - Which other formats and comment styles hotels send (Google Docs
+        exports, PDF annotations, comments typed into the text).
+      - What a Pages export loses. On the Florida test file (2026-10-03) it
+        kept four tracked text changes and three comments, but it dropped the
+        initials footer, emptied the page-number fields, and exported an edit
+        to the room-block table as plain text with no tracked change.
 - [ ] **4. Re-uploads of the same contract — next priority after these.** CD
       runs several rounds of review on each contract, so a re-upload should
       avoid a full paid review wherever it can. The plan is the entry

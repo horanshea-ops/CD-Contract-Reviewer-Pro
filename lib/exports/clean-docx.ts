@@ -64,7 +64,7 @@ export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildRes
       const own = new Set(engineResult.ownRevisionIds);
       const ownComments = { ids: new Set(engineResult.ownCommentIds), createdPart: engineResult.createdCommentsPart };
       const bytes = await acceptOwnRevisions(engineResult.docxBytes, own, ownComments);
-      return { bytes, problems: await check(engineResult.docxBytes, bytes, own, ownComments) };
+      return { bytes, problems: await checkCleanCopy(engineResult.docxBytes, bytes, own, ownComments) };
     }
   );
 
@@ -111,7 +111,8 @@ export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildRes
   };
 }
 
-async function check(
+/** Problems with a clean copy built from a tracked-changes file. Empty means it may be delivered. */
+export async function checkCleanCopy(
   redlineBytes: Uint8Array,
   cleanBytes: Uint8Array,
   own: Set<string>,
