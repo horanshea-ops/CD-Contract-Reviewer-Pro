@@ -470,12 +470,28 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
             missing.
           - A review costs about $0.05 more, since the contract is sent twice.
           - Lint, typecheck and 1,366 tests pass. The free shape check passes.
-          - **Still to do, each paid step with its own yes.** The compile sweep
-            (about $0.02). The reading call alone on Florida on Sonnet 5 (about
-            $0.07, `scripts/read-figures.ts`), which must reproduce $121,524.
-            The Florida review on Sonnet 5 and then on 5.5 (about $0.45 each),
-            compared with `c27f414d`. Then the seven-contract evals, since
-            this changes Sonnet 5 too, before any merge to `main`.
+          - **Compile sweep passed (2026-10-03, $0.02).** All seven 5.5 forms
+            compile on a real call.
+          - **Reading call alone on Florida, Sonnet 5 (two runs, $0.07 each,
+            about 12 seconds).** The first gave no attrition exposure: the
+            reader quoted the row label "Total Room Block", so the check
+            refused the 2,900. The reader's rule now says to quote the cell
+            that holds the value, and the second run gives $157,524.40:
+            attrition $29,800 and cancellation $91,724.40, both as on
+            `c27f414d`, plus F&B $36,000.
+          - **A cancellation charge on the F&B minimum counts as F&B exposure
+            (user, 2026-10-03).** Florida has no underspend clause. Its table
+            charges 80% of the minimum inside 90 days, and
+            `fb_minimum.shortfall_rate` now says that counts. This answers
+            "F&B exposure went missing" in the list further down.
+          - **Known weakness.** A room-night figure is verified when its quote
+            holds that number anywhere. The reader quoted the whole table row,
+            so any number in the row would have verified. Worth tightening
+            before exposures are relied on.
+          - **Still to do, each paid step with its own yes.** The Florida
+            review on Sonnet 5 and then on 5.5 (about $0.45 each), compared
+            with `c27f414d`. Then the seven-contract evals, since this changes
+            Sonnet 5 too, before any merge to `main`.
       - **Steps.** Opus work, since it changes every model request. Each paid
         step needs its own yes.
         1. Done. Merge `main` into the branch. Add `between_tools` and
