@@ -201,7 +201,7 @@ describe("the engine with restated wording", () => {
     expect(report.outcome).toBe("clean");
     expect(accepted.split("On the cutoff date").length - 1).toBe(1);
     expect(accepted).toContain("Reservations received after the cutoff date will be accepted at the group rate.");
-    expect(result.resolutions[0].detail).toContain(`Leaves out a rewrite of wording it doesn't quote: "On the cutoff date, after consultation with you…"`);
+    expect(result.resolutions[0].detail).toContain(`Leaves out one sentence ("On the cutoff date, after consultation with you…")`);
   });
 
   it("leaves out an appended clause's restated sentence", async () => {
