@@ -514,12 +514,24 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
             - The first try stalled on a network drop before any model call and
               cost nothing. The row sat at "processing" until the ten-minute
               stale rule allowed a retry.
-          - **Still to do, each paid step with its own yes.** The reading call
-            alone on Florida on 5.5 (about $0.07), to see why cancellation
-            went missing. The Florida review on Sonnet 5 with the split (about
-            $0.45), if the split's own effect needs isolating. Then the
-            seven-contract evals, since this changes Sonnet 5 too, before any
-            merge to `main`.
+          - **Reading call alone on Florida, Sonnet 5.5 ($0.07, 8 seconds).**
+            It gives all three exposures, $157,524.40, the same as Sonnet 5 as
+            reader. So the review's missing cancellation figure came from a
+            reading that differed on the day, not from a reader that can't do
+            it. The reader's answers vary from run to run on the two terms
+            cancellation depends on.
+          - **Next, free.** Keep the reading's figures with the review even
+            when extraction is off, so a missing exposure can be explained
+            afterwards. Decide how to make cancellation less dependent on two
+            optional answers. Tighten the room-night check.
+          - **Still to do, each paid step with its own yes.** The Florida
+            review on Sonnet 5 with the split (about $0.45), if the split's
+            own effect needs isolating. Then the seven-contract evals, since
+            this changes Sonnet 5 too, before any merge to `main`.
+          - **Moving computers (2026-10-03).** Everything in git is on GitHub.
+            Three things live only on the old Mac and must be copied by hand:
+            `.env.local`, `data/private/`, and Claude's memory folder and
+            global `CLAUDE.md` under `~/.claude/`.
       - **Steps.** Opus work, since it changes every model request. Each paid
         step needs its own yes.
         1. Done. Merge `main` into the branch. Add `between_tools` and
