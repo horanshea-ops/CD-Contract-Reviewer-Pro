@@ -28,7 +28,7 @@ Findings say "the attrition threshold is unfavourable". Terms say
 - Percentages are stored as fractions, so 90% is `0.9`.
 - Each meaning names exactly one figure. A named-storm clause carries a 72-hour trigger and a 24-hour notice deadline, and only a precise meaning says which to record.
 - Another vertical writes its own catalog. The extraction code reads no term by name.
-- Version is `hotel-v1`. A drift test keeps it aligned with the eval corpus's fields.
+- Version is `hotel-v2`. A drift test keeps it aligned with the eval corpus's fields.
 
 ## Verification
 

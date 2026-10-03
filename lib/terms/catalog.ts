@@ -21,10 +21,11 @@ const num = (key: string, unit: NumericUnit, meaning: string): TermDefinition =>
 const bool = (key: string, meaning: string): TermDefinition => ({ key, kind: "boolean", meaning });
 
 export const HOTEL_TERM_CATALOG: TermCatalog = {
-  version: "hotel-v1",
+  version: "hotel-v2",
   terms: [
     // Deal
     num("deal.peak_night_rooms", "rooms", "Guest rooms held on the peak night of the room block."),
+    num("deal.room_block_room_nights", "rooms", "The total room nights in the room block across all of its nights, as the agreement totals them. Not the rooms held on any one night."),
     num("deal.group_rate_usd", "usd", "The group room rate per room, per night, before taxes, for the main room block."),
     { key: "deal.event_start_date", kind: "date", meaning: "The first date of the event, as the agreement states it." },
     { key: "deal.event_end_date", kind: "date", meaning: "The last date of the event, as the agreement states it." },
@@ -40,6 +41,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
       },
       meaning: "How pickup is measured against the block for attrition.",
     },
+    num("attrition.minimum_room_nights", "rooms", "The room nights the group commits to use before attrition damages apply, where the agreement states that commitment as a count of room nights. Leave it out when the agreement states only a percentage of the block."),
     num("attrition.threshold", "pct", "The share of the room block the group must pick up before attrition damages apply. 90% means damages start below 90% pickup."),
     num("attrition.liability_rate", "pct", "The share of the room rate the group pays for each room below the attrition threshold. 100% means the full rate."),
     bool("attrition.high_occupancy_credit", "True when the group gets credit toward its block for nights the hotel is sold out or at high occupancy. False when the agreement denies that credit."),
@@ -54,6 +56,15 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
         gross_revenue: "Cancellation damages are a percentage of gross room revenue.",
       },
       meaning: "What cancellation damages are calculated from.",
+    },
+    {
+      key: "cancellation.damages_room_nights",
+      kind: "enum",
+      options: {
+        minimum_commitment: "The percentage applies to the room nights the group committed to use, which is the block less allowable attrition.",
+        room_block: "The percentage applies to every room night in the room block.",
+      },
+      meaning: "Which room nights the cancellation percentage is applied to in the schedule tier closest to arrival.",
     },
     bool("cancellation.sliding_scale", "True when cancellation damages vary with how far before arrival the group cancels. False when one flat figure applies whenever it cancels."),
     bool("cancellation.resale_credit", "True when revenue from reselling cancelled rooms is credited against cancellation damages. False when the hotel keeps resale revenue with no credit."),

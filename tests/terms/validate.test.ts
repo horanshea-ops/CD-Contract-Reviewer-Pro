@@ -81,7 +81,7 @@ describe("rejecting what cannot be stored", () => {
   const reasons = (...entries: unknown[]) => run(...entries).rejected.map((r) => r.reason);
 
   it("rejects a key the catalog does not have", () => {
-    expect(reasons(entry("attrition.nonsense", 1, "ninety percent (90%)"))[0]).toMatch(/not in catalog hotel-v1/);
+    expect(reasons(entry("attrition.nonsense", 1, "ninety percent (90%)"))[0]).toMatch(/not in catalog hotel-v2/);
   });
 
   it("rejects an entry with no quote", () => {
