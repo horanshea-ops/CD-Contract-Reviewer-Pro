@@ -102,6 +102,19 @@ describe("withComputedExposures", () => {
   });
 });
 
+describe("the Florida review's exposures", () => {
+  // The checked figures of run c27f414d, where the hotel had raised the block to 2,900.
+  // Whatever reads the contract's figures, these inputs must give these dollars.
+  const RUN: DealFigures = { ...FLORIDA, room_block_room_nights: 2900 };
+
+  it("come to $121,524.40 across attrition and cancellation, with none for food and beverage", () => {
+    expect(attritionExposure(RUN)).toMatchObject({ amount: 29800, formula: "(2280 - 2030) * $149 * 0.8" });
+    expect(cancellationExposure(RUN)).toMatchObject({ amount: 91724.4, formula: "2280 * $149 * 0.9 * (1 - 0.7)" });
+    expect(fbMinimumExposure(RUN)).toBeNull();
+    expect(attritionExposure(RUN)!.amount + cancellationExposure(RUN)!.amount).toBeCloseTo(121524.4, 2);
+  });
+});
+
 describe("an exposure in euros", () => {
   // A real Rome contract: a €20,000 food and beverage minimum, with the whole shortfall owed.
   const ROME: DealFigures = { ...NO_FIGURES, fb_minimum: 20000, fb_shortfall_pct: 1, currency: "€" };
