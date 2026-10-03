@@ -512,12 +512,35 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - The clean Word copy strips our comments and keeps the property's. The
         PDFs show none. An "Include comments" checkbox in the export dialog is
         on by default.
-      - Migration 014 adds the two note columns. Apply it before deploying.
+      - Migration 014 adds the two note columns. Applied 2026-10-03.
+      - Verified live on Harborview: three notes typed on the card reached the
+        tracked-changes file, each covering its own change, authored by the
+        associate. comments=0 gave a file with no comments part, and the clean
+        Word copy carried none. The card and the route refused a figure, the
+        word "industry", and a note on a legal finding.
       - Unmeasured on a real contract. Reviews from before this change have no
         notes, so their comments come only from what the associate types. One
         Florida run (~$0.40) would show note quality and how often the check
         blanks a note. Not run, by the user's choice.
       - Cost: about 800–1,000 extra output tokens per review, roughly $0.01.
+- [ ] **Incoming tracked changes and comments in a real Word round trip
+      (user, 2026-10-03) — next.** Every fixture with tracked changes or
+      comments was built by us. None has been through real Word, so it is
+      unknown how our changes and comments layer onto a file the property
+      has worked on. To test:
+      - A property's file that arrives with their own tracked changes and
+        comments, through review, redline, clean copy and both PDFs.
+      - Our redline opened in Word, with some changes accepted, some
+        rejected, replies added to our comments, new changes of theirs, and
+        saved. Word adds commentsExtended, commentsIds and people.xml, and
+        may renumber ids.
+      - That saved file uploaded as the next round. Check extraction reads
+        it as the property sent it, our new changes nest correctly inside
+        theirs, new comment ids don't collide, and the §1.6 oracle passes.
+      - Whether Reject All in Word gives back what the oracle says it will.
+      Needs Word itself, so the user runs the Word steps; the rest can be
+      fixtures built from the files Word saves. Overlaps item 4 below, since
+      every re-upload is one of these files.
 - [ ] **4. Re-uploads of the same contract — next priority after these.** CD
       runs several rounds of review on each contract, so a re-upload should
       avoid a full paid review wherever it can. The plan is the entry
