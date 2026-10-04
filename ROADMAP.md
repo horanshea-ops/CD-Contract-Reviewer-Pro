@@ -595,20 +595,61 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
               the reader's answers, and whether the judging call writes a
               finding for the exposure to sit on. On two contracts 5.5 at
               this setting is faster than Sonnet 5 and less consistent.
-            - **Free fixes these runs point to, not built.**
-              1. Reword the two `cancellation.damages_basis` options so a
-                 formula of room nights times rate times a percentage is
-                 plainly the rate option.
-              2. Show an exposure the figures support even when no finding
-                 of that clause type exists, and tell the associate when the
-                 model judged a clause short and wrote nothing for it.
-              3. Accept a total the contract doesn't state when the quoted
-                 nightly counts add up to it.
-              4. Keep both readings as test fixtures, so the next change to
-                 the math is checked against real reader answers at no cost.
-              A reader-only check costs $0.04 to $0.07 a contract
-              (`scripts/read-figures.ts`). A whole review is not needed to
-              test the math.
+            - **My own read of both contracts against the runs (2026-10-04).**
+              Almost every finding in every run is true to the text. The runs
+              differ in what they wrote down, and in arithmetic.
+              - Florida on 4 Oct dropped attrition, the commission rate and
+                rate protection. The 3 Oct run was the most complete of the
+                three.
+              - Proposed cancellation wording carried hand arithmetic. Sonnet
+                5's top tier was $213,023.60 where the sum is $214,023.60.
+              - Both models wrote "placeholder" findings. One was the proposed
+                wording of a business finding.
+              - The app's own table check caught three totals that every model
+                missed.
+              - Harborview's 90 findings are valid splits by term. The scorer
+                counts 55 as repeats because its key has one item a clause.
+            - **Sonnet 5 retires no sooner than 30 June 2027, and Sonnet 5.5
+              no sooner than 28 September 2027** (Anthropic's deprecations
+              page, read 2026-10-04, with 60 days' notice). The app will meet
+              a forced model change in its first year.
+            - **Built from these runs (2026-10-04, free). Lint, typecheck and
+              1,406 tests pass.**
+              1. **Must-raise numbers** (`lib/must-raise.ts`). The app reads
+                 the commission rate, the attrition floor and the F&B
+                 shortfall rate, compares each with CD's standard, and writes
+                 the finding itself when no finding covers the number. The
+                 wording is the contract's sentence with the number changed,
+                 offered only when the number sits in it once. The reading
+                 call always asks for the commission rate now.
+              2. **One note when a review is incomplete.** Clauses judged
+                 short with no finding are named in a single note. A card for
+                 each was considered and dropped (user, 2026-10-04), since a
+                 card with no wording is reading without a decision.
+              3. **A clearer cancellation question.** The two
+                 `cancellation.damages_basis` options now say what each is
+                 taken of. The catalog is `hotel-v3`.
+              4. **Totals that add up.** A room-night total the contract
+                 doesn't print is verified when a column of its table adds up
+                 to it.
+              5. **Placeholder findings dropped** and logged.
+              6. **Real reader answers replayed as tests**
+                 (`tests/readings-replay.test.ts`,
+                 `scripts/save-reading.ts`). On Harborview's saved answer the
+                 app now gives attrition $39,304 and cancellation $58,956,
+                 where the run gave none.
+              - **Considered and left out.** A must-raise rule for the
+                cancellation basis, a dollar check on proposed wording, and a
+                paid follow-up call for skipped clauses (8 to 10 cents a
+                review).
+              - **Not yet run against a model.** A reader-only check on
+                Florida and Harborview would cost about $0.11 and would show
+                the reworded question and the commission read on real
+                answers.
+              - **To know.** CD's four numbers sit in
+                `lib/exposures/cd-positions.ts`. A test ties them to the
+                bundled library, and an admin's edit to the library in the
+                database does not change them.
           - **Still to do, each paid step with its own yes.** The Florida
             review on Sonnet 5 with the split (about $0.45), if the split's
             own effect needs isolating. Then the seven-contract evals, since
