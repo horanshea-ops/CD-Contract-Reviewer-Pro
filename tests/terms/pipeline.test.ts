@@ -142,17 +142,51 @@ describe("a contract stopped at the AI-use check", () => {
 });
 
 describe("term extraction in processAnalysis", () => {
-  it("is off by default: the reading call asks only for the exposure terms, and no term is stored", async () => {
+  it("is off by default: the reading call asks only for the exposure terms, and no term row is stored", async () => {
     await processAnalysis("analysis-1");
 
     expect(toolCalled().sort()).toEqual(["record_analysis", "record_contract_terms"]);
     const reading = create.mock.calls.map((c) => c[0]).find((body) => answerName(body) === "record_contract_terms");
     expect(answerSchema(reading).properties.terms.items.properties.term_key.enum).toEqual(EXPOSURE_CATALOG.terms.map((t) => t.key));
     expect(termWrites()).toEqual([]);
-    expect(updatesTo("analyses").some((u) => "term_extraction" in u)).toBe(false);
 
     const complete = updatesTo("analyses").find((u) => u.status === "complete");
     expect(complete?.token_usage).toMatchObject({ reading: { input: 100, output: 10 } });
+  });
+
+  it("keeps the reading with the review while off: the figures, the terms behind them, and what was left out", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await processAnalysis("analysis-1");
+
+    const record = updatesTo("analyses").find((u) => "term_extraction" in u)?.term_extraction as Record<string, unknown>;
+    expect(record).toMatchObject({
+      status: "complete",
+      asked_for: "exposure_terms",
+      exposures: {
+        figures: { group_rate: 289, currency: "$", room_block_room_nights: null, cancellation_tiers: [] },
+        terms: [{ term_key: "deal.group_rate_usd", value: 289, quoted_text: "a group rate of $289.00 per room", verification: "verified" }],
+      },
+    });
+    const exposures = record.exposures as { not_stated: string[]; notes: { term_key: string }[] };
+    expect(exposures.not_stated).toContain("cancellation.top_tier_pct");
+    expect(exposures.notes.map((n) => n.term_key)).toEqual(["cancellation.top_tier_pct", "cancellation.damages_basis"]);
+    expect(termWrites()).toEqual([]);
+  });
+
+  it("records a failed reading while off, so missing exposures are explained", async () => {
+    create.mockImplementation(async (params: ModelRequest) => {
+      if (answerName(params) === "record_contract_terms") throw new Error("Connection error.");
+      return analysisResponse;
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await processAnalysis("analysis-1");
+
+    expect(updatesTo("analyses").some((u) => u.status === "complete")).toBe(true);
+    expect(updatesTo("analyses").find((u) => "term_extraction" in u)?.term_extraction).toMatchObject({
+      status: "failed",
+      error: "Connection error.",
+    });
   });
 
   it("saves the model's notes on the document, and saves none when it wrote none", async () => {

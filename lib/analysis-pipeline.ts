@@ -5,6 +5,7 @@ import { pictureContext } from "./document-checks";
 import { textSentToModel } from "./document-comments";
 import { contractText } from "./docx/contract-text";
 import type { LocatablePart } from "./redline-engine/locate";
+import { exposureReading } from "./exposures/figures";
 import { reviewContract, type ReadingOutcome } from "./review";
 import { HOTEL_TERM_CATALOG } from "./terms/catalog";
 import { extractionRecord, termRows } from "./terms/extract";
@@ -310,7 +311,7 @@ export async function processAnalysis(analysisId: string) {
       },
     });
 
-    if (storesTerms) await saveTerms(admin, analysisId, result.reading);
+    await saveReading(admin, analysisId, result.reading, storesTerms);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
@@ -330,18 +331,25 @@ export async function processAnalysis(analysisId: string) {
 }
 
 /**
- * Stores a term extraction pass. Best-effort by design: nothing reads terms
- * yet, so a failure here is logged and recorded, never raised into a review
- * that has already completed.
+ * Records a review's reading call on `analyses.term_extraction`. The record
+ * holds the pass, the figures taken from it, and why any figure is missing.
+ * Every review gets one. The `contract_terms` rows are written only when
+ * `storeRows` is set, since Analytics reads them.
+ *
+ * Best-effort by design. A failure here is logged and recorded, never raised
+ * into a review that has already completed.
  *
  * Any earlier rows for the analysis are replaced, so a re-run never leaves two
  * passes' terms side by side.
  */
-async function saveTerms(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: ReadingOutcome) {
+async function saveReading(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: ReadingOutcome, storeRows: boolean) {
   try {
-    let record = extractionRecord(outcome);
+    let record: Record<string, unknown> = extractionRecord(outcome);
+    const read = outcome.ok
+      ? { asked_for: storeRows ? "whole_catalog" : "exposure_terms", exposures: exposureReading(outcome.terms, outcome) }
+      : {};
 
-    if (outcome.ok) {
+    if (outcome.ok && storeRows) {
       const cleared = await admin.from("contract_terms").delete().eq("analysis_id", analysisId);
       const inserted = cleared.error
         ? cleared
@@ -355,7 +363,7 @@ async function saveTerms(admin: ReturnType<typeof createAdminClient>, analysisId
       }
     }
 
-    const { error } = await admin.from("analyses").update({ term_extraction: record }).eq("id", analysisId);
+    const { error } = await admin.from("analyses").update({ term_extraction: { ...record, ...read } }).eq("id", analysisId);
     if (error) throw new Error(error.message);
   } catch (err) {
     console.error(

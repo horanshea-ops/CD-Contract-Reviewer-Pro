@@ -119,19 +119,38 @@ export const EXPOSURE_TERM_KEYS: readonly string[] = [
 const CHARGES_OF: Record<string, TierCharge> = { gross_revenue: "rate", room_profit: "room_profit" };
 const BASE_OF: Record<string, TierBase> = { minimum_commitment: "minimum_room_nights", room_block: "room_block" };
 
+/** Why a term gave no figure. Kept with the review, so a missing exposure can be explained afterwards. */
+export interface FigureNote {
+  term_key: string;
+  reason: string;
+}
+
+export interface FigureReading {
+  figures: DealFigures;
+  notes: FigureNote[];
+}
+
 /**
- * The figures as the reading pass's checked terms give them.
+ * The figures as the reading pass's checked terms give them, with a note for
+ * each term that was read and gave none.
  *
  * A number is kept only when its quote is in the contract and states it. An
  * amount in another currency can't be checked that way, so it is kept when its
  * quote is in the contract and carries that amount with a currency mark. A
  * term the contract states with two different values gives no figure.
  */
-export function figuresFromTerms(terms: ExtractedTerms): DealFigures {
+export function readFigures(terms: ExtractedTerms): FigureReading {
+  const notes: FigureNote[] = [];
+  const note = (term_key: string, reason: string) => {
+    if (notes.some((n) => n.term_key === term_key && n.reason === reason)) return;
+    notes.push({ term_key, reason });
+    console.warn(`[exposures] ${term_key}: ${reason}`);
+  };
+
   const conflicted = new Set(terms.conflicts);
   const stated = (key: string): StatedTerm | null => {
     if (conflicted.has(key)) {
-      logRejected(key, "the contract states it with more than one value");
+      note(key, "The reading gave more than one value for it, so none is used.");
       return null;
     }
     return terms.stated.find((t) => t.term_key === key) ?? null;
@@ -141,7 +160,7 @@ export function figuresFromTerms(terms: ExtractedTerms): DealFigures {
     const term = stated(key);
     if (!term) return null;
     if (term.verification !== "verified" || typeof term.value !== "number") {
-      logRejected(key, `its quote does not state it (${term.verification})`);
+      note(key, `Its quote does not single out the value (${term.verification}).`);
       return null;
     }
     return term.value;
@@ -153,7 +172,7 @@ export function figuresFromTerms(terms: ExtractedTerms): DealFigures {
     const amount = term.value;
     if (term.verification === "verified") return { value: amount, currency: "$" };
     const match = term.verification === "located" ? amountsIn(term.quoted_text).find((a) => Math.abs(a.value - amount) < 1e-9) : null;
-    if (!match) logRejected(key, `its quote does not state it (${term.verification})`);
+    if (!match) note(key, `Its quote does not state the amount (${term.verification}).`);
     return match ? { value: amount, currency: match.currency } : null;
   };
 
@@ -174,20 +193,44 @@ export function figuresFromTerms(terms: ExtractedTerms): DealFigures {
   const pct = number(TIER_TERMS.pct);
   const basis = choice(TIER_TERMS.charges);
   const charges = CHARGES_OF[basis ?? ""];
-  if (pct === null || !charges) {
-    const missing = pct === null ? "the top tier's percentage" : `what the percentage is charged on (${basis ?? "not stated"})`;
-    console.warn(`[exposures] no cancellation figure, because the reading pass didn't give ${missing}`);
-  } else {
+  if (pct === null) note(TIER_TERMS.pct, "No cancellation figure, because the reading gave no usable top-tier percentage.");
+  if (!charges) {
+    note(TIER_TERMS.charges, `No cancellation figure, because the reading didn't say whether the percentage is charged on the rate or on room profit (${basis ?? "not stated"}).`);
+  }
+  if (pct !== null && charges) {
     const schedule = stated(TIER_TERMS.schedule)?.value;
     const nearest = Array.isArray(schedule) ? [...schedule].sort((a, b) => a.days_prior_min - b.days_prior_min)[0] : null;
-    const base = BASE_OF[choice(TIER_TERMS.base) ?? ""] ?? "other";
-    if (base === "other") console.warn("[exposures] no cancellation figure, because the reading pass didn't say which room nights the percentage applies to");
+    const baseChoice = choice(TIER_TERMS.base);
+    const base = BASE_OF[baseChoice ?? ""] ?? "other";
+    if (base === "other") {
+      note(TIER_TERMS.base, `No cancellation figure, because the reading didn't say which room nights the percentage applies to (${baseChoice ?? "not stated"}).`);
+    }
     figures.cancellation_tiers = [{ label: nearest?.label.trim() || "closest to arrival", room_pct: pct, base, charges }];
   }
 
-  return figures;
+  return { figures, notes };
 }
 
-function logRejected(key: string, reason: string | null) {
-  if (reason) console.warn(`[exposures] dropped ${key} because ${reason}`);
+export const figuresFromTerms = (terms: ExtractedTerms): DealFigures => readFigures(terms).figures;
+
+/**
+ * What a review keeps of its reading: the figures, why any is missing, and
+ * the exposure terms as the reader gave them.
+ */
+export function exposureReading(terms: ExtractedTerms, { figures, notes }: FigureReading = readFigures(terms)) {
+  return {
+    figures,
+    notes,
+    terms: terms.stated
+      .filter((t) => EXPOSURE_TERM_KEYS.includes(t.term_key))
+      .map(({ term_key, value, quoted_text, source_section, verification, confidence }) => ({
+        term_key,
+        value,
+        quoted_text,
+        source_section,
+        verification,
+        confidence,
+      })),
+    not_stated: terms.not_stated.filter((key) => EXPOSURE_TERM_KEYS.includes(key)),
+  };
 }

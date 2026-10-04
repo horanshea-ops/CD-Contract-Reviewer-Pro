@@ -5,7 +5,7 @@ import { readFile } from "fs/promises";
 import { extractDocx } from "../lib/docx";
 import { contractText } from "../lib/docx/contract-text";
 import { attritionExposure, cancellationExposure, fbMinimumExposure } from "../lib/exposures/compute";
-import { figuresFromTerms } from "../lib/exposures/figures";
+import { readFigures } from "../lib/exposures/figures";
 import { EXPOSURE_CATALOG } from "../lib/review";
 import { extractTerms } from "../lib/terms/extract";
 
@@ -52,8 +52,9 @@ async function main() {
   if (terms.conflicts.length > 0) console.log(`Stated with more than one value: ${terms.conflicts.join(", ")}`);
   for (const rejected of terms.rejected) console.log(`Rejected ${rejected.term_key}: ${rejected.reason}`);
 
-  const figures = figuresFromTerms(terms);
+  const { figures, notes } = readFigures(terms);
   console.log("\nFigures:", JSON.stringify(figures, null, 2));
+  for (const note of notes) console.log(`Note on ${note.term_key}: ${note.reason}`);
 
   const exposures = { attrition: attritionExposure(figures), cancellation: cancellationExposure(figures), fb_minimum: fbMinimumExposure(figures) };
   let total = 0;

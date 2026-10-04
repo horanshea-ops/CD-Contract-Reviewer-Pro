@@ -1,6 +1,6 @@
 import { analyzeContract, type AnalyzeContractPdfArgs, type CategorizedAnalysis } from "./anthropic";
 import { withComputedExposures } from "./exposures/compute";
-import { EXPOSURE_TERM_KEYS, figuresFromTerms, NO_FIGURES } from "./exposures/figures";
+import { EXPOSURE_TERM_KEYS, NO_FIGURES, readFigures, type FigureReading } from "./exposures/figures";
 import type { LocatablePart } from "./redline-engine/locate";
 import { HOTEL_TERM_CATALOG } from "./terms/catalog";
 import { extractTerms } from "./terms/extract";
@@ -29,9 +29,9 @@ export interface ReviewContractArgs extends AnalyzeContractPdfArgs {
   catalog?: TermCatalog;
 }
 
-/** The reading call's result, or why there isn't one. */
+/** The reading call's result with the figures taken from it, or why there isn't one. */
 export type ReadingOutcome =
-  | ({ ok: true } & Awaited<ReturnType<typeof extractTerms>>)
+  | ({ ok: true } & Awaited<ReturnType<typeof extractTerms>> & FigureReading)
   | { ok: false; error: string };
 
 export interface ContractReview extends CategorizedAnalysis {
@@ -47,7 +47,7 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
     model: review.model,
     deadline: review.deadline,
   }).then(
-    (outcome) => ({ ok: true as const, ...outcome }),
+    (outcome) => ({ ok: true as const, ...outcome, ...readFigures(outcome.terms) }),
     (err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : String(err) })
   );
 
@@ -55,7 +55,7 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
   const reading = await pending;
 
   if (!reading.ok) console.error(`reviewContract: the reading call failed, so this review carries no exposures — ${reading.error}`);
-  const figures = reading.ok ? figuresFromTerms(reading.terms) : NO_FIGURES;
+  const figures = reading.ok ? reading.figures : NO_FIGURES;
 
   return {
     ...analysis,

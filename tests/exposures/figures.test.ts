@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { attritionExposure, cancellationExposure, fbMinimumExposure } from "@/lib/exposures/compute";
-import { EXPOSURE_TERM_KEYS, figuresFromTerms } from "@/lib/exposures/figures";
+import { EXPOSURE_TERM_KEYS, figuresFromTerms, readFigures } from "@/lib/exposures/figures";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 import { validateTerms } from "@/lib/terms/validate";
 
@@ -80,6 +80,22 @@ describe("figuresFromTerms", () => {
     const figures = read([...FLORIDA_ENTRIES, entry("attrition.minimum_room_nights", 2900, "Total Room Nights: 2,900")]);
     expect(figures.minimum_room_nights).toBeNull();
     expect(figures.room_block_room_nights).toBe(2900);
+  });
+
+  it("says why each figure is missing, and says nothing when none is", () => {
+    const notes = (entries: unknown[]) => readFigures(validateTerms(entries, HOTEL_TERM_CATALOG, floridaParts)).notes;
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(notes(FLORIDA_ENTRIES)).toEqual([]);
+    expect(notes([...FLORIDA_ENTRIES, entry("attrition.minimum_room_nights", 2900, "Total Room Nights: 2,900")])).toEqual([
+      { term_key: "attrition.minimum_room_nights", reason: "The reading gave more than one value for it, so none is used." },
+    ]);
+    expect(notes(without("cancellation.damages_basis")).map((n) => n.term_key)).toEqual(["cancellation.damages_basis"]);
+    expect(notes(without("cancellation.damages_room_nights")).map((n) => n.term_key)).toEqual(["cancellation.damages_room_nights"]);
+    expect(notes([entry("attrition.minimum_room_nights", 2900, "at least 2,280 room nights")])[0]).toEqual({
+      term_key: "attrition.minimum_room_nights",
+      reason: "Its quote does not single out the value (contradicted).",
+    });
   });
 
   it("gives no cancellation exposure unless the reader says what the percentage is charged on", () => {
