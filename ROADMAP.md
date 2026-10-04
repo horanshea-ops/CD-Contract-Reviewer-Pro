@@ -767,6 +767,21 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
              - Not yet seen: a reply thread, a resolved comment, and a
                moved passage. The Florida file has none. The Word round-trip
                file will have the first two.
+             - Picking a note again scrolls back to its wording, and a wide
+               table scrolls sideways so the margin doesn't cover it.
+             - **Future check (user, 2026-10-03): a document with many
+               changes and comments.** Florida has seven notes. A heavily
+               redlined contract could have dozens in one section, and the
+               user's worry is how that presents. To look at:
+               - how far crowded notes drift below their wording
+               - whether a long run of notes leaves the reader lost
+               - how fast the margin lays out and scrolls
+               - the 100-comment cap on what the file's comments show
+               A ready test file is our own redline of Florida
+               (`data/private/run4/florida-property-round1-redline.docx`),
+               which would give about 95 margin notes from 126 revisions
+               and 36 comments. Uploading it costs a review today. It becomes
+               free once compare-only rounds exist, so check it then.
       - **Known and accepted.** The hotel's table edit arrived untracked. A
         first upload has nothing to compare it with, and a re-upload is
         caught by the round diff. The marked-up PDF shows the hotel's edits
