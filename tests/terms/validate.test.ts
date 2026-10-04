@@ -178,6 +178,27 @@ describe("verifying each value against the document", () => {
       expect(block(2900, "2,900")).toBe("located");
     });
 
+    it("accepts a total the contract doesn't print, when the quote's table adds up to it", () => {
+      const NIGHTLY = [
+        "| Date | Rooms | Group Rate |",
+        "| --- | --- | --- |",
+        "| Night 1 | 170 | $289.00 |",
+        "| Night 2 | 170 | $289.00 |",
+        "| Night 3 | 170 | $289.00 |",
+        "| Night 4 | 170 | $289.00 |",
+        "",
+        "Hotel will hold a block of 340 guest rooms on the peak night.",
+      ].join("\n");
+      const nightly = (value: number, quote: string) =>
+        validateTerms([entry("deal.room_block_room_nights", value, quote)], HOTEL_TERM_CATALOG, [{ part: "document", text: NIGHTLY }]).stated[0].verification;
+
+      expect(nightly(680, "Night 1 | 170 | $289.00")).toBe("verified");
+      expect(nightly(680, "Rooms")).toBe("verified");
+      // No column adds up to these, and prose is not a table.
+      expect(nightly(850, "Night 1 | 170 | $289.00")).toBe("contradicted");
+      expect(nightly(680, "a block of 340 guest rooms on the peak night")).toBe("contradicted");
+    });
+
     it("doesn't count an amount, a percentage, a duration or a date as rooms", () => {
       expect(check("deal.peak_night_rooms", 150, "Run of House: 150 rooms at $149.00 per night for 30 days, arriving June 14, 2027.")).toBe("verified");
       expect(check("attrition.minimum_room_nights", 2280, "at least 2,280 room nights, which is eighty percent (80%)")).toBe("verified");

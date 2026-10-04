@@ -202,8 +202,49 @@ function rowsHolding(parts: LocatablePart[], quote: string): string[][] {
 
 /** A row singles a count out when it carries a label and its number-only cells do. */
 function rowSinglesOut(cells: string[], value: number): boolean {
-  const counts = cells.filter((c) => /^\d[\d,]*$/.test(c)).map((c) => Number(c.replace(/,/g, "")));
+  const counts = cells.filter(isCount).map((c) => Number(c.replace(/,/g, "")));
   return cells.some((c) => /[a-z]/i.test(c)) && singlesOut(counts, value);
+}
+
+const cellsOf = (line: string) => line.split("|").map((c) => c.trim()).filter((c) => c.length > 0);
+const isCount = (cell: string) => /^\d[\d,]*$/.test(cell);
+
+/** Every table in the contract's text, as rows of cells. A table is a run of lines that hold cell marks. */
+function tablesIn(parts: LocatablePart[]): string[][][] {
+  const tables: string[][][] = [];
+  for (const part of parts) {
+    let rows: string[][] = [];
+    for (const line of [...part.text.split("\n"), ""]) {
+      if (line.includes("|")) {
+        if (!/^[\s|:-]+$/.test(line)) rows.push(cellsOf(line));
+      } else if (rows.length > 0) {
+        tables.push(rows);
+        rows = [];
+      }
+    }
+  }
+  return tables;
+}
+
+/**
+ * Whether the table a quote sits in has a column of counts that add up to the
+ * value. A room block is often printed night by night with no total, and the
+ * total is then a sum the contract supports without stating.
+ */
+function tableAddsUpTo(parts: LocatablePart[], quote: string, value: number): boolean {
+  const wanted = flat(cellsOf(quote).join(" "));
+  if (!wanted) return false;
+
+  return tablesIn(parts).some((rows) => {
+    if (!rows.some((cells) => flat(cells.join(" ")).includes(wanted))) return false;
+    const width = Math.max(...rows.map((cells) => cells.length));
+    for (let column = 0; column < width; column++) {
+      const counts = rows.map((cells) => cells[column]).filter((cell) => cell !== undefined && isCount(cell));
+      const total = counts.reduce((sum, cell) => sum + Number(cell.replace(/,/g, "")), 0);
+      if (counts.length > 1 && sameNumber(total, value)) return true;
+    }
+    return false;
+  });
 }
 
 /**
@@ -211,12 +252,16 @@ function rowSinglesOut(cells: string[], value: number): boolean {
  *
  * Holding the number is not enough. A quoted table row holds every night's
  * count, and any of them would pass. The quote must single the value out, and
- * a value sitting among counts that don't add up to it is only located.
+ * a value sitting among counts that don't add up to it is only located. A
+ * value the quote doesn't hold is still borne out when the quote's table adds
+ * up to it.
  */
 function roomCountEvidence(value: number, quote: string, parts: LocatablePart[]): Verification {
   const counts = roomCounts(quote);
-  if (counts.length === 0) return "located";
-  if (!counts.some((n) => sameNumber(n, value))) return "contradicted";
+  if (!counts.some((n) => sameNumber(n, value))) {
+    if (tableAddsUpTo(parts, quote, value)) return "verified";
+    return counts.length === 0 ? "located" : "contradicted";
+  }
 
   // A bare cell doesn't say which number it is, so the table row it sits in is judged in its place.
   if (counts.length === 1 && !/[a-z]/i.test(quote)) {
