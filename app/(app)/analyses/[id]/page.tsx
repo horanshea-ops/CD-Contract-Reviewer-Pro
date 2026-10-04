@@ -422,7 +422,7 @@ export default function AnalysisPage() {
   // One card per clause, with every change inside it still decided on its own.
   const clauseCards = (findings: Finding[]) =>
     groupByClause(findings).map((group) => (
-      <ClauseCard key={group.clause_type} group={group} renderFinding={card} onActionRecorded={handleActionRecorded} />
+      <ClauseCard key={group.clause_type} group={group} renderFinding={card} />
     ));
   const clauseCount = (findings: Finding[]) => {
     const clauses = new Set(findings.map((f) => f.clause_type)).size;
