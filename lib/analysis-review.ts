@@ -132,6 +132,25 @@ export function normalizeFindings(findings: Finding[]): Finding[] {
 
 const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
 
+/**
+ * One note for a review that judged clauses short of the standard and wrote
+ * no finding for them, or null when every such clause has a finding. Without
+ * it the associate has no way to tell the review left those clauses out.
+ */
+export function skippedClausesNote(gaps: ReviewGap[], findings: Pick<Finding, "clause_type">[]): { headline: string; detail: string } | null {
+  const covered = new Set(findings.map((f) => normalize(f.clause_type)));
+  const skipped = gaps
+    .filter((gap) => gap.kind === "short_without_finding" && !covered.has(normalize(gap.clause_type)))
+    .map((gap) => gap.clause_type.replace(/_/g, " "));
+  if (skipped.length === 0) return null;
+
+  const clauses = skipped.length === 1 ? "1 clause" : `${skipped.length} clauses`;
+  return {
+    headline: `The review left ${clauses} without a finding.`,
+    detail: `It judged ${skipped.length === 1 ? "this" : "these"} short of the standard and wrote nothing: ${skipped.join(", ")}. Read ${skipped.length === 1 ? "it" : "them"} yourself, or run the review again.`,
+  };
+}
+
 export function reconcileReview(
   review: { findings: Finding[]; clause_review: ClauseReview[] },
   standards: StandardEntry[]

@@ -1,6 +1,9 @@
+import { skippedClausesNote } from "./analysis-review";
 import { analyzeContract, type AnalyzeContractPdfArgs, type AnalyzableDocument, type CategorizedAnalysis } from "./anthropic";
 import { withComputedExposures } from "./exposures/compute";
 import { EXPOSURE_TERM_KEYS, NO_FIGURES, readFigures, TIER_ANSWER_KEYS, type FigureReading } from "./exposures/figures";
+import { applyCategories } from "./finding-categories";
+import { mustRaise } from "./must-raise";
 import type { LocatablePart } from "./redline-engine/locate";
 import { HOTEL_TERM_CATALOG } from "./terms/catalog";
 import { extractTerms } from "./terms/extract";
@@ -16,6 +19,11 @@ import { validateTerms } from "./terms/validate";
  * out from those checked terms, so the contract's numbers are read once, by
  * one reader, whatever else uses them.
  *
+ * Whether a clause gets a finding is the judging call's choice, and it can
+ * judge a clause short and write nothing. For the numbers CD always raises,
+ * the app writes the finding itself from the checked terms (lib/must-raise.ts).
+ * Any other clause left without a finding is named in one note.
+ *
  * The reader's answers vary from run to run. When a reading has cancellation
  * terms in it and leaves out an answer the cancellation figure needs, the
  * reader is asked once more for those answers alone.
@@ -26,7 +34,7 @@ const catalogOf = (keys: readonly string[]): TermCatalog => ({
   terms: HOTEL_TERM_CATALOG.terms.filter((term) => keys.includes(term.key)),
 });
 
-/** The terms exposures are worked out from. A reading pass asks for these when it has no wider catalog to read. */
+/** The terms the figures are read from. A reading pass asks for these when it has no wider catalog to read. */
 export const EXPOSURE_CATALOG = catalogOf(EXPOSURE_TERM_KEYS);
 
 /** The terms a second reading asks for. */
@@ -125,9 +133,21 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
   }
   const figures = reading.ok ? reading.figures : NO_FIGURES;
 
+  const byApp = reading.ok ? mustRaise(figures, reading.terms, analysis.findings, review.standards) : { findings: [], uncovered: [] };
+  const findings = [...analysis.findings, ...applyCategories(byApp.findings, review.standards)];
+
+  const notes = [
+    skippedClausesNote(analysis.review_gaps, findings),
+    ...byApp.uncovered.map((number) => ({
+      headline: `${number.headline}.`,
+      detail: "No finding covers this number, and the app couldn't write wording for it. Read the clause yourself.",
+    })),
+  ].filter((note) => note !== null);
+
   return {
     ...analysis,
-    findings: withComputedExposures(analysis.findings, figures),
+    findings: withComputedExposures(findings, figures),
+    document_notes: [...analysis.document_notes, ...notes],
     deal_figures: figures,
     reading,
   };

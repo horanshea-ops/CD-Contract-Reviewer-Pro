@@ -61,6 +61,7 @@ describe("figuresFromTerms", () => {
       cancellation_tiers: [{ label: "90 Days or Less", room_pct: 0.9, base: "minimum_room_nights", charges: "rate" }],
       fb_minimum: 100000,
       fb_shortfall_pct: null,
+      commission_pct: null,
       currency: "$",
     });
     expect(attritionExposure(figures)?.amount).toBe(29800);

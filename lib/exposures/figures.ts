@@ -41,6 +41,8 @@ export interface DealFigures {
   fb_minimum: number | null;
   /** Fraction of a shortfall owed. Null when the contract states none. */
   fb_shortfall_pct: number | null;
+  /** Fraction of room revenue the hotel pays as commission. No exposure uses it; the must-raise check does. */
+  commission_pct: number | null;
   /** Taken from the quotes of the amounts above. Null when no amount was kept. */
   currency: Currency | null;
 }
@@ -54,6 +56,7 @@ export const NO_FIGURES: DealFigures = {
   cancellation_tiers: [],
   fb_minimum: null,
   fb_shortfall_pct: null,
+  commission_pct: null,
   currency: null,
 };
 
@@ -96,6 +99,7 @@ const SCALAR_TERMS: Record<ScalarKey, string> = {
   attrition_threshold_pct: "attrition.threshold",
   attrition_damages_pct: "attrition.liability_rate",
   fb_shortfall_pct: "fb_minimum.shortfall_rate",
+  commission_pct: "commission.commission_pct",
 };
 
 const MONEY_TERMS: Record<MoneyKey, string> = {
@@ -110,7 +114,7 @@ const TIER_TERMS = {
   schedule: "cancellation.schedule",
 };
 
-/** Every catalog term an exposure is worked out from. A reading pass must ask for at least these. */
+/** Every catalog term a figure is read from. A reading pass must ask for at least these. */
 export const EXPOSURE_TERM_KEYS: readonly string[] = [
   ...Object.values(SCALAR_TERMS),
   ...Object.values(MONEY_TERMS),

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ATTRITION_DAMAGES_OF_RATE,
   ATTRITION_TRIGGER_OF_BLOCK,
+  COMMISSION_RATE,
   FB_SHORTFALL_RATE,
   ROOM_PROFIT_OF_RATE,
 } from "@/lib/exposures/cd-positions";
@@ -31,5 +32,9 @@ describe("CD's positions as the calculations use them", () => {
 
   it("match the food and beverage shortfall rate", () => {
     expect(position("fb_minimum")).toContain(pct(FB_SHORTFALL_RATE));
+  });
+
+  it("match the commission standard's rate", () => {
+    expect(position("commission")).toContain(`${pct(COMMISSION_RATE)} commission on all actualized room revenue`);
   });
 });

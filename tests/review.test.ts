@@ -250,3 +250,69 @@ describe("asking the reader again for the cancellation tier", () => {
     });
   });
 });
+
+describe("what the app adds when the judging call leaves a clause out", () => {
+  const COMMISSION_LINE = "We will pay to ConferenceDirect a commission of 8% of the Group Room Rate on all paid and occupied rooms.";
+  const TEXT = [CONTRACT, COMMISSION_LINE].join("\n");
+
+  // The judging call rates four clauses short and writes a finding for one of them.
+  const judged = toolResponse("record_analysis", {
+    clause_review: ["attrition", "commission", "rate_parity", "cutoff_date"].map((clause_type) => ({ clause_type, verdict: "falls_short", basis: "Short." })),
+    findings: [{ ...finding("cutoff_date"), quoted_text: "Run of House: $149.00 per night." }],
+    flagged_findings: [],
+    document_notes: [],
+    other_findings: [],
+  });
+  const read = toolResponse("record_contract_terms", {
+    terms: [
+      term("deal.room_block_room_nights", 2900, "Total Room Nights: 2,900"),
+      term("deal.group_rate_usd", 149, "Run of House: $149.00 per night."),
+      term("attrition.minimum_room_nights", 2280, "You agree that you will use at least 2,280 room nights."),
+      term("attrition.liability_rate", 80, "times eighty percent (80%)"),
+      term("commission.commission_pct", 8, COMMISSION_LINE),
+    ],
+  });
+
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    create.mockImplementation(async (params: ModelRequest) => (answerName(params) === "record_analysis" ? judged : read));
+  });
+
+  const review = () => run({ document: { kind: "text", text: TEXT }, parts: [{ part: "document", text: TEXT }] });
+
+  it("asks the reader for the commission rate beside the exposure terms", async () => {
+    await review();
+    expect(answerSchema(readingRequest()).properties.terms.items.properties.term_key.enum).toContain("commission.commission_pct");
+  });
+
+  it("raises the commission and the attrition floor itself, and the attrition finding carries its exposure", async () => {
+    const result = await review();
+    const byClause = (clause: string) => result.findings.filter((f) => f.clause_type === clause);
+
+    expect(byClause("commission")).toHaveLength(1);
+    expect(byClause("commission")[0]).toMatchObject({
+      category: "business",
+      headline: "Commission is 8%, below the 10% standard",
+      proposed_language: COMMISSION_LINE.replace("8%", "10%"),
+    });
+    expect(byClause("attrition")).toHaveLength(1);
+    expect(byClause("attrition")[0]).toMatchObject({
+      proposed_language: "You agree that you will use at least 2,030 room nights.",
+      exposure_amount: 29800,
+      exposure_formula: "(2280 - 2030) * $149 * 0.8",
+    });
+  });
+
+  it("names in one note the clauses still left without a finding, and says nothing when none is", async () => {
+    const result = await review();
+    expect(result.document_notes).toEqual([
+      {
+        headline: "The review left 1 clause without a finding.",
+        detail: "It judged this short of the standard and wrote nothing: rate parity. Read it yourself, or run the review again.",
+      },
+    ]);
+
+    create.mockImplementation(async (params: ModelRequest) => (answerName(params) === "record_analysis" ? analysisResponse : termsResponse));
+    expect((await run()).document_notes).toEqual([]);
+  });
+});

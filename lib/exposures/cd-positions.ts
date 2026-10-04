@@ -1,5 +1,5 @@
 /**
- * CD's positions, as the numbers the exposure calculations use.
+ * CD's positions, as the numbers the exposure calculations and the must-raise checks use.
  *
  * Each mirrors wording in the standards library (lib/standards/v1.ts). A test
  * checks that wording still states these figures, so an edit to the library
@@ -17,3 +17,6 @@ export const ROOM_PROFIT_OF_RATE = 0.7;
 
 /** Share of a food and beverage shortfall the group pays. */
 export const FB_SHORTFALL_RATE = 0.35;
+
+/** Commission the hotel pays on room revenue. */
+export const COMMISSION_RATE = 0.1;
