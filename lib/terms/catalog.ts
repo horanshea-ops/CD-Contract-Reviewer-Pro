@@ -116,7 +116,7 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
     num("mandatory_fees.resort_fee_usd", "usd", "The resort, amenity or facility fee per room, per night. 0 when the agreement says there is none."),
 
     // Complimentary rooms
-    num("rebates.comp_room_ratio", "rooms", "Paid room nights needed to earn one complimentary room night. 40 means one complimentary room per 40 paid."),
+    { ...num("rebates.comp_room_ratio", "rooms", "Paid room nights needed to earn one complimentary room night. 40 means one complimentary room per 40 paid."), ratio: true },
     bool("rebates.formula_based", "True when complimentary rooms accrue automatically from a stated ratio. False when the ratio is only a guideline or complimentary rooms are at the hotel's discretion."),
     bool("rebates.forfeited_on_attrition", "True when complimentary room credit is forfeited if the group falls short of its block. False when credit already earned survives a shortfall."),
     bool("rebates.fee_nights_count", "True when rooms charged a no-show or cancellation fee count as room nights toward pickup and complimentary rooms. False when they do not."),

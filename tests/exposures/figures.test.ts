@@ -98,6 +98,20 @@ describe("figuresFromTerms", () => {
     });
   });
 
+  it("takes a quoted row's total as the block, and builds nothing on any other number in the row", () => {
+    const row = "Total Room Block | 70 | 100 | 360 | 530";
+    const parts = [{ part: "document", text: `| ${row} |` }];
+    const reading = (value: number) => readFigures(validateTerms([entry("deal.room_block_room_nights", value, row)], HOTEL_TERM_CATALOG, parts));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(reading(530).figures.room_block_room_nights).toBe(530);
+    expect(reading(360).figures.room_block_room_nights).toBeNull();
+    expect(reading(360).notes).toContainEqual({
+      term_key: "deal.room_block_room_nights",
+      reason: "Its quote does not single out the value (located).",
+    });
+  });
+
   it("gives no cancellation exposure unless the reader says what the percentage is charged on", () => {
     expect(read(without("cancellation.damages_basis")).cancellation_tiers).toEqual([]);
 

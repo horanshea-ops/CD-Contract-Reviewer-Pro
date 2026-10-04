@@ -138,6 +138,52 @@ describe("verifying each value against the document", () => {
     expect(verification(entry("deal.peak_night_rooms", 340, "a block of 340 guest rooms on the peak night"))).toBe("verified");
   });
 
+  describe("a count of rooms or room nights", () => {
+    const BLOCK = [
+      "| Date | Mon | Tue | Wed | Total |",
+      "| --- | --- | --- | --- | --- |",
+      "| Total Room Block | 70 | 100 | 360 | 530 |",
+      "| Suites | 5 | 10 | 10 | 40 |",
+      "| 3 | 4 | 7 |",
+      "Total Room Nights: 2,900",
+      "You agree to use at least 2,280 room nights, which is eighty percent (80%) of the 2,900 in the block.",
+      "Run of House: 150 rooms at $149.00 per night for 30 days, arriving June 14, 2027.",
+    ].join("\n");
+    const check = (term_key: string, value: number, quote: string) =>
+      validateTerms([entry(term_key, value, quote)], HOTEL_TERM_CATALOG, [{ part: "document", text: BLOCK }]).stated[0].verification;
+    const block = (value: number, quote: string) => check("deal.room_block_room_nights", value, quote);
+
+    it("verifies a count that stands alone in its quote", () => {
+      expect(block(2900, "Total Room Nights: 2,900")).toBe("verified");
+    });
+
+    it("verifies the total of a quoted row, and no other number in it", () => {
+      const row = "Total Room Block | 70 | 100 | 360 | 530";
+      expect(block(530, row)).toBe("verified");
+      expect(block(360, row)).toBe("located");
+      expect(block(540, row)).toBe("contradicted");
+    });
+
+    it("only locates a count beside others that don't add up to it", () => {
+      expect(block(40, "Suites | 5 | 10 | 10 | 40")).toBe("located");
+      expect(check("attrition.minimum_room_nights", 2280, "at least 2,280 room nights, which is eighty percent (80%) of the 2,900 in the block")).toBe("located");
+    });
+
+    it("judges a bare cell by the table row it sits in", () => {
+      expect(block(530, "530")).toBe("verified");
+      expect(block(40, "40")).toBe("located");
+      // A row with no label says nothing about what its numbers are.
+      expect(block(7, "7")).toBe("located");
+      // Not a table cell at all.
+      expect(block(2900, "2,900")).toBe("located");
+    });
+
+    it("doesn't count an amount, a percentage, a duration or a date as rooms", () => {
+      expect(check("deal.peak_night_rooms", 150, "Run of House: 150 rooms at $149.00 per night for 30 days, arriving June 14, 2027.")).toBe("verified");
+      expect(check("attrition.minimum_room_nights", 2280, "at least 2,280 room nights, which is eighty percent (80%)")).toBe("verified");
+    });
+  });
+
   it("verifies both ends of a date range", () => {
     expect(verification(entry("deal.event_start_date", "2027-04-12", "April 12-16, 2027"))).toBe("verified");
     expect(verification(entry("deal.event_end_date", "2027-04-16", "April 12-16, 2027"))).toBe("verified");

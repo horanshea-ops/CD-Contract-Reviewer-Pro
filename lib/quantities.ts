@@ -115,3 +115,8 @@ export function parseQuantities(text: string): Quantity[] {
 
   return out.sort((a, b) => a.index - b.index);
 }
+
+/** The text with every quantity above blanked out, so the digits left carry no unit. */
+export function withoutQuantities(text: string): string {
+  return [PERCENT_RE, USD_RE, DAYS_RE, MONTHS_RE, HOURS_RE].reduce((rest, re) => rest.replace(re, " "), text);
+}
