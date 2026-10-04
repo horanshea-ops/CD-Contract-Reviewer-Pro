@@ -19,6 +19,7 @@ import { AiClauseReview } from "@/components/ai-clause-review";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
 import { isStalledRun, stoppedAtAiUseCheck } from "@/lib/analysis-status";
 import { Button } from "@/components/ui/button";
+import { DialogShell } from "@/components/ui/dialog-shell";
 import { Body, Meta, Title } from "@/components/ui/typography";
 import type { DocumentNote } from "@/lib/document-notes";
 import { ORG } from "@/lib/org";
@@ -56,6 +57,15 @@ interface AnalysisResponse {
   document_notes: unknown;
   /** The app's own arithmetic checks on the contract. */
   document_checks?: DocumentNote[];
+  /** The earlier review these findings were copied from, when the same file was uploaded again. */
+  copiedFrom?: { id: string; completed_at: string | null } | null;
+}
+
+function shortDate(iso: string | null): string {
+  const date = iso ? new Date(iso) : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    : "an earlier date";
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -98,6 +108,9 @@ export default function AnalysisPage() {
   const [offline, setOffline] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState("");
+  const [freshError, setFreshError] = useState("");
+  const [confirmingFresh, setConfirmingFresh] = useState(false);
+  const [startingFresh, setStartingFresh] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState<Set<Category>>(new Set());
   const [hideDecided, setHideDecided] = useState(false);
   const pollNow = useRef<() => void>(() => {});
@@ -222,6 +235,24 @@ export default function AnalysisPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [visibleFindings, selectedFindingId, handleSelectFinding]);
+
+  async function runFreshReview() {
+    setFreshError("");
+    setStartingFresh(true);
+    try {
+      const res = await fetch(`/api/analyses/${params.id}/fresh-review`, { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFreshError(body.error || "The new review couldn't start. Try again in a moment.");
+        return;
+      }
+      window.location.reload();
+    } catch {
+      setFreshError("The new review couldn't start. Check your connection and try again.");
+    } finally {
+      setStartingFresh(false);
+    }
+  }
 
   async function retryAnalysis() {
     setRetrying(true);
@@ -454,6 +485,48 @@ export default function AnalysisPage() {
           <EmailPicker analysisId={data.id} />
         </div>
       </div>
+
+      {data.copiedFrom && (
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--cd-blue-pale)] px-6 py-2 shrink-0">
+          <Meta as="p" className="text-[var(--cd-navy)]">
+            Copied from{" "}
+            <Link href={`/analyses/${data.copiedFrom.id}`} className="underline">
+              your review of {shortDate(data.copiedFrom.completed_at)}
+            </Link>
+            , because this is the same file. No new review was run, and none of this month&apos;s reviews was used.
+          </Meta>
+          <Button size="sm" variant="secondary" onClick={() => setConfirmingFresh(true)} className="shrink-0 bg-white">
+            Run a new review
+          </Button>
+          <DialogShell
+            open={confirmingFresh}
+            onClose={() => setConfirmingFresh(false)}
+            title="Run a new review?"
+            maxWidth="md"
+            dismissible={!startingFresh}
+            footer={
+              <>
+                <Button variant="secondary" onClick={() => setConfirmingFresh(false)} disabled={startingFresh}>
+                  Keep the copy
+                </Button>
+                <Button onClick={runFreshReview} loading={startingFresh} loadingText="Starting...">
+                  Run a new review
+                </Button>
+              </>
+            }
+          >
+            <Body as="p">
+              A new review uses one of this month&apos;s reviews. It replaces the copied findings, and your decisions on
+              them, with whatever the new review finds.
+            </Body>
+            {freshError && (
+              <Body as="p" className="mt-2 text-[var(--severity-high)]">
+                {freshError}
+              </Body>
+            )}
+          </DialogShell>
+        </div>
+      )}
 
       {/* Below lg the panes stack, each with its own scroll, so the findings stay reachable under a long contract. From lg the divider between them can be dragged. */}
       <ResizableSplit

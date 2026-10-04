@@ -1705,6 +1705,37 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         - The copy makes no model call, so it doesn't count toward the monthly
           limit (the allowance counts `token_usage.model_called_at`, done
           2026-09-26).
+        - **Built 2026-10-03 on `phase/2-1-same-file-reuse`, not merged, not
+          yet run live.** Lint, typecheck and 1,343 tests pass.
+          - It needs migration `015_review_reuse.sql`, which is **not applied
+            yet**. Until it is, every upload gets a full review as before and
+            nothing breaks. Checked live: the review page loads without it.
+          - The match is on three hashes plus the associate. `content_hash`
+            is everything the review call would send as the contract.
+            `prompt_hash` is the model with its instructions and answer form.
+            `standards_hash` was already stored.
+          - The hash is taken of the content, where the plan above said the
+            accepted-view text. The content also covers the file's comments
+            and pictures, which the model reads too.
+          - A copy brings the findings, every decision on them with its
+            original time, the document notes and any stored terms. A copy of
+            a copy points at the review the model wrote.
+          - The copy is made before the AI-use check, since nothing is sent
+            to the model.
+          - The review page says where the findings came from and offers
+            "Run a new review" (`/api/analyses/[id]/fresh-review`), which is
+            paid and checked against the allowance.
+          - Reviews made before the migration carry no hashes and can't be
+            copied.
+          - An associate at the monthly limit is still refused at upload,
+            before the file is read.
+          - **When `review/one-reading-pass` merges**, `prompt_hash` must also
+            cover the reading call's prompt and catalog, and
+            `lib/analysis-pipeline.ts` needs a hand merge.
+          - **Live check still to do, with a yes**: apply the migration, then
+            upload the Harborview sample twice. The first upload is a paid
+            review (about $0.40). The second must finish in seconds with no
+            model call.
       - **2. The property's revised version (round 2 onward) — about 25–45
         hours.** This is MASTER_PLAN §2.1.2 plus the screens around it.
         - §2.1.1's round comparison is built. It finds what changed between the

@@ -1,5 +1,6 @@
 import { createAdminClient } from "./supabase/admin";
-import { analyzeContract, type AnalyzableDocument } from "./anthropic";
+import { analyzeContract, reviewModel, type AnalyzableDocument } from "./anthropic";
+import { contentHash, copyReview, findReusableReview, promptHash } from "./review-reuse";
 import { extractDocx, type ContractPicture, type DocumentComment } from "./docx";
 import { pictureContext } from "./document-checks";
 import { textSentToModel } from "./document-comments";
@@ -21,7 +22,7 @@ const STORAGE_BUCKET = "contracts";
  * so the client gets its 202 response immediately and polls for status
  * (build brief §5) rather than holding a request open for 30-90+ seconds.
  */
-export async function processAnalysis(analysisId: string) {
+export async function processAnalysis(analysisId: string, { fresh = false }: { fresh?: boolean } = {}) {
   const deadline = Date.now() + MODEL_CALL_BUDGET_MS;
   const admin = createAdminClient();
 
@@ -130,6 +131,50 @@ export async function processAnalysis(analysisId: string) {
       scanText = lines.map((l) => l.text).join("\n");
     }
 
+    // The same content reviewed before, under the same library, model and
+    // prompt, is copied. Nothing is sent to the model, so the AI-use check
+    // below has nothing to gate and the review uses no allowance. `fresh`
+    // asks for a new review regardless.
+    const contextNote = pictureContext(pictures);
+    const reviewKey = {
+      associateId: analysis.associate_id,
+      contentHash: contentHash({ document, comments, commentsTotal, contextNote }),
+      promptHash: promptHash(reviewModel()),
+      standardsHash: standards.hash,
+    };
+    const earlier = fresh ? null : await findReusableReview(admin, reviewKey, analysisId);
+    if (earlier) {
+      const copied = await copyReview(admin, earlier.id, analysisId);
+      const { error: copyError } = await admin
+        .from("analyses")
+        .update({
+          status: "complete",
+          completed_at: new Date().toISOString(),
+          review_kind: "copied",
+          copied_from_analysis_id: earlier.id,
+          content_hash: reviewKey.contentHash,
+          prompt_hash: reviewKey.promptHash,
+          model_id: copied.source.model_id,
+          library_version: copied.source.library_version,
+          standards_source: copied.source.standards_source,
+          standards_hash: copied.source.standards_hash,
+          document_notes: copied.source.document_notes,
+          term_extraction: copied.source.term_extraction,
+          accepted_view_text: document.kind === "text" ? scanText : null,
+        })
+        .eq("id", analysisId);
+      if (copyError) throw new Error(`The earlier review was copied but could not be saved: ${copyError.message}`);
+
+      await logAudit({
+        actorId: analysis.associate_id,
+        action: "analysis_copied",
+        entityType: "analysis",
+        entityId: analysisId,
+        metadata: { copied_from: earlier.id, findings_count: copied.findings, decisions_count: copied.decisions },
+      });
+      return;
+    }
+
     // §1.10 — the AI-use provision pre-check. Skipped only when an associate
     // has already ruled on this analysis (a resumed run after "proceed"):
     // the compliance record was written by that decision, not by re-scanning.
@@ -187,7 +232,7 @@ export async function processAnalysis(analysisId: string) {
       document,
       standards: standards.entries,
       standardsVersion: standards.version,
-      contextNote: pictureContext(pictures),
+      contextNote,
       deadline,
       // A PDF reaches the model as a file, so its figures are checked against the text read from it.
       contractText: scanText ?? undefined,
@@ -295,6 +340,16 @@ export async function processAnalysis(analysisId: string) {
         `Analysis succeeded but could not be saved: ${completeError.message}. ` +
           `If this mentions an unknown column, a migration in supabase/migrations/ has not been applied.`
       );
+    }
+
+    // Kept apart from the save above, so a database without migration 015 loses
+    // re-use and nothing else.
+    const { error: hashError } = await admin
+      .from("analyses")
+      .update({ content_hash: reviewKey.contentHash, prompt_hash: reviewKey.promptHash, review_kind: "full", copied_from_analysis_id: null })
+      .eq("id", analysisId);
+    if (hashError) {
+      console.warn(`processAnalysis: ${analysisId} can't be re-used later, because its hashes were not saved — ${hashError.message}`);
     }
 
     await logAudit({

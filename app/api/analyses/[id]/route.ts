@@ -85,6 +85,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     findings = withActions.map((f) => ({ ...f, ...previews.get(f.id) }));
   }
 
+  // Asked for apart from the row above, so a database without migration 015 still serves the review.
+  let copiedFrom: { id: string; completed_at: string | null } | null = null;
+  const { data: reuse } = await admin.from("analyses").select("copied_from_analysis_id").eq("id", id).maybeSingle();
+  if (reuse?.copied_from_analysis_id) {
+    const { data: source } = await admin
+      .from("analyses")
+      .select("id, completed_at")
+      .eq("id", reuse.copied_from_analysis_id)
+      .maybeSingle();
+    copiedFrom = source ?? null;
+  }
+
   let documentUrl: string | null = null;
   const { data: signed } = await admin.storage
     .from(STORAGE_BUCKET)
@@ -100,5 +112,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       : [];
   const document_notes = withoutRepeats(toNotes(analysis.document_notes), document_checks);
 
-  return NextResponse.json({ ...analysisFields, document_notes, propertyName, findings, documentUrl, document_checks });
+  return NextResponse.json({ ...analysisFields, document_notes, propertyName, findings, documentUrl, document_checks, copiedFrom });
 }

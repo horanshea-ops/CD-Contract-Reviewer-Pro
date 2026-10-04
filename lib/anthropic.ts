@@ -431,6 +431,27 @@ const MIN_RETRY_MS = 120_000;
 /** An answer cut off at the output limit. Retrying would be cut off the same way, so it isn't. */
 class CutOffError extends Error {}
 
+/** The model a review runs on. */
+export const reviewModel = (model?: string) => model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
+/** Everything the review call sends as the user's turn: the contract, its comments, and any note on its pictures. */
+export function reviewContent({
+  document,
+  comments,
+  commentsTotal,
+  contextNote,
+}: Pick<AnalyzeContractPdfArgs, "document" | "comments" | "commentsTotal" | "contextNote">): Anthropic.Messages.ContentBlockParam[] {
+  const content: Anthropic.Messages.ContentBlockParam[] =
+    document.kind === "pdf"
+      ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
+      : contractContent(document);
+
+  const commentBlock = commentContext(comments, commentsTotal);
+  if (commentBlock) content.push({ type: "text", text: commentBlock });
+  if (contextNote) content.push({ type: "text", text: contextNote });
+  return content;
+}
+
 export async function analyzeContract({
   document,
   standards,
@@ -451,21 +472,8 @@ export async function analyzeContract({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
-
-  const userContent: Anthropic.Messages.ContentBlockParam[] =
-    document.kind === "pdf"
-      ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: document.pdfBase64 } }]
-      : contractContent(document);
-
-  const commentBlock = commentContext(comments, commentsTotal);
-  if (commentBlock) {
-    userContent.push({ type: "text", text: commentBlock });
-  }
-
-  if (contextNote) {
-    userContent.push({ type: "text", text: contextNote });
-  }
+  const modelId = reviewModel(model);
+  const userContent = reviewContent({ document, comments, commentsTotal, contextNote });
 
   const remaining = () => (deadline === undefined ? undefined : Math.max(deadline - Date.now(), 1_000));
 
