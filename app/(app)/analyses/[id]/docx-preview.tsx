@@ -78,7 +78,8 @@ export default function DocxPreview({
   const [comments, setComments] = useState<DocumentComment[]>([]);
   const [commentsTotal, setCommentsTotal] = useState(0);
   // The note last picked, and the finding selected at the time. Selecting another finding takes the focus back.
-  const [picked, setPicked] = useState<{ key: string; findingId: string | null } | null>(null);
+  // `pick` counts the picks, so picking the same note again scrolls back to it.
+  const [picked, setPicked] = useState<{ key: string; findingId: string | null; pick: number } | null>(null);
   const [loadError, setLoadError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -168,7 +169,7 @@ export default function DocxPreview({
       focusColor: focus?.color ?? highlightColor,
       changeOfRun: commentView ? changes.keyOfRun : NO_CHANGES.keyOfRun,
       activeKey,
-      onSelect: (key) => setPicked({ key, findingId: selectedFindingId }),
+      onSelect: (key) => setPicked((held) => ({ key, findingId: selectedFindingId, pick: (held?.pick ?? 0) + 1 })),
     };
   }, [focus, commentView, notes, commentRange, changes, activeKey, selectedFindingId, highlightColor]);
 
@@ -177,7 +178,7 @@ export default function DocxPreview({
     const target = activeKey ? `[data-anchors~="${activeKey}"]` : focus ? "[data-preview-active-highlight]" : null;
     if (!target) return;
     containerRef.current?.querySelector(target)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [focus, activeKey]);
+  }, [focus, activeKey, picked?.pick]);
 
   const noteCount = commentsTotal + changes.notes.length;
 
