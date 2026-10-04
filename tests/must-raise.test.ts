@@ -115,4 +115,18 @@ describe("mustRaise", () => {
     expect(findings).toEqual([]);
     expect(uncovered).toEqual([{ clause_type: "commission", headline: "Commission is 8%, below the 10% standard" }]);
   });
+
+  it("checks against the number in CD's library, so an edited standard moves the line", () => {
+    const terms = validateTerms([entry("commission.commission_pct", 10, "Hotel pays ten percent (10%) commission.")], HOTEL_TERM_CATALOG, parts);
+    const figures = readFigures(terms).figures;
+    const raisedTo12 = STANDARDS_LIBRARY.map((s) => (s.clause_type === "commission" ? { ...s, position: s.position.replace("10% commission", "12% commission") } : s));
+
+    // 10% meets the library as shipped, and falls short once CD asks for 12%.
+    expect(mustRaise(figures, terms, [], STANDARDS_LIBRARY).findings).toEqual([]);
+    const [card] = mustRaise(figures, terms, [], raisedTo12).findings;
+    expect(card).toMatchObject({
+      headline: "Commission is 10%, below the 12% standard",
+      proposed_language: "Hotel pays twelve percent (12%) commission.",
+    });
+  });
 });

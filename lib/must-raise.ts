@@ -1,5 +1,5 @@
 import type { Finding } from "./anthropic";
-import { ATTRITION_TRIGGER_OF_BLOCK, COMMISSION_RATE, FB_SHORTFALL_RATE } from "./exposures/cd-positions";
+import { positionsFrom, type CdPositions } from "./exposures/cd-positions";
 import type { DealFigures } from "./exposures/figures";
 import { numberToWords } from "./quantities";
 import type { StandardEntry } from "./standards/types";
@@ -10,7 +10,8 @@ import type { ExtractedTerms, StatedTerm } from "./terms/types";
  *
  * Whether a clause gets a finding is otherwise left to the judging call, which
  * can judge a clause short and then write nothing for it. For a term that is
- * one number, the app compares the number with CD's standard here and raises
+ * one number, the app compares the number with CD's standard, as the library
+ * states it, and raises
  * the finding when the judging call didn't. The model can no longer cause a
  * miss on these.
  *
@@ -60,19 +61,19 @@ interface Raised {
   wording: (quote: string) => string | null;
 }
 
-function raised(figures: DealFigures): Raised[] {
+function raised(figures: DealFigures, p: CdPositions): Raised[] {
   const out: Raised[] = [];
   const percentToken = (fraction: number) => new RegExp(`(?<![\\d.])${escaped(String(percentOf(fraction)))}\\s*%`);
 
   const commission = figures.commission_pct;
-  if (commission !== null && commission < COMMISSION_RATE - 1e-9) {
+  if (commission !== null && commission < p.commission - 1e-9) {
     out.push({
       clause_type: "commission",
       term_key: "commission.commission_pct",
       token: percentToken(commission),
-      headline: `Commission is ${percentOf(commission)}%, below the ${percentOf(COMMISSION_RATE)}% standard`,
-      finding_text: `The contract pays ${percentOf(commission)}% commission. The standard is ${percentOf(COMMISSION_RATE)}%.`,
-      wording: (quote) => swapPercent(quote, commission, COMMISSION_RATE),
+      headline: `Commission is ${percentOf(commission)}%, below the ${percentOf(p.commission)}% standard`,
+      finding_text: `The contract pays ${percentOf(commission)}% commission. The standard is ${percentOf(p.commission)}%.`,
+      wording: (quote) => swapPercent(quote, commission, p.commission),
     });
   }
 
@@ -80,41 +81,41 @@ function raised(figures: DealFigures): Raised[] {
   const minimum = figures.minimum_room_nights;
   const threshold = figures.attrition_threshold_pct;
   if (block !== null && minimum !== null) {
-    const trigger = Math.round(block * ATTRITION_TRIGGER_OF_BLOCK);
+    const trigger = Math.round(block * p.attritionTrigger);
     if (minimum > trigger) {
       out.push({
         clause_type: "attrition",
         term_key: "attrition.minimum_room_nights",
         token: new RegExp(`(?<![\\d,.])(?:${escaped(grouped(minimum))}|${minimum})(?![\\d,]*\\d)`),
-        headline: `Attrition floor is ${shown(minimum / block)}% of the block, above the ${percentOf(ATTRITION_TRIGGER_OF_BLOCK)}% standard`,
+        headline: `Attrition floor is ${shown(minimum / block)}% of the block, above the ${percentOf(p.attritionTrigger)}% standard`,
         finding_text:
           `The group must use ${grouped(minimum)} of ${grouped(block)} room nights before damages stop. ` +
-          `The standard is ${percentOf(ATTRITION_TRIGGER_OF_BLOCK)}% of the block, which is ${grouped(trigger)} room nights.`,
+          `The standard is ${percentOf(p.attritionTrigger)}% of the block, which is ${grouped(trigger)} room nights.`,
         wording: (quote) => swapCount(quote, minimum, trigger),
       });
     }
-  } else if (threshold !== null && threshold > ATTRITION_TRIGGER_OF_BLOCK + 1e-9) {
+  } else if (threshold !== null && threshold > p.attritionTrigger + 1e-9) {
     out.push({
       clause_type: "attrition",
       term_key: "attrition.threshold",
       token: percentToken(threshold),
-      headline: `Attrition applies below ${percentOf(threshold)}% pickup, above the ${percentOf(ATTRITION_TRIGGER_OF_BLOCK)}% standard`,
-      finding_text: `Damages start below ${percentOf(threshold)}% of the block. The standard is ${percentOf(ATTRITION_TRIGGER_OF_BLOCK)}%.`,
-      wording: (quote) => swapPercent(quote, threshold, ATTRITION_TRIGGER_OF_BLOCK),
+      headline: `Attrition applies below ${percentOf(threshold)}% pickup, above the ${percentOf(p.attritionTrigger)}% standard`,
+      finding_text: `Damages start below ${percentOf(threshold)}% of the block. The standard is ${percentOf(p.attritionTrigger)}%.`,
+      wording: (quote) => swapPercent(quote, threshold, p.attritionTrigger),
     });
   }
 
   const shortfall = figures.fb_shortfall_pct;
-  if (shortfall !== null && shortfall > FB_SHORTFALL_RATE + 1e-9) {
+  if (shortfall !== null && shortfall > p.fbShortfall + 1e-9) {
     out.push({
       clause_type: "fb_minimum",
       term_key: "fb_minimum.shortfall_rate",
       token: percentToken(shortfall),
-      headline: `Food and beverage shortfall is charged at ${percentOf(shortfall)}%, above the ${percentOf(FB_SHORTFALL_RATE)}% standard`,
+      headline: `Food and beverage shortfall is charged at ${percentOf(shortfall)}%, above the ${percentOf(p.fbShortfall)}% standard`,
       finding_text:
-        `The group pays ${percentOf(shortfall)}% of a food and beverage shortfall. The standard is ${percentOf(FB_SHORTFALL_RATE)}%. ` +
+        `The group pays ${percentOf(shortfall)}% of a food and beverage shortfall. The standard is ${percentOf(p.fbShortfall)}%. ` +
         `Check any dollar amount the contract states beside this percentage, since the wording below changes the percentage alone.`,
-      wording: (quote) => swapPercent(quote, shortfall, FB_SHORTFALL_RATE),
+      wording: (quote) => swapPercent(quote, shortfall, p.fbShortfall),
     });
   }
 
@@ -143,10 +144,16 @@ export interface MustRaise {
   uncovered: { clause_type: string; headline: string }[];
 }
 
-export function mustRaise(figures: DealFigures, terms: ExtractedTerms, findings: Finding[], standards: StandardEntry[]): MustRaise {
+export function mustRaise(
+  figures: DealFigures,
+  terms: ExtractedTerms,
+  findings: Finding[],
+  standards: StandardEntry[],
+  positions: CdPositions = positionsFrom(standards).positions
+): MustRaise {
   const result: MustRaise = { findings: [], uncovered: [] };
 
-  for (const rule of raised(figures)) {
+  for (const rule of raised(figures, positions)) {
     const term = terms.stated.find((t) => t.term_key === rule.term_key && t.verification === "verified");
     if (!term || covered(rule, term, findings)) continue;
 

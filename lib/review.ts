@@ -1,5 +1,6 @@
 import { skippedClausesNote } from "./analysis-review";
 import { analyzeContract, type AnalyzeContractPdfArgs, type AnalyzableDocument, type CategorizedAnalysis } from "./anthropic";
+import { positionsFrom, type PositionsRead } from "./exposures/cd-positions";
 import { withComputedExposures } from "./exposures/compute";
 import { EXPOSURE_TERM_KEYS, NO_FIGURES, readFigures, TIER_ANSWER_KEYS, type FigureReading } from "./exposures/figures";
 import { applyCategories } from "./finding-categories";
@@ -61,7 +62,7 @@ export interface Reask {
 
 /** The reading call's result with the figures taken from it, or why there isn't one. */
 export type ReadingOutcome =
-  | ({ ok: true } & Reading & FigureReading & { reask: Reask | null })
+  | ({ ok: true } & Reading & FigureReading & { reask: Reask | null; positions: PositionsRead })
   | { ok: false; error: string };
 
 export interface ContractReview extends CategorizedAnalysis {
@@ -108,6 +109,12 @@ async function readContract(args: ReadArgs): Promise<Reading & FigureReading & {
 }
 
 export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...review }: ReviewContractArgs): Promise<ContractReview> {
+  // CD's numbers, as the library states them today. Kept with the reading, so a review records what it was measured against.
+  const cd = positionsFrom(review.standards);
+  if (cd.unread.length > 0) {
+    console.warn(`[exposures] the standards library's wording doesn't state ${cd.unread.join(", ")}, so the built-in value is used`);
+  }
+
   // Resolves either way, so a failed reading can never fail the review or leave a rejection unhandled.
   const pending: Promise<ReadingOutcome> = readContract({
     document: review.document,
@@ -116,7 +123,7 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
     model: review.model,
     deadline: review.deadline,
   }).then(
-    (outcome) => ({ ok: true as const, ...outcome }),
+    (outcome) => ({ ok: true as const, ...outcome, positions: cd }),
     (err: unknown) => ({ ok: false as const, error: messageOf(err) })
   );
 
@@ -133,7 +140,7 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
   }
   const figures = reading.ok ? reading.figures : NO_FIGURES;
 
-  const byApp = reading.ok ? mustRaise(figures, reading.terms, analysis.findings, review.standards) : { findings: [], uncovered: [] };
+  const byApp = reading.ok ? mustRaise(figures, reading.terms, analysis.findings, review.standards, cd.positions) : { findings: [], uncovered: [] };
   const findings = [...analysis.findings, ...applyCategories(byApp.findings, review.standards)];
 
   const notes = [
@@ -146,7 +153,7 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
 
   return {
     ...analysis,
-    findings: withComputedExposures(findings, figures),
+    findings: withComputedExposures(findings, figures, cd.positions),
     document_notes: [...analysis.document_notes, ...notes],
     deal_figures: figures,
     reading,

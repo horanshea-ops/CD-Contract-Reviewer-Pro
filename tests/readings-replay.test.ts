@@ -2,12 +2,16 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { extractDocx } from "@/lib/docx";
+import { positionsFrom } from "@/lib/exposures/cd-positions";
 import { attritionExposure, cancellationExposure, fbMinimumExposure } from "@/lib/exposures/compute";
 import { readFigures } from "@/lib/exposures/figures";
 import { mustRaise } from "@/lib/must-raise";
 import { EXPOSURE_CATALOG } from "@/lib/review";
 import { STANDARDS_LIBRARY } from "@/lib/standards/v1";
 import { validateTerms } from "@/lib/terms/validate";
+
+/** CD's numbers, as the bundled standards library states them. */
+const CD = positionsFrom(STANDARDS_LIBRARY).positions;
 
 /**
  * Real reader answers, replayed through everything the app does with them:
@@ -36,9 +40,9 @@ async function replay(fixturePath: string, contractPath: string) {
     figures,
     notes,
     exposures: {
-      attrition: attritionExposure(figures)?.amount ?? null,
-      cancellation: cancellationExposure(figures)?.amount ?? null,
-      fb_minimum: fbMinimumExposure(figures)?.amount ?? null,
+      attrition: attritionExposure(figures, CD)?.amount ?? null,
+      cancellation: cancellationExposure(figures, CD)?.amount ?? null,
+      fb_minimum: fbMinimumExposure(figures, CD)?.amount ?? null,
     },
     // What the app would raise if the judging call wrote nothing at all.
     raised: mustRaise(figures, terms, [], STANDARDS_LIBRARY),

@@ -646,10 +646,26 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
                 Florida and Harborview would cost about $0.11 and would show
                 the reworded question and the commission read on real
                 answers.
-              - **To know.** CD's four numbers sit in
-                `lib/exposures/cd-positions.ts`. A test ties them to the
-                bundled library, and an admin's edit to the library in the
-                database does not change them.
+              - **CD's numbers come from the standards library (user,
+                2026-10-04).** The attrition floor, room profit, the F&B
+                shortfall rate and commission were typed into code. The app
+                now reads each from the wording of its standard at the start
+                of a review (`lib/exposures/cd-positions.ts`), so an edit on
+                the Standards screen reaches the next review's dollar figures
+                and must-raise checks.
+                - The app finds each number by the words around it, such as
+                  "10% commission". If a standard is reworded so the number
+                  can't be found, the built-in value stands in.
+                - The Standards screen shows, under each of the four
+                  standards, the number in use, or a warning with wording the
+                  app can read. It updates as the admin types.
+                - Each review stores the numbers it used (`cd_positions` in
+                  `analyses.term_extraction`).
+                - A review already run keeps its figures.
+                - A separate number field was considered and left out, since
+                  it would give CD two places to keep in step.
+                - Checked live on the Standards screen: four readouts, 12%
+                  after an edit, a warning after a reword, nothing saved.
           - **Still to do, each paid step with its own yes.** The Florida
             review on Sonnet 5 with the split (about $0.45), if the split's
             own effect needs isolating. Then the seven-contract evals, since

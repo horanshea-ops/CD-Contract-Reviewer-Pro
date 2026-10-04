@@ -10,6 +10,7 @@ import { Body, Meta } from "@/components/ui/typography";
 import { SEVERITY_STYLE } from "@/components/severity-style";
 import { CATEGORY_KEYS, CATEGORY_STYLE } from "@/components/category-style";
 import { SeverityToggles } from "@/components/severity-toggles";
+import { DEFAULT_POSITIONS, POSITION_SOURCES, readPosition } from "@/lib/exposures/cd-positions";
 import { clauseLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
@@ -580,6 +581,7 @@ function StandardItem({
           {!editing ? (
             <div className="space-y-3">
               <Section label="Position">{standard.position}</Section>
+              <CalculationUse clauseType={standard.clause_type} position={standard.position} />
               {isBusiness && (
                 <>
                   <Section label="Fallback language">{standard.fallback_language}</Section>
@@ -612,6 +614,7 @@ function StandardItem({
                   rows={3}
                 />
               </Field>
+              <CalculationUse clauseType={standard.clause_type} position={form.position} />
               {form.category === "business" && (
                 <>
                   <Field label="Fallback language">
@@ -732,6 +735,36 @@ function formOf(s: StandardRow) {
     compromise_range: s.compromise_range,
     provenance: s.provenance,
   };
+}
+
+/**
+ * The number the app's dollar figures and checks take from this standard's
+ * wording, or a warning when the wording no longer states one. Four standards
+ * carry such a number. Every other standard shows nothing here.
+ */
+function CalculationUse({ clauseType, position }: { clauseType: string; position: string }) {
+  const sources = POSITION_SOURCES.filter((source) => source.clause_type === clauseType);
+  if (sources.length === 0) return null;
+
+  const percent = (fraction: number) => `${Number((fraction * 100).toFixed(4))}%`;
+  return (
+    <div className="space-y-1">
+      {sources.map((source) => {
+        const value = readPosition(source, position);
+        return value !== null ? (
+          <Meta key={source.key} as="p" className="text-[var(--text-secondary)]">
+            <span className="font-semibold">Used in calculations:</span> {percent(value)}, the {source.label}. The app reads it from the
+            wording above.
+          </Meta>
+        ) : (
+          <Meta key={source.key} as="p" role="alert" className="text-[var(--severity-high)]">
+            The app can&apos;t read the {source.label} from this wording, so its calculations keep using{" "}
+            {percent(DEFAULT_POSITIONS[source.key])}. To change that number, state it in words like &ldquo;{source.example}&rdquo;.
+          </Meta>
+        );
+      })}
+    </div>
+  );
 }
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {

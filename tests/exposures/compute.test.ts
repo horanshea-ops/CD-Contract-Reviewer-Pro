@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { attritionExposure, cancellationExposure, fbMinimumExposure, withComputedExposures } from "@/lib/exposures/compute";
 import { NO_FIGURES, type DealFigures } from "@/lib/exposures/figures";
 import type { Finding } from "@/lib/anthropic";
+import { positionsFrom } from "@/lib/exposures/cd-positions";
+import { STANDARDS_LIBRARY } from "@/lib/standards/v1";
+
+/** CD's numbers, as the bundled standards library states them. */
+const CD = positionsFrom(STANDARDS_LIBRARY).positions;
+
 
 /**
  * Exposure figures the app works out from a contract's checked figures.
@@ -28,7 +34,7 @@ const FLORIDA: DealFigures = {
 
 describe("attritionExposure", () => {
   it("charges the nights between the contract's minimum and CD's 70% trigger", () => {
-    expect(attritionExposure(FLORIDA)).toEqual({
+    expect(attritionExposure(FLORIDA, CD)).toEqual({
       amount: 33972,
       formula: "(2280 - 1995) * $149 * 0.8",
       basis:
@@ -37,21 +43,21 @@ describe("attritionExposure", () => {
   });
 
   it("reads a commitment stated as a share of the block", () => {
-    expect(attritionExposure({ ...FLORIDA, minimum_room_nights: null, attrition_threshold_pct: 0.8 })?.amount).toBe(33972);
+    expect(attritionExposure({ ...FLORIDA, minimum_room_nights: null, attrition_threshold_pct: 0.8 }, CD)?.amount).toBe(33972);
   });
 
   it("gives no figure when the contract's minimum is at or below CD's trigger", () => {
-    expect(attritionExposure({ ...FLORIDA, minimum_room_nights: 1995 })).toBeNull();
+    expect(attritionExposure({ ...FLORIDA, minimum_room_nights: 1995 }, CD)).toBeNull();
   });
 
   it("gives no figure without every figure it needs", () => {
-    expect(attritionExposure({ ...FLORIDA, attrition_damages_pct: null })).toBeNull();
+    expect(attritionExposure({ ...FLORIDA, attrition_damages_pct: null }, CD)).toBeNull();
   });
 });
 
 describe("cancellationExposure", () => {
   it("takes the tier with the highest fee, and charges its share of profit instead of the full rate", () => {
-    expect(cancellationExposure(FLORIDA)).toEqual({
+    expect(cancellationExposure(FLORIDA, CD)).toEqual({
       amount: 91724.4,
       formula: "2280 * $149 * 0.9 * (1 - 0.7)",
       basis:
@@ -61,18 +67,18 @@ describe("cancellationExposure", () => {
 
   it("gives no figure when the contract already charges room profit, or names another base", () => {
     const tier = FLORIDA.cancellation_tiers[1];
-    expect(cancellationExposure({ ...FLORIDA, cancellation_tiers: [{ ...tier, charges: "room_profit" }] })).toBeNull();
-    expect(cancellationExposure({ ...FLORIDA, cancellation_tiers: [{ ...tier, base: "other" }] })).toBeNull();
+    expect(cancellationExposure({ ...FLORIDA, cancellation_tiers: [{ ...tier, charges: "room_profit" }] }, CD)).toBeNull();
+    expect(cancellationExposure({ ...FLORIDA, cancellation_tiers: [{ ...tier, base: "other" }] }, CD)).toBeNull();
   });
 });
 
 describe("fbMinimumExposure", () => {
   it("gives no figure when the contract states no shortfall rate", () => {
-    expect(fbMinimumExposure(FLORIDA)).toBeNull();
+    expect(fbMinimumExposure(FLORIDA, CD)).toBeNull();
   });
 
   it("compares a stated shortfall rate with CD's 35%", () => {
-    expect(fbMinimumExposure({ ...FLORIDA, fb_shortfall_pct: 1 })?.amount).toBe(65000);
+    expect(fbMinimumExposure({ ...FLORIDA, fb_shortfall_pct: 1 }, CD)?.amount).toBe(65000);
   });
 });
 
@@ -95,7 +101,8 @@ describe("withComputedExposures", () => {
   it("puts each figure on the first finding of its clause, and clears every other", () => {
     const out = withComputedExposures(
       [finding("cancellation"), finding("cancellation"), finding("attrition"), finding("commission")],
-      FLORIDA
+      FLORIDA,
+      CD
     );
     expect(out.map((f) => f.exposure_amount)).toEqual([91724.4, null, 33972, null]);
     expect(out[3]).toMatchObject({ exposure_basis: null, exposure_formula: null });
@@ -108,10 +115,10 @@ describe("the Florida review's exposures", () => {
   const RUN: DealFigures = { ...FLORIDA, room_block_room_nights: 2900 };
 
   it("come to $121,524.40 across attrition and cancellation, with none for food and beverage", () => {
-    expect(attritionExposure(RUN)).toMatchObject({ amount: 29800, formula: "(2280 - 2030) * $149 * 0.8" });
-    expect(cancellationExposure(RUN)).toMatchObject({ amount: 91724.4, formula: "2280 * $149 * 0.9 * (1 - 0.7)" });
-    expect(fbMinimumExposure(RUN)).toBeNull();
-    expect(attritionExposure(RUN)!.amount + cancellationExposure(RUN)!.amount).toBeCloseTo(121524.4, 2);
+    expect(attritionExposure(RUN, CD)).toMatchObject({ amount: 29800, formula: "(2280 - 2030) * $149 * 0.8" });
+    expect(cancellationExposure(RUN, CD)).toMatchObject({ amount: 91724.4, formula: "2280 * $149 * 0.9 * (1 - 0.7)" });
+    expect(fbMinimumExposure(RUN, CD)).toBeNull();
+    expect(attritionExposure(RUN, CD)!.amount + cancellationExposure(RUN, CD)!.amount).toBeCloseTo(121524.4, 2);
   });
 });
 
@@ -120,7 +127,7 @@ describe("an exposure in euros", () => {
   const ROME: DealFigures = { ...NO_FIGURES, fb_minimum: 20000, fb_shortfall_pct: 1, currency: "€" };
 
   it("works out the F&B gap and writes it in the contract's currency", () => {
-    expect(fbMinimumExposure(ROME)).toEqual({
+    expect(fbMinimumExposure(ROME, CD)).toEqual({
       amount: 13000,
       formula: "€20000 * (1 - 0.35)",
       basis: "If none of the €20,000 minimum is spent, this contract charges 100% of the shortfall. CD's standard charges 35%.",

@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { attritionExposure, cancellationExposure, fbMinimumExposure } from "@/lib/exposures/compute";
 import { EXPOSURE_TERM_KEYS, figuresFromTerms, readFigures } from "@/lib/exposures/figures";
+import { positionsFrom } from "@/lib/exposures/cd-positions";
+import { STANDARDS_LIBRARY } from "@/lib/standards/v1";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 import { validateTerms } from "@/lib/terms/validate";
+
+/** CD's numbers, as the bundled standards library states them. */
+const CD = positionsFrom(STANDARDS_LIBRARY).positions;
 
 /**
  * The contract's figures, as the term pass reads them. Each case goes from the
@@ -64,9 +69,9 @@ describe("figuresFromTerms", () => {
       commission_pct: null,
       currency: "$",
     });
-    expect(attritionExposure(figures)?.amount).toBe(29800);
-    expect(cancellationExposure(figures)?.amount).toBe(91724.4);
-    expect(fbMinimumExposure(figures)).toBeNull();
+    expect(attritionExposure(figures, CD)?.amount).toBe(29800);
+    expect(cancellationExposure(figures, CD)?.amount).toBe(91724.4);
+    expect(fbMinimumExposure(figures, CD)).toBeNull();
   });
 
   it("drops a number its quote contradicts, or whose quote isn't in the contract", () => {
@@ -128,7 +133,7 @@ describe("figuresFromTerms", () => {
     it("takes it from the schedule's closest tier when the schedule's quote states it", () => {
       const { figures, notes, unanswered } = reading(withSchedule(TIER_LINE));
       expect(figures.cancellation_tiers).toEqual([{ label: "90 Days or Less", room_pct: 0.9, base: "minimum_room_nights", charges: "rate" }]);
-      expect(cancellationExposure(figures)?.amount).toBe(91724.4);
+      expect(cancellationExposure(figures, CD)?.amount).toBe(91724.4);
       expect(notes).toEqual([
         { term_key: "cancellation.top_tier_pct", reason: "The percentage was taken from the schedule's tier closest to arrival, whose quote states it." },
       ]);
@@ -180,7 +185,7 @@ describe("figuresFromTerms", () => {
 
     const noBase = read(without("cancellation.damages_room_nights"));
     expect(noBase.cancellation_tiers).toEqual([{ label: "90 Days or Less", room_pct: 0.9, base: "other", charges: "rate" }]);
-    expect(cancellationExposure(noBase)).toBeNull();
+    expect(cancellationExposure(noBase, CD)).toBeNull();
   });
 
   it("reads a room-profit schedule as one, and names the tier when no schedule was read", () => {
@@ -208,7 +213,7 @@ describe("figuresFromTerms", () => {
       [{ part: "document", text: EURO }]
     );
     expect(figures).toMatchObject({ fb_minimum: 20000, group_rate: 469, fb_shortfall_pct: 1, currency: "€" });
-    expect(fbMinimumExposure(figures)).toMatchObject({ amount: 13000, formula: "€20000 * (1 - 0.35)" });
+    expect(fbMinimumExposure(figures, CD)).toMatchObject({ amount: 13000, formula: "€20000 * (1 - 0.35)" });
   });
 
   it("drops a euro amount its quote doesn't carry", () => {

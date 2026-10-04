@@ -5,8 +5,10 @@ import { readFile } from "fs/promises";
 import { extractDocx } from "../lib/docx";
 import { contractText } from "../lib/docx/contract-text";
 import { attritionExposure, cancellationExposure, fbMinimumExposure } from "../lib/exposures/compute";
+import { positionsFrom } from "../lib/exposures/cd-positions";
 import { readFigures } from "../lib/exposures/figures";
 import { EXPOSURE_CATALOG } from "../lib/review";
+import { STANDARDS_LIBRARY } from "../lib/standards/v1";
 import { extractTerms } from "../lib/terms/extract";
 
 /**
@@ -56,7 +58,13 @@ async function main() {
   console.log("\nFigures:", JSON.stringify(figures, null, 2));
   for (const note of notes) console.log(`Note on ${note.term_key}: ${note.reason}`);
 
-  const exposures = { attrition: attritionExposure(figures), cancellation: cancellationExposure(figures), fb_minimum: fbMinimumExposure(figures) };
+  // CD's numbers as the bundled library states them. A review uses the library in the database.
+  const { positions } = positionsFrom(STANDARDS_LIBRARY);
+  const exposures = {
+    attrition: attritionExposure(figures, positions),
+    cancellation: cancellationExposure(figures, positions),
+    fb_minimum: fbMinimumExposure(figures, positions),
+  };
   let total = 0;
   for (const [clause, exposure] of Object.entries(exposures)) {
     console.log(`${clause}: ${exposure ? `${exposure.amount.toLocaleString()}  (${exposure.formula})` : "no exposure"}`);

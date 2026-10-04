@@ -9,6 +9,7 @@ import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap
 import { toNotes, type DocumentNote } from "./document-notes";
 import { toOtherFindings } from "./other-findings";
 import { applyCategories, toFlaggedFindings, type CategorizedFinding } from "./finding-categories";
+import { DEFAULT_POSITIONS } from "./exposures/cd-positions";
 import { NO_FIGURES, type DealFigures } from "./exposures/figures";
 import { withComputedExposures } from "./exposures/compute";
 import { currencyOf } from "./exposure";
@@ -597,7 +598,7 @@ export async function analyzeContract({
       ...reviewed,
       // Kept out of reconcileReview, which checks findings against the library's clause types.
       // No finding carries an exposure here. reviewContract adds them from the reading pass's figures.
-      findings: applyCategories(withComputedExposures([...reviewed.findings, ...parsed.other_findings], NO_FIGURES), standards),
+      findings: applyCategories(withComputedExposures([...reviewed.findings, ...parsed.other_findings], NO_FIGURES, DEFAULT_POSITIONS), standards),
       document_notes: parsed.document_notes,
       model_id: modelId,
       standards_library_version: standardsVersion,
