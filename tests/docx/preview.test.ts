@@ -313,6 +313,15 @@ describe("the margin's notes", () => {
     expect([keyOfRun.get(struck), keyOfRun.get(added)]).toEqual(["change-1", "change-1"]);
   });
 
+  it("shows whole words when a change covers part of one", () => {
+    const { notes } = revisionNotes(part(paragraph(run("at least 7"), run("00", rev("del")), run("50", rev("ins")), run("% of rooms"))));
+    expect(notes.map((n) => [n.kind, n.was, n.now])).toEqual([["replaced", "700%", "750%"]]);
+
+    // Word splits one word across runs wherever its formatting changes.
+    const split = revisionNotes(part(paragraph(run("least "), run("$"), run("100", rev("del")), run("80", rev("ins")), run(",000.0"), run("0, excluding"))));
+    expect(split.notes.map((n) => [n.was, n.now])).toEqual([["$100,000.00", "$80,000.00"]]);
+  });
+
   it("keeps changes apart when plain text, another author or a new paragraph sits between them", () => {
     const { notes } = revisionNotes(
       part(

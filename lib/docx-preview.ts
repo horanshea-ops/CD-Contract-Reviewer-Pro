@@ -438,10 +438,23 @@ export function revisionNotes(parts: PreviewPart[]): RevisionNotes {
   const notes: RevisionNote[] = [];
   const keyOfRun = new Map<PreviewRun, string>();
 
-  const close = (part: string, group: PreviewRun[]) => {
+  // A change can cover part of a word: "700" to "750" is stored as "00" struck and "50" added.
+  // The rest of the word is read from the plain text either side, so the note shows whole words.
+  const plain = (run: PreviewRun | undefined) => !!run && !run.revision && run.kind === "text";
+
+  const close = (part: string, runs: PreviewRun[], from: number, to: number) => {
+    const group = runs.slice(from, to);
     if (group.length === 0) return;
-    const was = group.filter(REMOVES).map((r) => r.text).join("");
-    const now = group.filter((r) => !REMOVES(r)).map((r) => r.text).join("");
+
+    let before = "";
+    for (let i = from - 1; plain(runs[i]) && !/\s/.test(before); i--) before = runs[i].text + before;
+    let after = "";
+    for (let i = to; plain(runs[i]) && !/\s/.test(after); i++) after += runs[i].text;
+    const head = (/\S{1,20}$/.exec(before)?.[0] ?? "").replace(/^[(["“]+/, "");
+    const tail = (/^\S{1,20}/.exec(after)?.[0] ?? "").replace(/[,.;:)\]"”]+$/, "");
+    const whole = (text: string) => (text ? head + text + tail : "");
+    const was = whole(group.filter(REMOVES).map((r) => r.text).join(""));
+    const now = whole(group.filter((r) => !REMOVES(r)).map((r) => r.text).join(""));
     const moved = group.every((r) => r.revision?.kind === "moveFrom" || r.revision?.kind === "moveTo");
     const key = `change-${notes.length + 1}`;
     notes.push({
@@ -462,16 +475,17 @@ export function revisionNotes(parts: PreviewPart[]): RevisionNotes {
         for (const row of block.rows) for (const cell of row.cells) visit(part, cell.blocks);
         continue;
       }
-      let group: PreviewRun[] = [];
-      for (const run of block.runs) {
-        const sameChange = run.revision && (group.length === 0 || group[0].revision?.author === run.revision.author);
-        if (!sameChange) {
-          close(part, group);
-          group = [];
+      // `from` is where the open change starts, or -1 when none is open.
+      let from = -1;
+      block.runs.forEach((run, i) => {
+        const sameChange = from !== -1 && run.revision?.author === block.runs[from].revision?.author;
+        if (from !== -1 && !sameChange) {
+          close(part, block.runs, from, i);
+          from = -1;
         }
-        if (run.revision) group.push(run);
-      }
-      close(part, group);
+        if (run.revision && from === -1) from = i;
+      });
+      if (from !== -1) close(part, block.runs, from, block.runs.length);
     }
   };
 

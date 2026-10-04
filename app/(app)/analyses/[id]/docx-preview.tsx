@@ -172,17 +172,12 @@ export default function DocxPreview({
     };
   }, [focus, commentView, notes, commentRange, changes, activeKey, selectedFindingId, highlightColor]);
 
+  // One scroll per pick. Two smooth scrolls started together cut each other short.
   useEffect(() => {
-    if (!focus) return;
-    containerRef.current
-      ?.querySelector("[data-preview-active-highlight]")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [focus]);
-
-  useEffect(() => {
-    if (!activeKey) return;
-    containerRef.current?.querySelector(`[data-anchors~="${activeKey}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [activeKey]);
+    const target = activeKey ? `[data-anchors~="${activeKey}"]` : focus ? "[data-preview-active-highlight]" : null;
+    if (!target) return;
+    containerRef.current?.querySelector(target)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focus, activeKey]);
 
   const noteCount = commentsTotal + changes.notes.length;
 
@@ -222,7 +217,7 @@ export default function DocxPreview({
               variant={commentView ? "primary" : "secondary"}
               aria-pressed={commentView}
               onClick={() => onCommentViewChange(!commentView)}
-              className="shrink-0 bg-white"
+              className={commentView ? "shrink-0" : "shrink-0 bg-white"}
             >
               {commentView ? "Hide" : "Show"} comments and changes ({noteCount})
             </Button>

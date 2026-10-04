@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { stackNotes, type CommentThread, type RevisionNote } from "@/lib/docx-preview";
 import type { DocumentComment } from "@/lib/docx";
 import { Body, Meta } from "@/components/ui/typography";
@@ -128,11 +128,6 @@ export function CommentMargin({ notes, anchorRoot, activeKey, onSelect, notShown
     for (const el of aside.querySelectorAll("[data-note]")) observer.observe(el);
     return () => observer.disconnect();
   }, [notes, anchorRoot, activeKey]);
-
-  useEffect(() => {
-    if (!activeKey) return;
-    asideRef.current?.querySelector(`[data-note="${activeKey}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [activeKey]);
 
   return (
     <aside
