@@ -4,13 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import FindingCard, { SEVERITY_STYLE, type Finding } from "./finding-card";
+import ClauseCard from "./clause-card";
 import FindingsOverviewBar from "./findings-overview-bar";
 import DocumentNotes, { noteCount } from "./document-notes";
 import PdfViewer from "./pdf-viewer";
 import DocxPreview from "./docx-preview";
 import { ResizableSplit } from "./resizable-split";
 import type { HighlightRect } from "@/lib/locate-text";
-import { compareFindings, computeFindingsOverview, findingCategory } from "@/lib/findings-overview";
+import { computeFindingsOverview, findingCategory, groupByClause, inClauseOrder } from "@/lib/findings-overview";
 import type { Category } from "@/lib/standards/types";
 import { CATEGORY_STYLE } from "@/components/category-style";
 import { ExportPicker } from "@/components/export-picker";
@@ -160,7 +161,7 @@ export default function AnalysisPage() {
 
   const sortedFindings = useMemo(() => {
     if (!data) return [];
-    return [...data.findings].sort(compareFindings);
+    return inClauseOrder(data.findings);
   }, [data]);
 
   const visibleFindings = useMemo(
@@ -407,16 +408,26 @@ export default function AnalysisPage() {
   const legalFindings = visibleFindings.filter((f) => findingCategory(f) === "legal");
   const otherFindings = visibleFindings.filter((f) => findingCategory(f) === "other");
   const showOther = !hiddenCategories.has("other") && (otherFindings.length > 0 || notesInOther > 0);
-  const card = (f: Finding) => (
+  const card = (f: Finding, nested = false) => (
     <FindingCard
       key={f.id}
       finding={f}
+      nested={nested}
       focused={f.id === selectedFindingId}
       onActionRecorded={handleActionRecorded}
       onSelectFinding={handleSelectFinding}
       locateMode={data.intake_route === "docx_native" ? "docx" : "pdf"}
     />
   );
+  // One card per clause, with every change inside it still decided on its own.
+  const clauseCards = (findings: Finding[]) =>
+    groupByClause(findings).map((group) => (
+      <ClauseCard key={group.clause_type} group={group} renderFinding={card} onActionRecorded={handleActionRecorded} />
+    ));
+  const clauseCount = (findings: Finding[]) => {
+    const clauses = new Set(findings.map((f) => f.clause_type)).size;
+    return `${clauses} ${clauses === 1 ? "clause" : "clauses"}, ${findings.length} ${findings.length === 1 ? "change" : "changes"}`;
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -524,8 +535,8 @@ export default function AnalysisPage() {
               ) : null}
               {businessFindings.length > 0 && (
                 <section aria-label="Business" className="space-y-3">
-                  <SectionHeading category="business">proposed changes to the contract</SectionHeading>
-                  {businessFindings.map(card)}
+                  <SectionHeading category="business">proposed changes to the contract · {clauseCount(businessFindings)}</SectionHeading>
+                  {clauseCards(businessFindings)}
                 </section>
               )}
               {legalFindings.length > 0 && (
@@ -535,7 +546,7 @@ export default function AnalysisPage() {
                     {ORG.shortName} doesn&apos;t give legal advice, so these explain a risk and propose no wording. Flag one
                     to list it in the client memo and email, for the client to raise with their counsel.
                   </Meta>
-                  {legalFindings.map(card)}
+                  {clauseCards(legalFindings)}
                 </section>
               )}
               {showOther && (
@@ -549,7 +560,7 @@ export default function AnalysisPage() {
                       change in the redline.
                     </Meta>
                   )}
-                  {otherFindings.map(card)}
+                  {otherFindings.map((f) => card(f))}
                   <DocumentNotes notes={data.document_notes} checks={checks} />
                 </section>
               )}
