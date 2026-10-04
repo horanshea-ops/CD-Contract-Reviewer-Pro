@@ -38,7 +38,16 @@ function save(width: number) {
   }
 }
 
-export function ResizableSplit({ contract, findings }: { contract: ReactNode; findings: ReactNode }) {
+export function ResizableSplit({
+  contract,
+  findings,
+  collapsed = false,
+}: {
+  contract: ReactNode;
+  findings: ReactNode;
+  /** Gives the contract the full width from lg up, and hides the findings pane and the divider there. */
+  collapsed?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   // The review screen renders this only after loading the review in the browser, so storage is available here.
   const [width, setWidth] = useState(() => readSaved() ?? DEFAULT);
@@ -84,7 +93,7 @@ export function ResizableSplit({ contract, findings }: { contract: ReactNode; fi
     <div
       ref={containerRef}
       className="relative flex-1 min-h-0 flex flex-col lg:flex-row"
-      style={{ "--findings-width": `${width}%` } as CSSProperties}
+      style={{ "--findings-width": collapsed ? "0%" : `${width}%` } as CSSProperties}
     >
       {contract}
       <div
@@ -103,7 +112,7 @@ export function ResizableSplit({ contract, findings }: { contract: ReactNode; fi
         onPointerCancel={onPointerUp}
         onDoubleClick={() => update(DEFAULT)}
         onKeyDown={onKeyDown}
-        className="group hidden lg:block absolute inset-y-0 z-20 w-3 -translate-x-1/2 cursor-col-resize touch-none outline-none"
+        className={`group hidden ${collapsed ? "" : "lg:block"} absolute inset-y-0 z-20 w-3 -translate-x-1/2 cursor-col-resize touch-none outline-none`}
         style={{ left: `calc(100% - ${width}%)` }}
       >
         <span
@@ -113,7 +122,7 @@ export function ResizableSplit({ contract, findings }: { contract: ReactNode; fi
           }`}
         />
       </div>
-      {findings}
+      <div className={collapsed ? "contents lg:hidden" : "contents"}>{findings}</div>
     </div>
   );
 }

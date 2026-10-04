@@ -5,9 +5,12 @@ import { extractDocx } from "@/lib/docx";
 import {
   buildPartPreview,
   buildPreview,
+  commentThreads,
   rangeOrNearestWord,
   resolveHighlight,
+  revisionNotes,
   segmentRun,
+  stackNotes,
   type PreviewBlock,
   type PreviewRun,
 } from "@/lib/docx-preview";
@@ -285,5 +288,73 @@ describe("marks on the preview", () => {
     };
     expect(word(14)).toBe("before");
     expect(word(text.length)).toBe("arrival.");
+  });
+});
+
+describe("the margin's notes", () => {
+  const rev = (kind: "ins" | "del" | "moveFrom" | "moveTo", author = "Hotel", date = "2026-10-01T10:00:00Z") => ({ kind, author, date, id: "1" });
+  const run = (text: string, revision: PreviewRun["revision"] = null): PreviewRun => ({
+    text,
+    revision,
+    range: revision && (revision.kind === "del" || revision.kind === "moveFrom") ? null : { start: 0, end: text.length },
+    kind: "text",
+  });
+  const part = (...blocks: PreviewBlock[]) => [{ part: "document", text: "", blocks }];
+  const paragraph = (...runs: PreviewRun[]): PreviewBlock => ({ kind: "paragraph", runs });
+
+  it("reads a deletion beside an insertion by one author as one replacement", () => {
+    const struck = run("ninety", rev("del"));
+    const added = run("eighty", rev("ins", "Hotel", "2026-10-02T09:00:00Z"));
+    const { notes, keyOfRun } = revisionNotes(part(paragraph(run("at "), struck, added, run(" percent"))));
+
+    expect(notes).toEqual([
+      { key: "change-1", part: "document", kind: "replaced", author: "Hotel", date: "2026-10-02T09:00:00Z", was: "ninety", now: "eighty" },
+    ]);
+    expect([keyOfRun.get(struck), keyOfRun.get(added)]).toEqual(["change-1", "change-1"]);
+  });
+
+  it("keeps changes apart when plain text, another author or a new paragraph sits between them", () => {
+    const { notes } = revisionNotes(
+      part(
+        paragraph(run("old", rev("del")), run(" and "), run("new", rev("ins"))),
+        paragraph(run("theirs", rev("ins")), run("ours", rev("ins", "ConferenceDirect"))),
+        { kind: "table", rows: [{ cells: [{ blocks: [paragraph(run("300", rev("moveTo")))] }] }] }
+      )
+    );
+
+    expect(notes.map((n) => [n.kind, n.author, n.was, n.now])).toEqual([
+      ["deleted", "Hotel", "old", ""],
+      ["added", "Hotel", "", "new"],
+      ["added", "Hotel", "", "theirs"],
+      ["added", "ConferenceDirect", "", "ours"],
+      ["moved", "Hotel", "", "300"],
+    ]);
+  });
+
+  it("puts each reply under the comment it answers, however deep", () => {
+    const c = (id: string, replyTo: string | null = null) => ({ id, replyTo });
+    const threads = commentThreads([c("1"), c("2", "1"), c("3"), c("4", "2"), c("5", "missing")]);
+
+    expect(threads.map((t) => [t.root.id, t.replies.map((r) => r.id)])).toEqual([
+      ["1", ["2", "4"]],
+      ["3", []],
+      ["5", []],
+    ]);
+  });
+
+  it("sets a note level with its wording, and below the note above when that one is in the way", () => {
+    const tops = stackNotes(
+      [
+        { key: "b", anchorTop: 110, height: 40 },
+        { key: "a", anchorTop: 100, height: 60 },
+        { key: "c", anchorTop: 400, height: 30 },
+      ],
+      8
+    );
+    expect([...tops]).toEqual([
+      ["a", 100],
+      ["b", 168],
+      ["c", 400],
+    ]);
   });
 });

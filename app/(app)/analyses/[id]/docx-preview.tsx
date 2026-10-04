@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  commentThreads,
   rangeOrNearestWord,
   resolveHighlight,
+  revisionNotes,
   segmentRun,
   type PreviewBlock,
   type PreviewMark,
@@ -14,6 +16,7 @@ import type { DocumentComment } from "@/lib/docx";
 import { Button } from "@/components/ui/button";
 import { Body, Meta, ReadingText, Subtitle, Title } from "@/components/ui/typography";
 import { titleCase } from "@/lib/format";
+import { CommentMargin, NoteBody, type MarginNote } from "./comment-margin";
 
 /** The mark for whatever the reader last pointed at: a finding's wording, or a comment's. */
 const FOCUS = "focus";
@@ -26,14 +29,16 @@ interface Marking {
   focusColor: string;
   /** The number shown at the end of each comment's wording, by mark key. */
   numbers: Map<string, number>;
+  /** The tracked change each run belongs to. Empty outside the comment view. */
+  changeOfRun: Map<PreviewRun, string>;
+  /** The note last picked, in the margin or in the wording. */
+  activeKey: string | null;
+  onSelect: (key: string) => void;
 }
 
 const commentKey = (id: string) => `comment-${id}`;
 
-function commentDate(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
+const NO_CHANGES: ReturnType<typeof revisionNotes> = { notes: [], keyOfRun: new Map() };
 
 export interface DocxPreviewProps {
   analysisId: string;
@@ -42,6 +47,9 @@ export interface DocxPreviewProps {
   existingRevisionCount: number;
   selectedFinding: { id: string; quoted_text: string | null } | null;
   highlightColor: string;
+  /** Whether the file's own comments and tracked changes show beside the wording. */
+  commentView: boolean;
+  onCommentViewChange: (on: boolean) => void;
 }
 
 type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
@@ -63,13 +71,14 @@ export default function DocxPreview({
   existingRevisionCount,
   selectedFinding,
   highlightColor,
+  commentView,
+  onCommentViewChange,
 }: DocxPreviewProps) {
   const [parts, setParts] = useState<PreviewPart[] | null>(null);
   const [comments, setComments] = useState<DocumentComment[]>([]);
   const [commentsTotal, setCommentsTotal] = useState(0);
-  const [showComments, setShowComments] = useState(false);
-  // The comment last clicked, and the finding selected at the time. Selecting another finding takes the focus back.
-  const [commentFocus, setCommentFocus] = useState<{ id: string; findingId: string | null } | null>(null);
+  // The note last picked, and the finding selected at the time. Selecting another finding takes the focus back.
+  const [picked, setPicked] = useState<{ key: string; findingId: string | null } | null>(null);
   const [loadError, setLoadError] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -108,17 +117,36 @@ export default function DocxPreview({
 
   const selectedFindingId = selectedFinding?.id ?? null;
 
-  const focus = useMemo(() => {
-    const comment =
-      showComments && commentFocus && commentFocus.findingId === selectedFindingId
-        ? comments.find((c) => c.id === commentFocus.id)
-        : undefined;
-    if (comment && parts) {
-      const text = parts.find((p) => p.part === comment.part)?.text ?? "";
-      return { part: comment.part, ...rangeOrNearestWord(text, comment.start, comment.end), color: COMMENT_FOCUS_COLOR };
+  const changes = useMemo(() => (parts ? revisionNotes(parts) : NO_CHANGES), [parts]);
+
+  // One note per comment thread and one per tracked change. Each thread is placed by its first comment's wording.
+  const notes = useMemo<MarginNote[]>(
+    () => [
+      ...commentThreads(comments).map((thread, i) => ({ key: commentKey(thread.root.id), kind: "comment" as const, number: i + 1, thread })),
+      ...changes.notes.map((change) => ({ key: change.key, kind: "change" as const, change })),
+    ],
+    [comments, changes]
+  );
+
+  const activeKey = commentView && picked && picked.findingId === selectedFindingId ? picked.key : null;
+
+  const commentRange = useMemo(() => {
+    const ranges = new Map<string, { part: string; start: number; end: number }>();
+    if (!parts) return ranges;
+    for (const note of notes) {
+      if (note.kind !== "comment") continue;
+      const { root } = note.thread;
+      const text = parts.find((p) => p.part === root.part)?.text ?? "";
+      ranges.set(note.key, { part: root.part, ...rangeOrNearestWord(text, root.start, root.end) });
     }
+    return ranges;
+  }, [parts, notes]);
+
+  const focus = useMemo(() => {
+    const comment = activeKey ? commentRange.get(activeKey) : undefined;
+    if (comment) return { ...comment, color: COMMENT_FOCUS_COLOR };
     return match ? { part: match.part, start: match.start, end: match.end, color: highlightColor } : null;
-  }, [showComments, commentFocus, selectedFindingId, comments, parts, match, highlightColor]);
+  }, [activeKey, commentRange, match, highlightColor]);
 
   const marking = useMemo<Marking>(() => {
     const marks = new Map<string, PreviewMark[]>();
@@ -126,14 +154,23 @@ export default function DocxPreview({
     const add = (part: string, mark: PreviewMark) => marks.set(part, [...(marks.get(part) ?? []), mark]);
 
     if (focus) add(focus.part, { key: FOCUS, start: focus.start, end: focus.end });
-    if (showComments) {
-      comments.forEach((c, i) => {
-        numbers.set(commentKey(c.id), i + 1);
-        if (c.end > c.start) add(c.part, { key: commentKey(c.id), start: c.start, end: c.end });
-      });
+    if (commentView) {
+      for (const note of notes) {
+        const range = commentRange.get(note.key);
+        if (note.kind !== "comment" || !range) continue;
+        numbers.set(note.key, note.number);
+        add(range.part, { key: note.key, start: range.start, end: range.end });
+      }
     }
-    return { marks, numbers, focusColor: focus?.color ?? highlightColor };
-  }, [focus, showComments, comments, highlightColor]);
+    return {
+      marks,
+      numbers,
+      focusColor: focus?.color ?? highlightColor,
+      changeOfRun: commentView ? changes.keyOfRun : NO_CHANGES.keyOfRun,
+      activeKey,
+      onSelect: (key) => setPicked({ key, findingId: selectedFindingId }),
+    };
+  }, [focus, commentView, notes, commentRange, changes, activeKey, selectedFindingId, highlightColor]);
 
   useEffect(() => {
     if (!focus) return;
@@ -141,6 +178,13 @@ export default function DocxPreview({
       ?.querySelector("[data-preview-active-highlight]")
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [focus]);
+
+  useEffect(() => {
+    if (!activeKey) return;
+    containerRef.current?.querySelector(`[data-anchors~="${activeKey}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [activeKey]);
+
+  const noteCount = commentsTotal + changes.notes.length;
 
   if (loadError) {
     return (
@@ -166,51 +210,38 @@ export default function DocxPreview({
 
   return (
     <div className="flex flex-col h-full">
-      {(hadExistingRevisions || comments.length > 0) && (
+      {(hadExistingRevisions || noteCount > 0) && (
         <div className="flex items-center justify-between gap-3 bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] px-4 py-2 shrink-0">
           <Meta as="span">
             {hadExistingRevisions &&
               `${existingRevisionCount} tracked change${existingRevisionCount === 1 ? "" : "s"} already in this file, by ${existingRevisionAuthors.join(", ")}`}
           </Meta>
-          {comments.length > 0 && (
+          {noteCount > 0 && (
             <Button
               size="sm"
-              variant={showComments ? "primary" : "secondary"}
-              aria-pressed={showComments}
-              onClick={() => setShowComments((on) => !on)}
+              variant={commentView ? "primary" : "secondary"}
+              aria-pressed={commentView}
+              onClick={() => onCommentViewChange(!commentView)}
               className="shrink-0 bg-white"
             >
-              Comments ({commentsTotal})
+              {commentView ? "Hide" : "Show"} comments and changes ({noteCount})
             </Button>
           )}
         </div>
       )}
-      {showComments && (
+      {commentView && (
         <ol
-          aria-label="Comments already in this file"
-          className="shrink-0 max-h-[38%] overflow-auto border-b border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2"
+          aria-label="Comments and tracked changes already in this file"
+          className="lg:hidden shrink-0 max-h-[38%] overflow-auto border-b border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2"
         >
-          {comments.map((c, i) => (
-            <li key={c.id} className={c.replyTo ? "ml-6" : undefined}>
+          {notes.map((note) => (
+            <li key={note.key}>
               <button
                 type="button"
-                onClick={() => setCommentFocus({ id: c.id, findingId: selectedFindingId })}
+                onClick={() => marking.onSelect(note.key)}
                 className="w-full text-left rounded-md px-2 py-1.5 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--cd-blue)]"
               >
-                <Meta as="span" className="block text-[var(--text-muted)]">
-                  {i + 1} · {c.author || "Unnamed"}
-                  {commentDate(c.date) && ` · ${commentDate(c.date)}`}
-                  {c.replyTo && " · reply"}
-                  {c.resolved && " · resolved"}
-                </Meta>
-                <Body as="span" className="block whitespace-pre-wrap">
-                  {c.text}
-                </Body>
-                {(c.context || c.quoted) && (
-                  <Meta as="span" className="block truncate text-[var(--text-muted)]">
-                    on “{c.context || c.quoted}”
-                  </Meta>
-                )}
+                <NoteBody note={note} clipped={note.key !== activeKey} />
               </button>
             </li>
           ))}
@@ -223,19 +254,32 @@ export default function DocxPreview({
           )}
         </ol>
       )}
-      <div ref={containerRef} className="flex-1 overflow-auto bg-white px-6 py-4">
-        {parts.map((part) => (
-          <div key={part.part}>
-            {part.part !== "document" && (
-              <Meta as="p" className="font-semibold text-[var(--text-muted)] mt-6 mb-2">
-                {titleCase(part.part)}
-              </Meta>
-            )}
-            {part.blocks.map((block, i) => (
-              <Block key={i} block={block} partName={part.part} marking={marking} />
+      <div ref={containerRef} className="flex-1 overflow-auto bg-white">
+        <div className="flex items-stretch">
+          <div className="flex-1 min-w-0 px-6 py-4">
+            {parts.map((part) => (
+              <div key={part.part}>
+                {part.part !== "document" && (
+                  <Meta as="p" className="font-semibold text-[var(--text-muted)] mt-6 mb-2">
+                    {titleCase(part.part)}
+                  </Meta>
+                )}
+                {part.blocks.map((block, i) => (
+                  <Block key={i} block={block} partName={part.part} marking={marking} />
+                ))}
+              </div>
             ))}
           </div>
-        ))}
+          {commentView && (
+            <CommentMargin
+              notes={notes}
+              anchorRoot={containerRef}
+              activeKey={activeKey}
+              onSelect={marking.onSelect}
+              notShown={commentsTotal - comments.length}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -311,10 +355,20 @@ function Runs({ runs, partName, marking }: { runs: PreviewRun[]; partName: strin
               : "";
         const title = run.revision ? `${run.revision.author || "Unknown"} ${run.revision.kind} ${run.revision.date}` : undefined;
 
+        // In the comment view a tracked change is the anchor of its margin note, and picks that note when clicked.
+        const change = marking.changeOfRun.get(run);
+        const changeProps = change
+          ? {
+              "data-anchors": change,
+              onClick: () => marking.onSelect(change),
+              className: `${revisionClass} cursor-pointer rounded-sm ${change === marking.activeKey ? "outline outline-2 outline-[var(--cd-navy)]" : ""}`,
+            }
+          : { className: revisionClass };
+
         const range = run.range;
         if (!range || !marks.some((m) => m.start < range.end && m.end > range.start)) {
           return (
-            <span key={i} className={revisionClass} title={title}>
+            <span key={i} title={title} {...changeProps}>
               {run.text}
             </span>
           );
@@ -322,7 +376,7 @@ function Runs({ runs, partName, marking }: { runs: PreviewRun[]; partName: strin
 
         // Each piece is covered by a fixed set of marks: the focus highlight, comment anchors, or both.
         return (
-          <span key={i} className={revisionClass} title={title}>
+          <span key={i} title={title} {...changeProps}>
             {segmentRun({ text: run.text, range }, marks).map((piece) => {
               const commentKeys = piece.marks.filter((key) => key !== FOCUS);
               const ending = marks.filter((m) => m.key !== FOCUS && m.end === piece.end && piece.marks.includes(m.key));
@@ -335,12 +389,17 @@ function Runs({ runs, partName, marking }: { runs: PreviewRun[]; partName: strin
                 piece.text
               );
 
+              if (commentKeys.length === 0) return <span key={piece.start}>{text}</span>;
+
               return (
                 <span
                   key={piece.start}
-                  className={
-                    commentKeys.length ? "underline decoration-dotted decoration-[var(--cd-navy)] underline-offset-4" : undefined
-                  }
+                  data-anchors={commentKeys.join(" ")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    marking.onSelect(commentKeys[0]);
+                  }}
+                  className="cursor-pointer underline decoration-dotted decoration-[var(--cd-navy)] underline-offset-4"
                 >
                   {text}
                   {ending.map((m) => (

@@ -94,6 +94,7 @@ export default function AnalysisPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [activePage, setActivePage] = useState<number | null>(null);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
+  const [commentView, setCommentView] = useState(false);
   const [highlightCache, setHighlightCache] = useState<Record<string, HighlightRect[] | null>>({});
   const [offline, setOffline] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -457,6 +458,7 @@ export default function AnalysisPage() {
 
       {/* Below lg the panes stack, each with its own scroll, so the findings stay reachable under a long contract. From lg the divider between them can be dragged. */}
       <ResizableSplit
+        collapsed={commentView && data.intake_route === "docx_native"}
         contract={
           <div className="h-[45vh] shrink-0 border-b lg:h-auto lg:shrink lg:w-[calc(100%-var(--findings-width))] lg:border-b-0 lg:border-r border-[var(--border)] bg-[var(--surface-muted)] flex flex-col">
             {data.source_format !== "pdf" && data.intake_route !== "docx_native" && (
@@ -476,6 +478,8 @@ export default function AnalysisPage() {
                 highlightColor={
                   SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
                 }
+                commentView={commentView}
+                onCommentViewChange={setCommentView}
               />
             ) : data.documentUrl ? (
               <div className="flex-1 min-h-0">
