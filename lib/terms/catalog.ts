@@ -21,7 +21,7 @@ const num = (key: string, unit: NumericUnit, meaning: string): TermDefinition =>
 const bool = (key: string, meaning: string): TermDefinition => ({ key, kind: "boolean", meaning });
 
 export const HOTEL_TERM_CATALOG: TermCatalog = {
-  version: "hotel-v2",
+  version: "hotel-v3",
   terms: [
     // Deal
     num("deal.peak_night_rooms", "rooms", "Guest rooms held on the peak night of the room block."),
@@ -52,10 +52,13 @@ export const HOTEL_TERM_CATALOG: TermCatalog = {
       key: "cancellation.damages_basis",
       kind: "enum",
       options: {
-        room_profit: "Cancellation damages are a percentage of lost room profit.",
-        gross_revenue: "Cancellation damages are a percentage of gross room revenue.",
+        room_profit:
+          "The percentage is taken of the hotel's lost profit on the rooms, meaning room revenue less the costs the hotel saves, or a stated profit margin on that revenue.",
+        gross_revenue:
+          "The percentage is taken of room revenue with nothing deducted, which is room nights times the room rate. A fee worked out as room nights times the group rate times a percentage is this, whichever room nights it counts.",
       },
-      meaning: "What cancellation damages are calculated from.",
+      meaning:
+        "What the cancellation percentage is taken of in the schedule tier closest to arrival, either full room revenue or the hotel's profit on the rooms. Which room nights are counted is cancellation.damages_room_nights, not this.",
     },
     {
       key: "cancellation.damages_room_nights",

@@ -1,7 +1,7 @@
 {
   "version": "terms-key-v1",
   "source": "synthetic",
-  "catalog_version": "hotel-v2",
+  "catalog_version": "hotel-v3",
   "contracts": [
     {
       "contract": "eval-01-harborview.docx",

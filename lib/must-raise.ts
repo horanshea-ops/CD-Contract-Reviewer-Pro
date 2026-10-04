@@ -19,7 +19,6 @@ import type { ExtractedTerms, StatedTerm } from "./terms/types";
  * when the number sits in the sentence once, so nothing else is disturbed.
  */
 
-const sameNumber = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 const percentOf = (fraction: number) => Number((fraction * 100).toFixed(4));
 /** A share as a reader sees it: 78.6, not 78.6207. */
 const shown = (fraction: number) => Number((fraction * 100).toFixed(1));

@@ -61,7 +61,7 @@ describe("a term extraction pass over eval-01", () => {
     await extractTerms({ document: { kind: "text", text }, parts });
 
     const request = create.mock.calls[0][0];
-    expect(request.system[1].text).toContain("TERM CATALOG (version hotel-v2)");
+    expect(request.system[1].text).toContain("TERM CATALOG (version hotel-v3)");
     expect(request.system[1].cache_control).toEqual({ type: "ephemeral" });
     expect(answerSchema(request).properties.terms.items.properties.term_key.enum).toHaveLength(
       HOTEL_TERM_CATALOG.terms.length
@@ -120,7 +120,7 @@ describe("a term extraction pass over eval-01", () => {
     const record = extractionRecord({ ok: true, ...outcome });
     expect(record).toMatchObject({
       status: "complete",
-      catalog_version: "hotel-v2",
+      catalog_version: "hotel-v3",
       stated: 1,
       not_stated: HOTEL_TERM_CATALOG.terms.length - 1,
       verification: { verified: 1, located: 0, contradicted: 0, unlocated: 0 },
