@@ -520,10 +520,41 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
             reading that differed on the day, not from a reader that can't do
             it. The reader's answers vary from run to run on the two terms
             cancellation depends on.
-          - **Next, free.** Keep the reading's figures with the review even
-            when extraction is off, so a missing exposure can be explained
-            afterwards. Decide how to make cancellation less dependent on two
-            optional answers. Tighten the room-night check.
+          - **Sturdier exposures (2026-10-03, free, built on the new Mac).**
+            Lint, typecheck, 1,385 tests and the free shape check pass. No
+            prompt, catalog wording or golden changed.
+            - **The reading is kept with every review.**
+              `analyses.term_extraction` now holds the figures, the exposure
+              terms as the reader gave them, and a note for each term that
+              gave no figure, whether `TERM_EXTRACTION` is on or off. A failed
+              reading is recorded too. The `contract_terms` rows stay behind
+              the switch, since Analytics reads them. No migration.
+            - **Room counts must be singled out.** A count of rooms or room
+              nights is verified when it is the only room count in its quote,
+              or when the other counts add up to it, as Florida's eight nights
+              add up to 2,900. A bare table cell is judged by its row. Anything
+              else is "located", which exposures don't build on. Amounts,
+              percentages, durations and dates aren't read as room counts. The
+              complimentary-room ratio keeps the old rule, since "1 per 40"
+              always holds two numbers. Checked on the real Florida row: 2,900
+              verifies and a nightly count doesn't.
+            - **Cancellation, the schedule as backstop.** With no usable
+              top-tier percentage, the schedule's closest tier supplies it,
+              only when the schedule's own quote states that percentage.
+            - **Cancellation, a second ask (user's choice, 2026-10-03).** When
+              a reading has cancellation terms and lacks a tier answer, the
+              reader is asked once more for the three tier answers alone
+              (`lib/review.ts`, `TIER_CATALOG`). Both readings are checked
+              together, so a disagreement gives no figure. It runs beside the
+              judging call and adds no wait. It costs about 5 to 7 cents on a
+              review where it fires.
+            - **Still weak.** A percentage is verified when its quote holds it
+              anywhere, as room counts were. The second ask doesn't fire when
+              the reader returns nothing about cancellation. The stored
+              readings will show whether either matters.
+            - **Not yet run against a model.** Every test here is mocked. The
+              first paid review will show the stored record and whether the
+              second ask fires.
           - **Still to do, each paid step with its own yes.** The Florida
             review on Sonnet 5 with the split (about $0.45), if the split's
             own effect needs isolating. Then the seven-contract evals, since
