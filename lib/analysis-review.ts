@@ -35,7 +35,7 @@ export type ReviewGap =
 
 export interface DroppedFinding {
   finding: Finding;
-  reason: "proposes_no_change" | "moves_cutoff_earlier";
+  reason: "placeholder" | "proposes_no_change" | "moves_cutoff_earlier";
 }
 
 export interface ReconciledReview {
@@ -78,10 +78,28 @@ export function movesCutoffEarlier(finding: Finding): boolean {
   return contract !== null && proposed !== null && proposed > contract;
 }
 
+const PLACEHOLDER = /^\s*placeholder\b/i;
+
+/**
+ * Whether a finding is a stand-in the model never filled in. It writes the
+ * word "placeholder" into a finding now and then, or leaves one with no text
+ * of its own. Accepted, such a finding would put that word into a redline.
+ */
+export function isPlaceholder(finding: Finding): boolean {
+  if ([finding.headline, finding.finding_text, finding.proposed_language].some((field) => PLACEHOLDER.test(field ?? ""))) return true;
+  return !finding.headline?.trim() && !finding.finding_text?.trim();
+}
+
 export function dropNonChanges(findings: Finding[]): { findings: Finding[]; dropped_findings: DroppedFinding[] } {
   const dropped_findings: DroppedFinding[] = [];
   const kept = findings.filter((finding) => {
-    const reason = proposesNoChange(finding) ? "proposes_no_change" : movesCutoffEarlier(finding) ? "moves_cutoff_earlier" : null;
+    const reason = isPlaceholder(finding)
+      ? "placeholder"
+      : proposesNoChange(finding)
+        ? "proposes_no_change"
+        : movesCutoffEarlier(finding)
+          ? "moves_cutoff_earlier"
+          : null;
     if (!reason) return true;
     dropped_findings.push({ finding, reason });
     return false;
