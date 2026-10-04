@@ -284,21 +284,24 @@ export default function DocxPreview({
 function Block({ block, partName, marking }: { block: PreviewBlock; partName: string; marking: Marking }) {
   if (block.kind === "table") {
     return (
-      <table className="border-collapse w-full my-3">
-        <tbody>
-          {block.rows.map((row, r) => (
-            <tr key={r}>
-              {row.cells.map((cell, c) => (
-                <td key={c} className="border border-[var(--border)] p-1.5 align-top">
-                  {cell.blocks.map((b, i) => (
-                    <Block key={i} block={b} partName={partName} marking={marking} />
-                  ))}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      // A wide table scrolls sideways within the text column, so the margin never covers its last columns.
+      <div className="my-3 overflow-x-auto">
+        <table className="border-collapse w-full">
+          <tbody>
+            {block.rows.map((row, r) => (
+              <tr key={r}>
+                {row.cells.map((cell, c) => (
+                  <td key={c} className="border border-[var(--border)] p-1.5 align-top">
+                    {cell.blocks.map((b, i) => (
+                      <Block key={i} block={b} partName={partName} marking={marking} />
+                    ))}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   }
 
