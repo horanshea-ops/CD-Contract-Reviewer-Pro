@@ -346,7 +346,7 @@ async function saveReading(admin: ReturnType<typeof createAdminClient>, analysis
   try {
     let record: Record<string, unknown> = extractionRecord(outcome);
     const read = outcome.ok
-      ? { asked_for: storeRows ? "whole_catalog" : "exposure_terms", exposures: exposureReading(outcome.terms, outcome) }
+      ? { asked_for: storeRows ? "whole_catalog" : "exposure_terms", exposures: exposureReading(outcome.terms, outcome), reask: outcome.reask }
       : {};
 
     if (outcome.ok && storeRows) {

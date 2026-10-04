@@ -162,6 +162,7 @@ describe("term extraction in processAnalysis", () => {
     expect(record).toMatchObject({
       status: "complete",
       asked_for: "exposure_terms",
+      reask: null,
       exposures: {
         figures: { group_rate: 289, currency: "$", room_block_room_nights: null, cancellation_tiers: [] },
         terms: [{ term_key: "deal.group_rate_usd", value: 289, quoted_text: "a group rate of $289.00 per room", verification: "verified" }],

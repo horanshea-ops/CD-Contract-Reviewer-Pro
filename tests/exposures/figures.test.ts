@@ -112,6 +112,68 @@ describe("figuresFromTerms", () => {
     });
   });
 
+  describe("when the reader gives no top-tier percentage", () => {
+    const TIER_LINE = "90 Days or Less: $305,748.00 [the Minimum Number of Room Nights, times the Group Room Rate, times 90%]";
+    const tiers = [
+      { label: "91 - 180 Days", days_prior_min: 91, days_prior_max: 180, pct: 75 },
+      { label: "90 Days or Less", days_prior_min: 0, days_prior_max: 90, pct: 90 },
+    ];
+    const withSchedule = (quote: string, base = without("cancellation.top_tier_pct")) => [
+      ...base.filter((e) => e.term_key !== "cancellation.schedule"),
+      entry("cancellation.schedule", tiers, quote),
+    ];
+    const reading = (entries: unknown[]) => readFigures(validateTerms(entries, HOTEL_TERM_CATALOG, floridaParts));
+
+    it("takes it from the schedule's closest tier when the schedule's quote states it", () => {
+      const { figures, notes, unanswered } = reading(withSchedule(TIER_LINE));
+      expect(figures.cancellation_tiers).toEqual([{ label: "90 Days or Less", room_pct: 0.9, base: "minimum_room_nights", charges: "rate" }]);
+      expect(cancellationExposure(figures)?.amount).toBe(91724.4);
+      expect(notes).toEqual([
+        { term_key: "cancellation.top_tier_pct", reason: "The percentage was taken from the schedule's tier closest to arrival, whose quote states it." },
+      ]);
+      expect(unanswered).toEqual([]);
+    });
+
+    it("gives no figure when the schedule's quote doesn't state that percentage", () => {
+      const { figures, notes, unanswered } = reading(without("cancellation.top_tier_pct"));
+      expect(figures.cancellation_tiers).toEqual([]);
+      expect(notes.map((n) => n.term_key)).toEqual(["cancellation.schedule", "cancellation.top_tier_pct"]);
+      expect(unanswered).toEqual(["cancellation.top_tier_pct"]);
+    });
+
+    it("leaves a percentage read with two values alone", () => {
+      const twice = [...withSchedule(TIER_LINE, FLORIDA_ENTRIES), entry("cancellation.top_tier_pct", 75, "91 - 180 Days: seventy-five percent (75%)")];
+      const parts = [{ part: "document", text: `${FLORIDA}\n91 - 180 Days: seventy-five percent (75%)` }];
+      const { figures, unanswered } = readFigures(validateTerms(twice, HOTEL_TERM_CATALOG, parts));
+      expect(figures.cancellation_tiers).toEqual([]);
+      expect(unanswered).toEqual([]);
+    });
+  });
+
+  it("uses the top-tier percentage when the schedule disagrees, and says so", () => {
+    const schedule = entry("cancellation.schedule", [{ label: "90 Days or Less", days_prior_min: 0, days_prior_max: 90, pct: 80 }], "90 Days or Less: $305,748.00");
+    const { figures, notes } = readFigures(
+      validateTerms([...FLORIDA_ENTRIES.filter((e) => e.term_key !== "cancellation.schedule"), schedule], HOTEL_TERM_CATALOG, floridaParts)
+    );
+    expect(figures.cancellation_tiers[0].room_pct).toBe(0.9);
+    expect(notes).toEqual([
+      { term_key: "cancellation.schedule", reason: "The schedule's closest tier says 80%, and the top-tier percentage says 90%. The top-tier percentage is used." },
+    ]);
+  });
+
+  it("lists the tier answers a second reading could fill, and none when the reading has no cancellation terms", () => {
+    const unanswered = (entries: unknown[]) => readFigures(validateTerms(entries, HOTEL_TERM_CATALOG, floridaParts)).unanswered;
+
+    expect(unanswered(FLORIDA_ENTRIES)).toEqual([]);
+    expect(unanswered(without("cancellation.damages_basis"))).toEqual(["cancellation.damages_basis"]);
+    expect(unanswered(without("cancellation.damages_room_nights"))).toEqual(["cancellation.damages_room_nights"]);
+    expect(unanswered(FLORIDA_ENTRIES.filter((e) => !e.term_key.startsWith("cancellation.")))).toEqual([]);
+
+    // The reader's "other" is an answer, so there is nothing to ask again.
+    const other = [...without("cancellation.damages_room_nights"), entry("cancellation.damages_room_nights", "other", TIER_QUOTE)];
+    expect(unanswered(other)).toEqual([]);
+  });
+
   it("gives no cancellation exposure unless the reader says what the percentage is charged on", () => {
     expect(read(without("cancellation.damages_basis")).cancellation_tiers).toEqual([]);
 

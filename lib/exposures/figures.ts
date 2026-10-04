@@ -1,3 +1,4 @@
+import { parseQuantities } from "../quantities";
 import { USABLE_VERIFICATIONS, type ExtractedTerms, type StatedTerm } from "../terms/types";
 
 /**
@@ -116,10 +117,15 @@ export const EXPOSURE_TERM_KEYS: readonly string[] = [
   ...Object.values(TIER_TERMS),
 ];
 
+const asPercent = (fraction: number) => `${Number((fraction * 100).toFixed(4))}%`;
+
 const CHARGES_OF: Record<string, TierCharge> = { gross_revenue: "rate", room_profit: "room_profit" };
 const BASE_OF: Record<string, TierBase> = { minimum_commitment: "minimum_room_nights", room_block: "room_block" };
 
-/** Why a term gave no figure. Kept with the review, so a missing exposure can be explained afterwards. */
+/** The three answers about the tier closest to arrival. A cancellation figure needs all of them. */
+export const TIER_ANSWER_KEYS: readonly string[] = [TIER_TERMS.pct, TIER_TERMS.charges, TIER_TERMS.base];
+
+/** What happened to a term on its way to a figure. Kept with the review, so a missing exposure can be explained afterwards. */
 export interface FigureNote {
   term_key: string;
   reason: string;
@@ -128,6 +134,12 @@ export interface FigureNote {
 export interface FigureReading {
   figures: DealFigures;
   notes: FigureNote[];
+  /**
+   * The tier answers a reading with cancellation terms in it left out or gave
+   * unusably. A second reading can fill these. A term read with two values
+   * isn't among them, since another reading can't settle it.
+   */
+  unanswered: string[];
 }
 
 /**
@@ -144,7 +156,6 @@ export function readFigures(terms: ExtractedTerms): FigureReading {
   const note = (term_key: string, reason: string) => {
     if (notes.some((n) => n.term_key === term_key && n.reason === reason)) return;
     notes.push({ term_key, reason });
-    console.warn(`[exposures] ${term_key}: ${reason}`);
   };
 
   const conflicted = new Set(terms.conflicts);
@@ -189,26 +200,51 @@ export function readFigures(terms: ExtractedTerms): FigureReading {
     figures.currency ??= amount?.currency ?? null;
   }
 
-  // The schedule's top tier is the only one an exposure reads.
-  const pct = number(TIER_TERMS.pct);
+  // The tier closest to arrival is the only one an exposure reads.
+  const scheduleTerm = stated(TIER_TERMS.schedule);
+  const tiers = scheduleTerm && USABLE_VERIFICATIONS.includes(scheduleTerm.verification) && Array.isArray(scheduleTerm.value) ? scheduleTerm.value : [];
+  const nearest = [...tiers].sort((a, b) => a.days_prior_min - b.days_prior_min)[0] ?? null;
+  const scheduleStates = (pct: number) =>
+    parseQuantities(scheduleTerm?.quoted_text ?? "").some((q) => q.unit === "pct" && Math.abs(q.value - pct) < 1e-9);
+
+  let pct = number(TIER_TERMS.pct);
+  if (pct !== null && nearest && Math.abs(nearest.pct - pct) > 1e-9) {
+    note(TIER_TERMS.schedule, `The schedule's closest tier says ${asPercent(nearest.pct)}, and the top-tier percentage says ${asPercent(pct)}. The top-tier percentage is used.`);
+  }
+  if (pct === null && nearest && !conflicted.has(TIER_TERMS.pct)) {
+    if (scheduleStates(nearest.pct)) {
+      pct = nearest.pct;
+      note(TIER_TERMS.pct, "The percentage was taken from the schedule's tier closest to arrival, whose quote states it.");
+    } else {
+      note(TIER_TERMS.schedule, "The schedule's quote doesn't state its closest tier's percentage, so the schedule can't stand in for the top-tier percentage.");
+    }
+  }
+
   const basis = choice(TIER_TERMS.charges);
   const charges = CHARGES_OF[basis ?? ""];
+  const baseChoice = choice(TIER_TERMS.base);
+  const base = BASE_OF[baseChoice ?? ""] ?? "other";
+
   if (pct === null) note(TIER_TERMS.pct, "No cancellation figure, because the reading gave no usable top-tier percentage.");
   if (!charges) {
     note(TIER_TERMS.charges, `No cancellation figure, because the reading didn't say whether the percentage is charged on the rate or on room profit (${basis ?? "not stated"}).`);
   }
   if (pct !== null && charges) {
-    const schedule = stated(TIER_TERMS.schedule)?.value;
-    const nearest = Array.isArray(schedule) ? [...schedule].sort((a, b) => a.days_prior_min - b.days_prior_min)[0] : null;
-    const baseChoice = choice(TIER_TERMS.base);
-    const base = BASE_OF[baseChoice ?? ""] ?? "other";
     if (base === "other") {
       note(TIER_TERMS.base, `No cancellation figure, because the reading didn't say which room nights the percentage applies to (${baseChoice ?? "not stated"}).`);
     }
     figures.cancellation_tiers = [{ label: nearest?.label.trim() || "closest to arrival", room_pct: pct, base, charges }];
   }
 
-  return { figures, notes };
+  const answered: Record<string, boolean> = {
+    [TIER_TERMS.pct]: pct !== null,
+    [TIER_TERMS.charges]: basis !== null,
+    [TIER_TERMS.base]: baseChoice !== null,
+  };
+  const cancellationRead = terms.stated.some((t) => Object.values(TIER_TERMS).includes(t.term_key));
+  const unanswered = cancellationRead ? TIER_ANSWER_KEYS.filter((key) => !answered[key] && !conflicted.has(key)) : [];
+
+  return { figures, notes, unanswered };
 }
 
 export const figuresFromTerms = (terms: ExtractedTerms): DealFigures => readFigures(terms).figures;

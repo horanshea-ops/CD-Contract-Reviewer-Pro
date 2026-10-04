@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EXPOSURE_TERM_KEYS } from "@/lib/exposures/figures";
-import { EXPOSURE_CATALOG, reviewContract } from "@/lib/review";
+import { EXPOSURE_CATALOG, reviewContract, TIER_CATALOG } from "@/lib/review";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 import { answerName, answerSchema, type ModelRequest } from "./helpers/model-request";
@@ -146,5 +146,107 @@ describe("reviewContract", () => {
     });
 
     await expect(run()).rejects.toThrow("Overloaded.");
+  });
+});
+
+describe("asking the reader again for the cancellation tier", () => {
+  const TIER_QUOTE = "the Minimum Number of Room Nights, times the Group Room Rate, times 90%";
+  const CANCEL = [
+    CONTRACT,
+    `90 Days or Less: ${TIER_QUOTE}`,
+    "91 to 180 Days: the Minimum Number of Room Nights, times the Group Room Rate, times 75%",
+  ].join("\n");
+
+  const FIGURES = [
+    term("deal.room_block_room_nights", 2900, "Total Room Nights: 2,900"),
+    term("deal.group_rate_usd", 149, "Run of House: $149.00 per night."),
+    term("attrition.minimum_room_nights", 2280, "at least 2,280 room nights"),
+  ];
+  const PCT = term("cancellation.top_tier_pct", 90, TIER_QUOTE);
+  const BASIS = term("cancellation.damages_basis", "gross_revenue", TIER_QUOTE);
+  const BASE = term("cancellation.damages_room_nights", "minimum_commitment", TIER_QUOTE);
+  const TIER = { label: "closest to arrival", room_pct: 0.9, base: "minimum_room_nights", charges: "rate" };
+
+  const reading = (terms: unknown[], input_tokens: number) => toolResponse("record_contract_terms", { terms }, { input_tokens, output_tokens: 40 });
+  const askedFor = (r: ModelRequest) => answerSchema(r).properties.terms.items.properties.term_key.enum;
+  const isReask = (r: ModelRequest) => answerName(r) === "record_contract_terms" && askedFor(r).length === TIER_CATALOG.terms.length;
+  const readings = () => requests().filter((r) => answerName(r) === "record_contract_terms");
+
+  const answer = (first: unknown[], second: unknown[] | Error) =>
+    create.mockImplementation(async (params: ModelRequest) => {
+      if (answerName(params) === "record_analysis") return analysisResponse;
+      if (!isReask(params)) return reading(first, 400);
+      if (second instanceof Error) throw second;
+      return reading(second, 300);
+    });
+
+  const review = () => run({ document: { kind: "text", text: CANCEL }, parts: [{ part: "document", text: CANCEL }] });
+
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("asks once more for the three tier answers when the first reading left one out, and fills it", async () => {
+    answer([...FIGURES, PCT, BASE], [PCT, BASIS, BASE]);
+    const result = await review();
+
+    expect(readings()).toHaveLength(2);
+    expect(askedFor(readings()[1])).toEqual(TIER_CATALOG.terms.map((t) => t.key));
+    expect(TIER_CATALOG.terms).toHaveLength(3);
+    expect(result.deal_figures?.cancellation_tiers).toEqual([TIER]);
+    expect(result.reading).toMatchObject({
+      ok: true,
+      tokens: { input: 700, output: 80 },
+      reask: { asked_for: ["cancellation.damages_basis"], replaced: [], tokens: { input: 300, output: 40 } },
+      unanswered: [],
+    });
+  });
+
+  it("doesn't ask again when the first reading has every tier answer, or has no cancellation terms at all", async () => {
+    answer([...FIGURES, PCT, BASIS, BASE], new Error("not reached"));
+    expect((await review()).reading).toMatchObject({ ok: true, reask: null });
+    expect(readings()).toHaveLength(1);
+
+    create.mockClear();
+    answer(FIGURES, new Error("not reached"));
+    expect((await review()).reading).toMatchObject({ ok: true, reask: null });
+    expect(readings()).toHaveLength(1);
+  });
+
+  it("gives no cancellation figure when the two readings disagree", async () => {
+    answer([...FIGURES, PCT, BASE], [term("cancellation.top_tier_pct", 75, "times 75%"), BASIS, BASE]);
+    const result = await review();
+
+    expect(result.deal_figures?.cancellation_tiers).toEqual([]);
+    expect(result.reading).toMatchObject({
+      ok: true,
+      notes: expect.arrayContaining([{ term_key: "cancellation.top_tier_pct", reason: "The reading gave more than one value for it, so none is used." }]),
+    });
+  });
+
+  it("lets the second reading's answer stand in for one the first gave unusably", async () => {
+    const wrong = term("cancellation.top_tier_pct", 85, TIER_QUOTE);
+    answer([...FIGURES, wrong, BASIS, BASE], [PCT, BASIS, BASE]);
+    const result = await review();
+
+    expect(result.deal_figures?.cancellation_tiers).toEqual([TIER]);
+    expect(result.reading).toMatchObject({
+      ok: true,
+      reask: { asked_for: ["cancellation.top_tier_pct"], replaced: [{ term_key: "cancellation.top_tier_pct", value: 0.85, verification: "contradicted" }] },
+    });
+  });
+
+  it("keeps the first reading when the second call fails, and records the failure", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    answer([...FIGURES, PCT, BASE], new Error("Connection error."));
+    const result = await review();
+
+    expect(result.findings.map((f) => f.exposure_amount)).toEqual([null, null]);
+    expect(result.deal_figures).toMatchObject({ room_block_room_nights: 2900, group_rate: 149, cancellation_tiers: [] });
+    expect(result.reading).toMatchObject({
+      ok: true,
+      tokens: { input: 400, output: 40 },
+      reask: { asked_for: ["cancellation.damages_basis"], error: "Connection error." },
+    });
   });
 });
