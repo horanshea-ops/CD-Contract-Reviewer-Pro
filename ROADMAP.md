@@ -754,7 +754,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
            - No model call is involved, so it doesn't wait on Sonnet 5.5.
              The data it needs is already returned by the preview route
              (`comments`, with each one's range in the text).
-           - **Built 2026-10-03 on `phase/1-11-comment-view`, not merged.**
+           - **Built 2026-10-03 on `phase/1-11-comment-view`. Merged to
+             `main` 2026-10-04 (7749c4f).**
              - Tracked changes get margin notes too (user's choice). A
                deletion beside an insertion by one author reads as one
                "Replaced" note, with whole words shown.
@@ -1757,8 +1758,8 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         - Can associates reuse each other's reviews? That's a data-sharing
           question for CD.
 
-- [x] **One card per clause** (user, 2026-10-04). Built on
-      `ui/one-card-per-clause`, not merged.
+- [x] **One card per clause** (user, 2026-10-04). Merged to `main`
+      2026-10-04 (2513e48), from `ui/one-card-per-clause`.
       - A review asked for 34 to 65 separate decisions on cards covering 17
         to 24 clauses. Cancellation alone was six or seven cards, one per tier.
       - Findings on one clause now sit in one card under the clause's name.
