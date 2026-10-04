@@ -555,6 +555,60 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
             - **Not yet run against a model.** Every test here is mocked. The
               first paid review will show the stored record and whether the
               second ask fires.
+          - **Two paid runs on Sonnet 5.5 with the fixes (2026-10-04, $0.89).**
+            - **Florida `9244158e`, through the app as Jerry ($0.42, 2m39s).**
+              51 findings against 68 on `4f803f16`, the same file and model.
+              32 of 32 changed clauses quoted. Exposure $36,000, F&B alone.
+              - The stored reading explained both missing figures at no cost.
+              - Cancellation: the reader gave the percentage (90%), the
+                schedule and the room nights, and answered `other` for what
+                the percentage is charged on, at medium confidence. The
+                clause says room nights times the rate times 90%. The
+                catalog's two options ("gross room revenue", "lost room
+                profit") don't describe that formula plainly enough.
+              - The second ask did not fire, because `other` counts as an
+                answer. It would not have helped: a second reading saying
+                `gross_revenue` would clash with the first.
+              - Attrition: every figure was read and verified, but the
+                judging call wrote no attrition finding, so the exposure had
+                no card to sit on. It judged attrition `falls_short` and six
+                other clause types short or missing, and wrote no finding for
+                any of the seven. The app records such gaps in the audit log
+                and shows the associate nothing.
+              - The room block was quoted as a bare cell and verified by its
+                row, as the new rule intends.
+            - **Harborview eval `sonnet55-harborview-2026-10-04` ($0.47,
+              3m36s).** It finishes in time now. It ran past ten minutes
+              before the thinking fix.
+              - 30 of 34 key items found (88.2%). Sonnet 5 found 34 of 34 on
+                `combined-2026-09-23` and 33 of 34 on
+                `baseline-repeat-2026-09-22`. Those baselines used an earlier
+                prompt and library, so the comparison is rough.
+              - 90 findings, 55 of them scored as repeats of an issue already
+                reported. The four misses are medium items. Three are clause
+                types the model judged short and wrote no finding for.
+              - No exposures. The contract states no total of room nights, so
+                the reader added four nights of 170 and gave 680 with one
+                night's row as its quote. The check refused it, and attrition
+                and cancellation both need that total.
+            - **What this says.** The arithmetic never varied. What varies is
+              the reader's answers, and whether the judging call writes a
+              finding for the exposure to sit on. On two contracts 5.5 at
+              this setting is faster than Sonnet 5 and less consistent.
+            - **Free fixes these runs point to, not built.**
+              1. Reword the two `cancellation.damages_basis` options so a
+                 formula of room nights times rate times a percentage is
+                 plainly the rate option.
+              2. Show an exposure the figures support even when no finding
+                 of that clause type exists, and tell the associate when the
+                 model judged a clause short and wrote nothing for it.
+              3. Accept a total the contract doesn't state when the quoted
+                 nightly counts add up to it.
+              4. Keep both readings as test fixtures, so the next change to
+                 the math is checked against real reader answers at no cost.
+              A reader-only check costs $0.04 to $0.07 a contract
+              (`scripts/read-figures.ts`). A whole review is not needed to
+              test the math.
           - **Still to do, each paid step with its own yes.** The Florida
             review on Sonnet 5 with the split (about $0.45), if the split's
             own effect needs isolating. Then the seven-contract evals, since
@@ -576,8 +630,19 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
            with `c27f414d`, the Sonnet 5 run on the same file and the same
            code (4m07s, 24.8k in, 29.2k out, 51 findings, 27 of 27 changed
            clauses quoted, $121,524 exposure).
-        4. Paid, about $0.65 to $0.80. Run the seven-contract eval set and
-           score it against the existing baselines. Count missed tool calls.
+        4. Paid, about $2.35 on Sonnet 5.5 (corrected 2026-10-04; this line
+           said $0.65 to $0.80). Run the seven-contract eval set and score it
+           against the existing baselines.
+           - The last full run, `combined-2026-09-23` on Sonnet 5, cost $1.83
+             and took 26 minutes. Output is the expensive part, and the prompt
+             now asks for more of it.
+           - 5.5 wrote about 13% more on Florida, and each contract now gets
+             a reading call too, about $0.04.
+           - Per contract on 5.5: Harborview about $0.48, Crossroads $0.39,
+             Monarch $0.32, the other four about $0.29 each.
+           - `scripts/with-retry.ts` tries a failed contract up to four times,
+             and each try is paid. Watch a run and stop it on a first failure
+             when credit is short.
         5. If time and scores hold, change the Render variable. Sonnet 5 stays
            one variable away.
            - **Reminder (user, 2026-10-03).** Once 5.5 runs cleanly on the
