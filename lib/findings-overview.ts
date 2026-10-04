@@ -91,3 +91,47 @@ export function computeFindingsOverview(findings: FindingLike[]): FindingsOvervi
     exposureCurrency,
   };
 }
+
+/** The findings on one clause, shown as one card. */
+export interface ClauseGroup<F> {
+  clause_type: string;
+  /** The most severe finding's severity, which is what the card is ranked and coloured by. */
+  severity: FindingSeverity;
+  findings: F[];
+}
+
+/**
+ * A section's findings as one group per clause, the most severe clause first.
+ * Clauses of equal severity keep the order they first appear in, and each
+ * group keeps the order its findings came in.
+ */
+export function groupByClause<F extends { clause_type: string; severity: FindingSeverity }>(findings: F[]): ClauseGroup<F>[] {
+  const groups = new Map<string, ClauseGroup<F>>();
+  for (const finding of findings) {
+    const group = groups.get(finding.clause_type);
+    if (!group) {
+      groups.set(finding.clause_type, { clause_type: finding.clause_type, severity: finding.severity, findings: [finding] });
+    } else {
+      group.findings.push(finding);
+      if (SEVERITY_ORDER[finding.severity] < SEVERITY_ORDER[group.severity]) group.severity = finding.severity;
+    }
+  }
+  // Array.prototype.sort is stable, so equal severities stay in first-seen order.
+  return [...groups.values()].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+}
+
+/**
+ * The review's reading order with each clause's findings together: business,
+ * then legal, each clause by clause, then other by severity. The screen lists
+ * findings in this order, so stepping through them with the keyboard follows
+ * what is on screen.
+ */
+export function inClauseOrder<F extends { clause_type: string; severity: FindingSeverity; category?: Category | null }>(findings: F[]): F[] {
+  const sorted = [...findings].sort(compareFindings);
+  const of = (category: Category) => sorted.filter((f) => findingCategory(f) === category);
+  return [
+    ...groupByClause(of("business")).flatMap((group) => group.findings),
+    ...groupByClause(of("legal")).flatMap((group) => group.findings),
+    ...of("other"),
+  ];
+}

@@ -121,6 +121,7 @@ export default function FindingCard({
   onSelectFinding,
   locateMode = "pdf",
   focused = false,
+  nested = false,
 }: {
   finding: Finding;
   onActionRecorded: (findingId: string, action: Finding["current_action"]) => void;
@@ -129,6 +130,8 @@ export default function FindingCard({
   locateMode?: "pdf" | "docx";
   /** Keyboard-navigation target, per ROADMAP item 7 — distinct from severity's left border. */
   focused?: boolean;
+  /** Inside a clause card with other changes: no frame of its own, and no clause name, which the clause card carries. */
+  nested?: boolean;
 }) {
   const [mode, setMode] = useState<"view" | "editing" | "dismissing">("view");
   const [editedLanguage, setEditedLanguage] = useState(finding.proposed_language);
@@ -201,16 +204,15 @@ export default function FindingCard({
       id={`finding-${finding.id}`}
       tabIndex={-1}
       aria-current={focused ? "true" : undefined}
-      style={{ borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
-      className={cn(focused && "ring-2 ring-[var(--cd-blue)]")}
+      style={nested ? undefined : { borderLeftWidth: style.borderWidth, borderLeftColor: style.borderColor }}
+      className={cn(nested && "rounded-none border-0", focused && "ring-2 ring-inset ring-[var(--cd-blue)]")}
     >
       <div className="flex items-baseline justify-between gap-3">
         <Meta as="p" className="text-[var(--text-secondary)]">
           <span className="font-semibold" style={{ color: style.textColor }}>
             {style.label}
           </span>
-          {" · "}
-          {clauseLabel(finding.clause_type)}
+          {!nested && ` · ${clauseLabel(finding.clause_type)}`}
           {section && ` · ${section}`}
           {finding.is_missing_clause && " · missing from contract"}
         </Meta>

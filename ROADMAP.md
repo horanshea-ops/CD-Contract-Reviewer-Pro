@@ -1757,6 +1757,24 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         - Can associates reuse each other's reviews? That's a data-sharing
           question for CD.
 
+- [x] **One card per clause** (user, 2026-10-04). Built on
+      `ui/one-card-per-clause`, not merged.
+      - A review asked for 34 to 65 separate decisions on cards covering 17
+        to 24 clauses. Cancellation alone was six or seven cards, one per tier.
+      - Findings on one clause now sit in one card under the clause's name.
+        Every change still shows in full and keeps its own Accept, Edit and
+        Dismiss, so the associate decides each one.
+      - No control decides several changes at once (user, 2026-10-04). An
+        "Accept all in this clause" button was built and removed the same day,
+        because the associate should read and decide every change.
+      - Clause cards are ordered by their most severe change. The keyboard
+        steps through findings in the order on screen.
+      - A clause with one finding shows as the plain card it always was. The
+        Other section is unchanged.
+      - No database change, and exports are untouched.
+      - Checked live on Florida `4f803f16`: 50 business changes show as 24
+        clauses, each change with its own Accept, Edit and Dismiss.
+
 - [ ] **Dashboard tiles** (user, 2026-09-26). Keep "Reviews left this month" and
       "Reviews needing decisions". Replace "In progress", which is almost
       always 0, and "Completed this month", which now repeats the reviews-left
