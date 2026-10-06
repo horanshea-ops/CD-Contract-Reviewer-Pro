@@ -9,6 +9,7 @@ import {
   readBackEvalTerms,
 } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
+import { MUST_RAISE_CATALOG } from "@/lib/review";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
 /**
@@ -174,6 +175,21 @@ describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => 
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
       `./fixtures/prompt-golden/term-extraction-request${suffix}.json`
+    );
+  });
+
+  // The reading call of a review while exposure math is archived: the five terms the app raises findings from.
+  it("reading call, must-raise terms", async () => {
+    create.mockResolvedValue(toolResponse({ terms: [] }));
+
+    await extractContractTerms({
+      document: { kind: "text", text: "CONTRACT BODY" },
+      catalog: MUST_RAISE_CATALOG,
+      model: MODEL,
+    });
+
+    await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/reading-must-raise-request${suffix}.json`
     );
   });
 

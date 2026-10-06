@@ -6,7 +6,7 @@ import { positionsFrom } from "@/lib/exposures/cd-positions";
 import { attritionExposure, cancellationExposure, fbMinimumExposure } from "@/lib/exposures/compute";
 import { readFigures } from "@/lib/exposures/figures";
 import { mustRaise } from "@/lib/must-raise";
-import { EXPOSURE_CATALOG } from "@/lib/review";
+import { EXPOSURE_CATALOG, MUST_RAISE_CATALOG } from "@/lib/review";
 import { STANDARDS_LIBRARY } from "@/lib/standards/v1";
 import { validateTerms } from "@/lib/terms/validate";
 
@@ -102,5 +102,22 @@ describe.skipIf(!existsSync(FLORIDA) || !existsSync(FLORIDA_CONTRACT))("Florida,
     expect(raised.findings.map((f) => f.clause_type)).toEqual(["attrition", "fb_minimum"]);
     expect(raised.findings[0].proposed_language).toContain("2,030");
     expect(raised.findings[1].proposed_language).toContain("35%");
+  });
+});
+
+describe("Harborview's reading, cut down to what a review asks for with exposure archived", () => {
+  it("raises the same two findings from the five safety-net terms alone", async () => {
+    const fixture: Fixture = JSON.parse(readFileSync(path.join("tests", "fixtures", "readings", "harborview-sonnet-5-5.json"), "utf8"));
+    const { parts } = await extractDocx(new Uint8Array(readFileSync(path.join("data", "sample-contracts", "eval", "eval-01-harborview.docx"))));
+    const asked = new Set(MUST_RAISE_CATALOG.terms.map((t) => t.key));
+    const entries = fixture.entries.filter((e) => asked.has(String((e as { term_key?: unknown }).term_key)));
+
+    const terms = validateTerms(entries, MUST_RAISE_CATALOG, parts);
+    const raised = mustRaise(readFigures(terms).figures, terms, [], STANDARDS_LIBRARY);
+
+    expect(raised.uncovered).toEqual([]);
+    expect(raised.findings.map((f) => f.clause_type)).toEqual(["attrition", "fb_minimum"]);
+    expect(raised.findings[0].proposed_language).toContain("seventy percent (70%)");
+    expect(raised.findings[1].proposed_language).toContain("thirty-five percent (35%)");
   });
 });

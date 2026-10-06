@@ -5,6 +5,7 @@ import { pictureContext } from "./document-checks";
 import { textSentToModel } from "./document-comments";
 import { contractText } from "./docx/contract-text";
 import type { LocatablePart } from "./redline-engine/locate";
+import { exposuresEnabled } from "./exposures/enabled";
 import { exposureReading } from "./exposures/figures";
 import { reviewContract, type ReadingOutcome } from "./review";
 import { HOTEL_TERM_CATALOG } from "./terms/catalog";
@@ -176,7 +177,8 @@ export async function processAnalysis(analysisId: string) {
 
     // Both calls run after the AI-use gate, since each sends the contract to
     // the model. The reading call reads the whole catalog when
-    // TERM_EXTRACTION=on (§2.0.2), and only the terms exposures need otherwise.
+    // TERM_EXTRACTION=on (§2.0.2). Otherwise it reads the terms exposures need,
+    // or only the terms the app raises findings from while exposures are archived.
     const storesTerms = process.env.TERM_EXTRACTION === "on";
     const result = await reviewContract({
       document,
@@ -345,9 +347,12 @@ export async function processAnalysis(analysisId: string) {
 async function saveReading(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: ReadingOutcome, storeRows: boolean) {
   try {
     let record: Record<string, unknown> = extractionRecord(outcome);
-    const read = outcome.ok
-      ? { asked_for: storeRows ? "whole_catalog" : "exposure_terms", exposures: exposureReading(outcome.terms, outcome), reask: outcome.reask, cd_positions: outcome.positions }
-      : {};
+    const asked_for = storeRows ? "whole_catalog" : exposuresEnabled() ? "exposure_terms" : "must_raise_terms";
+    const read = !outcome.ok
+      ? {}
+      : exposuresEnabled()
+        ? { asked_for, exposures: exposureReading(outcome.terms, outcome), reask: outcome.reask, cd_positions: outcome.positions }
+        : { asked_for, figures: outcome.figures, cd_positions: outcome.positions };
 
     if (outcome.ok && storeRows) {
       const cleared = await admin.from("contract_terms").delete().eq("analysis_id", analysisId);

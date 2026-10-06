@@ -3,6 +3,7 @@ import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkDocument, pictureNotes } from "@/lib/document-checks";
 import { toNotes, withoutRepeats } from "@/lib/document-notes";
+import { withoutArchivedExposure } from "@/lib/exposures/enabled";
 import { previewFindings } from "@/lib/redline-engine/preflight";
 
 const STORAGE_BUCKET = "contracts";
@@ -82,7 +83,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       })),
       analysis.accepted_view_text
     );
-    findings = withActions.map((f) => ({ ...f, ...previews.get(f.id) }));
+    findings = withActions.map((f) => ({ ...withoutArchivedExposure(f), ...previews.get(f.id) }));
   }
 
   let documentUrl: string | null = null;

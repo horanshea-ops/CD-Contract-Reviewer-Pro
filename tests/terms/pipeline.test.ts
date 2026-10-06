@@ -3,7 +3,7 @@ import path from "node:path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MODEL_CALL_BUDGET_MS, STALE_ANALYSIS_MINUTES } from "@/lib/analysis-status";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
-import { EXPOSURE_CATALOG } from "@/lib/review";
+import { EXPOSURE_CATALOG, MUST_RAISE_CATALOG } from "@/lib/review";
 import { answerName, answerSchema, type ModelRequest } from "../helpers/model-request";
 
 /**
@@ -117,6 +117,7 @@ beforeEach(() => {
   db.row = {};
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("TERM_EXTRACTION", "");
+  vi.stubEnv("EXPOSURES", "on");
   create.mockImplementation(async (params: ModelRequest) =>
     answerName(params) === "record_analysis" ? analysisResponse : termsResponse
   );
@@ -286,5 +287,23 @@ describe("term extraction in processAnalysis", () => {
 
     expect(create).not.toHaveBeenCalled();
     expect(termWrites()).toEqual([]);
+  });
+});
+
+describe("the reading kept with a review while exposure math is archived", () => {
+  it("asks for the safety-net terms, and stores the figures read with no exposure record", async () => {
+    vi.stubEnv("EXPOSURES", "");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await processAnalysis("analysis-1");
+
+    const reading = create.mock.calls.map((c) => c[0]).find((body) => answerName(body) === "record_contract_terms");
+    expect(answerSchema(reading).properties.terms.items.properties.term_key.enum).toEqual(MUST_RAISE_CATALOG.terms.map((t) => t.key));
+
+    const record = updatesTo("analyses").find((u) => "term_extraction" in u)?.term_extraction as Record<string, unknown>;
+    expect(record).toMatchObject({ status: "complete", asked_for: "must_raise_terms", figures: { commission_pct: null } });
+    expect(record).not.toHaveProperty("exposures");
+
+    const saved = db.writes.filter((w) => w.table === "findings" && w.op === "insert").flatMap((w) => w.payload as { exposure_amount: unknown }[]);
+    for (const row of saved) expect(row.exposure_amount).toBeNull();
   });
 });

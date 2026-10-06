@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { EXPOSURE_TERM_KEYS } from "@/lib/exposures/figures";
-import { EXPOSURE_CATALOG, reviewContract, TIER_CATALOG } from "@/lib/review";
+import { EXPOSURE_TERM_KEYS, MUST_RAISE_TERM_KEYS } from "@/lib/exposures/figures";
+import { EXPOSURE_CATALOG, MUST_RAISE_CATALOG, reviewContract, TIER_CATALOG } from "@/lib/review";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 import { answerName, answerSchema, type ModelRequest } from "./helpers/model-request";
@@ -84,6 +84,7 @@ const run = (extra: Partial<Parameters<typeof reviewContract>[0]> = {}) =>
 beforeEach(() => {
   create.mockReset();
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+  vi.stubEnv("EXPOSURES", "on");
   create.mockImplementation(async (params: ModelRequest) =>
     answerName(params) === "record_analysis" ? analysisResponse : termsResponse
   );
@@ -133,7 +134,7 @@ describe("reviewContract", () => {
 
     const review = await run();
 
-    expect(review.findings).toHaveLength(2);
+    expect(review.findings.length).toBeGreaterThanOrEqual(2);
     expect(review.findings.map((f) => f.exposure_amount)).toEqual([null, null]);
     expect(review.reading).toEqual({ ok: false, error: "Connection error." });
   });
@@ -314,5 +315,95 @@ describe("what the app adds when the judging call leaves a clause out", () => {
 
     create.mockImplementation(async (params: ModelRequest) => (answerName(params) === "record_analysis" ? analysisResponse : termsResponse));
     expect((await run()).document_notes).toEqual([]);
+  });
+});
+
+describe("with exposure math archived (EXPOSURES off)", () => {
+  const COMMISSION_LINE = "We will pay to ConferenceDirect a commission of 8% of the Group Room Rate on all paid and occupied rooms.";
+  const TEXT = [CONTRACT, COMMISSION_LINE].join("\n");
+  const askedFor = (r: ModelRequest) => answerSchema(r).properties.terms.items.properties.term_key.enum;
+  const readings = () => requests().filter((r) => answerName(r) === "record_contract_terms");
+
+  // The judging call writes no finding for attrition or commission.
+  const judged = toolResponse("record_analysis", {
+    clause_review: ["attrition", "commission"].map((clause_type) => ({ clause_type, verdict: "falls_short", basis: "Short." })),
+    findings: [],
+    flagged_findings: [],
+    document_notes: [],
+    other_findings: [],
+  });
+  const read = toolResponse("record_contract_terms", {
+    terms: [
+      term("deal.room_block_room_nights", 2900, "Total Room Nights: 2,900"),
+      term("attrition.minimum_room_nights", 2280, "You agree that you will use at least 2,280 room nights."),
+      term("commission.commission_pct", 8, COMMISSION_LINE),
+    ],
+  });
+
+  beforeEach(() => {
+    vi.stubEnv("EXPOSURES", "");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("asks the reader for the five numbers the app raises findings from, and nothing else", async () => {
+    await run();
+
+    expect(askedFor(readingRequest())).toEqual(MUST_RAISE_CATALOG.terms.map((t) => t.key));
+    expect([...askedFor(readingRequest())].sort()).toEqual([...MUST_RAISE_TERM_KEYS].sort());
+    expect(MUST_RAISE_TERM_KEYS).toHaveLength(5);
+    expect(askedFor(readingRequest())).not.toContain("deal.group_rate_usd");
+    expect(askedFor(readingRequest())).not.toContain("cancellation.top_tier_pct");
+  });
+
+  it("puts no figure on any finding", async () => {
+    const review = await run();
+
+    expect(review.findings.length).toBeGreaterThanOrEqual(2);
+    for (const f of review.findings) {
+      expect(f.exposure_amount).toBeNull();
+      expect(f.exposure_basis).toBeNull();
+      expect(f.exposure_formula ?? null).toBeNull();
+    }
+  });
+
+  it("still raises the commission and the attrition floor itself, with the number corrected and no dollar figure", async () => {
+    create.mockImplementation(async (params: ModelRequest) => (answerName(params) === "record_analysis" ? judged : read));
+    const result = await run({ document: { kind: "text", text: TEXT }, parts: [{ part: "document", text: TEXT }] });
+    const byClause = (clause: string) => result.findings.filter((f) => f.clause_type === clause);
+
+    expect(byClause("commission")[0]).toMatchObject({
+      headline: "Commission is 8%, below the 10% standard",
+      proposed_language: COMMISSION_LINE.replace("8%", "10%"),
+      exposure_amount: null,
+    });
+    expect(byClause("attrition")[0]).toMatchObject({
+      proposed_language: "You agree that you will use at least 2,030 room nights.",
+      exposure_amount: null,
+    });
+  });
+
+  it("never asks the reader a second time, even when a wider catalog leaves a cancellation answer out", async () => {
+    const TIER_QUOTE = "the Minimum Number of Room Nights, times the Group Room Rate, times 90%";
+    const CANCEL = [CONTRACT, `90 Days or Less: ${TIER_QUOTE}`].join("\n");
+    create.mockImplementation(async (params: ModelRequest) =>
+      answerName(params) === "record_analysis"
+        ? analysisResponse
+        : toolResponse("record_contract_terms", {
+            terms: [
+              term("cancellation.top_tier_pct", 90, TIER_QUOTE),
+              term("cancellation.damages_room_nights", "minimum_commitment", TIER_QUOTE),
+            ],
+          })
+    );
+
+    const result = await run({ document: { kind: "text", text: CANCEL }, parts: [{ part: "document", text: CANCEL }], catalog: HOTEL_TERM_CATALOG });
+
+    expect(readings()).toHaveLength(1);
+    expect(result.reading).toMatchObject({ ok: true, reask: null });
+  });
+
+  it("reads the whole catalog when given it, as a stored-terms review does", async () => {
+    await run({ catalog: HOTEL_TERM_CATALOG });
+    expect(askedFor(readingRequest())).toHaveLength(HOTEL_TERM_CATALOG.terms.length);
   });
 });

@@ -2,7 +2,8 @@ import { skippedClausesNote } from "./analysis-review";
 import { analyzeContract, type AnalyzeContractPdfArgs, type AnalyzableDocument, type CategorizedAnalysis } from "./anthropic";
 import { positionsFrom, type PositionsRead } from "./exposures/cd-positions";
 import { withComputedExposures } from "./exposures/compute";
-import { EXPOSURE_TERM_KEYS, NO_FIGURES, readFigures, TIER_ANSWER_KEYS, type FigureReading } from "./exposures/figures";
+import { exposuresEnabled } from "./exposures/enabled";
+import { EXPOSURE_TERM_KEYS, MUST_RAISE_TERM_KEYS, NO_FIGURES, readFigures, TIER_ANSWER_KEYS, type FigureReading } from "./exposures/figures";
 import { applyCategories } from "./finding-categories";
 import { mustRaise } from "./must-raise";
 import type { LocatablePart } from "./redline-engine/locate";
@@ -38,13 +39,19 @@ const catalogOf = (keys: readonly string[]): TermCatalog => ({
 /** The terms the figures are read from. A reading pass asks for these when it has no wider catalog to read. */
 export const EXPOSURE_CATALOG = catalogOf(EXPOSURE_TERM_KEYS);
 
+/** The terms the app's own findings need. A reading pass asks for these alone while exposure math is archived. */
+export const MUST_RAISE_CATALOG = catalogOf(MUST_RAISE_TERM_KEYS);
+
 /** The terms a second reading asks for. */
 export const TIER_CATALOG = catalogOf(TIER_ANSWER_KEYS);
 
 export interface ReviewContractArgs extends AnalyzeContractPdfArgs {
   /** The text the model reads, split the way the locator expects. The reader's quotes are checked against it. */
   parts: LocatablePart[];
-  /** The terms the reading call asks for. It must hold the exposure terms. Defaults to those alone. */
+  /**
+   * The terms the reading call asks for. Defaults to the exposure terms, or to
+   * the must-raise terms alone while exposure math is archived.
+   */
   catalog?: TermCatalog;
 }
 
@@ -83,7 +90,8 @@ interface ReadArgs {
 async function readContract(args: ReadArgs): Promise<Reading & FigureReading & { reask: Reask | null }> {
   const first = await extractTerms(args);
   const read = readFigures(first.terms);
-  if (read.unanswered.length === 0) return { ...first, ...read, reask: null };
+  // The second ask serves the cancellation figure alone, so it waits with the exposures.
+  if (read.unanswered.length === 0 || !exposuresEnabled()) return { ...first, ...read, reask: null };
 
   const asked_for = read.unanswered;
   const replaced = first.terms.stated.filter((t) => asked_for.includes(t.term_key));
@@ -108,7 +116,9 @@ async function readContract(args: ReadArgs): Promise<Reading & FigureReading & {
   }
 }
 
-export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...review }: ReviewContractArgs): Promise<ContractReview> {
+export async function reviewContract({ parts, catalog, ...review }: ReviewContractArgs): Promise<ContractReview> {
+  const exposures = exposuresEnabled();
+
   // CD's numbers, as the library states them today. Kept with the reading, so a review records what it was measured against.
   const cd = positionsFrom(review.standards);
   if (cd.unread.length > 0) {
@@ -119,7 +129,7 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
   const pending: Promise<ReadingOutcome> = readContract({
     document: review.document,
     parts,
-    catalog,
+    catalog: catalog ?? (exposures ? EXPOSURE_CATALOG : MUST_RAISE_CATALOG),
     model: review.model,
     deadline: review.deadline,
   }).then(
@@ -134,9 +144,9 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
     if (reading.reask) {
       console.warn(`[exposures] asked the reader again for ${reading.reask.asked_for.join(", ")}${reading.reask.error ? `, and that call failed — ${reading.reask.error}` : ""}`);
     }
-    for (const note of reading.notes) console.warn(`[exposures] ${note.term_key}: ${note.reason}`);
+    if (exposures) for (const note of reading.notes) console.warn(`[exposures] ${note.term_key}: ${note.reason}`);
   } else {
-    console.error(`reviewContract: the reading call failed, so this review carries no exposures — ${reading.error}`);
+    console.error(`reviewContract: the reading call failed, so this review has no figures and no findings of the app's own — ${reading.error}`);
   }
   const figures = reading.ok ? reading.figures : NO_FIGURES;
 
@@ -153,7 +163,8 @@ export async function reviewContract({ parts, catalog = EXPOSURE_CATALOG, ...rev
 
   return {
     ...analysis,
-    findings: withComputedExposures(findings, figures, cd.positions),
+    // The figures still feed the findings the app raises. They become dollar amounts only with EXPOSURES on.
+    findings: withComputedExposures(findings, exposures ? figures : NO_FIGURES, cd.positions),
     document_notes: [...analysis.document_notes, ...notes],
     deal_figures: figures,
     reading,

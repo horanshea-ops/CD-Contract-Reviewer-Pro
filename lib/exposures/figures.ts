@@ -121,6 +121,19 @@ export const EXPOSURE_TERM_KEYS: readonly string[] = [
   ...Object.values(TIER_TERMS),
 ];
 
+/**
+ * The terms behind the findings the app raises itself (lib/must-raise.ts): the
+ * commission rate, the attrition floor and the F&B shortfall rate. A reading
+ * pass asks for these alone while exposure math is archived.
+ */
+export const MUST_RAISE_TERM_KEYS: readonly string[] = [
+  SCALAR_TERMS.room_block_room_nights,
+  SCALAR_TERMS.minimum_room_nights,
+  SCALAR_TERMS.attrition_threshold_pct,
+  SCALAR_TERMS.fb_shortfall_pct,
+  SCALAR_TERMS.commission_pct,
+];
+
 const asPercent = (fraction: number) => `${Number((fraction * 100).toFixed(4))}%`;
 
 const CHARGES_OF: Record<string, TierCharge> = { gross_revenue: "rate", room_profit: "room_profit" };

@@ -1,3 +1,4 @@
+import { exposuresEnabled } from "../exposures/enabled";
 import { UNAPPLIED_REASON_TEXT, type UnappliedReason } from "../redline-validation/types";
 import { SEVERITY_ORDER } from "./types";
 import type { ComparedItem, ContractResult, RedlineContractResult, RunHeadline, ScoreReport } from "./types";
@@ -92,11 +93,16 @@ function attributeLines(report: ScoreReport): string[] {
     lines.push(`  ${pad(verdict, 18)}${num(count, 4)}${note}`);
   }
 
-  lines.push("", "Exposure");
-  for (const [verdict, count] of Object.entries(a.exposure)) {
-    if (count === 0) continue;
-    const note = verdict === "invented" ? "   a figure the contract does not support — the prompt forbids this" : "";
-    lines.push(`  ${pad(verdict, 18)}${num(count, 4)}${note}`);
+  // Exposure math is archived for the beta, so a run made without it isn't marked down for figures nobody asked for.
+  if (exposuresEnabled()) {
+    lines.push("", "Exposure");
+    for (const [verdict, count] of Object.entries(a.exposure)) {
+      if (count === 0) continue;
+      const note = verdict === "invented" ? "   a figure the contract does not support — the prompt forbids this" : "";
+      lines.push(`  ${pad(verdict, 18)}${num(count, 4)}${note}`);
+    }
+  } else {
+    lines.push("", "Exposure", "  not graded while EXPOSURES is off");
   }
 
   lines.push("", "Severity called, by the severity the key expects");

@@ -126,8 +126,8 @@ export function ClientEmailPanel({
         Generated from accepted findings only. Review and edit before sending, since nothing is sent from here.
       </Meta>
       <Meta as="p" className="text-[var(--cd-navy)] bg-[var(--cd-blue-pale)] rounded px-2 py-1.5 mb-4">
-        This draft includes {ORG.shortName}&apos;s exposure figures and negotiating rationale. It is for internal
-        use only. Never send it to the property.
+        This draft includes {ORG.shortName}&apos;s negotiating rationale. It is for internal use only. Never send it
+        to the property.
       </Meta>
 
       {!draft ? (

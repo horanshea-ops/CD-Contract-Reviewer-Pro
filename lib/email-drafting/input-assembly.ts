@@ -1,4 +1,5 @@
 import type { createAdminClient } from "../supabase/admin";
+import { withoutArchivedExposure } from "../exposures/enabled";
 import { assertsNoChange } from "../proposed-language";
 import { findingCategory } from "../findings-overview";
 import type { Category } from "../standards/types";
@@ -87,9 +88,11 @@ export function assembleEmailFindings(findingRows: FindingRow[], actionRows: Act
             ? action.edited_language
             : f.proposed_language,
       finding_text: f.finding_text,
-      exposure_amount: f.exposure_amount,
-      exposure_basis: f.exposure_basis,
-      exposure_formula: f.exposure_formula ?? null,
+      ...withoutArchivedExposure({
+        exposure_amount: f.exposure_amount,
+        exposure_basis: f.exposure_basis,
+        exposure_formula: f.exposure_formula ?? null,
+      }),
     }))
     // A finding proposing no change is not a change to tell the client about.
     // Shared with every export path — see lib/proposed-language.ts.
