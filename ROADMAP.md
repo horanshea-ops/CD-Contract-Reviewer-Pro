@@ -460,7 +460,10 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
         - One Florida review on 5.5 through the app, about $0.45 to $0.50.
         - The seven-contract eval on 5.5, roughly $2 to $3, to be quoted
           exactly.
-        - The compile check of the shorter reading list, under a cent.
+        - **Compile check done 2026-10-06.** All eight Sonnet 5.5 forms
+          compile on a real call, the shorter reading list included. It
+          cost about 5 cents. The user approved about 3. The sweep was
+          $0.0252, and a careless second command ran it twice.
         - To settle on that run: `[X]%` on gratuity, table rows written as
           prose, and the no-arithmetic rule.
 - [ ] **3. Standards library by hotel brand (CD, 2026-10-06).** CD has
