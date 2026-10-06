@@ -57,6 +57,8 @@ interface AnalysisResponse {
   document_notes: unknown;
   /** The app's own arithmetic checks on the contract. */
   document_checks?: DocumentNote[];
+  /** The set of standards the review read. Null on a review from before sets. */
+  standards?: { name: string; note: string | null } | null;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -449,8 +451,8 @@ export default function AnalysisPage() {
               </>
             )}
             <Meta as="span" className="text-[var(--text-muted)]">
-              {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"} · not legal advice, review each
-              one
+              {sortedFindings.length} finding{sortedFindings.length === 1 ? "" : "s"}
+              {data.standards ? ` · ${data.standards.name} standards` : ""} · not legal advice, review each one
             </Meta>
           </div>
         </div>
@@ -466,6 +468,13 @@ export default function AnalysisPage() {
           <EmailPicker analysisId={data.id} />
         </div>
       </div>
+
+      {/* The review read a different set of standards from the one its negotiation asked for. */}
+      {data.standards?.note && (
+        <Meta as="div" role="status" className="bg-[var(--cd-blue-pale)] text-[var(--cd-navy)] px-4 py-2 shrink-0">
+          {data.standards.note}
+        </Meta>
+      )}
 
       {/* Below lg the panes stack, each with its own scroll, so the findings stay reachable under a long contract. From lg the divider between them can be dragged. */}
       <ResizableSplit

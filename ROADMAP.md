@@ -479,6 +479,31 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
       - The Standards library screen gets a set picker. Edits stay audited.
       - Hilton and Hyatt start empty and fall back to Independent until CD's
         documents arrive.
+      - **Built 2026-10-06 on `standards/brand-sets`, cut from the Sonnet
+        5.5 branch. Not merged.** `docs/standards-sets.md` has the model.
+        - A set is complete in itself. A Hilton review reads Hilton's
+          standards and nothing from Independent.
+        - A set is read only once an admin switches it on, and an empty
+          set can't be switched on. One Hilton standard added on its own
+          would otherwise make every Hilton review check one clause.
+        - A review that can't use the set asked for reads Independent,
+          records why, and says so on the review screen.
+        - Independent's fingerprint is unchanged, so the eval baselines
+          hold.
+        - An empty set can be started from a copy of Independent. The
+          copies carry no validation stamp.
+        - Lint, typecheck and 1,492 tests pass. No pinned model request
+          changed.
+        - **Waiting on the user: run migration 015 in Supabase's SQL
+          editor.** It is safe while the live site is on today's code.
+          The picker, the switch and the copy have not been seen in a
+          browser, because they need its tables. Before the migration
+          the Standards screen and the review screen work as they did,
+          which was checked.
+        - **Add no Hilton or Hyatt standard until this code is live.**
+          Today's loader reads every row whatever its set.
+        - Not built: a screen to add a fourth set, and which sub-brands
+          count as Hilton or Hyatt (question 2 for CD).
 - [ ] **4. Confirm step on upload.** Depends on item 3.
       - Today the associate picks a file, types the property name, and the
         review starts.

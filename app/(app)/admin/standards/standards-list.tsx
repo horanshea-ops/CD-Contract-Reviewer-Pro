@@ -14,7 +14,9 @@ import { DEFAULT_POSITIONS, POSITION_SOURCES, readPosition } from "@/lib/exposur
 import { clauseLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
+import type { StandardSet } from "@/lib/standards/sets";
 import type { Category, LibrarySeverity } from "@/lib/standards/types";
+import { StandardsSetBar } from "./standards-set-bar";
 
 export interface StandardRow {
   id: string;
@@ -64,11 +66,18 @@ const PROVENANCE_OPTIONS = ["industry_default", "extracted", "cd_validated"] as 
 export default function StandardsList({
   initialStandards,
   associateNames,
+  sets = [],
+  initialSet = null,
 }: {
   initialStandards: StandardRow[];
   associateNames: Record<string, string>;
+  /** Every standards set, for the picker. Empty before sets exist in the database. */
+  sets?: StandardSet[];
+  /** The set these standards belong to. */
+  initialSet?: StandardSet | null;
 }) {
   const [standards, setStandards] = useState(initialStandards);
+  const [set, setSet] = useState(initialSet);
   const [hidden, setHidden] = useState<Set<Severity>>(new Set());
   const [query, setQuery] = useState("");
   const [dragging, setDragging] = useState<string | null>(null);
@@ -149,6 +158,17 @@ export default function StandardsList({
 
   return (
     <div>
+      {set && (
+        <StandardsSetBar<StandardRow>
+          sets={sets}
+          set={set}
+          count={active.length}
+          hasRemoved={retired.length > 0}
+          onSwitched={setSet}
+          onCopied={setStandards}
+        />
+      )}
+
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <SeverityToggles keys={[...SEVERITY_OPTIONS]} counts={counts} hidden={hidden} onToggle={toggleSeverity} />
         {filtersActive && (
@@ -191,7 +211,7 @@ export default function StandardsList({
 
       {groups.length === 0 ? (
         <Body as="p" className="text-[var(--text-secondary)] py-8 text-center">
-          No standards match these filters.
+          {active.length === 0 ? "No standards in this set yet." : "No standards match these filters."}
         </Body>
       ) : (
         <div className="space-y-6">
@@ -293,6 +313,7 @@ export default function StandardsList({
 
       <AddStandardDialog
         open={adding}
+        setKey={set?.key}
         onClose={() => setAdding(false)}
         onAdded={(row) => {
           setStandards((prev) => [...prev, row]);
@@ -306,10 +327,13 @@ export default function StandardsList({
 
 function AddStandardDialog({
   open,
+  setKey,
   onClose,
   onAdded,
 }: {
   open: boolean;
+  /** The set the standard is added to. */
+  setKey?: string;
   onClose: () => void;
   onAdded: (row: StandardRow) => void;
 }) {
@@ -339,7 +363,7 @@ function AddStandardDialog({
       const res = await fetch("/api/admin/standards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, set_key: setKey }),
       }).catch(() => null);
       const body = await res?.json().catch(() => null);
       if (!res?.ok) {
