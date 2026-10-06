@@ -79,6 +79,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     entityType: "standard",
     entityId: id,
     metadata: {
+      set_key: data.set_key,
       clause_type: data.clause_type,
       fields_changed: Object.keys(updates),
       ...("severity_default" in body ? { severity_default: data.severity_default } : {}),
@@ -100,8 +101,17 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   const db = createAdminClient();
 
-  const { count } = await db.from("standards").select("id", { count: "exact", head: true }).is("retired_at", null);
-  if ((count ?? 0) <= 1) {
+  const { data: row } = await db.from("standards").select("set_key").eq("id", id).maybeSingle();
+  if (!row) return NextResponse.json({ error: "Standard not found, or already removed." }, { status: 404 });
+
+  // The default set is what every other review falls back to, so it never empties.
+  const { data: set } = await db.from("standard_sets").select("is_default").eq("key", row.set_key).maybeSingle();
+  const { count } = await db
+    .from("standards")
+    .select("id", { count: "exact", head: true })
+    .eq("set_key", row.set_key)
+    .is("retired_at", null);
+  if (set?.is_default && (count ?? 0) <= 1) {
     return NextResponse.json({ error: "The library needs at least one standard." }, { status: 409 });
   }
 
@@ -122,7 +132,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     action: "standard_retired",
     entityType: "standard",
     entityId: id,
-    metadata: { clause_type: data.clause_type },
+    metadata: { set_key: data.set_key, clause_type: data.clause_type },
   });
 
   return NextResponse.json(data);

@@ -14,9 +14,10 @@ import { answerName, answerSchema, type ModelRequest } from "../helpers/model-re
  * the review it runs alongside.
  */
 
-const { create, scanForAiUseTerms } = vi.hoisted(() => ({
+const { create, scanForAiUseTerms, sets } = vi.hoisted(() => ({
   create: vi.fn(),
   scanForAiUseTerms: vi.fn(() => [] as { term: string }[]),
+  sets: { asked: [] as string[], unusable: [] as string[] },
 }));
 
 vi.mock("@anthropic-ai/sdk", () => ({
@@ -30,12 +31,20 @@ vi.mock("@/lib/get-positioned-lines", () => ({ getPositionedLines: vi.fn(async (
 vi.mock("@/lib/standards/load", async () => {
   const { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } = await import("@/lib/standards/v1");
   return {
-    loadStandardsLibrary: async () => ({
-      entries: STANDARDS_LIBRARY,
-      version: STANDARDS_LIBRARY_VERSION,
-      source: "bundled_fallback",
-      hash: "test",
-    }),
+    // Stands in for the loader: the set asked for is used unless a test says it can't be.
+    loadStandardsLibrary: async (setKey = "independent") => {
+      sets.asked.push(setKey);
+      const refused = sets.unusable.includes(setKey);
+      return {
+        entries: STANDARDS_LIBRARY,
+        version: STANDARDS_LIBRARY_VERSION,
+        source: "bundled_fallback",
+        hash: "test",
+        set: refused ? "independent" : setKey,
+        requestedSet: setKey,
+        setNote: refused ? "Hyatt's standards are switched off, so this review used Independent." : undefined,
+      };
+    },
   };
 });
 
@@ -45,7 +54,14 @@ interface Write {
   payload?: unknown;
 }
 
-const db = { writes: [] as Write[], termsInsertError: null as string | null, bytes: new Uint8Array(), row: {} as Record<string, unknown> };
+const db = {
+  writes: [] as Write[],
+  termsInsertError: null as string | null,
+  bytes: new Uint8Array(),
+  row: {} as Record<string, unknown>,
+  thread: null as Record<string, unknown> | null,
+  threadError: null as string | null,
+};
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
@@ -66,6 +82,10 @@ vi.mock("@/lib/supabase/admin", () => ({
           },
           error: null,
         }),
+        maybeSingle: async () =>
+          table === "negotiation_threads" && db.threadError
+            ? { data: null, error: { message: db.threadError } }
+            : { data: table === "negotiation_threads" ? db.thread : null, error: null },
         update: (payload: unknown) => {
           db.writes.push({ table, op: "update", payload });
           return { eq: async () => ({ error: null }) };
@@ -115,6 +135,10 @@ beforeEach(() => {
   db.writes = [];
   db.termsInsertError = null;
   db.row = {};
+  db.thread = null;
+  db.threadError = null;
+  sets.asked = [];
+  sets.unusable = [];
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("TERM_EXTRACTION", "");
   vi.stubEnv("EXPOSURES", "on");
@@ -305,5 +329,51 @@ describe("the reading kept with a review while exposure math is archived", () =>
 
     const saved = db.writes.filter((w) => w.table === "findings" && w.op === "insert").flatMap((w) => w.payload as { exposure_amount: unknown }[]);
     for (const row of saved) expect(row.exposure_amount).toBeNull();
+  });
+});
+
+describe("the standards set a review reads", () => {
+  const completed = () => updatesTo("analyses").find((u) => u.status === "complete");
+
+  it("reads Independent for a negotiation with no set, and records it", async () => {
+    db.row = { thread_id: "thread-1" };
+    db.thread = { standards_set: null };
+    await processAnalysis("analysis-1");
+
+    expect(sets.asked).toEqual(["independent"]);
+    expect(completed()).toMatchObject({ standards_set: "independent", standards_set_requested: null, standards_set_note: null });
+  });
+
+  it("reads the set its negotiation names, on every round", async () => {
+    db.row = { thread_id: "thread-1" };
+    db.thread = { standards_set: "hilton" };
+    await processAnalysis("analysis-1");
+    await processAnalysis("analysis-2");
+
+    expect(sets.asked).toEqual(["hilton", "hilton"]);
+    expect(completed()).toMatchObject({ standards_set: "hilton", standards_set_requested: null, standards_set_note: null });
+  });
+
+  it("records the set asked for and why, when the review had to use another", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    db.row = { thread_id: "thread-1" };
+    db.thread = { standards_set: "hyatt" };
+    sets.unusable = ["hyatt"];
+    await processAnalysis("analysis-1");
+
+    expect(completed()).toMatchObject({
+      standards_set: "independent",
+      standards_set_requested: "hyatt",
+      standards_set_note: "Hyatt's standards are switched off, so this review used Independent.",
+    });
+  });
+
+  it("fails before the model is called when the negotiation's set can't be read", async () => {
+    db.row = { thread_id: "thread-1" };
+    db.threadError = 'column negotiation_threads.standards_set does not exist';
+    await processAnalysis("analysis-1");
+
+    expect(create).not.toHaveBeenCalled();
+    expect(updatesTo("analyses").find((u) => u.status === "failed")?.error).toMatch(/migration 015 has not been applied/);
   });
 });
