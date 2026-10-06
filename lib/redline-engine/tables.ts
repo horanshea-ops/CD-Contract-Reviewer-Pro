@@ -2,7 +2,7 @@ import type { WalkResult } from "../docx";
 import type { RevisionIds } from "./ids";
 import { childElements, revisionElement, siblingGroups, toDeletedText } from "./revise";
 import { runText, runsForSpan } from "./runs";
-import { splitAcrossCells } from "./cell-split";
+import { rowCells, splitAcrossCells } from "./cell-split";
 import type { LocatedSpan } from "./types";
 
 /**
@@ -151,7 +151,7 @@ function separatorParagraph(doc: Document, ids: RevisionIds, author: string, dat
  * be done without guessing.
  */
 function cellPieces(replacement: string, groups: { runs: Element[] }[]): string[] | null {
-  if (replacement.includes("|") || groups.length < 2) return replacement.split("|").map((s) => s.trim());
+  if (replacement.includes("|") || groups.length < 2) return rowCells(replacement);
   return splitAcrossCells(
     groups.map((g) => g.runs.map(runText).join("")),
     replacement

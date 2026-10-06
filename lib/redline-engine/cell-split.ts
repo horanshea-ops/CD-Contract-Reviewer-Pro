@@ -14,6 +14,20 @@
  * in neighbouring cells into one that crosses the line between them.
  */
 
+/**
+ * A row's wording, one piece per cell.
+ *
+ * The extracted text writes a row with a "|" at each end, and a proposal
+ * sometimes copies that shape. Those two are the row's edges, so the empty
+ * pieces outside them are dropped. A "|" at one end only may mark an empty
+ * cell, and is left alone.
+ */
+export function rowCells(row: string): string[] {
+  const pieces = row.split("|").map((s) => s.trim());
+  const edged = pieces.length > 2 && pieces[0] === "" && pieces[pieces.length - 1] === "";
+  return edged ? pieces.slice(1, -1) : pieces;
+}
+
 interface CellWord {
   text: string;
   cell: number;

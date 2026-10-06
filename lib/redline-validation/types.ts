@@ -50,7 +50,7 @@ export const UNAPPLIED_REASON_TEXT: Record<UnappliedReason, string> = {
   ambiguous_quote:
     "The quoted wording appears in more than one clause and nothing in the finding says which one is meant.",
   crosses_boundary:
-    "The wording runs across a table cell, a content control, or the property's own tracked change, which cannot be marked up safely.",
+    "The wording runs across a table cell, a content control, or the property's own tracked change, which cannot be marked up safely. For a table row, use Edit to write one value per column, with | between them.",
   spans_non_text_content:
     "The wording spans a tab, a line break, or a footnote marker, which the markup cannot carry across.",
   overlaps_another_change: "Another finding already marks up overlapping wording.",

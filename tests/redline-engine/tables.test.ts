@@ -94,6 +94,20 @@ describe("a change spanning cells", () => {
     expect((xml.match(/<w:tblBorders>/g) ?? []).length).toBe(2);
   });
 
+  it("lays out a row written with a separator at each end", async () => {
+    // The shape a real review wrote: the row as the extracted text shows it, edges included.
+    const { result, report, xml } = await redline(await buildDocx(table(SCHEDULE)), [
+      finding({ quoted_text: "| 180 to 91 | 50% |", language: "| 180 to 91  | 25%  |" }),
+    ]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(1);
+    expect(report.checks.filter((c) => !c.passed)).toEqual([]);
+    expect(report.outcome).toBe("clean");
+    expect((xml.match(/<w:tbl>/g) ?? []).length).toBe(2);
+    expect(xml).toContain("25%");
+  });
+
   it("refuses when the proposed wording does not lay back out across the cells", async () => {
     // Wording in the wrong column is worse than a finding the associate has to
     // raise by hand, so a mismatch is refused rather than guessed at.
