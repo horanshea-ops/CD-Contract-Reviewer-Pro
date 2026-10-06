@@ -27,8 +27,8 @@ import { serializePart } from "./redline-engine/serialize";
 const REVISION = new Set(["w:ins", "w:del", "w:moveFrom", "w:moveTo"]);
 const REMOVES = new Set(["w:del", "w:moveFrom"]);
 
-const elements = (doc: Document, tag: string): Element[] => {
-  const nodes = doc.getElementsByTagName(tag);
+const elements = (root: Document | Element, tag: string): Element[] => {
+  const nodes = root.getElementsByTagName(tag);
   const out: Element[] = [];
   for (let i = 0; i < nodes.length; i++) out.push(nodes[i]);
   return out;
@@ -83,9 +83,16 @@ function mergeIntoNext(p: Element) {
 }
 
 export function acceptOwnRevisionsInDoc(doc: Document, ownIds: ReadonlySet<string>) {
-  const ours = (el: Element) => ownIds.has(el.getAttribute("w:id") ?? "");
+  acceptRevisionsIn(doc, (mark) => ownIds.has(mark.getAttribute("w:id") ?? ""));
+}
 
-  const marks = [...REVISION].flatMap((tag) => elements(doc, tag)).filter(ours);
+/**
+ * Accepts the tracked changes inside `root` that `accepts` picks out, the four
+ * kinds listed above. The engine uses it on a table's copy, with every change
+ * picked, so the copy reads as the table does and carries nobody's marks.
+ */
+export function acceptRevisionsIn(root: Document | Element, accepts: (mark: Element) => boolean) {
+  const marks = [...REVISION].flatMap((tag) => elements(root, tag)).filter(accepts);
   const rowMarks = marks.filter((m) => parentName(m) === "w:trPr");
   const paragraphMarks = marks.filter((m) => parentName(m) === "w:rPr" && ancestor(m, "w:pPr"));
   const contentMarks = marks.filter((m) => !rowMarks.includes(m) && !paragraphMarks.includes(m));
@@ -112,7 +119,7 @@ export function acceptOwnRevisionsInDoc(doc: Document, ownIds: ReadonlySet<strin
     if (deleted && p?.parentNode) mergeIntoNext(p);
   }
 
-  for (const table of elements(doc, "w:tbl")) {
+  for (const table of elements(root, "w:tbl")) {
     if (!childElements(table).some((c) => c.nodeName === "w:tr")) remove(table);
   }
 }

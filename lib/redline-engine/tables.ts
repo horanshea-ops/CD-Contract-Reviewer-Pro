@@ -1,5 +1,6 @@
 import type { WalkResult } from "../docx";
 import type { RevisionIds } from "./ids";
+import { acceptRevisionsIn } from "../docx-accept";
 import { refsInSpan } from "./applicability";
 import { childElements, insertedRun, revisionElement, siblingGroups, toDeletedText } from "./revise";
 import { runText, runsForSpan } from "./runs";
@@ -137,6 +138,15 @@ function markWholeTable(
   for (const row of childElements(table).filter((c) => c.nodeName === "w:tr")) {
     setRowMark(row, tagName, ids, author, date);
   }
+}
+
+/**
+ * True when anything in the table still records a tracked change. Every such
+ * record names its author, whatever kind it is: a formatting change, a moved
+ * passage, a merged cell.
+ */
+function holdsTrackedChange(table: Element): boolean {
+  return descendants(table, "*").some((el) => el.hasAttribute("w:author"));
 }
 
 /** An empty paragraph, marked as inserted, to keep two tables from merging into one. */
@@ -296,9 +306,24 @@ export function replaceTable({
 
   const copy = table.cloneNode(true) as Element;
 
+  // Found before the copy's changes are accepted, since accepting moves runs out of their wrappers.
+  const inCopy = paths.map((cell) => cell.map((p) => resolvePath(copy, p)).filter((el): el is Element => el !== null));
+
+  // The copy reads as the table reads today and carries nobody's marks. A
+  // cloned mark would repeat its id, and the original keeps every mark anyway.
+  acceptRevisionsIn(copy, () => true);
+  if (holdsTrackedChange(copy)) {
+    return {
+      ok: false,
+      reason:
+        "The table holds a tracked change the redline can't carry into its copy, such as a formatting change, " +
+        "so the table is left as it is.",
+    };
+  }
+
   // Put the new wording into the copy, cell by cell, before anything is marked.
   groups.forEach((group, index) => {
-    const runsInCopy = paths[index].map((p) => resolvePath(copy, p)).filter((el): el is Element => el !== null);
+    const runsInCopy = inCopy[index].filter((run) => copy.contains(run));
     if (runsInCopy.length === 0) return;
 
     const first = runsInCopy[0];

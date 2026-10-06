@@ -272,3 +272,76 @@ describe("several changes to one table", () => {
     expect(xml).toContain("100%");
   });
 });
+
+describe("replacing a table that already holds tracked changes", () => {
+  const HOTEL = "Dana Reyes";
+  const failed = (report: { checks: { name: string; passed: boolean; detail: string }[] }) =>
+    report.checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.detail}`);
+  const fixture09 = async () => new Uint8Array(await readFile(path.join("tests", "fixtures", "09-tracked-in-tables.docx")));
+
+  /** Each table's XML, in document order. The first is the struck original, the second our copy. */
+  const tables = (xml: string) => xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) ?? [];
+
+  it("replaces a table the counterparty has edited", async () => {
+    const { result, report, xml } = await redline(await fixture09(), [
+      finding({ quoted_text: "180 to 91 | seventy-five percent (75%)", language: "180 to 91 | sixty percent (60%)" }),
+    ]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(failed(report)).toEqual([]);
+    expect(report.outcome).toBe("clean");
+    expect(tables(xml)).toHaveLength(2);
+  });
+
+  it("keeps the counterparty's changes on the struck table and none in the copy", async () => {
+    const { xml } = await redline(await fixture09(), [
+      finding({ quoted_text: "180 to 91 | seventy-five percent (75%)", language: "180 to 91 | sixty percent (60%)" }),
+    ]);
+    const [struck = "", copy = ""] = tables(xml);
+    const byHotel = (t: string) => (t.match(new RegExp(`w:author="${HOTEL}"`, "g")) ?? []).length;
+
+    expect(byHotel(struck)).toBe(4);
+    expect(byHotel(copy)).toBe(0);
+    // The copy reads as the table read when it arrived, with our one change.
+    expect(copy).toContain("sixty percent (60%)");
+    expect(copy).toContain("ninety percent (90%)");
+    expect(copy).not.toContain("fifty percent (50%)");
+  });
+
+  it("takes a row change after a one-cell change to the same table", async () => {
+    const SCHEDULE3 = [...SCHEDULE, ["90 or fewer", "90%"]];
+    const { result, report, xml } = await redline(await buildDocx(table(SCHEDULE3)), [
+      finding({ id: "cell", quoted_text: "25%", language: "10%" }),
+      finding({ id: "row", quoted_text: "180 to 91 | 50%", language: "180 to 91 | 35%" }),
+    ]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(2);
+    expect(failed(report)).toEqual([]);
+    expect(tables(xml)).toHaveLength(2);
+
+    const clean = await acceptOwnRevisions(result.docxBytes, new Set(result.ownRevisionIds));
+    const accepted = await (await JSZip.loadAsync(clean)).file("word/document.xml")!.async("string");
+    expect(tables(accepted)).toHaveLength(1);
+    expect(accepted).toContain("10%");
+    expect(accepted).toContain("35%");
+    expect(accepted).not.toContain("25%");
+  });
+
+  it("refuses a table holding a tracked change the copy can't carry, and leaves the rest valid", async () => {
+    const formatChange =
+      `<w:r><w:rPr><w:b/><w:rPrChange w:id="77" w:author="${HOTEL}" w:date="2026-03-01T00:00:00Z"><w:rPr/></w:rPrChange></w:rPr>` +
+      `<w:t xml:space="preserve">50%</w:t></w:r>`;
+    const body = table(SCHEDULE).replace(run("50%"), formatChange) + para(run("Deposits are due at signing."));
+    const { result, report, xml } = await redline(await buildDocx(body), [
+      finding({ id: "row", quoted_text: "180 to 91 | 50%", language: "180 to 91 | 25%" }),
+      finding({ id: "prose", quoted_text: "Deposits are due at signing.", language: "Deposits are due thirty days after signing." }),
+    ]);
+
+    expect(result.appliedCount).toBe(1);
+    expect(result.unapplied.map((u) => u.reason)).toEqual(["crosses_boundary"]);
+    expect(result.resolutions.find((r) => r.findingId === "row")?.detail).toMatch(/tracked change/i);
+    expect(failed(report)).toEqual([]);
+    expect(tables(xml)).toHaveLength(1);
+  });
+});
