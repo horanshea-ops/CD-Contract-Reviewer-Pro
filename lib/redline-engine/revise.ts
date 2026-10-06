@@ -62,7 +62,7 @@ export function toDeletedText(run: Element) {
 }
 
 /** A run carrying the replacement wording, formatted like the wording it replaces. */
-function insertedRun(doc: Document, text: string, formatLike: Element | null): Element {
+export function insertedRun(doc: Document, text: string, formatLike: Element | null): Element {
   const run = doc.createElement("w:r");
   const rPr = formatLike ? childElements(formatLike).find((c) => c.nodeName === "w:rPr") : null;
   if (rPr) run.appendChild(rPr.cloneNode(true));
