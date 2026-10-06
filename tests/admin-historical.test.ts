@@ -97,6 +97,45 @@ beforeEach(() => {
   state.sent = [];
   state.results = null;
   vi.unstubAllEnvs();
+  vi.stubEnv("HISTORICAL_CONTRACTS", "on");
+});
+
+describe("archived, with HISTORICAL_CONTRACTS off", () => {
+  beforeEach(() => vi.stubEnv("HISTORICAL_CONTRACTS", ""));
+
+  it("answers not found on every admin route, and stores nothing", async () => {
+    state.tables.historical_contracts.push({ id: "h1", extraction_status: "failed", storage_path: "historical/h1/a.pdf" });
+
+    expect((await upload(await fileRequest(CONTRACT))).status).toBe(404);
+    expect((await edit(json({ city: "Denver" }), params("h1"))).status).toBe(404);
+    expect((await remove(new Request("http://localhost"), params("h1"))).status).toBe(404);
+    expect((await queue(json({}), params("h1"))).status).toBe(404);
+    expect((await send()).status).toBe(404);
+    expect((await collect()).status).toBe(404);
+
+    expect(state.tables.historical_contracts).toHaveLength(1);
+    expect(state.audit).toHaveLength(0);
+  });
+
+  it("still tells a signed-out caller to sign in, and a non-admin they need admin access", async () => {
+    state.associate = null;
+    expect((await send()).status).toBe(401);
+    state.associate = { ...ADMIN, is_admin: false };
+    expect((await send()).status).toBe(403);
+  });
+
+  it("sends the screen's address to Users, and answers not found for a contract's file", async () => {
+    const { default: Page } = await import("@/app/(app)/admin/contracts/page");
+    await expect(Page()).rejects.toMatchObject({ digest: expect.stringContaining("NEXT_REDIRECT;replace;/admin/users;") });
+
+    state.tables.historical_contracts.push({ id: "h1", storage_path: "historical/h1/a.pdf", source_format: "pdf", file_name: "a.pdf" });
+    state.files["historical/h1/a.pdf"] = new Uint8Array([1]);
+    const { GET: file } = await import("@/app/api/historical/[id]/file/route");
+    expect((await file(new Request("http://localhost"), params("h1"))).status).toBe(404);
+
+    vi.stubEnv("ANALYTICS", "on");
+    expect((await file(new Request("http://localhost"), params("h1"))).status).toBe(200);
+  });
 });
 
 describe("uploading", () => {

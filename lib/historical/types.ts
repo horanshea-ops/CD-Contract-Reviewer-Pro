@@ -41,6 +41,15 @@ export interface StoredText {
 export const HISTORICAL_BUCKET = "contracts";
 
 /**
+ * Historical uploads are archived for the beta (docs/archived-features.md).
+ * Off, the Admin link and the screen's own address open Users, and its routes
+ * answer "not found".
+ */
+export function historicalContractsEnabled(): boolean {
+  return process.env.HISTORICAL_CONTRACTS === "on";
+}
+
+/**
  * Real CD contracts may reach the model only once CD's own Anthropic org
  * exists (CLAUDE.md, deviation 7). Until then this stays off, and uploads are
  * stored and wait.

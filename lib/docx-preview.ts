@@ -405,3 +405,136 @@ function buildFlattenedBlockIndex(blocks: PreviewBlock[]): { normalized: string;
   visit(blocks);
   return { normalized, posMap };
 }
+
+/**
+ * A tracked change already in the file, as one margin note.
+ *
+ * Word records a replacement as a deletion beside an insertion, each its own
+ * revision. Neighbouring revisions by one author in one paragraph are read
+ * here as one change, which is how a reader sees them.
+ */
+export interface RevisionNote {
+  key: string;
+  part: string;
+  kind: "added" | "deleted" | "replaced" | "moved";
+  author: string;
+  /** ISO string of the latest revision in the change, or empty. */
+  date: string;
+  /** The wording taken out. Empty for an addition. */
+  was: string;
+  /** The wording put in. Empty for a deletion. */
+  now: string;
+}
+
+export interface RevisionNotes {
+  notes: RevisionNote[];
+  /** Each run that belongs to a change, by the change's key. */
+  keyOfRun: Map<PreviewRun, string>;
+}
+
+const REMOVES = (run: PreviewRun) => run.revision?.kind === "del" || run.revision?.kind === "moveFrom";
+
+export function revisionNotes(parts: PreviewPart[]): RevisionNotes {
+  const notes: RevisionNote[] = [];
+  const keyOfRun = new Map<PreviewRun, string>();
+
+  // A change can cover part of a word: "700" to "750" is stored as "00" struck and "50" added.
+  // The rest of the word is read from the plain text either side, so the note shows whole words.
+  const plain = (run: PreviewRun | undefined) => !!run && !run.revision && run.kind === "text";
+
+  const close = (part: string, runs: PreviewRun[], from: number, to: number) => {
+    const group = runs.slice(from, to);
+    if (group.length === 0) return;
+
+    let before = "";
+    for (let i = from - 1; plain(runs[i]) && !/\s/.test(before); i--) before = runs[i].text + before;
+    let after = "";
+    for (let i = to; plain(runs[i]) && !/\s/.test(after); i++) after += runs[i].text;
+    const head = (/\S{1,20}$/.exec(before)?.[0] ?? "").replace(/^[(["“]+/, "");
+    const tail = (/^\S{1,20}/.exec(after)?.[0] ?? "").replace(/[,.;:)\]"”]+$/, "");
+    const whole = (text: string) => (text ? head + text + tail : "");
+    const was = whole(group.filter(REMOVES).map((r) => r.text).join(""));
+    const now = whole(group.filter((r) => !REMOVES(r)).map((r) => r.text).join(""));
+    const moved = group.every((r) => r.revision?.kind === "moveFrom" || r.revision?.kind === "moveTo");
+    const key = `change-${notes.length + 1}`;
+    notes.push({
+      key,
+      part,
+      kind: moved ? "moved" : was && now ? "replaced" : now ? "added" : "deleted",
+      author: group[0].revision?.author ?? "",
+      date: group.map((r) => r.revision?.date ?? "").sort().at(-1) ?? "",
+      was,
+      now,
+    });
+    for (const run of group) keyOfRun.set(run, key);
+  };
+
+  const visit = (part: string, blocks: PreviewBlock[]) => {
+    for (const block of blocks) {
+      if (block.kind === "table") {
+        for (const row of block.rows) for (const cell of row.cells) visit(part, cell.blocks);
+        continue;
+      }
+      // `from` is where the open change starts, or -1 when none is open.
+      let from = -1;
+      block.runs.forEach((run, i) => {
+        const sameChange = from !== -1 && run.revision?.author === block.runs[from].revision?.author;
+        if (from !== -1 && !sameChange) {
+          close(part, block.runs, from, i);
+          from = -1;
+        }
+        if (run.revision && from === -1) from = i;
+      });
+      if (from !== -1) close(part, block.runs, from, block.runs.length);
+    }
+  };
+
+  for (const part of parts) visit(part.part, part.blocks);
+  return { notes, keyOfRun };
+}
+
+/** A comment with the replies under it, in the order the file gives them. */
+export interface CommentThread<C> {
+  root: C;
+  replies: C[];
+}
+
+/** Groups comments into threads. A reply whose parent isn't among the comments stands as its own thread. */
+export function commentThreads<C extends { id: string; replyTo: string | null }>(comments: C[]): CommentThread<C>[] {
+  const byId = new Map(comments.map((c) => [c.id, c]));
+  const rootOf = (c: C): C => {
+    let at = c;
+    const seen = new Set<string>();
+    while (at.replyTo && byId.has(at.replyTo) && !seen.has(at.id)) {
+      seen.add(at.id);
+      at = byId.get(at.replyTo)!;
+    }
+    return at;
+  };
+
+  const threads = new Map<string, CommentThread<C>>();
+  for (const c of comments) {
+    const root = rootOf(c);
+    const thread = threads.get(root.id) ?? { root, replies: [] };
+    if (c !== root) thread.replies.push(c);
+    threads.set(root.id, thread);
+  }
+  return [...threads.values()];
+}
+
+/**
+ * Where each margin note sits. A note sits level with its wording unless the
+ * note above it is in the way, and then it sits just below that one. Notes
+ * keep the order of their wording.
+ */
+export function stackNotes(notes: { key: string; anchorTop: number; height: number }[], gap: number): Map<string, number> {
+  const tops = new Map<string, number>();
+  let floor = 0;
+  const inOrder = notes.map((note, index) => ({ note, index })).sort((a, b) => a.note.anchorTop - b.note.anchorTop || a.index - b.index);
+  for (const { note } of inOrder) {
+    const top = Math.max(note.anchorTop, floor);
+    tops.set(note.key, top);
+    floor = top + note.height + gap;
+  }
+  return tops;
+}

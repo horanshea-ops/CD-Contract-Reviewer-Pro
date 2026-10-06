@@ -9,7 +9,7 @@ import { appendClauses } from "./paragraphs";
 import { dropRestated, rewritesExistingWording, struckSentences } from "./restated";
 import { replaceSpan } from "./revise";
 import { runsForSpan } from "./runs";
-import { replaceTable } from "./tables";
+import { copyHolding, editCopy, replaceTable } from "./tables";
 import { serializePart } from "./serialize";
 import { wordingProblem } from "./wording";
 import { isLocated, type Applicability, type RevisionFinding, type SpanResolution } from "./types";
@@ -134,6 +134,9 @@ export async function generateRedline({
   // rather than one appendix per finding.
   const toAppend: { findingId: string; text: string }[] = [];
 
+  // The copies of replaced tables. A later change to one of those tables is made in its copy.
+  const tableCopies = new Set<Element>();
+
   // What each applied finding wrote, for anchoring its comment once every change is in.
   const written: { findingId: string; part: string; revisionIds: string[] }[] = [];
 
@@ -253,10 +256,15 @@ export async function generateRedline({
       : "";
 
     // Recorded once the change is actually made, so the associate is asked to
-    // check only wording the file really strikes.
-    const applied = (detail: string) => {
+    // check only wording the file really strikes. A change made inside an
+    // insertion already there names that insertion for its comment.
+    const applied = (detail: string, anchorIds?: string[]) => {
       appliedCount++;
-      written.push({ findingId: finding.id, part: span.part, revisionIds: ids.ownRevisionIds.slice(issuedBefore) });
+      written.push({
+        findingId: finding.id,
+        part: span.part,
+        revisionIds: anchorIds ?? ids.ownRevisionIds.slice(issuedBefore),
+      });
       if (struck) {
         widened.push({ clause_type: finding.clause_type, severity: finding.severity, quoted_text: finding.quoted_text, struck });
       }
@@ -275,8 +283,21 @@ export async function generateRedline({
       continue;
     }
 
+    // A table this export has already replaced takes every later change in its one copy.
+    if (copyHolding(part, span, tableCopies)) {
+      const edited = editCopy({ part, span, replacement: language, ownIds: new Set(ids.ownRevisionIds) });
+      if (!edited.ok) {
+        refuse(finding, "crosses_boundary", span.resolution, "blocked_table", edited.reason);
+        continue;
+      }
+      editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
+      walked = null;
+      applied("Made in the copy of the table this export already replaces.", edited.revisionIds);
+      continue;
+    }
+
     if (verdict.strategy === "table_replacement") {
-      const replaced = replaceTable({ part, span, replacement: language, author, date, ids });
+      const replaced = replaceTable({ part, span, replacement: language, author, date, ids, copies: tableCopies });
       if (!replaced.ok) {
         refuse(finding, "crosses_boundary", span.resolution, "blocked_table", replaced.reason);
         continue;

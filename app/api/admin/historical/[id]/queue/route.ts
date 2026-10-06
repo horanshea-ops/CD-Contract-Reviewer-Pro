@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireHistoricalAdmin } from "@/lib/historical/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { LIST_COLUMNS } from "@/lib/historical/types";
@@ -9,7 +9,7 @@ import { LIST_COLUMNS } from "@/lib/historical/types";
  * that restricts AI-assisted review once an admin chooses to go ahead.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { admin: actor, denied } = await requireAdmin();
+  const { admin: actor, denied } = await requireHistoricalAdmin();
   if (denied) return denied;
 
   const { id } = await params;

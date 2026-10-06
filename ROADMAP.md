@@ -384,10 +384,191 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+### Beta preparation (user, 2026-10-06)
+
+CD's second meeting went well and CD wants a beta. The beta tests the core
+contract review: upload, review, redline and export. Work until then goes to
+getting those right. This section orders that work and overrides "Next up"
+below wherever the two differ. Each item gets its own plan before any code.
+
+**Archived for the beta.** Three features are off the live build and kept in
+the repository. `docs/archived-features.md` says where each one's code lives,
+what switches it back on, and how well it worked on the day it was archived.
+Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
+
+| Feature | Switch | State |
+|---|---|---|
+| Analytics tab | `ANALYTICS=on` | Archived |
+| Historical contract uploads (Admin tab) | `HISTORICAL_CONTRACTS=on` | Archived |
+| Exposure math in a review | `EXPOSURES=on` | Archived in item 2 below |
+
+- Findings still state the contract's numbers and CD's. The associate works
+  out the dollar risk.
+- The checks on the contract's own totals and dates stay
+  (`lib/document-checks.ts`, `lib/date-checks.ts`).
+- Exposure was archived because its figures varied between runs on the same
+  contract. The arithmetic was steady. The numbers the model read were not.
+
+**Order of work.**
+
+- [x] **1. Archive Analytics and historical uploads (2026-10-06, branch
+      `beta/archive-analytics-historical`).**
+      - Analytics already had its switch. Removing `ANALYTICS`,
+        `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on Render hides it. Only the
+        user can do that.
+      - Historical uploads gained `HISTORICAL_CONTRACTS`. Off, the Admin link
+        and the old Historical contracts address both open Users, and its
+        five routes return 404.
+- [ ] **2. Sonnet 5.5, with exposure archived on it. Required before the
+      beta**, so the beta tests the model that ships.
+      - Branch `review/one-reading-pass` holds the 5.5 work (item 0 below).
+        About half its commits rebuilt exposure on a second "reading" call, so
+        exposure is archived there and not on `main`.
+      - Add `EXPOSURES`, off by default. Off, no figure is read, computed or
+        shown, on the cards, the overview bar or the client email, and the
+        eval stops grading exposure.
+      - Proposed: a prompt rule that findings, wording and the client email
+        state the contract's number and CD's number and do no arithmetic. A
+        4 October run wrote $213,023.60 where the sum is $214,023.60.
+      - To decide in its plan: whether the reading call stays for the three
+        numbers the app raises itself when the review drops them (commission
+        rate, attrition floor, F&B shortfall rate). It costs 5 to 7 cents a
+        review. The alternative is one call a review and no safety net.
+      - Paid runs, each quoted first: Florida on 5.5, then the seven-contract
+        eval. Then merge, then Render's `ANTHROPIC_MODEL` with the user's yes.
+- [ ] **3. Standards library by hotel brand (CD, 2026-10-06).** CD has
+      pre-negotiated standard contracts with some major brands. A review
+      compares the contract with the standards for its brand.
+      - Three sets to start: **Independent** (the catch-all, and today's
+        library), **Hilton** and **Hyatt**. CD expects up to 16 in time, so
+        the design must take more sets without a schema change.
+      - A brand with no set, or one not recognised, is reviewed against
+        Independent.
+      - Each review records which set it used. A continuing negotiation keeps
+        its first round's set.
+      - The Standards library screen gets a set picker. Edits stay audited.
+      - Hilton and Hyatt start empty and fall back to Independent until CD's
+        documents arrive.
+- [ ] **4. Confirm step on upload.** Depends on item 3.
+      - Today the associate picks a file, types the property name, and the
+        review starts.
+      - After, the associate picks a file. The app reads the property name
+        and brand from the contract and shows them with the standards set it
+        would use. The associate edits or confirms, and then the review
+        starts.
+      - The AI-use check runs first, on the local text. A contract it stops
+        gets no model read, and the associate types the fields.
+      - The read costs about a cent and doesn't count against the monthly
+        review limit.
+- [ ] **5. CD's updated documents.** Waiting on CD.
+      - Updated baseline for the Independent standards, plus the Hilton and
+        Hyatt standard contracts. Extract the key terms from each into its
+        set, through the audited admin path, as on 2026-09-22.
+      - More test contracts, which the user redacts by hand.
+      - **These contracts wait for CD's API key.** CLAUDE.md deviation 7
+        allowed one redacted contract on the personal account for one
+        presentation. The app reviews the new ones on CD's key, and Claude
+        Code reads them under the user's seat on CD's team.
+      - The library's hash changes, so the eval needs fresh baselines.
+- [ ] **6. Core polish.** The "Still to address" list under the incoming
+      comments item below, in the order set on 2026-10-03, judged on Sonnet
+      5.5. `phase/2-1-same-file-reuse` (one commit, unmerged) belongs here.
+      - **Yellow boxes on the review card (user, 2026-10-06).** The card's one
+        yellow box says why a change won't go into the redline. All 32 boxes
+        on Jerry's seven finished reviews were read.
+        - "Leaves out a sentence" appears once in the four reviews run since
+          a quote became required on 2026-10-03, and never on Sonnet 5.5. The
+          engine change in "Still to address" item 1 is deferred. Revisit it
+          if 5.5 runs bring the box back.
+        - `c7148b08` holds 9 of the 32 boxes. It is the run that came back
+          with no quotes, a defect fixed the same day.
+        - **Two bugs fixed on `redline/bracket-and-row-boxes` (6f5b39c,
+          merged 2026-10-06).** The contract's own bracket with a changed figure was
+          called a blank. A table row written with a `|` at each end was
+          counted as two cells too many. With both fixed the boxes fall from
+          32 to 25, and both 5.5 reviews show none.
+        - **Defect found by replaying those reviews, live on `main`.** When
+          two findings each change a row of the same table, the engine strikes
+          the table and inserts a copy, then does the same to the copy. The
+          second copy repeats the first's change ids. The §1.6 oracle catches
+          it (`revision_ids_unique`), so the export falls back to the
+          marked-up PDF and no Word redline is produced. Nothing corrupt
+          reaches a hotel. `dd0f4ca0` falls back this way today. The two
+          fixes above let more rows through, so `4f803f16` would go from 44 of
+          49 applied to a fallback.
+        - **Table defect fixed on the same branch (2026-10-06).**
+          The cause was wider than two row changes. `replaceTable` cloned a
+          table with whatever tracked changes it held, and the clone repeated
+          their ids. Three cases fell back: two row changes on one table, a
+          one-cell change then a row change, and a row change on a table the
+          hotel had edited.
+          - The engine remembers the copies it inserts. A later change to a
+            replaced table is made in its one copy, with no new tracked
+            change. Five tier changes give one struck table and one copy.
+          - A fresh copy has every tracked change in it accepted first, so
+            it reads as the table reads today and carries nobody's marks. The
+            hotel's marks stay on the struck original.
+          - A table that still holds a tracked change after that, such as a
+            formatting change, is refused for that one finding.
+          - Free replay of Jerry's seven reviews: every one passes the oracle.
+            `4f803f16` goes from 44 of 49 applied to 49 of 49, clean.
+            `dd0f4ca0` goes from a fallback to 26 of 29 applied.
+          - **Merged to `main` and deployed 2026-10-06** on the user's
+            instruction, with the bracket and table-row fixes. Lint, typecheck
+            and the full suite (1,373 tests) passed on the merge.
+          - **HIGH PRIORITY, still owed: a look in Word by the user.** Nobody
+            has opened a rebuilt redline in Word. The oracle passes, and Word
+            is the only test of how one struck table beside its copy renders.
+            Open `data/private/replay/4f803f16-redline.docx`. The cancellation
+            schedule should show once struck and once new, with all five
+            tiers changed. Try Accept All on one copy and Reject All on
+            another, then open `4f803f16-clean.docx`. A repair prompt, or a
+            schedule showing three times, means the fix needs another look.
+          - Still open: a replaced table that holds a hotel comment ("Still to
+            address" item 6).
+        - **A missing box.** On `9244158e` five cancellation changes are left
+          out at export ("runs across a paragraph break") and the card shows
+          no warning. The card's check reads the review text and can't see
+          paragraph breaks inside a table cell.
+        - **For the next paid 5.5 run.** Sonnet 5 writes `[X]%` for gratuity on
+          every review, though the standard says 18% and 6%, and writes table
+          rows as prose. Sonnet 5.5 did neither on two reviews.
+- [ ] **7. Hand-off guide (user, 2026-10-06). After core features are locked.**
+      Step-by-step instructions, written for the user's experience level, for
+      moving the beta onto CD's side. `MASTER_PLAN.md` Part 4 is the outline,
+      with Render in place of Vercel and no conversion worker.
+      - Anthropic: the API key, a spend cap, and the user's developer role.
+      - Render, Supabase, GitHub and outgoing email: who owns each, and
+        whether each moves or stays for the beta.
+      - Sign-in. CD is choosing between Microsoft sign-in and MFA. Supabase
+        supports both. Microsoft sign-in is set up with CD's IT (readiness
+        item 9), and CD's IT then enforces MFA in its own directory, so the
+        app needs no MFA screens. MFA on passwords needs enrolment and
+        challenge screens built in the app.
+      - Rotating every secret that touched a personal machine.
+
+**Questions to take to CD.**
+
+1. Is there an Anthropic API organization with billing, separate from the
+   Claude Team seats? The app calls the API with a key from the Anthropic
+   Console. A Team seat covers the user's development. It gives the app no
+   key. Unverified against Anthropic's current pages as of 2026-10-06.
+2. Do the Hilton and Hyatt terms cover every brand in each family (DoubleTree
+   and Embassy Suites under Hilton, for example), and franchised hotels as
+   well as managed ones?
+3. For a branded hotel, should the tool flag every departure from the
+   pre-negotiated contract, including one that favours the group?
+4. Microsoft sign-in, or passwords with MFA?
+5. Carried over: the 70% versus 75% attrition figure, and "Provisional values
+   for CD to confirm".
+
 ### Next up, in order (user, 2026-09-28)
 
 - [ ] **0. Sonnet 5.5 change-over — built, not live.** Branch
       `migrate/sonnet-5-5` (not merged).
+      - **Required before the beta (user, 2026-10-06).** See "Beta
+        preparation" item 2. The current work is on `review/one-reading-pass`,
+        and that branch's copy of this item is the fuller record.
       - Sonnet 5.5 costs the same per token as Sonnet 5.
       - It rejects a forced tool_choice. Forced-capable models keep today's
         request byte for byte. Sonnet 5.5 gets no tool: the schema goes as an
@@ -708,6 +889,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
              keeps production on Sonnet 5 until then.
 - [x] **1. Analytics live for a demonstration (2026-09-29).** Deployed
       2026-09-28 (679eae3), with the three switches set on Render.
+      - **Archived for the beta (2026-10-06).** See
+        `docs/archived-features.md`.
       - Runs on test data behind three Render switches: `ANALYTICS=on`,
         `ANALYTICS_SOURCE=test` and `ANALYTICS_DEMO=on`. A production build
         needs the last one before it shows test data.
@@ -733,7 +916,9 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - **Users:** see every associate, invite, change the admin flag,
         deactivate.
       - **Historical contracts:** an upload screen like New review's, feeding
-        the Analytics tab.
+        the Analytics tab. **Archived for the beta (2026-10-06)**, behind
+        `HISTORICAL_CONTRACTS`. Users management stays live. See
+        `docs/archived-features.md`.
       - Needs the Analytics database source and its migration.
       - **Deployed 2026-09-28** (merge 37e9e1b). The Admin link opens
         Historical contracts first, with Users as the second tab.
@@ -1017,6 +1202,35 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
            - No model call is involved, so it doesn't wait on Sonnet 5.5.
              The data it needs is already returned by the preview route
              (`comments`, with each one's range in the text).
+           - **Built 2026-10-03 on `phase/1-11-comment-view`. Merged to
+             `main` 2026-10-04 (7749c4f).**
+             - Tracked changes get margin notes too (user's choice). A
+               deletion beside an insertion by one author reads as one
+               "Replaced" note, with whole words shown.
+             - Crowded notes are pushed down in order, below the one above.
+             - Below the `lg` breakpoint the same notes show as a list above
+               the document.
+             - Checked live on Florida `4f803f16`: three comment notes and
+               four change notes, each level with its wording, linked both
+               ways.
+             - Not yet seen: a reply thread, a resolved comment, and a
+               moved passage. The Florida file has none. The Word round-trip
+               file will have the first two.
+             - Picking a note again scrolls back to its wording, and a wide
+               table scrolls sideways so the margin doesn't cover it.
+             - **Future check (user, 2026-10-03): a document with many
+               changes and comments.** Florida has seven notes. A heavily
+               redlined contract could have dozens in one section, and the
+               user's worry is how that presents. To look at:
+               - how far crowded notes drift below their wording
+               - whether a long run of notes leaves the reader lost
+               - how fast the margin lays out and scrolls
+               - the 100-comment cap on what the file's comments show
+               A ready test file is our own redline of Florida
+               (`data/private/run4/florida-property-round1-redline.docx`),
+               which would give about 95 margin notes from 126 revisions
+               and 36 comments. Uploading it costs a review today. It becomes
+               free once compare-only rounds exist, so check it then.
       - **Known and accepted.** The hotel's table edit arrived untracked. A
         first upload has nothing to compare it with, and a re-upload is
         caught by the round diff. The marked-up PDF shows the hotel's edits
@@ -1851,6 +2065,9 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       - add Supabase's auth callback URL to the app's redirect URIs
 
       The `associates` allowlist check still runs after a Microsoft sign-in.
+
+      CD is weighing Microsoft sign-in against MFA (2026-10-06). "Beta
+      preparation" item 7 compares the two and holds the hand-off guide.
 - [x] **10. Monthly review limit (2026-09-24).** Each associate gets
       `MONTHLY_REVIEW_LIMIT` reviews per UTC calendar month. It is 30 for now,
       a provisional number the firm will set. Every upload that creates an
@@ -1991,6 +2208,24 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
         - How long does a prior review stay reusable?
         - Can associates reuse each other's reviews? That's a data-sharing
           question for CD.
+
+- [x] **One card per clause** (user, 2026-10-04). Merged to `main`
+      2026-10-04 (2513e48), from `ui/one-card-per-clause`.
+      - A review asked for 34 to 65 separate decisions on cards covering 17
+        to 24 clauses. Cancellation alone was six or seven cards, one per tier.
+      - Findings on one clause now sit in one card under the clause's name.
+        Every change still shows in full and keeps its own Accept, Edit and
+        Dismiss, so the associate decides each one.
+      - No control decides several changes at once (user, 2026-10-04). An
+        "Accept all in this clause" button was built and removed the same day,
+        because the associate should read and decide every change.
+      - Clause cards are ordered by their most severe change. The keyboard
+        steps through findings in the order on screen.
+      - A clause with one finding shows as the plain card it always was. The
+        Other section is unchanged.
+      - No database change, and exports are untouched.
+      - Checked live on Florida `4f803f16`: 50 business changes show as 24
+        clauses, each change with its own Accept, Edit and Dismiss.
 
 - [ ] **Dashboard tiles** (user, 2026-09-26). Keep "Reviews left this month" and
       "Reviews needing decisions". Replace "In progress", which is almost

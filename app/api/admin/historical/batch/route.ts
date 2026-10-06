@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireHistoricalAdmin } from "@/lib/historical/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { collectEnded, sendWaiting } from "@/lib/historical/extract";
@@ -13,7 +13,7 @@ export const maxDuration = 300;
  * are left waiting.
  */
 export async function POST() {
-  const { admin: actor, denied } = await requireAdmin();
+  const { admin: actor, denied } = await requireHistoricalAdmin();
   if (denied) return denied;
   if (!historicalExtractionEnabled()) {
     return NextResponse.json({ error: "Reading historical contracts is switched off." }, { status: 409 });
@@ -34,7 +34,7 @@ export async function POST() {
 
 /** Stores the results of any batch that has finished. Safe to call on every page load. */
 export async function GET() {
-  const { denied } = await requireAdmin();
+  const { denied } = await requireHistoricalAdmin();
   if (denied) return denied;
 
   try {

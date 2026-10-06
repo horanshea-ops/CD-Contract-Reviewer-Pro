@@ -10,9 +10,25 @@ const TABS = [
   { href: "/admin/users", label: "Users" },
 ];
 
-/** The Admin tab's heading and its two sections. The standards library has its own nav link. */
-export function AdminHeader() {
+/**
+ * The Admin tab's heading and its sections. The standards library has its own
+ * nav link. With historical uploads archived, Users is the only section and
+ * the tab strip is absent.
+ */
+export function AdminHeader({ historical = false }: { historical?: boolean }) {
   const pathname = usePathname();
+
+  if (!historical) {
+    return (
+      <div className="mb-6">
+        <Title className="text-[var(--text-primary)] tracking-tight mb-1">Admin</Title>
+        <Body as="p" className="text-[var(--text-secondary)]">
+          Manage who can use the app.
+        </Body>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-6">
       <Title className="text-[var(--text-primary)] tracking-tight mb-1">Admin</Title>

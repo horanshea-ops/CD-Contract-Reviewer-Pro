@@ -15,6 +15,34 @@ export interface WordingProblem {
 }
 
 const BLANK = /\[[^\]\n]{0,80}\]/g;
+const BRACKET = /\[[^\]\n]*\]/g;
+
+/** A stand-in for a value nobody has supplied yet, inside a longer bracket. */
+const PLACEHOLDER = /\bX\b|_{2,}|\?{2,}/;
+
+/** Words that open a bracket before it counts as the same one the quote has. */
+const SAME_OPENING_WORDS = 3;
+
+const wordsIn = (bracket: string) => bracket.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+const withoutFigures = (bracket: string) => bracket.replace(/\d[\d,.]*/g, "#").replace(/\s+/g, " ");
+
+/**
+ * True when a bracket is the contract's own with something changed inside it,
+ * such as "[determined by multiplying the minimum times 80%]" with a new
+ * percentage. The quote must hold a bracket that opens with the same words,
+ * or reads the same once its figures are set aside. A short bracket such as
+ * "[X]" or "[date]" never passes here, so it must be in the quote as written.
+ */
+function contractsOwn(bracket: string, quote: string): boolean {
+  if (PLACEHOLDER.test(bracket)) return false;
+  const opening = wordsIn(bracket).slice(0, SAME_OPENING_WORDS).join(" ");
+  const bare = withoutFigures(bracket);
+
+  return (quote.match(BRACKET) ?? []).some((theirs) => {
+    if (/\d/.test(bracket) && withoutFigures(theirs) === bare) return true;
+    return wordsIn(bracket).length >= SAME_OPENING_WORDS && wordsIn(theirs).slice(0, SAME_OPENING_WORDS).join(" ") === opening;
+  });
+}
 
 // A verb that opens an instruction, followed by the word an instruction takes
 // next. The second word keeps contract wording such as "State and local taxes"
@@ -24,7 +52,8 @@ const INSTRUCTION =
 
 export function wordingProblem(language: string, quote: string | null): WordingProblem | null {
   // A bracket the contract already has is its own wording, not a blank.
-  const blank = (language.match(BLANK) ?? []).find((b) => !(quote ?? "").includes(b));
+  const quoted = quote ?? "";
+  const blank = (language.match(BLANK) ?? []).find((b) => !quoted.includes(b) && !contractsOwn(b, quoted));
   if (blank) {
     return { reason: "unfilled_blank", detail: `The proposed wording still has a blank to fill in: ${blank}.` };
   }

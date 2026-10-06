@@ -84,9 +84,20 @@ describe("previewFindings", () => {
   it("says a change across a table row won't go in unless its wording is split to match the cells", () => {
     const row = "| 90 Days or Less | $50,000.00 | $20,000.00 |";
     expect(preview(finding({ quoted_text: row, language: "Fees are seventy percent of room profit at every tier." }))?.export_issue).toBe(
-      "Won't go into the redline: the quote spans 3 table cells, and the wording can't be laid out across them. Use Edit to change the cells one at a time, or raise it another way."
+      "Not in the redline. This change is to a table row with 3 columns, and its wording isn't split to match. Use Edit to write one value per column, with | between them."
     );
     expect(preview(finding({ quoted_text: row, language: "90 Days or Less | $35,000.00 | $20,000.00" }))?.export_issue).toBeNull();
+  });
+
+  it("accepts a table row written with a separator at each end", () => {
+    const row = "| 90 Days or Less | $50,000.00 | $20,000.00 |";
+    expect(preview(finding({ quoted_text: row, language: "| 90 Days or Less  | $35,000.00  | $20,000.00  |" }))?.export_issue).toBeNull();
+  });
+
+  it("doesn't call a bracket the contract's own table carries a blank", () => {
+    const row = "90 Days or Less | $80,000.00 [determined by multiplying the Catering Minimum times 80%]";
+    const language = "90 Days or Less | $28,000.00 [determined by multiplying the Catering Minimum times 35%]";
+    expect(preview(finding({ quoted_text: row, language }))?.export_issue).toBeNull();
   });
 
   describe("a quote that runs across table cells without the separators", () => {
@@ -101,7 +112,7 @@ describe("previewFindings", () => {
       expect(
         preview(finding({ quoted_text: quote, language: "Fees are seventy percent of room profit at every tier." }), TABLE)
           ?.export_issue
-      ).toMatch(/^Won't go into the redline: the quote spans 2 table cells/);
+      ).toMatch(/^Not in the redline\. This change is to a table row with 2 columns/);
     });
   });
 

@@ -5,6 +5,7 @@ import SidebarNav from "@/components/sidebar-nav";
 import MobileTopBar from "@/components/mobile-top-bar";
 import { ToastProvider } from "@/components/ui/toast";
 import { analyticsEnabled } from "@/lib/analytics/source";
+import { historicalContractsEnabled } from "@/lib/historical/types";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -22,7 +23,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select("name, email, is_admin")
     .eq("email", user.email)
     .maybeSingle();
-  const nav = associate ? { ...associate, analytics: analyticsEnabled() } : null;
+  const nav = associate
+    ? { ...associate, analytics: analyticsEnabled(), historical: historicalContractsEnabled() }
+    : null;
 
   return (
     <ToastProvider>

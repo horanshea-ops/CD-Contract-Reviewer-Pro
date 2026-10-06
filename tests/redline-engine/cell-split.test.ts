@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitAcrossCells } from "@/lib/redline-engine/cell-split";
+import { rowCells, splitAcrossCells } from "@/lib/redline-engine/cell-split";
 
 /**
  * Laying a proposal written without "|" back out across table cells. The
@@ -57,5 +57,28 @@ describe("splitAcrossCells", () => {
 
   it("returns a single cell's proposal as it is", () => {
     expect(splitAcrossCells(["fifty percent (50%)"], "twenty-five percent (25%)")).toEqual(["twenty-five percent (25%)"]);
+  });
+});
+
+describe("rowCells", () => {
+  it("splits a row on its separators", () => {
+    expect(rowCells("Tier A | 50% | $0")).toEqual(["Tier A", "50%", "$0"]);
+  });
+
+  it("reads a separator at each end as the row's edge, not as two more cells", () => {
+    expect(rowCells("| Tier A  | 50%  | $0  |")).toEqual(["Tier A", "50%", "$0"]);
+  });
+
+  it("keeps an empty cell between two others", () => {
+    expect(rowCells("| Tier A |  | $0 |")).toEqual(["Tier A", "", "$0"]);
+  });
+
+  it("leaves a separator at one end alone, since that may be an empty cell", () => {
+    expect(rowCells("Tier A | 50% |")).toEqual(["Tier A", "50%", ""]);
+    expect(rowCells("| 50% | $0")).toEqual(["", "50%", "$0"]);
+  });
+
+  it("returns wording without separators whole", () => {
+    expect(rowCells("  Tier A fifty percent ")).toEqual(["Tier A fifty percent"]);
   });
 });

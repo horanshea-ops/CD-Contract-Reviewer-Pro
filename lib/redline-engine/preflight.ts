@@ -1,6 +1,6 @@
 import { dropRestated, rewritesExistingWording, struckSentences } from "./restated";
 import { wordingProblem } from "./wording";
-import { splitAcrossCells } from "./cell-split";
+import { rowCells, splitAcrossCells } from "./cell-split";
 import { locateQuote } from "./locate";
 import { isLocated } from "./types";
 
@@ -54,7 +54,7 @@ function quoteCells(quote: string | null, contractText: string | null): string[]
 
 /** Whether the wording can be laid out across the cells, as the engine's table replacement does it. */
 function fitsCells(cells: string[], language: string): boolean {
-  if (language.includes("|")) return language.split("|").length === cells.length;
+  if (language.includes("|")) return rowCells(language).length === cells.length;
   return splitAcrossCells(cells, language) !== null;
 }
 
@@ -89,7 +89,7 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
     const cells = quoteCells(f.quoted_text, contractText);
     if (cells.length > 1 && !fitsCells(cells, language)) {
       previews.set(f.id, {
-        export_issue: `Won't go into the redline: the quote spans ${cells.length} table cells, and the wording can't be laid out across them. Use Edit to change the cells one at a time, or raise it another way.`,
+        export_issue: `Not in the redline. This change is to a table row with ${cells.length} columns, and its wording isn't split to match. Use Edit to write one value per column, with | between them.`,
         redline_language: null,
       });
       continue;
