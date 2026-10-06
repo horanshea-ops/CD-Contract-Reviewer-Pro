@@ -495,8 +495,28 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
           marked-up PDF and no Word redline is produced. Nothing corrupt
           reaches a hotel. `dd0f4ca0` falls back this way today. The two
           fixes above let more rows through, so `4f803f16` would go from 44 of
-          49 applied to a fallback. **The branch must not merge until the
-          table defect is fixed.**
+          49 applied to a fallback.
+        - **Table defect fixed on the same branch (2026-10-06, not merged).**
+          The cause was wider than two row changes. `replaceTable` cloned a
+          table with whatever tracked changes it held, and the clone repeated
+          their ids. Three cases fell back: two row changes on one table, a
+          one-cell change then a row change, and a row change on a table the
+          hotel had edited.
+          - The engine remembers the copies it inserts. A later change to a
+            replaced table is made in its one copy, with no new tracked
+            change. Five tier changes give one struck table and one copy.
+          - A fresh copy has every tracked change in it accepted first, so
+            it reads as the table reads today and carries nobody's marks. The
+            hotel's marks stay on the struck original.
+          - A table that still holds a tracked change after that, such as a
+            formatting change, is refused for that one finding.
+          - Free replay of Jerry's seven reviews: every one passes the oracle.
+            `4f803f16` goes from 44 of 49 applied to 49 of 49, clean.
+            `dd0f4ca0` goes from a fallback to 26 of 29 applied.
+          - **Waiting on a look in Word by the user**, at
+            `data/private/replay/4f803f16-redline.docx`, before merging.
+          - Still open: a replaced table that holds a hotel comment ("Still to
+            address" item 6).
         - **A missing box.** On `9244158e` five cancellation changes are left
           out at export ("runs across a paragraph break") and the card shows
           no warning. The card's check reads the review text and can't see
