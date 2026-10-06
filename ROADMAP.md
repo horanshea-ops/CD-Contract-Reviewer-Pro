@@ -482,8 +482,8 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
           if 5.5 runs bring the box back.
         - `c7148b08` holds 9 of the 32 boxes. It is the run that came back
           with no quotes, a defect fixed the same day.
-        - **Two bugs fixed on `redline/bracket-and-row-boxes` (6f5b39c, not
-          merged).** The contract's own bracket with a changed figure was
+        - **Two bugs fixed on `redline/bracket-and-row-boxes` (6f5b39c,
+          merged 2026-10-06).** The contract's own bracket with a changed figure was
           called a blank. A table row written with a `|` at each end was
           counted as two cells too many. With both fixed the boxes fall from
           32 to 25, and both 5.5 reviews show none.
@@ -496,7 +496,7 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
           reaches a hotel. `dd0f4ca0` falls back this way today. The two
           fixes above let more rows through, so `4f803f16` would go from 44 of
           49 applied to a fallback.
-        - **Table defect fixed on the same branch (2026-10-06, not merged).**
+        - **Table defect fixed on the same branch (2026-10-06).**
           The cause was wider than two row changes. `replaceTable` cloned a
           table with whatever tracked changes it held, and the clone repeated
           their ids. Three cases fell back: two row changes on one table, a
@@ -513,8 +513,17 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
           - Free replay of Jerry's seven reviews: every one passes the oracle.
             `4f803f16` goes from 44 of 49 applied to 49 of 49, clean.
             `dd0f4ca0` goes from a fallback to 26 of 29 applied.
-          - **Waiting on a look in Word by the user**, at
-            `data/private/replay/4f803f16-redline.docx`, before merging.
+          - **Merged to `main` and deployed 2026-10-06** on the user's
+            instruction, with the bracket and table-row fixes. Lint, typecheck
+            and the full suite (1,373 tests) passed on the merge.
+          - **HIGH PRIORITY, still owed: a look in Word by the user.** Nobody
+            has opened a rebuilt redline in Word. The oracle passes, and Word
+            is the only test of how one struck table beside its copy renders.
+            Open `data/private/replay/4f803f16-redline.docx`. The cancellation
+            schedule should show once struck and once new, with all five
+            tiers changed. Try Accept All on one copy and Reject All on
+            another, then open `4f803f16-clean.docx`. A repair prompt, or a
+            schedule showing three times, means the fix needs another look.
           - Still open: a replaced table that holds a hotel comment ("Still to
             address" item 6).
         - **A missing box.** On `9244158e` five cancellation changes are left
