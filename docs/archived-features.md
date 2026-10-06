@@ -47,6 +47,10 @@ section holds the decision.
 | Data | `historical_contracts`, `historical_batches`, and files under `historical/` in the `contracts` bucket, all untouched |
 | Related switches | `HISTORICAL_EXTRACTION=on` allows the model read. It has never been on. |
 
+**While archived.** The Admin link opens Users, with no tab strip. The old
+address, `/admin/contracts`, was where Admin used to open, so it sends an
+admin to Users instead of a "not found" page.
+
 **Restore.** Set `HISTORICAL_CONTRACTS=on`. The Admin link opens Historical
 contracts again, with Users as the second tab. Set `HISTORICAL_EXTRACTION=on`
 as well once the app runs on CD's own Anthropic API key.

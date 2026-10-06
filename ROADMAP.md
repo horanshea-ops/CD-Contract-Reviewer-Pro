@@ -417,7 +417,8 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
         `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on Render hides it. Only the
         user can do that.
       - Historical uploads gained `HISTORICAL_CONTRACTS`. Off, the Admin link
-        opens Users, the page is "not found", and its five routes return 404.
+        and the old Historical contracts address both open Users, and its
+        five routes return 404.
 - [ ] **2. Sonnet 5.5, with exposure archived on it. Required before the
       beta**, so the beta tests the model that ships.
       - Branch `review/one-reading-pass` holds the 5.5 work (item 0 below).

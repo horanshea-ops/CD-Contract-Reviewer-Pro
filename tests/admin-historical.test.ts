@@ -124,9 +124,9 @@ describe("archived, with HISTORICAL_CONTRACTS off", () => {
     expect((await send()).status).toBe(403);
   });
 
-  it("answers not found for the screen and a contract's file", async () => {
+  it("sends the screen's address to Users, and answers not found for a contract's file", async () => {
     const { default: Page } = await import("@/app/(app)/admin/contracts/page");
-    await expect(Page()).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404/);
+    await expect(Page()).rejects.toMatchObject({ digest: expect.stringContaining("NEXT_REDIRECT;replace;/admin/users;") });
 
     state.tables.historical_contracts.push({ id: "h1", storage_path: "historical/h1/a.pdf", source_format: "pdf", file_name: "a.pdf" });
     state.files["historical/h1/a.pdf"] = new Uint8Array([1]);

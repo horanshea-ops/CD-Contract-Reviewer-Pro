@@ -42,8 +42,8 @@ export const HISTORICAL_BUCKET = "contracts";
 
 /**
  * Historical uploads are archived for the beta (docs/archived-features.md).
- * Off, the screen and its routes answer "not found" and the Admin link opens
- * Users.
+ * Off, the Admin link and the screen's own address open Users, and its routes
+ * answer "not found".
  */
 export function historicalContractsEnabled(): boolean {
   return process.env.HISTORICAL_CONTRACTS === "on";

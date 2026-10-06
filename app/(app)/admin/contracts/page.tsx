@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -14,7 +14,9 @@ export default async function AdminContractsPage() {
   const associate = await getCurrentAssociate();
   if (!associate) redirect("/login");
   if (!associate.is_admin) redirect("/");
-  if (!historicalContractsEnabled()) notFound();
+
+  // Admin used to open here, so an old bookmark lands on Users while this screen is archived.
+  if (!historicalContractsEnabled()) redirect("/admin/users");
 
   const db = createAdminClient();
   const [{ data: contracts }, { data: associates }] = await Promise.all([
