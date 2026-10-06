@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import JSZip from "jszip";
+import { acceptOwnRevisions } from "@/lib/docx-accept";
 import { generateRedline, type RevisionFinding } from "@/lib/redline-engine";
 import { validateRedline } from "@/lib/redline-validation";
 import { buildDocx, para, run, table } from "../helpers/docx-package";
@@ -152,5 +153,122 @@ describe("real fixtures with tables", () => {
       finding({ quoted_text: "seventy-five percent (75%)", language: "sixty percent (60%)" }),
     ]);
     expect(report.checks.filter((c) => !c.passed)).toEqual([]);
+  });
+});
+
+describe("several changes to one table", () => {
+  const TIERS = [
+    ["Days Prior to Arrival", "Damages", "Catering"],
+    ["365 or more", "25%", "$0"],
+    ["364 to 181", "50%", "$10,000"],
+    ["180 to 91", "75%", "$20,000"],
+    ["90 to 31", "90%", "$30,000"],
+    ["30 or fewer", "100%", "$40,000"],
+  ];
+  const NOTE = "Keeps the group's costs in line with the rooms it uses.";
+
+  /** One finding per tier, each lowering the damages figure. */
+  const tierFindings = (rows: number[]) =>
+    rows.map((r) =>
+      finding({
+        id: `tier-${r}`,
+        quoted_text: TIERS[r].join(" | "),
+        language: [TIERS[r][0], `${r}0% of room profit`, TIERS[r][2]].join(" | "),
+      })
+    );
+
+  async function withComments(originalBytes: Uint8Array, findings: RevisionFinding[]) {
+    const comments = new Map(findings.map((f) => [f.id, NOTE]));
+    const result = await generateRedline({ originalDocxBytes: originalBytes, findings, comments, author: AUTHOR });
+    const report = await validateRedline({ originalBytes, engineResult: result, author: AUTHOR });
+    const zip = await JSZip.loadAsync(result.docxBytes);
+    const xml = await zip.file("word/document.xml")!.async("string");
+    const commentsXml = (await zip.file("word/comments.xml")?.async("string")) ?? "";
+    return { result, report, xml, commentsXml };
+  }
+
+  const tablesIn = (xml: string) => (xml.match(/<w:tbl>/g) ?? []).length;
+  const failed = (report: { checks: { name: string; passed: boolean; detail: string }[] }) =>
+    report.checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.detail}`);
+
+  it("puts two row changes into one copy of the table", async () => {
+    const { result, report, xml } = await redline(await buildDocx(table(TIERS)), tierFindings([1, 3]));
+
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(2);
+    expect(failed(report)).toEqual([]);
+    expect(report.outcome).toBe("clean");
+    // One struck original and one copy, however many rows change.
+    expect(tablesIn(xml)).toBe(2);
+    expect(xml).toContain("10% of room profit");
+    expect(xml).toContain("30% of room profit");
+  });
+
+  it("puts five row changes into one copy", async () => {
+    const { result, report, xml } = await redline(await buildDocx(table(TIERS)), tierFindings([1, 2, 3, 4, 5]));
+
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(5);
+    expect(failed(report)).toEqual([]);
+    expect(tablesIn(xml)).toBe(2);
+    for (const r of [1, 2, 3, 4, 5]) expect(xml).toContain(`${r}0% of room profit`);
+  });
+
+  it("issues every change id once", async () => {
+    const { result, xml } = await redline(await buildDocx(table(TIERS)), tierFindings([1, 2, 3]));
+    const ids = [...xml.matchAll(/<w:(?:ins|del) w:id="(\d+)"/g)].map((m) => m[1]);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(result.ownRevisionIds).size).toBe(result.ownRevisionIds.length);
+  });
+
+  it("takes a one-cell change after a row change into the same copy", async () => {
+    const { result, report, xml } = await redline(await buildDocx(table(TIERS)), [
+      ...tierFindings([1]),
+      finding({ id: "cell", quoted_text: "$30,000", language: "$15,000" }),
+    ]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(2);
+    expect(failed(report)).toEqual([]);
+    expect(tablesIn(xml)).toBe(2);
+    expect(xml).toContain("$15,000");
+  });
+
+  it("keeps the file valid when two findings change the same row", async () => {
+    const [first] = tierFindings([2]);
+    const second = finding({
+      id: "again",
+      quoted_text: first.language,
+      language: [TIERS[2][0], "35% of room profit", TIERS[2][2]].join(" | "),
+    });
+    const { result, report, xml } = await redline(await buildDocx(table(TIERS)), [first, second]);
+
+    expect(failed(report)).toEqual([]);
+    expect(tablesIn(xml)).toBe(2);
+    expect(result.appliedCount + result.unapplied.length).toBe(2);
+  });
+
+  it("gives each finding its comment", async () => {
+    const findings = tierFindings([1, 3, 5]);
+    const { result, report, commentsXml } = await withComments(await buildDocx(table(TIERS)), findings);
+
+    expect(failed(report)).toEqual([]);
+    expect(result.ownCommentIds).toHaveLength(3);
+    expect((commentsXml.match(/<w:comment /g) ?? []).length).toBe(3);
+  });
+
+  it("leaves one table with every edit once our changes are accepted", async () => {
+    const originalBytes = await buildDocx(table(TIERS));
+    const result = await generateRedline({ originalDocxBytes: originalBytes, findings: tierFindings([1, 2, 4]), author: AUTHOR });
+    const clean = await acceptOwnRevisions(result.docxBytes, new Set(result.ownRevisionIds));
+    const xml = await (await JSZip.loadAsync(clean)).file("word/document.xml")!.async("string");
+
+    expect(tablesIn(xml)).toBe(1);
+    expect(xml).not.toMatch(/<w:(ins|del) /);
+    for (const r of [1, 2, 4]) expect(xml).toContain(`${r}0% of room profit`);
+    // The untouched tiers read as they did.
+    expect(xml).toContain("75%");
+    expect(xml).toContain("100%");
   });
 });

@@ -1,6 +1,7 @@
 import type { WalkResult } from "../docx";
 import type { RevisionIds } from "./ids";
-import { childElements, revisionElement, siblingGroups, toDeletedText } from "./revise";
+import { refsInSpan } from "./applicability";
+import { childElements, insertedRun, revisionElement, siblingGroups, toDeletedText } from "./revise";
 import { runText, runsForSpan } from "./runs";
 import { rowCells, splitAcrossCells } from "./cell-split";
 import type { LocatedSpan } from "./types";
@@ -160,6 +161,98 @@ function cellPieces(replacement: string, groups: { runs: Element[] }[]): string[
 
 export type TableReplacementResult = { ok: true } | { ok: false; reason: string };
 
+/** The wording for each covered cell, or why it can't be laid out across them. */
+function layOut(replacement: string, groups: { runs: Element[] }[]): { pieces: string[] } | { reason: string } {
+  const pieces = cellPieces(replacement, groups);
+  if (!pieces) {
+    return {
+      reason:
+        `The change covers ${groups.length} cells, and the proposed wording can't be laid out across them ` +
+        `without guessing which cell a change belongs to.`,
+    };
+  }
+  if (pieces.length !== groups.length) {
+    return {
+      reason:
+        `The change covers ${groups.length} cells but the proposed wording has ${pieces.length} ` +
+        `part${pieces.length === 1 ? "" : "s"}, so it cannot be laid back out across the row.`,
+    };
+  }
+  return { pieces };
+}
+
+/**
+ * The copy of a table this export has already inserted, when the span sits
+ * inside one. Read from the walk, before any run is split.
+ */
+export function copyHolding(part: WalkResult, span: LocatedSpan, copies: ReadonlySet<Element>): Element | null {
+  const ref = refsInSpan(part, span)[0];
+  const run = ref ? part.runs[ref.runIndex] : null;
+  for (let node = run?.parentNode; node && node.nodeType === 1; node = node.parentNode) {
+    if (copies.has(node as Element)) return node as Element;
+  }
+  return null;
+}
+
+export type CopyEditResult = { ok: true; revisionIds: string[] } | { ok: false; reason: string };
+
+/**
+ * Changes wording inside a copy this export has already inserted.
+ *
+ * A second change to a replaced table must not strike the copy and insert
+ * another, which repeats every change id the first copy carries. The copy is
+ * our own insertion, so the new wording goes straight into it, inside the
+ * insertion already there. No new tracked change is made.
+ *
+ * Returns the ids of the insertions that now hold the wording, for anchoring
+ * the finding's comment.
+ */
+export function editCopy({
+  part,
+  span,
+  replacement,
+  ownIds,
+}: {
+  part: WalkResult;
+  span: LocatedSpan;
+  replacement: string;
+  ownIds: ReadonlySet<string>;
+}): CopyEditResult {
+  const covered = runsForSpan(part, span);
+  if (covered.length === 0) return { ok: false, reason: "The wording resolved to no editable runs." };
+
+  const groups = byCell(covered);
+  const laid = layOut(replacement, groups);
+  if ("reason" in laid) return { ok: false, reason: laid.reason };
+
+  // Checked for every run before anything changes, so a refusal leaves the copy as it was.
+  const ourInsertion = (run: Element) => {
+    const parent = run.parentNode as Element | null;
+    return parent?.nodeName === "w:ins" && ownIds.has(parent.getAttribute("w:id") ?? "") ? parent : null;
+  };
+  if (groups.length === 0 || !covered.every(ourInsertion)) {
+    return { ok: false, reason: "The wording sits in a replaced table, outside the wording this export inserted." };
+  }
+
+  const doc = covered[0].ownerDocument!;
+  const revisionIds: string[] = [];
+
+  groups.forEach((group, index) => {
+    const first = group.runs[0];
+    const holder = ourInsertion(first)!;
+    holder.insertBefore(insertedRun(doc, laid.pieces[index], first), first);
+    revisionIds.push(holder.getAttribute("w:id")!);
+
+    for (const stale of group.runs) {
+      const wrapper = stale.parentNode as Element;
+      wrapper.removeChild(stale);
+      if (childElements(wrapper).length === 0) wrapper.parentNode?.removeChild(wrapper);
+    }
+  });
+
+  return { ok: true, revisionIds };
+}
+
 /**
  * Strikes the table the span sits in and inserts an edited copy after it.
  *
@@ -176,6 +269,7 @@ export function replaceTable({
   author,
   date,
   ids,
+  copies,
 }: {
   part: WalkResult;
   span: LocatedSpan;
@@ -183,6 +277,8 @@ export function replaceTable({
   author: string;
   date: string;
   ids: RevisionIds;
+  /** Every copy this export has inserted. The new one is added. */
+  copies: Set<Element>;
 }): TableReplacementResult {
   const covered = runsForSpan(part, span);
   if (covered.length === 0) return { ok: false, reason: "The wording resolved to no editable runs." };
@@ -191,23 +287,9 @@ export function replaceTable({
   if (!table) return { ok: false, reason: "The wording is not inside a table after all." };
 
   const groups = byCell(covered);
-  const pieces = cellPieces(replacement, groups);
-  if (!pieces) {
-    return {
-      ok: false,
-      reason:
-        `The change covers ${groups.length} cells, and the proposed wording can't be laid out across them ` +
-        `without guessing which cell a change belongs to.`,
-    };
-  }
-  if (pieces.length !== groups.length) {
-    return {
-      ok: false,
-      reason:
-        `The change covers ${groups.length} cells but the proposed wording has ${pieces.length} ` +
-        `part${pieces.length === 1 ? "" : "s"}, so it cannot be laid back out across the row.`,
-    };
-  }
+  const laid = layOut(replacement, groups);
+  if ("reason" in laid) return { ok: false, reason: laid.reason };
+  const { pieces } = laid;
 
   const doc = table.ownerDocument!;
   const paths = groups.map((g) => g.runs.map((run) => pathTo(table, run)));
@@ -240,6 +322,7 @@ export function replaceTable({
   const separator = separatorParagraph(doc, ids, author, date);
   parent.insertBefore(separator, table.nextSibling);
   parent.insertBefore(copy, separator.nextSibling);
+  copies.add(copy);
 
   return { ok: true };
 }
