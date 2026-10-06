@@ -473,6 +473,37 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
 - [ ] **6. Core polish.** The "Still to address" list under the incoming
       comments item below, in the order set on 2026-10-03, judged on Sonnet
       5.5. `phase/2-1-same-file-reuse` (one commit, unmerged) belongs here.
+      - **Yellow boxes on the review card (user, 2026-10-06).** The card's one
+        yellow box says why a change won't go into the redline. All 32 boxes
+        on Jerry's seven finished reviews were read.
+        - "Leaves out a sentence" appears once in the four reviews run since
+          a quote became required on 2026-10-03, and never on Sonnet 5.5. The
+          engine change in "Still to address" item 1 is deferred. Revisit it
+          if 5.5 runs bring the box back.
+        - `c7148b08` holds 9 of the 32 boxes. It is the run that came back
+          with no quotes, a defect fixed the same day.
+        - **Two bugs fixed on `redline/bracket-and-row-boxes` (6f5b39c, not
+          merged).** The contract's own bracket with a changed figure was
+          called a blank. A table row written with a `|` at each end was
+          counted as two cells too many. With both fixed the boxes fall from
+          32 to 25, and both 5.5 reviews show none.
+        - **Defect found by replaying those reviews, live on `main`.** When
+          two findings each change a row of the same table, the engine strikes
+          the table and inserts a copy, then does the same to the copy. The
+          second copy repeats the first's change ids. The §1.6 oracle catches
+          it (`revision_ids_unique`), so the export falls back to the
+          marked-up PDF and no Word redline is produced. Nothing corrupt
+          reaches a hotel. `dd0f4ca0` falls back this way today. The two
+          fixes above let more rows through, so `4f803f16` would go from 44 of
+          49 applied to a fallback. **The branch must not merge until the
+          table defect is fixed.**
+        - **A missing box.** On `9244158e` five cancellation changes are left
+          out at export ("runs across a paragraph break") and the card shows
+          no warning. The card's check reads the review text and can't see
+          paragraph breaks inside a table cell.
+        - **For the next paid 5.5 run.** Sonnet 5 writes `[X]%` for gratuity on
+          every review, though the standard says 18% and 6%, and writes table
+          rows as prose. Sonnet 5.5 did neither on two reviews.
 - [ ] **7. Hand-off guide (user, 2026-10-06). After core features are locked.**
       Step-by-step instructions, written for the user's experience level, for
       moving the beta onto CD's side. `MASTER_PLAN.md` Part 4 is the outline,
