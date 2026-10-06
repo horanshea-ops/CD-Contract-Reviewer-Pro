@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sharesOriginals } from "@/lib/analytics/source";
-import { HISTORICAL_BUCKET } from "@/lib/historical/types";
+import { analyticsEnabled, sharesOriginals } from "@/lib/analytics/source";
+import { HISTORICAL_BUCKET, historicalContractsEnabled } from "@/lib/historical/types";
 
 const CONTENT_TYPES = {
   pdf: "application/pdf",
@@ -18,6 +18,11 @@ const CONTENT_TYPES = {
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const associate = await getCurrentAssociate();
   if (!associate) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+  // Both screens that link here are archived. Either one switched on reopens it.
+  if (!historicalContractsEnabled() && !analyticsEnabled()) {
+    return NextResponse.json({ error: "Contract not found." }, { status: 404 });
+  }
 
   const { id } = await params;
   const db = createAdminClient();

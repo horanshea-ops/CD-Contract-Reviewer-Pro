@@ -120,10 +120,20 @@ describe("the Admin nav link", () => {
     expect(navLinks({ name: "A", email: "a@example.com", is_admin: false }).map((l) => l.label)).not.toContain("Admin");
   });
 
+  it("opens Users while historical uploads are archived", () => {
+    expect(admin.at(-1)?.href).toBe("/admin/users");
+    expect(admin.map((l) => l.href)).not.toContain("/admin/contracts");
+  });
+
+  it("opens Historical contracts with the switch on", () => {
+    const withHistorical = navLinks({ name: "A", email: "a@example.com", is_admin: true, historical: true });
+    expect(withHistorical.at(-1)?.href).toBe("/admin/contracts");
+    expect(activeHref("/admin/users", withHistorical)).toBe("/admin/contracts");
+  });
+
   it("lights up one link per page", () => {
     expect(activeHref("/admin/standards", admin)).toBe("/admin/standards");
-    expect(activeHref("/admin/contracts", admin)).toBe("/admin/contracts");
-    expect(activeHref("/admin/users", admin)).toBe("/admin/contracts");
+    expect(activeHref("/admin/users", admin)).toBe("/admin/users");
     expect(activeHref("/", admin)).toBe("/");
     expect(activeHref("/analyses/123", admin)).toBeNull();
   });

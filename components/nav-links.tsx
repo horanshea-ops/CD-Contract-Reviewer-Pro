@@ -14,6 +14,8 @@ export interface NavAssociate {
   is_admin: boolean;
   /** Set by the layout from the ANALYTICS switch, which only the server can read. */
   analytics?: boolean;
+  /** Set by the layout from the HISTORICAL_CONTRACTS switch. */
+  historical?: boolean;
 }
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -39,7 +41,7 @@ const ICONS: Record<string, React.ReactNode> = {
       strokeLinejoin="round"
     />
   ),
-  "/admin/contracts": (
+  "/admin": (
     <>
       <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" fill="none" />
       <path d="M4 16.5c.8-2.9 3.1-4.5 6-4.5s5.2 1.6 6 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
@@ -80,7 +82,8 @@ export function navLinks(associate: NavAssociate | null): NavLink[] {
     ...(associate?.is_admin
       ? [
           { href: "/admin/standards", label: "Standards library" },
-          { href: "/admin/contracts", label: "Admin", match: "/admin" },
+          // Admin opens on Historical contracts, or on Users while that screen is archived.
+          { href: associate.historical ? "/admin/contracts" : "/admin/users", label: "Admin", match: "/admin" },
         ]
       : []),
   ];
@@ -136,7 +139,7 @@ export function NavLinkList({
             )}
           >
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
-              {ICONS[link.href]}
+              {ICONS[link.match ?? link.href]}
             </svg>
             {!collapsed && link.label}
           </Link>

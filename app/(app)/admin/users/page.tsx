@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AssociateRow } from "@/lib/associates";
+import { historicalContractsEnabled } from "@/lib/historical/types";
 import { AdminHeader } from "@/components/admin-tabs";
 import UsersList from "./users-list";
 
@@ -24,7 +25,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
-      <AdminHeader />
+      <AdminHeader historical={historicalContractsEnabled()} />
       <UsersList initial={(associates ?? []) as AssociateRow[]} lastSignIn={lastSignIn} selfId={associate.id} />
     </div>
   );
