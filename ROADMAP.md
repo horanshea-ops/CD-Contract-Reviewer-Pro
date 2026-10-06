@@ -384,10 +384,130 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
 
 ## Open items
 
+### Beta preparation (user, 2026-10-06)
+
+CD's second meeting went well and CD wants a beta. The beta tests the core
+contract review: upload, review, redline and export. Work until then goes to
+getting those right. This section orders that work and overrides "Next up"
+below wherever the two differ. Each item gets its own plan before any code.
+
+**Archived for the beta.** Three features are off the live build and kept in
+the repository. `docs/archived-features.md` says where each one's code lives,
+what switches it back on, and how well it worked on the day it was archived.
+Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
+
+| Feature | Switch | State |
+|---|---|---|
+| Analytics tab | `ANALYTICS=on` | Archived |
+| Historical contract uploads (Admin tab) | `HISTORICAL_CONTRACTS=on` | Archived |
+| Exposure math in a review | `EXPOSURES=on` | Archived in item 2 below |
+
+- Findings still state the contract's numbers and CD's. The associate works
+  out the dollar risk.
+- The checks on the contract's own totals and dates stay
+  (`lib/document-checks.ts`, `lib/date-checks.ts`).
+- Exposure was archived because its figures varied between runs on the same
+  contract. The arithmetic was steady. The numbers the model read were not.
+
+**Order of work.**
+
+- [x] **1. Archive Analytics and historical uploads (2026-10-06, branch
+      `beta/archive-analytics-historical`).**
+      - Analytics already had its switch. Removing `ANALYTICS`,
+        `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on Render hides it. Only the
+        user can do that.
+      - Historical uploads gained `HISTORICAL_CONTRACTS`. Off, the Admin link
+        opens Users, the page is "not found", and its five routes return 404.
+- [ ] **2. Sonnet 5.5, with exposure archived on it. Required before the
+      beta**, so the beta tests the model that ships.
+      - Branch `review/one-reading-pass` holds the 5.5 work (item 0 below).
+        About half its commits rebuilt exposure on a second "reading" call, so
+        exposure is archived there and not on `main`.
+      - Add `EXPOSURES`, off by default. Off, no figure is read, computed or
+        shown, on the cards, the overview bar or the client email, and the
+        eval stops grading exposure.
+      - Proposed: a prompt rule that findings, wording and the client email
+        state the contract's number and CD's number and do no arithmetic. A
+        4 October run wrote $213,023.60 where the sum is $214,023.60.
+      - To decide in its plan: whether the reading call stays for the three
+        numbers the app raises itself when the review drops them (commission
+        rate, attrition floor, F&B shortfall rate). It costs 5 to 7 cents a
+        review. The alternative is one call a review and no safety net.
+      - Paid runs, each quoted first: Florida on 5.5, then the seven-contract
+        eval. Then merge, then Render's `ANTHROPIC_MODEL` with the user's yes.
+- [ ] **3. Standards library by hotel brand (CD, 2026-10-06).** CD has
+      pre-negotiated standard contracts with some major brands. A review
+      compares the contract with the standards for its brand.
+      - Three sets to start: **Independent** (the catch-all, and today's
+        library), **Hilton** and **Hyatt**. CD expects up to 16 in time, so
+        the design must take more sets without a schema change.
+      - A brand with no set, or one not recognised, is reviewed against
+        Independent.
+      - Each review records which set it used. A continuing negotiation keeps
+        its first round's set.
+      - The Standards library screen gets a set picker. Edits stay audited.
+      - Hilton and Hyatt start empty and fall back to Independent until CD's
+        documents arrive.
+- [ ] **4. Confirm step on upload.** Depends on item 3.
+      - Today the associate picks a file, types the property name, and the
+        review starts.
+      - After, the associate picks a file. The app reads the property name
+        and brand from the contract and shows them with the standards set it
+        would use. The associate edits or confirms, and then the review
+        starts.
+      - The AI-use check runs first, on the local text. A contract it stops
+        gets no model read, and the associate types the fields.
+      - The read costs about a cent and doesn't count against the monthly
+        review limit.
+- [ ] **5. CD's updated documents.** Waiting on CD.
+      - Updated baseline for the Independent standards, plus the Hilton and
+        Hyatt standard contracts. Extract the key terms from each into its
+        set, through the audited admin path, as on 2026-09-22.
+      - More test contracts, which the user redacts by hand.
+      - **These contracts wait for CD's API key.** CLAUDE.md deviation 7
+        allowed one redacted contract on the personal account for one
+        presentation. The app reviews the new ones on CD's key, and Claude
+        Code reads them under the user's seat on CD's team.
+      - The library's hash changes, so the eval needs fresh baselines.
+- [ ] **6. Core polish.** The "Still to address" list under the incoming
+      comments item below, in the order set on 2026-10-03, judged on Sonnet
+      5.5. `phase/2-1-same-file-reuse` (one commit, unmerged) belongs here.
+- [ ] **7. Hand-off guide (user, 2026-10-06). After core features are locked.**
+      Step-by-step instructions, written for the user's experience level, for
+      moving the beta onto CD's side. `MASTER_PLAN.md` Part 4 is the outline,
+      with Render in place of Vercel and no conversion worker.
+      - Anthropic: the API key, a spend cap, and the user's developer role.
+      - Render, Supabase, GitHub and outgoing email: who owns each, and
+        whether each moves or stays for the beta.
+      - Sign-in. CD is choosing between Microsoft sign-in and MFA. Supabase
+        supports both. Microsoft sign-in is set up with CD's IT (readiness
+        item 9), and CD's IT then enforces MFA in its own directory, so the
+        app needs no MFA screens. MFA on passwords needs enrolment and
+        challenge screens built in the app.
+      - Rotating every secret that touched a personal machine.
+
+**Questions to take to CD.**
+
+1. Is there an Anthropic API organization with billing, separate from the
+   Claude Team seats? The app calls the API with a key from the Anthropic
+   Console. A Team seat covers the user's development. It gives the app no
+   key. Unverified against Anthropic's current pages as of 2026-10-06.
+2. Do the Hilton and Hyatt terms cover every brand in each family (DoubleTree
+   and Embassy Suites under Hilton, for example), and franchised hotels as
+   well as managed ones?
+3. For a branded hotel, should the tool flag every departure from the
+   pre-negotiated contract, including one that favours the group?
+4. Microsoft sign-in, or passwords with MFA?
+5. Carried over: the 70% versus 75% attrition figure, and "Provisional values
+   for CD to confirm".
+
 ### Next up, in order (user, 2026-09-28)
 
 - [ ] **0. Sonnet 5.5 change-over — built, not live.** Branch
       `migrate/sonnet-5-5` (not merged).
+      - **Required before the beta (user, 2026-10-06).** See "Beta
+        preparation" item 2. The current work is on `review/one-reading-pass`,
+        and that branch's copy of this item is the fuller record.
       - Sonnet 5.5 costs the same per token as Sonnet 5.
       - It rejects a forced tool_choice. Forced-capable models keep today's
         request byte for byte. Sonnet 5.5 gets tool_choice auto, a strict tool
@@ -445,6 +565,8 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
            one variable away.
 - [x] **1. Analytics live for a demonstration (2026-09-29).** Deployed
       2026-09-28 (679eae3), with the three switches set on Render.
+      - **Archived for the beta (2026-10-06).** See
+        `docs/archived-features.md`.
       - Runs on test data behind three Render switches: `ANALYTICS=on`,
         `ANALYTICS_SOURCE=test` and `ANALYTICS_DEMO=on`. A production build
         needs the last one before it shows test data.
@@ -470,7 +592,9 @@ on the open items below (CD's Anthropic org, confidentiality review, named assoc
       - **Users:** see every associate, invite, change the admin flag,
         deactivate.
       - **Historical contracts:** an upload screen like New review's, feeding
-        the Analytics tab.
+        the Analytics tab. **Archived for the beta (2026-10-06)**, behind
+        `HISTORICAL_CONTRACTS`. Users management stays live. See
+        `docs/archived-features.md`.
       - Needs the Analytics database source and its migration.
       - **Deployed 2026-09-28** (merge 37e9e1b). The Admin link opens
         Historical contracts first, with Users as the second tab.
@@ -1617,6 +1741,9 @@ Agreed deviations item 7 for the data-handling decision behind item 7 below.
       - add Supabase's auth callback URL to the app's redirect URIs
 
       The `associates` allowlist check still runs after a Microsoft sign-in.
+
+      CD is weighing Microsoft sign-in against MFA (2026-10-06). "Beta
+      preparation" item 7 compares the two and holds the hand-off guide.
 - [x] **10. Monthly review limit (2026-09-24).** Each associate gets
       `MONTHLY_REVIEW_LIMIT` reviews per UTC calendar month. It is 30 for now,
       a provisional number the firm will set. Every upload that creates an

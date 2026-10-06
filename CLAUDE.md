@@ -111,6 +111,30 @@ override it.
    - The clean Word copy strips our comments. The PDFs show none.
    - An "Include comments" checkbox, on by default, turns them off per export.
 
+9. **The beta tests the core review, and three features are archived for it**
+   (decided by the user, 2026-10-06, after CD's second meeting). The Analytics
+   tab, historical contract uploads and exposure math are off the live build
+   and kept in the repository behind switches that default to off.
+   - `docs/archived-features.md` lists each feature's code, switch and state.
+     Never delete an archived feature's code, tests, tables or migrations.
+   - Exposure was archived because its figures varied between runs on the same
+     contract. Findings still state the contract's numbers and CD's, and the
+     associate works out the dollar risk. This switches off §2.3, §2.9 and
+     §1.8.2's quantified exposure for the beta.
+   - The app's checks on the contract's own totals and dates stay.
+   - The beta runs on Sonnet 5.5 and on CD's own Anthropic API key. Deviation
+     7 still limits the personal account to the one presentation it names.
+
+10. **The standards library is split by hotel brand** (CD's requirement,
+    2026-10-06). CD has pre-negotiated standard contracts with some brands, so
+    a review compares a contract with the standards for its brand.
+    - Three sets to start (Independent, Hilton, Hyatt), with room for 16 or
+      more. Independent is the catch-all and holds today's library.
+    - The app reads the brand and property name at upload. The associate
+      confirms or edits them before any review starts.
+    - An unrecognised brand, or a brand with no set, uses Independent.
+    - Each review records the set it used.
+
 Read this as binding, not advisory. Claude's default house style in recent iterations — the announcing, the colon-hinged sentences, the stacked abstraction, the unspecified density — is a dramatic sink on my productivity and my joy in using Claude. When responses follow this guide, Claude is genuinely useful and pleasant to me. When they drift, every response costs me decoding and editing. Drift happens most in long, abstract conversations, so re-check these rules/focus on them/keep them in mind exactly when the material turns philosophical or dense or the thread runs long. If a rule here conflicts with your instinct for how smart prose sounds, the rule wins. These are instructions for better communications with humans. 
 
 ## Goal
