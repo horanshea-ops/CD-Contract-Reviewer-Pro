@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireHistoricalAdmin } from "@/lib/historical/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { detectSourceFormat } from "@/lib/document-conversion";
@@ -18,7 +18,7 @@ const MAX_FILE_BYTES = 32 * 1024 * 1024;
  * is read. The same file uploaded again is skipped.
  */
 export async function POST(request: Request) {
-  const { admin: actor, denied } = await requireAdmin();
+  const { admin: actor, denied } = await requireHistoricalAdmin();
   if (denied) return denied;
 
   const form = await request.formData();

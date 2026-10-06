@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireHistoricalAdmin } from "@/lib/historical/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { parseDetailEdits } from "@/lib/historical/fields";
@@ -7,7 +7,7 @@ import { HISTORICAL_BUCKET, LIST_COLUMNS } from "@/lib/historical/types";
 
 /** Corrects a historical contract's details. An edited detail is marked as the admin's. */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { admin: actor, denied } = await requireAdmin();
+  const { admin: actor, denied } = await requireHistoricalAdmin();
   if (denied) return denied;
 
   const { id } = await params;
@@ -42,7 +42,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 /** Removes a historical contract, its stored file and its terms. */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { admin: actor, denied } = await requireAdmin();
+  const { admin: actor, denied } = await requireHistoricalAdmin();
   if (denied) return denied;
 
   const { id } = await params;
