@@ -436,6 +436,33 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
         review. The alternative is one call a review and no safety net.
       - Paid runs, each quoted first: Florida on 5.5, then the seven-contract
         eval. Then merge, then Render's `ANTHROPIC_MODEL` with the user's yes.
+      - **Free part done 2026-10-06, on the branch, not merged.**
+        - `main` is merged in with no conflicts, so the branch carries the
+          table and bracket fixes.
+        - `EXPOSURES` is in (`lib/exposures/enabled.ts`), off by default.
+          Off, no finding carries a figure, and a review that stored
+          figures hides them on the screen and in the client email.
+        - **The reading call stays, for five terms only** (user, 2026-10-06,
+          by approving the plan). It feeds the three findings the app
+          raises itself. It costs about 5 cents on a review of about 45.
+          It also writes the attrition room-night count the model left as
+          `[X]` on `dd0f4ca0`.
+        - No prompt wording changed. Every pinned request is unchanged, and
+          the shorter reading request is pinned for both models.
+        - **The no-arithmetic prompt rule is held back.** It would stop the
+          model's wrong sums, and it would also make the model write `[X]`,
+          which keeps a change out of the redline. Judge it on the paid
+          run.
+        - Lint, typecheck and 1,464 tests pass. The free request check
+          accepts all 16 pinned requests. Checked in the browser on
+          `cb3daee0`: no figure with the switch off, $170,696 with it on.
+      - **Waiting on a yes for the paid step.**
+        - One Florida review on 5.5 through the app, about $0.45 to $0.50.
+        - The seven-contract eval on 5.5, roughly $2 to $3, to be quoted
+          exactly.
+        - The compile check of the shorter reading list, under a cent.
+        - To settle on that run: `[X]%` on gratuity, table rows written as
+          prose, and the no-arithmetic rule.
 - [ ] **3. Standards library by hotel brand (CD, 2026-10-06).** CD has
       pre-negotiated standard contracts with some major brands. A review
       compares the contract with the standards for its brand.

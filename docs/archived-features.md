@@ -17,7 +17,7 @@ section holds the decision.
 |---|---|---|---|
 | Analytics tab | `ANALYTICS=on` | off | Archived |
 | Historical contract uploads | `HISTORICAL_CONTRACTS=on` | off | Archived |
-| Exposure math | `EXPOSURES=on` | off | Live on `main` until the Sonnet 5.5 branch merges |
+| Exposure math | `EXPOSURES=on` | off | Archived on `review/one-reading-pass`. Live on `main` until that branch merges. |
 
 ## Analytics tab
 
@@ -70,7 +70,7 @@ check for the property name and brand, so that file stays in use.
 | | |
 |---|---|
 | What it did | Dollar exposure for attrition, cancellation and F&B, worked out by the app from figures the model quoted. Shown on the finding card, the clause card, the review's overview bar and the client email. |
-| Code | `lib/exposures/`, `lib/exposure.ts`, `deal_figures` in `lib/anthropic.ts`, `lib/findings-overview.ts` |
+| Code | `lib/exposures/`, `lib/exposure.ts`, `lib/review.ts`, `lib/findings-overview.ts`. The switch is `lib/exposures/enabled.ts`. |
 | Tests | `tests/exposures/`, `tests/exposure.test.ts`, `tests/findings-overview.test.ts` |
 | Data | `findings.exposure_amount`, `exposure_basis` and `exposure_formula`, kept on every existing review |
 
@@ -83,8 +83,19 @@ quantifies the risk. Findings still state the contract's numbers and CD's.
 the contract's own totals and dates. That is checking the hotel's sums, and it
 is separate from exposure.
 
-**Restore.** To be written when the archive lands on the Sonnet 5.5 branch,
-which rebuilt exposure on a separate reading call (`lib/review.ts`).
+**While archived.** A review is still two model calls (`lib/review.ts`). The
+reading call asks for five terms only: the room block, the minimum room nights,
+the attrition threshold, the F&B shortfall rate and the commission rate. They
+feed the three findings the app raises itself when the review drops them
+(`lib/must-raise.ts`). No finding carries a dollar figure, and the second ask
+for cancellation tiers never fires. A review run before the archive keeps its
+stored figures, and the screen and the client email leave them out
+(`withoutArchivedExposure`).
+
+**Restore.** Set `EXPOSURES=on`. The reading call asks for the full exposure
+list again, figures are computed and shown, and stored figures on older reviews
+reappear. Nothing else needs changing. Read "State when archived" first, since
+the reasons it was shelved still stand.
 
 **State when archived.**
 - A percentage is verified when its quote holds that number anywhere.
