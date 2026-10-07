@@ -1,4 +1,5 @@
 import type { StandardSet } from "../standards/sets";
+import { BRAND_PLACES, brandsIn, setForBrand, type HotelBrand } from "./brands";
 
 /**
  * Reads the property name and the hotel brand off a contract at upload, by
@@ -93,58 +94,67 @@ export function readPropertyName(text: string): Read | null {
 }
 
 export interface BrandRead {
-  /** The set whose brand the contract names. Null when it names none, or more than one. */
+  /** The hotel's brand as the contract names it. Null when it names none, or more than one. */
+  brand: string | null;
+  /** The standards set that brand's reviews read. Null means the default set. */
   set: string | null;
   evidence: string | null;
-  /** Why no set was chosen when one might have been, for the associate. */
+  /** Why no brand was read when one might have been, for the associate. */
   note: string | null;
 }
 
 type BrandSet = Pick<StandardSet, "key" | "name" | "brand_names" | "is_default">;
 
-/** Brand names that are also places. */
-const PLACES = /\bHilton\s+Head\b/gi;
-
 /** A sentence that names a brand only to compare the hotel with it. */
 const COMPARISON = /\b(?:comparable|similar|such as|equivalent|equal or better|competitor|competing|other than)\b/i;
-
-const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const names = (set: BrandSet) => new RegExp(`\\b(?:${set.brand_names.map(escaped).join("|")})\\b`, "i");
 
 /** The text split into sentences and lines, with table bars and heading marks set aside. */
 function sentences(text: string): string[] {
   return text
-    .replace(PLACES, " ")
+    .replace(BRAND_PLACES, " ")
     .split(/(?<=[.;?!])\s+|\n+/)
     .map((s) => flat(s.replace(/[|#]/g, " ")))
     .filter(Boolean);
 }
 
 /**
- * The standards set a contract's brand points to.
+ * The hotel's brand, and the standards set its reviews read.
  *
- * A brand in the property name settles it. Otherwise the contract must name
- * exactly one brand, outside any comparison. Two brands, or none, give no set,
- * and the review reads the default one.
+ * The brand is the hotel's actual one, whether or not it has standards of its
+ * own. A brand in the property name settles it. Otherwise the contract must
+ * name exactly one brand family, outside any comparison. Two families, or
+ * none, give no brand, and the associate enters it.
  */
 export function readBrand(text: string, propertyName: string | null, sets: BrandSet[]): BrandRead {
-  const brands = sets.filter((s) => !s.is_default && s.brand_names.length > 0);
+  // A set's own brand names count even when the built-in list lacks them.
+  const extra: HotelBrand[] = sets.filter((s) => !s.is_default).flatMap((s) => s.brand_names.map((name) => ({ name, family: s.name })));
+  const read = (brand: HotelBrand, evidence: string): BrandRead => ({
+    brand: brand.name,
+    set: setForBrand(brand.name, sets)?.key ?? null,
+    evidence,
+    note: null,
+  });
 
-  const name = (propertyName ?? "").replace(PLACES, " ");
-  const inName = brands.filter((s) => names(s).test(name));
-  if (inName.length === 1) return { set: inName[0].key, evidence: flat(propertyName!), note: null };
+  const inName = brandsIn(propertyName ?? "", { nameOnly: true, extra });
+  if (inName.length === 1) return read(inName[0], flat(propertyName!));
 
-  const lines = sentences(text).filter((s) => !COMPARISON.test(s));
-  const named = brands
-    .map((set) => ({ set, sentence: lines.find((s) => names(set).test(s)) }))
-    .filter((hit): hit is { set: BrandSet; sentence: string } => !!hit.sentence);
+  const found = new Map<string, { brand: HotelBrand; sentence: string }>();
+  for (const sentence of sentences(text)) {
+    if (COMPARISON.test(sentence)) continue;
+    for (const brand of brandsIn(sentence, { extra })) {
+      const seen = found.get(brand.family);
 
-  if (named.length === 1) return { set: named[0].set.key, evidence: clip(named[0].sentence), note: null };
-  if (named.length > 1) {
-    const list = named.map((hit) => hit.set.name);
-    const joined = list.length === 2 ? `both ${list[0]} and ${list[1]}` : `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
-    return { set: null, evidence: null, note: `This contract names ${joined}, so choose the standards yourself.` };
+      // The most specific name a family is given stands for it.
+      if (!seen || brand.name.length > seen.brand.name.length) found.set(brand.family, { brand, sentence: seen?.sentence ?? sentence });
+    }
   }
-  return { set: null, evidence: null, note: null };
+
+  const families = [...found.values()];
+  if (families.length === 1) return read(families[0].brand, clip(families[0].sentence));
+  if (families.length > 1) {
+    const list = families.map((hit) => hit.brand.name);
+    const joined = list.length === 2 ? `both ${list[0]} and ${list[1]}` : `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
+    return { brand: null, set: null, evidence: null, note: `This contract names ${joined}, so enter the brand yourself.` };
+  }
+  return { brand: null, set: null, evidence: null, note: null };
 }

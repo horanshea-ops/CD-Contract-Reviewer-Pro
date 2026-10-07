@@ -1,12 +1,15 @@
+import { setForBrand } from "../intake/brands";
 import type { createAdminClient } from "../supabase/admin";
 import { SET_COLUMNS, type StandardSet } from "./sets";
 
 type Db = ReturnType<typeof createAdminClient>;
 
-/** A brand an associate can pick at upload, and whether a review can read its standards today. */
+/** A set of standards as the upload screen needs it: which brands it is for, and whether a review can read it today. */
 export interface BrandChoice {
   key: string;
   name: string;
+  /** Brand names, as a contract writes them, that mean this set. */
+  brand_names: string[];
   is_default: boolean;
   /**
    * True for the default set, and for a set that is switched on and holds a
@@ -32,7 +35,7 @@ async function setsWithUse(db: Db): Promise<(StandardSet & { in_use: boolean })[
 
 /** Every brand, the default first. An empty list means the sets couldn't be read. */
 export async function brandChoices(db: Db): Promise<BrandChoice[]> {
-  return (await setsWithUse(db)).map(({ key, name, is_default, in_use }) => ({ key, name, is_default, in_use }));
+  return (await setsWithUse(db)).map(({ key, name, brand_names, is_default, in_use }) => ({ key, name, brand_names, is_default, in_use }));
 }
 
 /** The sets a review can read today, the default first. */
@@ -40,19 +43,18 @@ export async function usableSets(db: Db): Promise<StandardSet[]> {
   return (await setsWithUse(db)).filter((set) => set.in_use).map(({ in_use, ...set }) => (void in_use, set));
 }
 
-/**
- * The set a new negotiation records, from the brand the associate confirmed
- * at upload. Null means the default set.
- *
- * A brand whose standards aren't in use is recorded all the same, because the
- * hotel is still that brand. Its reviews read the default set and say so,
- * until an admin switches the brand's standards on.
- */
-export function confirmedSet(requested: string | null | undefined, choices: BrandChoice[]): { set: string | null } | { error: string } {
-  const key = requested?.trim();
-  if (!key) return { set: null };
+const MAX_BRAND_CHARS = 80;
 
-  const chosen = choices.find((choice) => choice.key === key);
-  if (!chosen) return { error: "That brand isn't in the list. Choose another." };
-  return { set: chosen.is_default ? null : chosen.key };
+/**
+ * What a new negotiation records from the brand the associate confirmed at
+ * upload: the brand as typed, and the standards set its reviews read. Null
+ * for the set means the default.
+ *
+ * Any brand is recorded, since the hotel is that brand whether or not CD has
+ * standards specific to it. A brand whose set is switched off is recorded
+ * with that set, and its reviews read the default one and say so.
+ */
+export function brandOnNegotiation(brand: string | null | undefined, choices: BrandChoice[]): { brand: string | null; set: string | null } {
+  const name = brand?.replace(/\s+/g, " ").trim().slice(0, MAX_BRAND_CHARS) || null;
+  return { brand: name, set: setForBrand(name, choices)?.key ?? null };
 }

@@ -391,6 +391,65 @@ contract review: upload, review, redline and export. Work until then goes to
 getting those right. This section orders that work and overrides "Next up"
 below wherever the two differ. Each item gets its own plan before any code.
 
+**Start here (state at the end of 2026-10-07).**
+
+| | |
+|---|---|
+| Live on `main` | Archive of Analytics and historical uploads. Exposure figures hidden. Standards sets by brand. Upload confirm step with the property name and the hotel's actual brand. Table fixes: one copy per replaced table, and one change per paragraph. |
+| Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
+| Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
+
+**Next step: stream the review call, then run Harborview again.**
+
+1. **Stream the review call** (`lib/anthropic.ts`, on `review/one-reading-pass`).
+   Harborview failed on Sonnet 5.5 twice on 2026-10-07, at 9m23s with no
+   limit and at 301s with a 420s limit. A review call is one long request
+   with no bytes back until it ends, and it appears to be dropped at about
+   five minutes. Streaming keeps bytes flowing. Free to build. Opus work,
+   with its own plan. That branch's copy of this file has the evidence.
+2. **Run Harborview on 5.5 again**, alone, about $0.48, with a yes. Pass is
+   finishing inside 7 minutes with at least 32 of 34 key items.
+3. **On a pass, merge the 5.5 branch and deploy.** The user then changes
+   Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5`.
+
+**Owed by the user.**
+
+- **HIGH PRIORITY: look at two rebuilt redlines in Word.** Both fixes are
+  live and no human has opened a result. In `data/private/replay/`:
+  `4f803f16-redline.docx` (one struck schedule and one new one) and
+  `4a7e89f6-redline.docx` (each cancellation tier changed in place, the
+  schedule appearing once). Try Accept All and Reject All on copies.
+- Delete `ANALYTICS`, `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on Render.
+- Read the Claude Console's usage for 2026-10-07. Known spend is $0.381
+  (Florida) and about $0.05 (compile check). Two Harborview calls timed out
+  and may or may not have been billed.
+- Fix one sentence in the gratuity standard on the Standards screen: "not
+  staff pay should be disclosed" lost a comma or dash on 2026-10-05.
+- From CD: updated Independent baseline, Hilton and Hyatt contracts, and
+  test contracts. Leave the hotel's brand in when redacting, or use a
+  stand-in such as "Hilton Sampleville".
+
+**Not yet checked in a browser.**
+
+- The brand field as free text (deployed 2026-10-07, tests only).
+- Copy, Switch on and Switch off on the Standards screen. They are safe to
+  try now that the set-aware code is live. Copying Independent into Hilton
+  is also the intended first step when CD's Hilton contract arrives.
+
+**Free work waiting, in a sensible order.**
+
+1. Streaming, above.
+2. The card can't warn when a change inside a table cell will be left
+   out, since the stored review text has no paragraph breaks inside a cell.
+3. A replaced table that holds a hotel comment still falls back to PDF.
+4. Items held for a paid run: `[X]%` on gratuity, table rows written as
+   prose, and the model's own arithmetic in proposed wording. On
+   `4a7e89f6` it changed an F&B formula to 35% and left the amount at
+   $80,000.
+5. A screen to add a fourth standards set, and which sub-brands count as
+   Hilton or Hyatt (question 2 for CD).
+6. The hand-off guide (item 7 below).
+
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,
 what switches it back on, and how well it worked on the day it was archived.
@@ -617,6 +676,14 @@ for what is shown. Every pinned model request is unchanged.
           2026-10-07).** It lists every brand, with "Independent or another
           brand" first, and is filled from the contract once a file is
           picked. A brand the associate picked is never overwritten.
+        - **The field shows the hotel's actual brand (user, 2026-10-07;
+          merged and deployed the same day, migration 016).** It is free
+          text, filled from the contract against a list of known hotel
+          brands (`lib/intake/brands.ts`) and editable. A grey line under
+          it says which standards the review will use: the brand's own, or
+          Independent's when the brand has none (Marriott, say) or its set
+          is switched off. A brand that is also an everyday word, such as
+          Courtyard or Conrad, is read from the property name only.
         - **A brand is recorded even while its standards are off.** The
           form then says the review will use Independent's, and the review
           screen says the same. When an admin switches the brand's

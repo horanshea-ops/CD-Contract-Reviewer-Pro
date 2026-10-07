@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Body, Meta, Title } from "@/components/ui/typography";
+import { setForBrand } from "@/lib/intake/brands";
 
 interface OpenThread {
   id: string;
@@ -19,10 +20,11 @@ interface OpenThread {
   brand: string | null;
 }
 
-/** A brand the associate can pick, and whether a review can read its standards today. */
+/** A set of standards: the brands it is for, and whether a review can read it today. */
 interface BrandChoice {
   key: string;
   name: string;
+  brand_names: string[];
   is_default: boolean;
   in_use: boolean;
 }
@@ -30,29 +32,34 @@ interface BrandChoice {
 /** What the app read off the picked contract, for the associate to confirm (app/api/analyses/read). */
 interface ContractRead {
   propertyName: { value: string; evidence: string } | null;
-  brand: { set: string | null; evidence: string | null; note: string | null };
-  /** Every brand, the default first. */
+  brand: { brand: string | null; set: string | null; evidence: string | null; note: string | null };
+  /** Every set of standards, the default first. */
   sets: BrandChoice[];
-  chosenSet: string | null;
 }
 
 /**
  * What to say under the brand: where it was read from, and which standards
- * the review will use when the brand's own aren't switched on.
+ * the review will use. A brand with no standards of its own is compared with
+ * the default set, and the associate is told so before the review starts.
  */
 function brandReason(read: ContractRead | null, sets: BrandChoice[], brand: string): string | null {
-  const chosen = sets.find((s) => s.key === brand);
-  const fallback = sets.find((s) => s.is_default);
+  const fallback = sets.find((s) => s.is_default)?.name;
+  if (!fallback) return null;
+
+  const typed = brand.trim();
+  const own = setForBrand(typed, sets);
   const lines: string[] = [];
 
-  if (read?.brand.note) lines.push(read.brand.note);
-  else if (read?.brand.set && read.brand.set === brand && read.brand.evidence) lines.push(`From the contract: “${read.brand.evidence}”`);
-  else if (read && !read.brand.set && chosen?.is_default) lines.push("The contract names none of the listed brands.");
+  if (read?.brand.brand && read.brand.brand === typed && read.brand.evidence) lines.push(`From the contract: “${read.brand.evidence}”`);
+  else if (!typed && read?.brand.note) lines.push(read.brand.note);
+  else if (!typed && read) lines.push("No brand found in the contract.");
 
-  if (chosen && !chosen.in_use && fallback) {
-    lines.push(`${chosen.name}'s standards aren't switched on yet, so this review will use ${fallback.name}'s.`);
-  }
-  return lines.join(" ") || null;
+  if (!typed) lines.push(`This review will use ${fallback}'s standards.`);
+  else if (!own) lines.push(`There are no standards specific to ${typed}, so this review will use ${fallback}'s.`);
+  else if (!own.in_use) lines.push(`${own.name}'s standards aren't switched on yet, so this review will use ${fallback}'s.`);
+  else lines.push(`This review will use ${own.name}'s standards.`);
+
+  return lines.join(" ");
 }
 
 export default function UploadForm() {
@@ -71,9 +78,9 @@ export default function UploadForm() {
   const [sets, setSets] = useState<BrandChoice[]>([]);
   const [brand, setBrand] = useState("");
 
-  // A name the associate typed, or a brand they picked, is theirs. A read never replaces it.
+  // A name or a brand the associate typed is theirs. A read never replaces it.
   const typedName = useRef(false);
-  const pickedBrand = useRef(false);
+  const typedBrand = useRef(false);
 
   // Only the latest pick's read is used, when a second file is chosen before the first returns.
   const pick = useRef(0);
@@ -84,14 +91,10 @@ export default function UploadForm() {
       .then((body) => setThreads(body.threads ?? []))
       .catch(() => setThreads([]));
 
-    // The brands to list, so the field is there before a file is picked.
+    // The sets of standards, so the form can say which a brand's review will use.
     fetch("/api/analyses/read")
       .then((res) => (res.ok ? res.json() : { sets: [] }))
-      .then((body: { sets?: BrandChoice[] }) => {
-        const listed = body.sets ?? [];
-        setSets(listed);
-        setBrand((current) => current || (listed.find((s) => s.is_default)?.key ?? ""));
-      })
+      .then((body: { sets?: BrandChoice[] }) => setSets(body.sets ?? []))
       .catch(() => setSets([]));
   }, []);
 
@@ -112,7 +115,7 @@ export default function UploadForm() {
 
       setRead(found);
       if (found.sets.length > 0) setSets(found.sets);
-      if (found.chosenSet && !pickedBrand.current) setBrand(found.chosenSet);
+      if (found.brand.brand && !typedBrand.current) setBrand(found.brand.brand);
       if (found.propertyName && !typedName.current) setPropertyName(found.propertyName.value);
     } catch {
       // Nothing was read. The associate types the fields, as before.
@@ -144,11 +147,11 @@ export default function UploadForm() {
     formData.append("negotiationMode", negotiationMode);
     if (negotiationMode === "new") {
       formData.append("propertyName", propertyName.trim());
-      if (brand) formData.append("standardsSet", brand);
+      if (brand.trim()) formData.append("brand", brand.trim());
 
       // Kept beside the confirmed values, to show how often the read was right.
       if (read?.propertyName) formData.append("readPropertyName", read.propertyName.value);
-      if (read?.brand.set) formData.append("readBrandSet", read.brand.set);
+      if (read?.brand.brand) formData.append("readBrand", read.brand.brand);
     } else {
       formData.append("threadId", threadId);
     }
@@ -245,31 +248,24 @@ export default function UploadForm() {
                 )}
               </div>
 
-              {sets.length > 0 && (
-                <div>
-                  <Field label="Hotel brand">
-                    <FieldSelect
-                      value={brand}
-                      onChange={(e) => {
-                        pickedBrand.current = true;
-                        setBrand(e.target.value);
-                      }}
-                      required
-                    >
-                      {sets.map((s) => (
-                        <option key={s.key} value={s.key}>
-                          {s.is_default ? `${s.name} or another brand` : s.name}
-                        </option>
-                      ))}
-                    </FieldSelect>
-                  </Field>
-                  {!reading && brandReason(read, sets, brand) && (
-                    <Meta as="p" className="mt-1.5 text-[var(--text-muted)]">
-                      {brandReason(read, sets, brand)}
-                    </Meta>
-                  )}
-                </div>
-              )}
+              <div>
+                <Field label="Hotel brand" hint="(leave blank for an independent hotel)">
+                  <FieldInput
+                    type="text"
+                    value={brand}
+                    onChange={(e) => {
+                      typedBrand.current = true;
+                      setBrand(e.target.value);
+                    }}
+                    placeholder="e.g. Hilton, Marriott, Hyatt Regency"
+                  />
+                </Field>
+                {!reading && brandReason(read, sets, brand) && (
+                  <Meta as="p" className="mt-1.5 text-[var(--text-muted)]">
+                    {brandReason(read, sets, brand)}
+                  </Meta>
+                )}
+              </div>
             </>
           ) : threads.length > 0 ? (
             <Field label="Which negotiation">

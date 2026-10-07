@@ -17,7 +17,7 @@ export async function GET() {
 
   const { data: threads, error } = await admin
     .from("negotiation_threads")
-    .select("id, property_name, standards_set, clients(name)")
+    .select("id, property_name, brand, standards_set, clients(name)")
     .eq("associate_id", associate.id)
     .eq("status", "open")
     .order("created_at", { ascending: false });
@@ -56,7 +56,7 @@ export async function GET() {
       propertyName: t.property_name,
       clientName: (t.clients as unknown as { name: string } | null)?.name ?? null,
       roundCount: roundCounts.get(t.id) ?? 0,
-      brand: setNames.get(t.standards_set as string) ?? null,
+      brand: (t.brand as string | null) ?? setNames.get(t.standards_set as string) ?? null,
     })),
   });
 }
