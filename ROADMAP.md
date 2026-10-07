@@ -400,7 +400,7 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
 |---|---|---|
 | Analytics tab | `ANALYTICS=on` | Archived |
 | Historical contract uploads (Admin tab) | `HISTORICAL_CONTRACTS=on` | Archived |
-| Exposure math in a review | `EXPOSURES=on` | Archived in item 2 below |
+| Exposure math in a review | `EXPOSURES=on` | Hidden on screen and in the client email. The figures are still worked out until item 2 merges. |
 
 - Findings still state the contract's numbers and CD's. The associate works
   out the dollar risk.
@@ -408,6 +408,19 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
   (`lib/document-checks.ts`, `lib/date-checks.ts`).
 - Exposure was archived because its figures varied between runs on the same
   contract. The arithmetic was steady. The numbers the model read were not.
+
+**Deployed 2026-10-07 without the paid runs (user's instruction).** The work
+that changes nothing the model is asked went to `main` on
+`deploy/brand-sets-and-intake`: standards sets by brand (item 3), the upload
+confirm step with the Hotel brand field (item 4), and the `EXPOSURES` switch
+for what is shown. Every pinned model request is unchanged.
+
+- **Still on `review/one-reading-pass`, waiting on the paid runs:** Sonnet
+  5.5, the two-call review, and the reading call cut to five terms. Until
+  then a review on `main` still asks the model for its figures and works the
+  exposures out. They are stored and not shown.
+- `standards/brand-sets` and `upload/intake-confirm` are superseded by the
+  deploy branch.
 
 **Order of work.**
 

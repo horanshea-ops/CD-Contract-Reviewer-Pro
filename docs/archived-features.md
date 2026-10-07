@@ -17,7 +17,7 @@ section holds the decision.
 |---|---|---|---|
 | Analytics tab | `ANALYTICS=on` | off | Archived |
 | Historical contract uploads | `HISTORICAL_CONTRACTS=on` | off | Archived |
-| Exposure math | `EXPOSURES=on` | off | Archived on `review/one-reading-pass`. Live on `main` until that branch merges. |
+| Exposure math | `EXPOSURES=on` | off | Hidden on screen and in the client email since 2026-10-07. Still worked out and stored until the Sonnet 5.5 branch merges. |
 
 ## Analytics tab
 
@@ -83,7 +83,13 @@ quantifies the risk. Findings still state the contract's numbers and CD's.
 the contract's own totals and dates. That is checking the hotel's sums, and it
 is separate from exposure.
 
-**While archived.** A review is still two model calls (`lib/review.ts`). The
+**While archived, on `main` today.** No figure shows on the finding card, the
+clause card, the overview bar or the client email (`withoutArchivedExposure`
+in `lib/exposures/enabled.ts`). A review still asks the model for the
+contract's figures and stores the exposures it works out.
+
+**While archived, once the Sonnet 5.5 branch merges.** A review is two model
+calls (`lib/review.ts`). The
 reading call asks for five terms only: the room block, the minimum room nights,
 the attrition threshold, the F&B shortfall rate and the commission rate. They
 feed the three findings the app raises itself when the review drops them
