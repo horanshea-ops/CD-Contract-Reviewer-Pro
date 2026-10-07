@@ -35,7 +35,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
 
 import { GET as brands, POST as read } from "@/app/api/analyses/read/route";
 import { loadStandardsLibrary } from "@/lib/standards/load";
-import { brandChoices, confirmedSet, usableSets } from "@/lib/standards/usable";
+import { brandChoices, brandOnNegotiation, usableSets } from "@/lib/standards/usable";
 
 const ASSOCIATE = { id: "assoc-1", is_admin: false, name: "Jo", email: "jo@example.com", signature_block: null };
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -113,8 +113,7 @@ describe("what the read returns", () => {
 
     expect(body.propertyName.value).toBe("Seaside Grand Resort");
     expect(body.propertyName.evidence).toContain('(the "Hotel")');
-    expect(body.brand).toEqual({ set: null, evidence: null, note: null });
-    expect(body.chosenSet).toBe("independent");
+    expect(body.brand).toEqual({ brand: null, set: null, evidence: null, note: null });
   });
 
   it("reads a table row, as a Word contract lays it out", async () => {
@@ -122,27 +121,29 @@ describe("what the read returns", () => {
     expect(body.propertyName).toEqual({ value: "Granite Bay Lodge", evidence: "Hotel: Granite Bay Lodge" });
   });
 
-  it("chooses the brand the contract names", async () => {
+  it("names the brand the contract names, with its standards set", async () => {
     const body = await (await read(await request(PARTY("Hilton Sampleville Downtown")))).json();
-
-    expect(body.brand).toMatchObject({ set: "hilton", evidence: "Hilton Sampleville Downtown" });
-    expect(body.chosenSet).toBe("hilton");
+    expect(body.brand).toMatchObject({ brand: "Hilton", set: "hilton", evidence: "Hilton Sampleville Downtown" });
   });
 
-  it("chooses a brand whose standards are off too, since the hotel is still that brand", async () => {
+  it("names a brand whose standards are off, since the hotel is still that brand", async () => {
     const body = await (await read(await request(PARTY("Hyatt Regency Sampleville")))).json();
 
-    expect(body.brand.set).toBe("hyatt");
-    expect(body.chosenSet).toBe("hyatt");
+    expect(body.brand).toMatchObject({ brand: "Hyatt Regency", set: "hyatt" });
     expect(body.sets.find((s: { key: string }) => s.key === "hyatt")).toMatchObject({ in_use: false });
   });
 
-  it("lists every brand, Independent first, each marked with whether its standards are in use", async () => {
+  it("names a brand that has no standards of its own", async () => {
+    const body = await (await read(await request(PARTY("Sampleville Marriott Marquis")))).json();
+    expect(body.brand).toMatchObject({ brand: "Marriott", set: null, note: null });
+  });
+
+  it("lists every set of standards, Independent first, with its brand names and whether it is in use", async () => {
     const body = await (await read(await request(PARTY("Seaside Grand Resort")))).json();
     expect(body.sets).toEqual([
-      { key: "independent", name: "Independent", is_default: true, in_use: true },
-      { key: "hilton", name: "Hilton", is_default: false, in_use: true },
-      { key: "hyatt", name: "Hyatt", is_default: false, in_use: false },
+      { key: "independent", name: "Independent", brand_names: [], is_default: true, in_use: true },
+      { key: "hilton", name: "Hilton", brand_names: ["Hilton"], is_default: false, in_use: true },
+      { key: "hyatt", name: "Hyatt", brand_names: ["Hyatt"], is_default: false, in_use: false },
     ]);
   });
 
@@ -150,7 +151,7 @@ describe("what the read returns", () => {
     const res = await read(await request(new Uint8Array([1, 2, 3, 4]), "broken.docx"));
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ propertyName: null, brand: { set: null }, chosenSet: "independent" });
+    expect(await res.json()).toMatchObject({ propertyName: null, brand: { brand: null, set: null } });
   });
 });
 
@@ -200,25 +201,30 @@ describe("the brand list, before any file is picked", () => {
 describe("the brand a new negotiation records", () => {
   const choices = () => brandChoices(fakeDb(state.tables as Tables) as never);
 
-  it("records nothing for Independent, which is what an empty choice means too", async () => {
-    expect(confirmedSet(null, await choices())).toEqual({ set: null });
-    expect(confirmedSet("", await choices())).toEqual({ set: null });
-    expect(confirmedSet("independent", await choices())).toEqual({ set: null });
+  it("records no brand and the default set for an independent hotel", async () => {
+    expect(brandOnNegotiation(null, await choices())).toEqual({ brand: null, set: null });
+    expect(brandOnNegotiation("   ", await choices())).toEqual({ brand: null, set: null });
   });
 
-  it("records a brand whose standards are in use", async () => {
-    expect(confirmedSet("hilton", await choices())).toEqual({ set: "hilton" });
+  it("records a brand with standards of its own, and its set", async () => {
+    expect(brandOnNegotiation("Hilton", await choices())).toEqual({ brand: "Hilton", set: "hilton" });
+    expect(brandOnNegotiation(" DoubleTree  by Hilton ", await choices())).toEqual({ brand: "DoubleTree by Hilton", set: "hilton" });
+  });
+
+  it("records a brand with no standards of its own as typed, on the default set", async () => {
+    expect(brandOnNegotiation("Marriott", await choices())).toEqual({ brand: "Marriott", set: null });
+    expect(brandOnNegotiation("Conrad", await choices())).toEqual({ brand: "Conrad", set: null });
   });
 
   it("records a brand whose standards are off, and the review then reads Independent and says so", async () => {
-    expect(confirmedSet("hyatt", await choices())).toEqual({ set: "hyatt" });
+    expect(brandOnNegotiation("Hyatt Regency", await choices())).toEqual({ brand: "Hyatt Regency", set: "hyatt" });
 
     const loaded = await loadStandardsLibrary("hyatt");
     expect(loaded).toMatchObject({ set: "independent", requestedSet: "hyatt" });
     expect(loaded.setNote).toBe("Hyatt's standards are switched off, so this review used Independent.");
   });
 
-  it("refuses a brand that isn't in the list", async () => {
-    expect(confirmedSet("marriott", await choices())).toEqual({ error: "That brand isn't in the list. Choose another." });
+  it("keeps a typed brand to a sensible length", async () => {
+    expect(brandOnNegotiation("x".repeat(300), await choices()).brand).toHaveLength(80);
   });
 });

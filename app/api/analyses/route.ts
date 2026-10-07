@@ -11,7 +11,7 @@ import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
 import { nextRoundLinkage } from "@/lib/negotiation-threads";
 import { storageSafeName } from "@/lib/storage-key";
 import { limitReachedMessage, reviewAllowance } from "@/lib/review-allowance";
-import { brandChoices, confirmedSet } from "@/lib/standards/usable";
+import { brandChoices, brandOnNegotiation } from "@/lib/standards/usable";
 
 // Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
 // upload and saves. Render runs a long-lived server and ignores it.
@@ -47,10 +47,10 @@ export async function POST(request: Request) {
   // What the associate confirmed at upload, and what the app had read off the
   // contract for them (app/api/analyses/read). The reads are kept for the
   // audit log only, to show how often the rules were right.
-  const standardsSet = formData.get("standardsSet") as string | null;
+  const brand = formData.get("brand") as string | null;
   const readFromContract = {
     property_name: (formData.get("readPropertyName") as string | null)?.trim().slice(0, 200) || null,
-    brand_set: (formData.get("readBrandSet") as string | null)?.trim().slice(0, 60) || null,
+    brand: (formData.get("readBrand") as string | null)?.trim().slice(0, 80) || null,
   };
 
   if (!(file instanceof File)) {
@@ -90,9 +90,8 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  // A continuing negotiation keeps the set it started with, so only a new one takes a choice.
-  const confirmed = negotiationMode === "new" ? confirmedSet(standardsSet, await brandChoices(admin)) : { set: null };
-  if ("error" in confirmed) return NextResponse.json({ error: confirmed.error }, { status: 400 });
+  // A continuing negotiation keeps the brand it started with, so only a new one takes it.
+  const confirmed = negotiationMode === "new" ? brandOnNegotiation(brand, await brandChoices(admin)) : { brand: null, set: null };
 
   let clientId: string | null = null;
   if (clientName) {
@@ -129,6 +128,7 @@ export async function POST(request: Request) {
         client_id: clientId,
         property_name: propertyName,
         status: "open",
+        brand: confirmed.brand,
         standards_set: confirmed.set,
       })
       .select("id")
@@ -288,7 +288,7 @@ export async function POST(request: Request) {
       thread_id: threadId,
       round_number: roundNumber,
       ...(negotiationMode === "new"
-        ? { property_name: propertyName, standards_set: confirmed.set, read_from_contract: readFromContract }
+        ? { property_name: propertyName, brand: confirmed.brand, standards_set: confirmed.set, read_from_contract: readFromContract }
         : {}),
     },
   });

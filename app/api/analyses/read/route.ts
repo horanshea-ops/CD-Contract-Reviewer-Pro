@@ -4,7 +4,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { detectSourceFormat } from "@/lib/document-conversion";
 import { readBrand, readPropertyName } from "@/lib/intake/read";
 import { readContractText } from "@/lib/read-contract-text";
-import { SET_COLUMNS, type StandardSet } from "@/lib/standards/sets";
 import { brandChoices } from "@/lib/standards/usable";
 
 export const maxDuration = 60;
@@ -44,22 +43,19 @@ export async function POST(request: Request) {
   }
 
   const db = createAdminClient();
-  const [sets, all] = await Promise.all([brandChoices(db), db.from("standard_sets").select(SET_COLUMNS)]);
-  const fallback = sets.find((set) => set.is_default)?.key ?? null;
+  const sets = await brandChoices(db);
 
   let text: string;
   try {
     text = (await readContractText(new Uint8Array(await file.arrayBuffer()), format)).contract_text;
   } catch {
     // A file the review itself can still convert. Nothing was read, so nothing is filled in.
-    return NextResponse.json({ propertyName: null, brand: { set: null, evidence: null, note: null }, sets, chosenSet: fallback });
+    return NextResponse.json({ propertyName: null, brand: { brand: null, set: null, evidence: null, note: null }, sets });
   }
 
   const propertyName = readPropertyName(text);
-  const brand = readBrand(text, propertyName?.value ?? null, (all.data ?? []) as StandardSet[]);
+  // The hotel's actual brand, whether or not it has standards of its own. The form says which standards a review will read.
+  const brand = readBrand(text, propertyName?.value ?? null, sets);
 
-  // The brand the contract names is chosen whether or not its standards are in use. The form says which a review will read.
-  const chosenSet = brand.set && sets.some((set) => set.key === brand.set) ? brand.set : fallback;
-
-  return NextResponse.json({ propertyName, brand, sets, chosenSet });
+  return NextResponse.json({ propertyName, brand, sets });
 }
