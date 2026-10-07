@@ -29,6 +29,7 @@ const ASSOCIATE = { ...ADMIN, id: "assoc-1", is_admin: false };
 function standard(clause_type: string, over: Record<string, unknown> = {}) {
   return {
     id: `std-${clause_type}`,
+    set_key: "independent",
     clause_type,
     segment: "default",
     category: "business",
@@ -49,7 +50,13 @@ const json = (body: unknown) =>
 const params = (id: string) => ({ params: Promise.resolve({ id }) });
 
 beforeEach(() => {
-  state.tables = { standards: [standard("attrition"), standard("cutoff_date"), standard("old_clause", { retired_at: "2026-09-01" })] };
+  state.tables = {
+    standard_sets: [
+      { key: "independent", name: "Independent", is_default: true, is_active: true },
+      { key: "hilton", name: "Hilton", is_default: false, is_active: false },
+    ],
+    standards: [standard("attrition"), standard("cutoff_date"), standard("old_clause", { retired_at: "2026-09-01" })],
+  };
   state.associate = ADMIN;
   state.audit = [];
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://db");
@@ -174,5 +181,39 @@ describe("removing a standard", () => {
   it("keeps at least one standard in the library", async () => {
     await retire(json({}), params("std-attrition"));
     expect((await retire(json({}), params("std-cutoff_date"))).status).toBe(409);
+  });
+});
+
+describe("standards in more than one set", () => {
+  const hiltonAttrition = { name: "Attrition", position: "p", fallback_language: "f", severity_default: "high", set_key: "hilton" };
+
+  it("adds to Independent unless a set is named", async () => {
+    await add(json({ name: "Parking", position: "p", fallback_language: "f", severity_default: "low" }));
+    expect(state.tables.standards.find((s) => s.clause_type === "parking")).toMatchObject({ set_key: "independent" });
+    expect(state.audit[0]).toMatchObject({ metadata: { set_key: "independent" } });
+  });
+
+  it("lets the same clause have a standard in two sets, and refuses a second in one", async () => {
+    expect((await add(json(hiltonAttrition))).status).toBe(201);
+    expect(state.tables.standards.filter((s) => s.clause_type === "attrition").map((s) => s.set_key).sort()).toEqual(["hilton", "independent"]);
+    expect((await add(json(hiltonAttrition))).status).toBe(409);
+  });
+
+  it("refuses a set that doesn't exist", async () => {
+    expect((await add(json({ ...hiltonAttrition, set_key: "marriott" }))).status).toBe(404);
+    expect((await add(json({ ...hiltonAttrition, set_key: "Not A Key" }))).status).toBe(400);
+  });
+
+  it("keeps a brand's standard out of an Independent review", async () => {
+    await add(json({ ...hiltonAttrition, name: "Hilton Honors points" }));
+    const loaded = await loadStandardsLibrary();
+    expect(loaded.entries.map((e) => e.clause_type)).not.toContain("hilton_honors_points");
+  });
+
+  it("lets a brand set lose its last standard, since its reviews then use Independent", async () => {
+    await add(json(hiltonAttrition));
+    const id = state.tables.standards.find((s) => s.set_key === "hilton")!.id as string;
+    expect((await retire(json({}), params(id))).status).toBe(200);
+    expect(state.audit.at(-1)).toMatchObject({ action: "standard_retired", metadata: { set_key: "hilton" } });
   });
 });

@@ -2,6 +2,7 @@ import { loadEnvLocal } from "./load-env";
 loadEnvLocal();
 
 import { createClient } from "@supabase/supabase-js";
+import { DEFAULT_SET } from "../lib/standards/sets";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "../lib/standards/v1";
 
 /**
@@ -12,6 +13,8 @@ import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "../lib/standards/v
  * that don't exist yet, or that are still untouched industry_default
  * entries. Anything promoted to extracted/cd_validated, or already edited,
  * is left alone.
+ *
+ * The bundled library is the default set's, so only that set is read and written.
  */
 
 async function main() {
@@ -27,7 +30,8 @@ async function main() {
 
   const { data: existing, error: fetchError } = await supabase
     .from("standards")
-    .select("clause_type, segment, provenance");
+    .select("clause_type, segment, provenance")
+    .eq("set_key", DEFAULT_SET);
   if (fetchError) throw fetchError;
 
   const existingByKey = new Map(
@@ -39,6 +43,7 @@ async function main() {
     const currentProvenance = existingByKey.get(key);
     return currentProvenance === undefined || currentProvenance === "industry_default";
   }).map((entry) => ({
+    set_key: DEFAULT_SET,
     clause_type: entry.clause_type,
     segment: entry.segment,
     category: entry.category,
@@ -60,7 +65,7 @@ async function main() {
 
   const { data, error } = await supabase
     .from("standards")
-    .upsert(rows, { onConflict: "clause_type,segment,version" })
+    .upsert(rows, { onConflict: "set_key,clause_type,segment,version" })
     .select("clause_type");
 
   if (error) throw error;

@@ -27,7 +27,7 @@ export async function processAnalysis(analysisId: string) {
 
   const { data: analysis, error: fetchError } = await admin
     .from("analyses")
-    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path, ai_clause_acknowledged_at, ai_clause_scan_result")
+    .select("id, storage_path, associate_id, source_format, intake_route, original_storage_path, ai_clause_acknowledged_at, ai_clause_scan_result, thread_id")
     .eq("id", analysisId)
     .single();
 
@@ -67,12 +67,28 @@ export async function processAnalysis(analysisId: string) {
     // actually change how contracts are reviewed. A fallback to the bundled
     // copy is allowed (a transient database problem should not fail an
     // analysis) but is always recorded, never silent.
-    const standards = await loadStandardsLibrary();
+    //
+    // The negotiation says which set of standards its contracts are reviewed
+    // against (CLAUDE.md deviation 10). Every round reads the same one.
+    const { data: thread, error: threadError } = analysis.thread_id
+      ? await admin.from("negotiation_threads").select("standards_set").eq("id", analysis.thread_id).maybeSingle()
+      : { data: null, error: null };
+
+    // Caught here, before the model is paid for a review that could not be saved.
+    if (threadError) {
+      throw new Error(
+        `Could not read which standards this negotiation uses: ${threadError.message}. ` +
+          `If this mentions an unknown column, migration 015 has not been applied.`
+      );
+    }
+
+    const standards = await loadStandardsLibrary((thread?.standards_set as string | null) ?? undefined);
     if (standards.source === "bundled_fallback") {
       console.warn(
         `processAnalysis: ${analysisId} used the bundled standards library, not the database — ${standards.fallbackReason}`
       );
     }
+    if (standards.setNote) console.warn(`processAnalysis: ${analysisId} — ${standards.setNote}`);
 
     // What the model reads. A DOCX that passed the intake health gate is
     // re-extracted here rather than analysed as a converted PDF, so tables
@@ -272,6 +288,10 @@ export async function processAnalysis(analysisId: string) {
         library_version: result.standards_library_version,
         standards_source: standards.source,
         standards_hash: standards.hash,
+        standards_set: standards.set,
+        // Kept only when the review could not use the set its negotiation asked for.
+        standards_set_requested: standards.setNote ? standards.requestedSet : null,
+        standards_set_note: standards.setNote ?? null,
         // §1.9.3 — the accepted-view text of this round, for the future diff
         // engine (§2.1). Only meaningful when the model actually read the
         // real DOCX text (`document.kind === "text"`) rather than a PDF — a
@@ -310,6 +330,9 @@ export async function processAnalysis(analysisId: string) {
         dropped_findings: result.dropped_findings,
         standards_source: standards.source,
         standards_hash: standards.hash,
+        standards_set: standards.set,
+        standards_set_requested: standards.requestedSet,
+        standards_set_note: standards.setNote ?? null,
       },
     });
 

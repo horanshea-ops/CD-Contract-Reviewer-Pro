@@ -26,7 +26,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     action: "standard_restored",
     entityType: "standard",
     entityId: id,
-    metadata: { clause_type: data.clause_type },
+    metadata: { set_key: data.set_key, clause_type: data.clause_type },
   });
 
   return NextResponse.json(data);

@@ -15,7 +15,7 @@ import { ORG } from "@/lib/org";
  * than enforced by keeping the buttons apart.
  *
  * The audience choice is the one place a wrong click has real consequences —
- * the client draft carries CD's exposure figures and reasoning, and nothing
+ * the client draft carries CD's reasoning, and nothing
  * downstream stops it from being sent to the property by mistake. So the two
  * choices below are full-width, separately labeled and described, not a
  * compact toggle. Both panels stay mounted here (not just when picked) so a
@@ -58,7 +58,7 @@ export function EmailPicker({ analysisId }: { analysisId: string }) {
             </Body>
             <Meta as="span" className="block mt-1 text-[var(--text-secondary)]">
               Goes to {ORG.shortName}&apos;s client, the group or association negotiating this contract, including
-              exposure figures and negotiating rationale. Never send this to the property.
+              the negotiating rationale. Never send this to the property.
             </Meta>
           </button>
 

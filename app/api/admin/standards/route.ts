@@ -3,13 +3,15 @@ import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { clauseKey, isCategory, isLibrarySeverity } from "@/lib/standards/keys";
+import { DEFAULT_SET, isSetKey } from "@/lib/standards/sets";
 import { STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
 
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 /**
- * Adds a standard to the library. An admin writes it, so it arrives validated
- * by that admin. It reaches the model from the next review on.
+ * Adds a standard to one set of the library. An admin writes it, so it arrives
+ * validated by that admin. It reaches the model from the next review that
+ * reads that set.
  */
 export async function POST(request: Request) {
   const { admin: associate, denied } = await requireAdmin();
@@ -23,6 +25,7 @@ export async function POST(request: Request) {
   const severity_default = body.severity_default;
   const category = body.category ?? "business";
   const compromise_range = text(body.compromise_range);
+  const set_key = body.set_key ?? DEFAULT_SET;
 
   if (!clause_type) return NextResponse.json({ error: "Give the clause a name." }, { status: 400 });
   if (!position) return NextResponse.json({ error: "Write the position." }, { status: 400 });
@@ -34,11 +37,18 @@ export async function POST(request: Request) {
   }
   if (!isLibrarySeverity(severity_default)) return NextResponse.json({ error: "Choose a severity." }, { status: 400 });
 
+  if (!isSetKey(set_key)) return NextResponse.json({ error: "Choose a standards set." }, { status: 400 });
+
   const db = createAdminClient();
 
+  const { data: set } = await db.from("standard_sets").select("key").eq("key", set_key).maybeSingle();
+  if (!set) return NextResponse.json({ error: "That standards set doesn't exist." }, { status: 404 });
+
+  // The same clause can have a standard in every set, and one in each.
   const { data: existing, error: readError } = await db
     .from("standards")
     .select("id, retired_at")
+    .eq("set_key", set_key)
     .eq("clause_type", clause_type)
     .eq("segment", "default");
   if (readError) return NextResponse.json({ error: "Could not check the library. Try again." }, { status: 500 });
@@ -59,6 +69,7 @@ export async function POST(request: Request) {
   const { data, error } = await db
     .from("standards")
     .insert({
+      set_key,
       clause_type,
       segment: "default",
       category,
@@ -84,7 +95,7 @@ export async function POST(request: Request) {
     action: "standard_added",
     entityType: "standard",
     entityId: data.id,
-    metadata: { clause_type, category, severity_default },
+    metadata: { set_key, clause_type, category, severity_default },
   });
 
   return NextResponse.json(data, { status: 201 });

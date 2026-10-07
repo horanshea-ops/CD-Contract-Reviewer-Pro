@@ -3,10 +3,24 @@ import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkDocument, pictureNotes } from "@/lib/document-checks";
 import { toNotes, withoutRepeats } from "@/lib/document-notes";
+import { withoutArchivedExposure } from "@/lib/exposures/enabled";
 import { previewFindings } from "@/lib/redline-engine/preflight";
 
 const STORAGE_BUCKET = "contracts";
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
+
+/**
+ * The set of standards a review read, by name, and why when it isn't the set
+ * its negotiation asked for. Asked for separately, so a review from before
+ * sets, or a database without them yet, still opens. Null then.
+ */
+async function standardsUsed(admin: ReturnType<typeof createAdminClient>, analysisId: string) {
+  const { data: row } = await admin.from("analyses").select("standards_set, standards_set_note").eq("id", analysisId).maybeSingle();
+  if (!row?.standards_set) return null;
+
+  const { data: set } = await admin.from("standard_sets").select("name").eq("key", row.standards_set).maybeSingle();
+  return { name: (set?.name as string | undefined) ?? row.standards_set, note: (row.standards_set_note as string | null) ?? null };
+}
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const associate = await getCurrentAssociate();
@@ -82,7 +96,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       })),
       analysis.accepted_view_text
     );
-    findings = withActions.map((f) => ({ ...f, ...previews.get(f.id) }));
+    findings = withActions.map((f) => ({ ...withoutArchivedExposure(f), ...previews.get(f.id) }));
   }
 
   let documentUrl: string | null = null;
@@ -100,5 +114,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       : [];
   const document_notes = withoutRepeats(toNotes(analysis.document_notes), document_checks);
 
-  return NextResponse.json({ ...analysisFields, document_notes, propertyName, findings, documentUrl, document_checks });
+  return NextResponse.json({
+    ...analysisFields,
+    document_notes,
+    propertyName,
+    findings,
+    documentUrl,
+    document_checks,
+    standards: await standardsUsed(admin, id),
+  });
 }

@@ -24,6 +24,7 @@ async function main() {
   const { data: rows, error } = await db
     .from("standards")
     .select("id, clause_type, category, compromise_range")
+    .eq("set_key", "independent")
     .eq("category", "business")
     .is("retired_at", null);
   if (error) throw new Error(`Could not read standards: ${error.message}. Is migration 013 applied?`);
@@ -51,7 +52,7 @@ async function main() {
   }
 
   // Existing business findings take the range their standard now has.
-  const { data: live } = await db.from("standards").select("clause_type, compromise_range").eq("category", "business");
+  const { data: live } = await db.from("standards").select("clause_type, compromise_range").eq("set_key", "independent").eq("category", "business");
   let findingsFilled = 0;
   for (const s of live ?? []) {
     if (!s.compromise_range) continue;
