@@ -3,13 +3,14 @@ loadEnvLocal();
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { MODEL_CALL_BUDGET_MS } from "../lib/analysis-status";
 import { extractDocx } from "../lib/docx";
 import { contractText } from "../lib/docx/contract-text";
 import { standardsMismatch } from "../lib/eval/score";
 import { reviewContract } from "../lib/review";
 import { loadStandardsLibrary } from "../lib/standards/load";
 import type { AnswerKey, RunDocument, RunRecord } from "../lib/eval/types";
-import { withRetry } from "./with-retry";
+import { costOf, withRetry } from "./with-retry";
 
 /**
  * Runs the review pipeline over the eval corpus and records what came back
@@ -23,6 +24,11 @@ import { withRetry } from "./with-retry";
  * The run record stores findings and token counts, never document text. Scoring
  * re-extracts the DOCX, so a run cannot be scored against text that has drifted
  * from the file it came from.
+ *
+ * Each call gets the app's own time limit, and one try. A call left to wait
+ * retries on its own and bills each time, with nobody watching. `--retries <n>`
+ * allows more tries for a run with funds behind it. The run stops at the first
+ * contract that fails, and prints what each contract cost.
  */
 
 const CORPUS_DIR = path.join("data", "sample-contracts", "eval");
@@ -37,6 +43,9 @@ async function main() {
   const model = modelAt === -1 ? undefined : process.argv[modelAt + 1];
 
   const resume = process.argv.includes("--resume");
+
+  const retriesAt = process.argv.indexOf("--retries");
+  const tries = retriesAt === -1 ? 1 : Math.max(1, Number(process.argv[retriesAt + 1]) || 1);
 
   // `--only <file>` captures one contract, for checking a prompt change against
   // the contract that shows it most sharply before paying for the whole corpus.
@@ -73,6 +82,7 @@ async function main() {
   console.log(`Corpus: ${key.contracts.length} contracts from ${key.version}\n`);
 
   const documents: RunDocument[] = [];
+  let spent = 0;
   // Several contracts in one invocation share the cached standards library,
   // which the first call pays for and the rest read at a tenth of the price.
   const wanted = only ? key.contracts.filter((c) => only.includes(c.contract)) : key.contracts;
@@ -98,22 +108,35 @@ async function main() {
       const extracted = await extractDocx(new Uint8Array(bytes));
       const text = contractText(extracted);
 
-      const analysis = await withRetry(() =>
-        reviewContract({
-          document: { kind: "text", text },
-          standards: standards.entries,
-          standardsVersion: standards.version,
-          model,
-          parts: extracted.parts,
-        })
+      const analysis = await withRetry(
+        () =>
+          reviewContract({
+            document: { kind: "text", text },
+            standards: standards.entries,
+            standardsVersion: standards.version,
+            model,
+            parts: extracted.parts,
+
+            // The limit a review gets in the app, counted from this try.
+            deadline: Date.now() + MODEL_CALL_BUDGET_MS,
+          }),
+        tries
       );
 
       const elapsed = Date.now() - started;
       documents.push({ contract: entry.contract, analysis, error: null, elapsed_ms: elapsed });
+      const reading = analysis.reading.ok ? analysis.reading.tokens : null;
+      const cost = costOf({
+        input: analysis.input_tokens + (reading?.input ?? 0),
+        output: analysis.output_tokens + (reading?.output ?? 0),
+        cacheRead: (analysis.cache_read_input_tokens ?? 0) + (reading?.cache_read ?? 0),
+        cacheWrite: (analysis.cache_creation_input_tokens ?? 0) + (reading?.cache_creation ?? 0),
+      });
+      spent += cost;
       console.log(
         `${analysis.findings.length} findings, ${analysis.clauses_checked.length} clauses checked, ` +
           `${analysis.review_gaps.length} gaps, ${analysis.dropped_findings.length} dropped, ` +
-          `${(elapsed / 1000).toFixed(0)}s`
+          `${(elapsed / 1000).toFixed(0)}s, ${cost.toFixed(3)}`
       );
       for (const gap of analysis.review_gaps) console.log(`    gap: ${gap.kind} ${gap.clause_type}`);
     } catch (err) {
@@ -122,7 +145,11 @@ async function main() {
       // nothing in it — which is a result.
       const message = err instanceof Error ? err.message : String(err);
       documents.push({ contract: entry.contract, analysis: null, error: message, elapsed_ms: Date.now() - started });
-      console.log(`FAILED — ${message}`);
+      console.log(`FAILED after ${((Date.now() - started) / 1000).toFixed(0)}s — ${message}`);
+
+      // A failure may be the service or the network, and the next contract would pay to find out.
+      console.log("Stopping here. The contracts not reached are left out of this run.");
+      break;
     }
   }
 
@@ -153,6 +180,7 @@ async function main() {
     `Tokens — input ${totals.input.toLocaleString()}, output ${totals.output.toLocaleString()}, ` +
       `cache read ${totals.cached.toLocaleString()}`
   );
+  console.log(`Cost of the calls that returned: ${spent.toFixed(3)}`);
   console.log(`Score it with: npm run eval:score -- --run ${label}`);
 }
 
