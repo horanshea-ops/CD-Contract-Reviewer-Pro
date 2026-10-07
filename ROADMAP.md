@@ -399,16 +399,18 @@ below wherever the two differ. Each item gets its own plan before any code.
 | Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: stream the review call, then run Harborview again.**
+**Next step: run Harborview again on the streamed review.**
 
-1. **Stream the review call** (`lib/anthropic.ts`, on `review/one-reading-pass`).
-   Harborview failed on Sonnet 5.5 twice on 2026-10-07, at 9m23s with no
-   limit and at 301s with a 420s limit. A review call is one long request
-   with no bytes back until it ends, and it appears to be dropped at about
-   five minutes. Streaming keeps bytes flowing. Free to build. Opus work,
-   with its own plan. That branch's copy of this file has the evidence.
+1. **Done 2026-10-07, on `review/one-reading-pass`, not merged: the review
+   call is streamed, and a review gets 10 minutes.** Harborview failed on
+   Sonnet 5.5 twice that day, at 9m23s with no limit and at 301s with a
+   420s limit. The cause is proven. Node drops a request that has heard
+   nothing back for 300 seconds, and an unstreamed review is silent until
+   it ends. It applies to Sonnet 5 on the live build too, whose slowest
+   measured review took 253s. The evidence is under item 2 below.
 2. **Run Harborview on 5.5 again**, alone, about $0.48, with a yes. Pass is
-   finishing inside 7 minutes with at least 32 of 34 key items.
+   finishing inside 10 minutes with at least 32 of 34 key items. A time
+   over 7 minutes deserves a look, since it took 3m36s on 4 October.
 3. **On a pass, merge the 5.5 branch and deploy.** The user then changes
    Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5`.
 
@@ -438,7 +440,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 
 **Free work waiting, in a sensible order.**
 
-1. Streaming, above.
+1. ~~Streaming~~, done above.
 2. The card can't warn when a change inside a table cell will be left
    out, since the stored review text has no paragraph breaks inside a cell.
 3. A replaced table that holds a hotel comment still falls back to PDF.
@@ -571,31 +573,53 @@ for what is shown. Every pinned model request is unchanged.
           again. The 5.5 branch stays unmerged.** The call ended with
           "Request timed out" at 301 seconds, though its limit was 420.
           Run record: `data/eval/runs/sonnet55-harborview-2026-10-07.json`.
-          - **Likely cause: a review call is one long request with no
-            bytes coming back until it ends, and something on the way
-            drops it at about five minutes.** The first try that morning
+          - **A review call was one long request with no bytes coming
+            back until it ended, and it was dropped at five minutes.**
+            The first try that morning
             had no limit, the SDK retried after the first drop, and it was
             partway into a second attempt at 9m23s. Florida passes because
             it finishes in 3m42s. Harborview finished in 3m36s on 4 October
             and needs longer now.
-          - This is not proven. It fits both failures and both passes.
           - **It matters beyond the eval.** Any review in the app that needs
             more than about five minutes would fail the same way, on either
             model.
-          - **Fix to build next: stream the review call**
-            (`.stream().finalMessage()`), as the eval drafting calls in
-            `lib/anthropic.ts` already do for the same reason. Bytes then
-            flow the whole time, and the 420-second limit becomes the real
-            limit. Free to build. It changes how every review request is
-            sent, so it is Opus work with its own plan, and the pinned
-            requests and the free request check must be re-run.
-          - Then run Harborview again, about $0.48. Cost of today's two
-            failed tries is unknown. A timed-out call may be billed for
-            what it generated. The user should read the Console's usage.
-        - **Before the next paid run:** give the eval capture the app's
-          7-minute cap and no retries, run one contract at a time with
+          - Cost of the day's two failed tries is unknown. A timed-out call
+            may be billed for what it generated. The user should read the
+            Console's usage.
+        - **Cause proven and fixed, 2026-10-07 (free, commits `f4f2c93` and
+          `2c79da5`).**
+          - **The cause is Node.** Its built-in `fetch` stops waiting when a
+            server has sent nothing for 300 seconds. The SDK reports that
+            as "Request timed out", so it read as our own limit. Render,
+            the network and Anthropic play no part.
+          - **Proof, against a stand-in server on the dev machine.** An
+            unstreamed request with a 420s limit failed at 301.3s with the
+            same message. A streamed request whose answer came at 320s
+            finished at 320.0s.
+          - **The SDK's `timeout` covers only the wait for a stream's first
+            byte.** A stream given a 5s timeout ran 20s unstopped. So the
+            deadline stops the stream with a timer of its own
+            (`streamedMessage` in `lib/anthropic.ts`). A review stopped
+            that way says how many characters of the answer had arrived,
+            and is not retried.
+          - **A review gets 10 minutes, up from 7 (user, 2026-10-07).** The
+            stalled check moved from 10 minutes to 12 to stay above it,
+            and the three review routes' `maxDuration` to 720s. The
+            64,000-token output cap is a separate ceiling.
+          - **Left unstreamed on purpose:** the reading call and the two
+            email drafts. They finish far inside 300 seconds, and a failed
+            reading never fails a review.
+          - **Checks.** Lint, typecheck and 1,553 tests pass. No pinned
+            request changed, and the free request check accepts all 16.
+            The real `analyzeContract`, pointed at the stand-in server,
+            returned an answer that took 320s, stopped a stalled stream at
+            its 30s limit, and read a Sonnet 5 tool answer sent in pieces.
+          - **Not yet known: how long Harborview needs now.** Both tries
+            were cut off. Streaming removes the five-minute ceiling and
+            makes no review faster.
+        - **Before the next paid run:** run one contract at a time with
           nothing else in flight, and price it from the Console's actual
-          usage.
+          usage. The eval capture already has the app's limit and one try.
       - **Waiting on a yes for the paid step.**
         - One Florida review on 5.5 through the app, about $0.45 to $0.50.
         - The seven-contract eval on 5.5, roughly $2 to $3, to be quoted
