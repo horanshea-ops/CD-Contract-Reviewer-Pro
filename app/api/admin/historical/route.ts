@@ -5,7 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 import { detectSourceFormat } from "@/lib/document-conversion";
 import { storageSafeName } from "@/lib/storage-key";
-import { aiClauseMatches, readContractText } from "@/lib/historical/extract";
+import { aiClauseMatches } from "@/lib/historical/extract";
+import { readContractText } from "@/lib/read-contract-text";
 import { HISTORICAL_BUCKET, LIST_COLUMNS } from "@/lib/historical/types";
 
 export const maxDuration = 120;

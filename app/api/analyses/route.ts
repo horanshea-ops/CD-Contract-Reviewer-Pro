@@ -11,6 +11,7 @@ import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
 import { nextRoundLinkage } from "@/lib/negotiation-threads";
 import { storageSafeName } from "@/lib/storage-key";
 import { limitReachedMessage, reviewAllowance } from "@/lib/review-allowance";
+import { confirmedSet, usableSets } from "@/lib/standards/usable";
 
 // Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
 // upload and saves. Render runs a long-lived server and ignores it.
@@ -42,6 +43,15 @@ export async function POST(request: Request) {
   const negotiationMode = formData.get("negotiationMode") as string | null;
   const propertyName = (formData.get("propertyName") as string | null)?.trim();
   const continuingThreadId = (formData.get("threadId") as string | null)?.trim();
+
+  // What the associate confirmed at upload, and what the app had read off the
+  // contract for them (app/api/analyses/read). The reads are kept for the
+  // audit log only, to show how often the rules were right.
+  const standardsSet = formData.get("standardsSet") as string | null;
+  const readFromContract = {
+    property_name: (formData.get("readPropertyName") as string | null)?.trim().slice(0, 200) || null,
+    brand_set: (formData.get("readBrandSet") as string | null)?.trim().slice(0, 60) || null,
+  };
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
@@ -80,6 +90,10 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
+  // A continuing negotiation keeps the set it started with, so only a new one takes a choice.
+  const confirmed = negotiationMode === "new" ? confirmedSet(standardsSet, await usableSets(admin)) : { set: null };
+  if ("error" in confirmed) return NextResponse.json({ error: confirmed.error }, { status: 400 });
+
   let clientId: string | null = null;
   if (clientName) {
     const { data: existingClient } = await admin
@@ -110,7 +124,13 @@ export async function POST(request: Request) {
   if (negotiationMode === "new") {
     const { data: newThread, error: threadError } = await admin
       .from("negotiation_threads")
-      .insert({ associate_id: associate.id, client_id: clientId, property_name: propertyName, status: "open" })
+      .insert({
+        associate_id: associate.id,
+        client_id: clientId,
+        property_name: propertyName,
+        status: "open",
+        standards_set: confirmed.set,
+      })
       .select("id")
       .single();
     if (threadError) {
@@ -267,6 +287,9 @@ export async function POST(request: Request) {
       intake_downgrade_reason: intakeHealth?.reason ?? null,
       thread_id: threadId,
       round_number: roundNumber,
+      ...(negotiationMode === "new"
+        ? { property_name: propertyName, standards_set: confirmed.set, read_from_contract: readFromContract }
+        : {}),
     },
   });
 

@@ -17,7 +17,7 @@ export async function GET() {
 
   const { data: threads, error } = await admin
     .from("negotiation_threads")
-    .select("id, property_name, clients(name)")
+    .select("id, property_name, standards_set, clients(name)")
     .eq("associate_id", associate.id)
     .eq("status", "open")
     .order("created_at", { ascending: false });
@@ -37,6 +37,13 @@ export async function GET() {
       threads.map((t) => t.id)
     );
 
+  // A negotiation on a brand's standards says so in the list. One on the default set says nothing.
+  const setKeys = [...new Set(threads.map((t) => t.standards_set as string | null).filter((key): key is string => !!key))];
+  const { data: sets } = setKeys.length
+    ? await admin.from("standard_sets").select("key, name").in("key", setKeys)
+    : { data: [] };
+  const setNames = new Map((sets ?? []).map((s) => [s.key as string, s.name as string]));
+
   const roundCounts = new Map<string, number>();
   for (const row of rounds ?? []) {
     if (!row.thread_id) continue;
@@ -49,6 +56,7 @@ export async function GET() {
       propertyName: t.property_name,
       clientName: (t.clients as unknown as { name: string } | null)?.name ?? null,
       roundCount: roundCounts.get(t.id) ?? 0,
+      standards: setNames.get(t.standards_set as string) ?? null,
     })),
   });
 }
