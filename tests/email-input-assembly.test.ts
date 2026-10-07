@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { assembleEmailFindings, type ActionRow, type FindingRow } from "@/lib/email-drafting/input-assembly";
 
 function finding(overrides: Partial<FindingRow> = {}): FindingRow {
@@ -51,7 +51,8 @@ describe("assembleEmailFindings", () => {
     expect(result[0].language).toBe("sixty percent (60%) of anticipated revenue");
   });
 
-  it("carries exposure_amount and exposure_basis through", () => {
+  it("carries exposure_amount and exposure_basis through while EXPOSURES is on", () => {
+    vi.stubEnv("EXPOSURES", "on");
     const result = assembleEmailFindings([finding()], [action()]);
     expect(result[0].exposure_amount).toBe(42000);
     expect(result[0].exposure_basis).toBe("difference between 75% and 50% of projected room revenue");
@@ -66,5 +67,20 @@ describe("assembleEmailFindings", () => {
       ]
     );
     expect(result).toHaveLength(0);
+  });
+});
+
+describe("with exposure math archived", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("carries no figure into the client email, even from a review that stored one", () => {
+    vi.stubEnv("EXPOSURES", "");
+    const [result] = assembleEmailFindings([finding({ exposure_formula: "(2280 - 2030) * $149 * 0.8" })], [action()]);
+
+    expect(result.exposure_amount).toBeNull();
+    expect(result.exposure_basis).toBeNull();
+    expect(result.exposure_formula).toBeNull();
+    // The reasoning still goes to the client.
+    expect(result.finding_text).toBe("Cancellation fee is well above market.");
   });
 });

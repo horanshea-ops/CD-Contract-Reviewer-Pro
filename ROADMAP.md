@@ -400,7 +400,7 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
 |---|---|---|
 | Analytics tab | `ANALYTICS=on` | Archived |
 | Historical contract uploads (Admin tab) | `HISTORICAL_CONTRACTS=on` | Archived |
-| Exposure math in a review | `EXPOSURES=on` | Archived in item 2 below |
+| Exposure math in a review | `EXPOSURES=on` | Hidden on screen and in the client email. The figures are still worked out until item 2 merges. |
 
 - Findings still state the contract's numbers and CD's. The associate works
   out the dollar risk.
@@ -408,6 +408,19 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
   (`lib/document-checks.ts`, `lib/date-checks.ts`).
 - Exposure was archived because its figures varied between runs on the same
   contract. The arithmetic was steady. The numbers the model read were not.
+
+**Deployed 2026-10-07 without the paid runs (user's instruction).** The work
+that changes nothing the model is asked went to `main` on
+`deploy/brand-sets-and-intake`: standards sets by brand (item 3), the upload
+confirm step with the Hotel brand field (item 4), and the `EXPOSURES` switch
+for what is shown. Every pinned model request is unchanged.
+
+- **Still on `review/one-reading-pass`, waiting on the paid runs:** Sonnet
+  5.5, the two-call review, and the reading call cut to five terms. Until
+  then a review on `main` still asks the model for its figures and works the
+  exposures out. They are stored and not shown.
+- `standards/brand-sets` and `upload/intake-confirm` are superseded by the
+  deploy branch.
 
 **Order of work.**
 
@@ -436,6 +449,36 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
         review. The alternative is one call a review and no safety net.
       - Paid runs, each quoted first: Florida on 5.5, then the seven-contract
         eval. Then merge, then Render's `ANTHROPIC_MODEL` with the user's yes.
+      - **Free part done 2026-10-06, on the branch, not merged.**
+        - `main` is merged in with no conflicts, so the branch carries the
+          table and bracket fixes.
+        - `EXPOSURES` is in (`lib/exposures/enabled.ts`), off by default.
+          Off, no finding carries a figure, and a review that stored
+          figures hides them on the screen and in the client email.
+        - **The reading call stays, for five terms only** (user, 2026-10-06,
+          by approving the plan). It feeds the three findings the app
+          raises itself. It costs about 5 cents on a review of about 45.
+          It also writes the attrition room-night count the model left as
+          `[X]` on `dd0f4ca0`.
+        - No prompt wording changed. Every pinned request is unchanged, and
+          the shorter reading request is pinned for both models.
+        - **The no-arithmetic prompt rule is held back.** It would stop the
+          model's wrong sums, and it would also make the model write `[X]`,
+          which keeps a change out of the redline. Judge it on the paid
+          run.
+        - Lint, typecheck and 1,464 tests pass. The free request check
+          accepts all 16 pinned requests. Checked in the browser on
+          `cb3daee0`: no figure with the switch off, $170,696 with it on.
+      - **Waiting on a yes for the paid step.**
+        - One Florida review on 5.5 through the app, about $0.45 to $0.50.
+        - The seven-contract eval on 5.5, roughly $2 to $3, to be quoted
+          exactly.
+        - **Compile check done 2026-10-06.** All eight Sonnet 5.5 forms
+          compile on a real call, the shorter reading list included. It
+          cost about 5 cents. The user approved about 3. The sweep was
+          $0.0252, and a careless second command ran it twice.
+        - To settle on that run: `[X]%` on gratuity, table rows written as
+          prose, and the no-arithmetic rule.
 - [ ] **3. Standards library by hotel brand (CD, 2026-10-06).** CD has
       pre-negotiated standard contracts with some major brands. A review
       compares the contract with the standards for its brand.
@@ -449,6 +492,31 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
       - The Standards library screen gets a set picker. Edits stay audited.
       - Hilton and Hyatt start empty and fall back to Independent until CD's
         documents arrive.
+      - **Built 2026-10-06 on `standards/brand-sets`, cut from the Sonnet
+        5.5 branch. Not merged.** `docs/standards-sets.md` has the model.
+        - A set is complete in itself. A Hilton review reads Hilton's
+          standards and nothing from Independent.
+        - A set is read only once an admin switches it on, and an empty
+          set can't be switched on. One Hilton standard added on its own
+          would otherwise make every Hilton review check one clause.
+        - A review that can't use the set asked for reads Independent,
+          records why, and says so on the review screen.
+        - Independent's fingerprint is unchanged, so the eval baselines
+          hold.
+        - An empty set can be started from a copy of Independent. The
+          copies carry no validation stamp.
+        - Lint, typecheck and 1,492 tests pass. No pinned model request
+          changed.
+        - **Waiting on the user: run migration 015 in Supabase's SQL
+          editor.** It is safe while the live site is on today's code.
+          The picker, the switch and the copy have not been seen in a
+          browser, because they need its tables. Before the migration
+          the Standards screen and the review screen work as they did,
+          which was checked.
+        - **Add no Hilton or Hyatt standard until this code is live.**
+          Today's loader reads every row whatever its set.
+        - Not built: a screen to add a fourth set, and which sub-brands
+          count as Hilton or Hyatt (question 2 for CD).
 - [ ] **4. Confirm step on upload.** Depends on item 3.
       - Today the associate picks a file, types the property name, and the
         review starts.
@@ -458,8 +526,47 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
         starts.
       - The AI-use check runs first, on the local text. A contract it stops
         gets no model read, and the associate types the fields.
-      - The read costs about a cent and doesn't count against the monthly
-        review limit.
+      - ~~The read costs about a cent and doesn't count against the monthly
+        review limit.~~ Superseded. The read is local rules, with no model
+        call and no cost (user, 2026-10-07).
+      - **Built 2026-10-07 on `upload/intake-confirm`, cut from
+        `standards/brand-sets`. Not merged.**
+        - Picking a file posts it to `POST /api/analyses/read`, which
+          stores nothing and returns the property name, the brand, and
+          the sets a review can read. `lib/intake/read.ts` holds the rules.
+        - **Property name.** A labelled row or cell ("Hotel:", "Hotel
+          Name:"), or the party the contract defines as the Hotel. Read
+          correctly on 16 of 16 contracts on file, which are three
+          layouts.
+        - **Brand.** A brand in the property name, or the one brand the
+          contract names outside a comparison. "Hilton Head" is ignored.
+          Two brands give Independent, with the reason. **Untested on a
+          real contract**, since every stored one is redacted or
+          invented.
+        - Each filled field shows the contract's wording it came from. A
+          name the associate typed is never overwritten.
+        - **The Hotel brand field is always on the form (user,
+          2026-10-07).** It lists every brand, with "Independent or another
+          brand" first, and is filled from the contract once a file is
+          picked. A brand the associate picked is never overwritten.
+        - **A brand is recorded even while its standards are off.** The
+          form then says the review will use Independent's, and the review
+          screen says the same. When an admin switches the brand's
+          standards on, that negotiation's later rounds read them.
+        - The audit row for an upload keeps what was read beside what was
+          confirmed, to measure the rules during the beta.
+        - Lint, typecheck and 1,527 tests pass. Checked in the browser
+          with two small invented files: the name fills with its
+          evidence, a typed name survives a second pick, and a file that
+          names no hotel leaves the field blank.
+        - Seen in the browser with an invented "Hilton Sampleville
+          Downtown" file: Hilton is selected, with the contract's wording
+          and the line that Independent's standards will be used.
+        - **To test the brand rules:** leave the hotel's brand in the next
+          redacted test contracts, or use a stand-in such as "Hilton
+          Sampleville".
+        - Sub-brands without the family name ("Conrad", "Andaz") read as
+          Independent until CD answers question 2.
 - [ ] **5. CD's updated documents.** Waiting on CD.
       - Updated baseline for the Independent standards, plus the Hilton and
         Hyatt standard contracts. Extract the key terms from each into its

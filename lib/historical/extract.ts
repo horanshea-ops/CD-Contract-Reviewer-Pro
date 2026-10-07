@@ -1,4 +1,3 @@
-import WordExtractor from "word-extractor";
 import {
   collectHistoricalBatch,
   historicalRequest,
@@ -7,10 +6,6 @@ import {
   type HistoricalBatchResult,
 } from "../anthropic";
 import { scanForAiUseTerms, type AiUseMatch } from "../ai-use-scan";
-import { extractDocx } from "../docx";
-import { contractText } from "../docx/contract-text";
-import { extractPdfLines } from "../extract-pdf-lines";
-import type { LocatablePart } from "../redline-engine/locate";
 import { createAdminClient } from "../supabase/admin";
 import { HOTEL_TERM_CATALOG } from "../terms/catalog";
 import { extractionRecord, termRows } from "../terms/extract";
@@ -19,24 +14,6 @@ import { checkDetails, type DetailValues } from "./details";
 import { BATCH_SIZE, HISTORICAL_BUCKET, type HistoricalContract, type StoredText } from "./types";
 
 type Db = ReturnType<typeof createAdminClient>;
-
-/**
- * Reads a contract's text locally, at no cost. The text is what the model
- * reads for a Word file, and what every quote it gives is checked against.
- */
-export async function readContractText(bytes: Uint8Array, format: HistoricalContract["source_format"]): Promise<StoredText> {
-  if (format === "docx") {
-    const extracted = await extractDocx(bytes);
-    // Only the text of each part is kept. The parts also carry XML nodes, which can't be stored.
-    return { contract_text: contractText(extracted), contract_parts: extracted.parts.map(({ part, text }) => ({ part, text })) };
-  }
-  if (format === "doc") {
-    const text = (await new WordExtractor().extract(Buffer.from(bytes))).getBody();
-    return { contract_text: text, contract_parts: [{ part: "document", text }] as LocatablePart[] };
-  }
-  const text = (await extractPdfLines(bytes.slice())).map((l) => l.text).join("\n");
-  return { contract_text: text, contract_parts: [{ part: "document", text }] as LocatablePart[] };
-}
 
 /** Wording that restricts AI-assisted review. A match holds the contract back until an admin decides. */
 export function aiClauseMatches(text: StoredText): AiUseMatch[] {

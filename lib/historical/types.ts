@@ -1,5 +1,5 @@
 import type { MarketTier } from "../analytics/types";
-import type { LocatablePart } from "../redline-engine/locate";
+import type { ContractText } from "../read-contract-text";
 import type { Provenance } from "./details";
 
 /** A signed contract from before the tool, uploaded by an admin. Mirrors migrations 011 and 012. */
@@ -33,10 +33,8 @@ export interface HistoricalContract {
 export const LIST_COLUMNS =
   "id, uploaded_by, file_name, storage_path, source_format, file_sha256, hotel_name, brand, parent_company, city, state, country, market_tier, client_name, negotiated_by, event_start, event_end, signed_at, extraction_status, term_extraction, details_checked, batch_id, created_at";
 
-export interface StoredText {
-  contract_text: string;
-  contract_parts: LocatablePart[];
-}
+/** A historical contract's text, as it is stored with its row. */
+export type StoredText = ContractText;
 
 export const HISTORICAL_BUCKET = "contracts";
 

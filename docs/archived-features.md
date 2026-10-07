@@ -17,7 +17,7 @@ section holds the decision.
 |---|---|---|---|
 | Analytics tab | `ANALYTICS=on` | off | Archived |
 | Historical contract uploads | `HISTORICAL_CONTRACTS=on` | off | Archived |
-| Exposure math | `EXPOSURES=on` | off | Live on `main` until the Sonnet 5.5 branch merges |
+| Exposure math | `EXPOSURES=on` | off | Hidden on screen and in the client email since 2026-10-07. Still worked out and stored until the Sonnet 5.5 branch merges. |
 
 ## Analytics tab
 
@@ -61,16 +61,16 @@ as well once the app runs on CD's own Anthropic API key.
 - A scanned PDF with no text layer cannot have its quotes checked, so its
   details land in "Needs a look".
 
-**Reused by the beta.** `lib/historical/details.ts` checks each detail the model
-gives against the contract's own words. The upload confirm step uses the same
-check for the property name and brand, so that file stays in use.
+**Shared with the beta.** `readContractText`, which turns a PDF, DOCX or DOC
+into text locally, moved out of this folder to `lib/read-contract-text.ts`. The
+upload confirm step and historical uploads both import it from there.
 
 ## Exposure math
 
 | | |
 |---|---|
 | What it did | Dollar exposure for attrition, cancellation and F&B, worked out by the app from figures the model quoted. Shown on the finding card, the clause card, the review's overview bar and the client email. |
-| Code | `lib/exposures/`, `lib/exposure.ts`, `deal_figures` in `lib/anthropic.ts`, `lib/findings-overview.ts` |
+| Code | `lib/exposures/`, `lib/exposure.ts`, `lib/review.ts`, `lib/findings-overview.ts`. The switch is `lib/exposures/enabled.ts`. |
 | Tests | `tests/exposures/`, `tests/exposure.test.ts`, `tests/findings-overview.test.ts` |
 | Data | `findings.exposure_amount`, `exposure_basis` and `exposure_formula`, kept on every existing review |
 
@@ -83,8 +83,25 @@ quantifies the risk. Findings still state the contract's numbers and CD's.
 the contract's own totals and dates. That is checking the hotel's sums, and it
 is separate from exposure.
 
-**Restore.** To be written when the archive lands on the Sonnet 5.5 branch,
-which rebuilt exposure on a separate reading call (`lib/review.ts`).
+**While archived, on `main` today.** No figure shows on the finding card, the
+clause card, the overview bar or the client email (`withoutArchivedExposure`
+in `lib/exposures/enabled.ts`). A review still asks the model for the
+contract's figures and stores the exposures it works out.
+
+**While archived, once the Sonnet 5.5 branch merges.** A review is two model
+calls (`lib/review.ts`). The
+reading call asks for five terms only: the room block, the minimum room nights,
+the attrition threshold, the F&B shortfall rate and the commission rate. They
+feed the three findings the app raises itself when the review drops them
+(`lib/must-raise.ts`). No finding carries a dollar figure, and the second ask
+for cancellation tiers never fires. A review run before the archive keeps its
+stored figures, and the screen and the client email leave them out
+(`withoutArchivedExposure`).
+
+**Restore.** Set `EXPOSURES=on`. The reading call asks for the full exposure
+list again, figures are computed and shown, and stored figures on older reviews
+reappear. Nothing else needs changing. Read "State when archived" first, since
+the reasons it was shelved still stand.
 
 **State when archived.**
 - A percentage is verified when its quote holds that number anywhere.
