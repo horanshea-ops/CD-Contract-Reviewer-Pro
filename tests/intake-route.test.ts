@@ -33,9 +33,9 @@ vi.mock("@anthropic-ai/sdk", () => ({
   },
 }));
 
-import { POST as read } from "@/app/api/analyses/read/route";
+import { GET as brands, POST as read } from "@/app/api/analyses/read/route";
 import { loadStandardsLibrary } from "@/lib/standards/load";
-import { confirmedSet, usableSets } from "@/lib/standards/usable";
+import { brandChoices, confirmedSet, usableSets } from "@/lib/standards/usable";
 
 const ASSOCIATE = { id: "assoc-1", is_admin: false, name: "Jo", email: "jo@example.com", signature_block: null };
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -122,25 +122,27 @@ describe("what the read returns", () => {
     expect(body.propertyName).toEqual({ value: "Granite Bay Lodge", evidence: "Hotel: Granite Bay Lodge" });
   });
 
-  it("chooses a brand's set when that set is switched on", async () => {
+  it("chooses the brand the contract names", async () => {
     const body = await (await read(await request(PARTY("Hilton Sampleville Downtown")))).json();
 
     expect(body.brand).toMatchObject({ set: "hilton", evidence: "Hilton Sampleville Downtown" });
     expect(body.chosenSet).toBe("hilton");
   });
 
-  it("reports a brand whose set is off, and chooses Independent", async () => {
+  it("chooses a brand whose standards are off too, since the hotel is still that brand", async () => {
     const body = await (await read(await request(PARTY("Hyatt Regency Sampleville")))).json();
 
     expect(body.brand.set).toBe("hyatt");
-    expect(body.chosenSet).toBe("independent");
+    expect(body.chosenSet).toBe("hyatt");
+    expect(body.sets.find((s: { key: string }) => s.key === "hyatt")).toMatchObject({ in_use: false });
   });
 
-  it("offers only the sets a review would use, Independent first", async () => {
+  it("lists every brand, Independent first, each marked with whether its standards are in use", async () => {
     const body = await (await read(await request(PARTY("Seaside Grand Resort")))).json();
     expect(body.sets).toEqual([
-      { key: "independent", name: "Independent", is_default: true },
-      { key: "hilton", name: "Hilton", is_default: false },
+      { key: "independent", name: "Independent", is_default: true, in_use: true },
+      { key: "hilton", name: "Hilton", is_default: false, in_use: true },
+      { key: "hyatt", name: "Hyatt", is_default: false, in_use: false },
     ]);
   });
 
@@ -180,21 +182,43 @@ describe("the sets offered and the sets the loader reads", () => {
   });
 });
 
-describe("the set a new negotiation records", () => {
-  const usable = () => usableSets(fakeDb(state.tables as Tables) as never);
+describe("the brand list, before any file is picked", () => {
+  it("is for signed-in associates", async () => {
+    state.associate = null;
+    expect((await brands()).status).toBe(401);
+  });
+
+  it("lists every brand with whether its standards are in use", async () => {
+    expect((await (await brands()).json()).sets.map((s: { key: string; in_use: boolean }) => [s.key, s.in_use])).toEqual([
+      ["independent", true],
+      ["hilton", true],
+      ["hyatt", false],
+    ]);
+  });
+});
+
+describe("the brand a new negotiation records", () => {
+  const choices = () => brandChoices(fakeDb(state.tables as Tables) as never);
 
   it("records nothing for Independent, which is what an empty choice means too", async () => {
-    expect(confirmedSet(null, await usable())).toEqual({ set: null });
-    expect(confirmedSet("", await usable())).toEqual({ set: null });
-    expect(confirmedSet("independent", await usable())).toEqual({ set: null });
+    expect(confirmedSet(null, await choices())).toEqual({ set: null });
+    expect(confirmedSet("", await choices())).toEqual({ set: null });
+    expect(confirmedSet("independent", await choices())).toEqual({ set: null });
   });
 
-  it("records a brand's set that is switched on", async () => {
-    expect(confirmedSet("hilton", await usable())).toEqual({ set: "hilton" });
+  it("records a brand whose standards are in use", async () => {
+    expect(confirmedSet("hilton", await choices())).toEqual({ set: "hilton" });
   });
 
-  it("refuses a set that is off, and one that doesn't exist", async () => {
-    expect(confirmedSet("hyatt", await usable())).toEqual({ error: "Those standards aren't available. Choose another set." });
-    expect(confirmedSet("marriott", await usable())).toHaveProperty("error");
+  it("records a brand whose standards are off, and the review then reads Independent and says so", async () => {
+    expect(confirmedSet("hyatt", await choices())).toEqual({ set: "hyatt" });
+
+    const loaded = await loadStandardsLibrary("hyatt");
+    expect(loaded).toMatchObject({ set: "independent", requestedSet: "hyatt" });
+    expect(loaded.setNote).toBe("Hyatt's standards are switched off, so this review used Independent.");
+  });
+
+  it("refuses a brand that isn't in the list", async () => {
+    expect(confirmedSet("marriott", await choices())).toEqual({ error: "That brand isn't in the list. Choose another." });
   });
 });

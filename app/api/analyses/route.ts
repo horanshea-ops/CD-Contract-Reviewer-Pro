@@ -11,7 +11,7 @@ import type { ExistingRevisions, IntakeHealth } from "@/lib/docx";
 import { nextRoundLinkage } from "@/lib/negotiation-threads";
 import { storageSafeName } from "@/lib/storage-key";
 import { limitReachedMessage, reviewAllowance } from "@/lib/review-allowance";
-import { confirmedSet, usableSets } from "@/lib/standards/usable";
+import { brandChoices, confirmedSet } from "@/lib/standards/usable";
 
 // Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
 // upload and saves. Render runs a long-lived server and ignores it.
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
 
   // A continuing negotiation keeps the set it started with, so only a new one takes a choice.
-  const confirmed = negotiationMode === "new" ? confirmedSet(standardsSet, await usableSets(admin)) : { set: null };
+  const confirmed = negotiationMode === "new" ? confirmedSet(standardsSet, await brandChoices(admin)) : { set: null };
   if ("error" in confirmed) return NextResponse.json({ error: confirmed.error }, { status: 400 });
 
   let clientId: string | null = null;

@@ -37,7 +37,7 @@ export async function GET() {
       threads.map((t) => t.id)
     );
 
-  // A negotiation on a brand's standards says so in the list. One on the default set says nothing.
+  // A negotiation for a listed brand says so in the list. One on the default set says nothing.
   const setKeys = [...new Set(threads.map((t) => t.standards_set as string | null).filter((key): key is string => !!key))];
   const { data: sets } = setKeys.length
     ? await admin.from("standard_sets").select("key, name").in("key", setKeys)
@@ -56,7 +56,7 @@ export async function GET() {
       propertyName: t.property_name,
       clientName: (t.clients as unknown as { name: string } | null)?.name ?? null,
       roundCount: roundCounts.get(t.id) ?? 0,
-      standards: setNames.get(t.standards_set as string) ?? null,
+      brand: setNames.get(t.standards_set as string) ?? null,
     })),
   });
 }

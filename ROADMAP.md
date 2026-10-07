@@ -532,17 +532,23 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
           invented.
         - Each filled field shows the contract's wording it came from. A
           name the associate typed is never overwritten.
-        - The standards control shows only when more than one set is in
-          use, so it is absent today.
+        - **The Hotel brand field is always on the form (user,
+          2026-10-07).** It lists every brand, with "Independent or another
+          brand" first, and is filled from the contract once a file is
+          picked. A brand the associate picked is never overwritten.
+        - **A brand is recorded even while its standards are off.** The
+          form then says the review will use Independent's, and the review
+          screen says the same. When an admin switches the brand's
+          standards on, that negotiation's later rounds read them.
         - The audit row for an upload keeps what was read beside what was
           confirmed, to measure the rules during the beta.
         - Lint, typecheck and 1,527 tests pass. Checked in the browser
           with two small invented files: the name fills with its
           evidence, a typed name survives a second pick, and a file that
           names no hotel leaves the field blank.
-        - Not yet seen in a browser: the standards control, which needs a
-          brand's set switched on, and that can't be done from dev while
-          the live site reads every standard whatever its set.
+        - Seen in the browser with an invented "Hilton Sampleville
+          Downtown" file: Hilton is selected, with the contract's wording
+          and the line that Independent's standards will be used.
         - **To test the brand rules:** leave the hotel's brand in the next
           redacted test contracts, or use a stand-in such as "Hilton
           Sampleville".

@@ -66,11 +66,12 @@ name and the brand off it by local rules (`lib/intake/read.ts`). No model is
 called and nothing is stored. The form fills the name, shows the wording it
 came from, and preselects the brand's set for the associate to confirm.
 
-- The standards control appears only when more than one set is in use.
-- A brand whose set is off is still recorded in the audit log, and the
-  review reads Independent.
+- The Hotel brand field is always on the form and lists every brand.
+- A brand is recorded on the negotiation even while its standards are off.
+  The form and the review screen both say the review uses Independent's.
+  Later rounds read the brand's standards once an admin switches them on.
 - A contract naming two brands, or one only in a comparison, gets Independent.
-- Upload refuses a set that is off (`confirmedSet` in `lib/standards/usable.ts`).
+- Upload refuses a brand that isn't in the list (`confirmedSet` in `lib/standards/usable.ts`).
 
 ## Not built yet
 - Hilton's and Hyatt's terms, which come from CD's documents.
