@@ -508,6 +508,31 @@ for what is shown. Every pinned model request is unchanged.
           - In the app a 9-minute call would have been cut at 7 minutes
             and the review lost. One slow call is not a pattern, and it
             isn't cleared either.
+        - **Second Harborview try, 2026-10-07, alone and capped: failed
+          again. The 5.5 branch stays unmerged.** The call ended with
+          "Request timed out" at 301 seconds, though its limit was 420.
+          Run record: `data/eval/runs/sonnet55-harborview-2026-10-07.json`.
+          - **Likely cause: a review call is one long request with no
+            bytes coming back until it ends, and something on the way
+            drops it at about five minutes.** The first try that morning
+            had no limit, the SDK retried after the first drop, and it was
+            partway into a second attempt at 9m23s. Florida passes because
+            it finishes in 3m42s. Harborview finished in 3m36s on 4 October
+            and needs longer now.
+          - This is not proven. It fits both failures and both passes.
+          - **It matters beyond the eval.** Any review in the app that needs
+            more than about five minutes would fail the same way, on either
+            model.
+          - **Fix to build next: stream the review call**
+            (`.stream().finalMessage()`), as the eval drafting calls in
+            `lib/anthropic.ts` already do for the same reason. Bytes then
+            flow the whole time, and the 420-second limit becomes the real
+            limit. Free to build. It changes how every review request is
+            sent, so it is Opus work with its own plan, and the pinned
+            requests and the free request check must be re-run.
+          - Then run Harborview again, about $0.48. Cost of today's two
+            failed tries is unknown. A timed-out call may be billed for
+            what it generated. The user should read the Console's usage.
         - **Before the next paid run:** give the eval capture the app's
           7-minute cap and no retries, run one contract at a time with
           nothing else in flight, and price it from the Console's actual

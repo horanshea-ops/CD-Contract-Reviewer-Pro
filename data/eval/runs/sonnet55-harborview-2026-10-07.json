@@ -1,0 +1,15 @@
+{
+  "run_id": "sonnet55-harborview-2026-10-07",
+  "created_at": "2026-10-07T13:04:08.012Z",
+  "model_id": "claude-sonnet-5-5",
+  "standards_version": "v1-industry-default",
+  "standards_hash": "4376a61738577bfba51510b42eaf1f5092cdbdbf42fccd366a85475e1b503a0d",
+  "documents": [
+    {
+      "contract": "eval-01-harborview.docx",
+      "analysis": null,
+      "error": "The review failed with too little time left to try again (Request timed out.). Use Retry to run it again.",
+      "elapsed_ms": 300966
+    }
+  ]
+}
