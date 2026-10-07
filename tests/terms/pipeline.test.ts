@@ -22,7 +22,7 @@ const { create, scanForAiUseTerms, sets } = vi.hoisted(() => ({
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
-    messages = { create };
+    messages = { create, stream: (...args: unknown[]) => ({ finalMessage: () => create(...args) }) };
   },
 }));
 vi.mock("@/lib/ai-use-scan", () => ({ scanForAiUseTerms, scanForAdjacentTerms: () => [] }));

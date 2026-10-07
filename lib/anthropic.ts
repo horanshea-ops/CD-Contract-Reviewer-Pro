@@ -501,6 +501,58 @@ const MIN_RETRY_MS = 120_000;
 /** An answer cut off at the output limit. Retrying would be cut off the same way, so it isn't. */
 class CutOffError extends Error {}
 
+/** A review stopped at its time limit. No time is left for a retry, so there isn't one. */
+class TimeLimitError extends Error {}
+
+/** How much of an answer a message holds, in characters. */
+function answerLength(message: Anthropic.Messages.Message | undefined): number {
+  return (message?.content ?? []).reduce((sum, block) => {
+    if (block.type === "text") return sum + block.text.length;
+    if (block.type === "tool_use") return sum + JSON.stringify(block.input ?? {}).length;
+    return sum;
+  }, 0);
+}
+
+/**
+ * Sends a request as a stream and returns the whole message.
+ *
+ * Node drops a request that has heard nothing back for 300 seconds, and an
+ * unstreamed review is silent until its last word. A stream carries bytes
+ * from the first word on, so a long review survives.
+ *
+ * The SDK's timeout covers only the wait for the first byte. `limitMs` stops
+ * the stream itself. The SDK's retries don't know about the limit, so they're
+ * off whenever there is one.
+ */
+async function streamedMessage(
+  client: Anthropic,
+  params: Anthropic.Messages.MessageStreamParams,
+  limitMs?: number
+): Promise<Anthropic.Messages.Message> {
+  const stream = client.messages.stream(params, limitMs === undefined ? undefined : { timeout: limitMs, maxRetries: 0 });
+
+  let stopped = false;
+  const timer =
+    limitMs === undefined
+      ? undefined
+      : setTimeout(() => {
+          stopped = true;
+          stream.abort();
+        }, limitMs);
+
+  try {
+    return await stream.finalMessage();
+  } catch (err) {
+    if (!stopped) throw err;
+    throw new TimeLimitError(
+      `The review was still being written when its time ran out, and it was stopped ` +
+        `(${answerLength(stream.currentMessage).toLocaleString("en-US")} characters of the answer had arrived). Use Retry to run it again.`
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function analyzeContract({
   document,
   standards,
@@ -539,23 +591,23 @@ export async function analyzeContract({
   const remaining = () => (deadline === undefined ? undefined : Math.max(deadline - Date.now(), 1_000));
 
   async function attempt(): Promise<CategorizedAnalysis> {
-    const timeout = remaining();
-    const response = await client.messages.create({
-      model: modelId,
+    const response = await streamedMessage(
+      client,
+      {
+        model: modelId,
 
-      // Each finding carries full replacement language, and clause_review adds
-      // a line per clause type, so output grows with the library. The deadline
-      // stops a long review well before this does.
-      max_tokens: 64000,
+        // Each finding carries full replacement language, and clause_review adds
+        // a line per clause type, so output grows with the library. The deadline
+        // stops a long review well before this does.
+        max_tokens: 64000,
 
-      system: withAnswerInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, findingsToolSchema(org)),
-      ...answerRequest(modelId, findingsToolSchema(org)),
-      messages: [{ role: "user", content: userContent }],
-    },
-    // An explicit timeout lifts the SDK's non-streaming cap on max_tokens.
-    // The SDK's own retries don't know about the deadline, so they're off
-    // whenever there is one. The retry below does the same job within it.
-    timeout === undefined ? { timeout: 600_000 } : { timeout, maxRetries: 0 });
+        system: withAnswerInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, findingsToolSchema(org)),
+        ...answerRequest(modelId, findingsToolSchema(org)),
+        messages: [{ role: "user", content: userContent }],
+      },
+      // Each attempt gets what is left of the deadline. The retry below works within it too.
+      remaining()
+    );
 
     checkRefusal(response, "review this contract");
 
@@ -613,7 +665,7 @@ export async function analyzeContract({
   try {
     return await attempt();
   } catch (err) {
-    if (err instanceof CutOffError || err instanceof RefusalError) throw err;
+    if (err instanceof CutOffError || err instanceof RefusalError || err instanceof TimeLimitError) throw err;
     const left = remaining();
     if (left !== undefined && left < MIN_RETRY_MS) {
       const reason = err instanceof Error ? err.message : String(err);

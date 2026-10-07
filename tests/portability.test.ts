@@ -28,7 +28,7 @@ const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
-    messages = { create };
+    messages = { create, stream: (...args: unknown[]) => ({ finalMessage: () => create(...args) }) };
   },
 }));
 
