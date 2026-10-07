@@ -1,6 +1,7 @@
-import { NumberingResolver, loadDocx, walkPart, type ParsedPart, type WalkResult } from "../docx";
+import { NumberingResolver, isSynthetic, loadDocx, walkPart, type ParsedPart, type WalkResult } from "../docx";
 import type { RedlineEngineResult, UnappliedFinding, UnappliedReason, WidenedChange } from "../redline-validation/types";
 import { assessApplicability } from "./applicability";
+import { splitAcrossCells } from "./cell-split";
 import { fitToProposal } from "./fit";
 import { revisionsById, revisionsIn, writeComments, type CommentAnchor } from "./comments";
 import { RevisionIds } from "./ids";
@@ -12,7 +13,7 @@ import { runsForSpan } from "./runs";
 import { copyHolding, editCopy, replaceTable } from "./tables";
 import { serializePart } from "./serialize";
 import { wordingProblem } from "./wording";
-import { isLocated, type Applicability, type RevisionFinding, type SpanResolution } from "./types";
+import { isLocated, type Applicability, type LocatedSpan, type RevisionFinding, type SpanResolution } from "./types";
 
 export * from "./types";
 
@@ -57,6 +58,49 @@ export interface RedlineOutcome extends RedlineEngineResult {
 function excerpt(sentence: string): string {
   const opening = sentence.split(/\s+/).slice(0, 8).join(" ");
   return opening.length < sentence.trim().length ? `${opening.replace(/[,;:]$/, "")}…` : opening;
+}
+
+const flat = (s: string) => s.replace(/\s+/g, " ").trim();
+
+/** One paragraph's share of a change that spans several. */
+interface ParagraphPiece {
+  span: LocatedSpan;
+  /** The wording this paragraph should read. */
+  wording: string;
+  changed: boolean;
+}
+
+/**
+ * Lays a proposal out across the paragraphs its quote covers.
+ *
+ * One tracked change cannot cross a paragraph break, so a change to wording in
+ * two paragraphs is made as one change in each. The proposal is compared with
+ * the paragraphs word by word, and each change goes to the paragraph it falls
+ * inside. Null when a change straddles the break, as a rewrite does: guessing
+ * there would put wording in the wrong paragraph.
+ */
+function paragraphPieces(part: WalkResult, span: LocatedSpan, proposal: string): ParagraphPiece[] | null {
+  const stretches: { paragraph: number; start: number; end: number }[] = [];
+  for (let i = span.start; i < span.end && i < part.map.length; i++) {
+    const entry = part.map[i];
+    if (isSynthetic(entry)) continue;
+    const last = stretches[stretches.length - 1];
+    if (last && last.paragraph === entry.paragraphIndex) last.end = i + 1;
+    else stretches.push({ paragraph: entry.paragraphIndex, start: i, end: i + 1 });
+  }
+  if (stretches.length < 2) return null;
+
+  const wording = splitAcrossCells(
+    stretches.map((s) => part.text.slice(s.start, s.end)),
+    proposal
+  );
+  if (!wording) return null;
+
+  return stretches.map((s, i) => ({
+    span: { ...span, start: s.start, end: s.end },
+    wording: wording[i],
+    changed: flat(wording[i]) !== flat(part.text.slice(s.start, s.end)),
+  }));
 }
 
 /** Revision elements enclosing a run, outermost last. */
@@ -308,6 +352,49 @@ export async function generateRedline({
       continue;
     }
 
+    // Runs this export has already marked up. Editing inside one would read as a change to a change.
+    const touchesOurs = (runs: Element[]) => {
+      const ours = new Set(ids.ownRevisionIds);
+      return runs.some((run) => revisionAncestors(run).some((el) => ours.has(el.getAttribute("w:id") ?? "")));
+    };
+
+    if (verdict.strategy === "per_paragraph") {
+      const pieces = paragraphPieces(part, span, language);
+      if (!pieces) {
+        refuse(
+          finding,
+          "crosses_boundary",
+          span.resolution,
+          "blocked_cross_paragraph",
+          "The wording runs across a paragraph break, and the change can't be laid out one paragraph at a time."
+        );
+        continue;
+      }
+
+      // Every paragraph is checked before any is changed, so a refusal leaves the document as it was.
+      const changes = pieces.filter((p) => p.changed).map((p) => ({ ...p, covered: runsForSpan(part, p.span) }));
+      if (changes.some((c) => c.covered.length === 0)) {
+        refuse(finding, "not_located", span.resolution, "blocked_cross_paragraph", "The wording resolved to no editable runs.");
+        continue;
+      }
+      if (changes.some((c) => touchesOurs(c.covered))) {
+        refuse(
+          finding,
+          "overlaps_another_change",
+          span.resolution,
+          "blocked_already_deleted",
+          "Another finding already marks up overlapping wording."
+        );
+        continue;
+      }
+
+      for (const change of changes) replaceSpan({ covered: change.covered, replacement: change.wording, author, date, ids });
+      editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
+      walked = null;
+      applied(verdict.detail);
+      continue;
+    }
+
     const covered = runsForSpan(part, span);
     if (covered.length === 0) {
       refuse(finding, "not_located", span.resolution, "blocked_cross_paragraph", "The wording resolved to no editable runs.");
@@ -316,11 +403,7 @@ export async function generateRedline({
 
     // A finding whose wording overlaps one already marked up would nest an
     // edit inside our own, which reads as a change to a change. Refuse instead.
-    const ours = new Set(ids.ownRevisionIds);
-    const alreadyTouched = covered.some((run) =>
-      revisionAncestors(run).some((el) => ours.has(el.getAttribute("w:id") ?? ""))
-    );
-    if (alreadyTouched) {
+    if (touchesOurs(covered)) {
       refuse(
         finding,
         "overlaps_another_change",

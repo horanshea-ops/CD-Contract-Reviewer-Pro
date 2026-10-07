@@ -45,13 +45,16 @@ describe("ordinary prose", () => {
     expect(result.strategy).toBe("in_place");
   });
 
-  it("is refused when it runs across a paragraph break", async () => {
+  it("takes one change per paragraph when it runs across a paragraph break", async () => {
+    // One tracked change can't cross the break. Whether the proposal can be
+    // laid out paragraph by paragraph is the engine's to decide (paragraph-split.test.ts).
     const bytes = await buildDocx(
       para(run("Group shall be liable for unsold rooms.")) + para(run("Cancellation damages are separate."))
     );
     const result = await assess(bytes, "unsold rooms. Cancellation damages");
 
-    expect(result.applicability).toBe("blocked_cross_paragraph");
+    expect(result.applicability).toBe("applicable");
+    expect(result.strategy).toBe("per_paragraph");
   });
 });
 
