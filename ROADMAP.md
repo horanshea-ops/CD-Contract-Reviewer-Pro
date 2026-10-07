@@ -680,6 +680,28 @@ for what is shown. Every pinned model request is unchanged.
           out at export ("runs across a paragraph break") and the card shows
           no warning. The card's check reads the review text and can't see
           paragraph breaks inside a table cell.
+        - **Fixed 2026-10-07 (`redline/cell-paragraphs`): a change that
+          spans paragraphs is made as one change per paragraph.** A
+          cancellation schedule holds each fee as two paragraphs in one
+          cell, the amount and then its bracketed formula. The model quotes
+          the cell and proposes both lines changed, and the engine refused
+          anything crossing a paragraph break.
+          - The proposal is laid out across the paragraphs with
+            `splitAcrossCells`, and each paragraph takes an ordinary
+            in-place change. The table is not struck and copied.
+          - A proposal that moves wording across the break is still
+            refused, as is a quote running from a table into the text
+            around it.
+          - It also applies to two body paragraphs.
+          - Free replay of eight stored reviews: Florida on 5.5
+            (`4a7e89f6`) goes from 33 of 40 applied to 39 of 40, and
+            `9244158e` from 29 of 34 to 34 of 34. The other six are
+            unchanged. Every oracle check passes on all eight.
+          - The card still can't warn about the rare case that stays
+            refused, since the stored review text has no paragraph breaks
+            inside a cell.
+          - Word check owed by the user:
+            `data/private/replay/4a7e89f6-redline.docx`.
         - **For the next paid 5.5 run.** Sonnet 5 writes `[X]%` for gratuity on
           every review, though the standard says 18% and 6%, and writes table
           rows as prose. Sonnet 5.5 did neither on two reviews.

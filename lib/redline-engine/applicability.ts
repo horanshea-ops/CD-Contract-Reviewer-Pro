@@ -4,11 +4,14 @@ import type { Applicability, LocatedSpan } from "./types";
 /**
  * Whether a located span can be edited, and how (MASTER_PLAN.md §1.5.3).
  *
- * Two strategies come out of this, because a table cannot be treated like
- * prose:
+ * Three strategies come out of this, because a table cannot be treated like
+ * prose, and one tracked change cannot cross a paragraph break:
  *
  *   in_place           wrap the runs the span covers in a deletion and an
  *                      insertion, leaving everything around them alone
+ *   per_paragraph      the span covers several paragraphs, in the body or
+ *                      inside one table cell, so each paragraph takes its own
+ *                      in-place change
  *   table_replacement  strike the whole table and insert an edited copy
  *
  * The split is the user's decision of 2026-09-07. A change confined to one cell
@@ -22,7 +25,7 @@ import type { Applicability, LocatedSpan } from "./types";
  * a diff, poor as a negotiating document.
  */
 
-export type EditStrategy = "in_place" | "table_replacement";
+export type EditStrategy = "in_place" | "per_paragraph" | "table_replacement";
 
 /** The verdicts that come from where the wording sits. `blocked_wording` comes from the wording itself. */
 type SpanApplicability = Exclude<Applicability, "blocked_wording">;
@@ -95,12 +98,14 @@ export function assessApplicability(part: WalkResult, span: LocatedSpan): Applic
     // One cell behaves like ordinary prose from here on.
   }
 
+  // Whether the proposal can be laid out paragraph by paragraph is the engine's to find out.
   const paragraphs = new Set(refs.map((r) => r.paragraphIndex));
   if (paragraphs.size > 1) {
-    return blocked(
-      "blocked_cross_paragraph",
-      "The wording runs across a paragraph break, which cannot be marked up as one change."
-    );
+    return {
+      applicability: "applicable",
+      detail: "The wording spans paragraphs, so each paragraph is changed on its own.",
+      strategy: "per_paragraph",
+    };
   }
 
   return { applicability: "applicable", detail: "Editable in place.", strategy: "in_place" };
