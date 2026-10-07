@@ -59,10 +59,20 @@ compares a contract with the standards for its brand (CLAUDE.md deviation 10).
 Insert a row in `standard_sets` with a key, a name and the brand names that
 mean it. No schema change is needed. There is no screen for this yet.
 
-## Not built yet
+## Choosing the set at upload
 
-- Reading the brand from an uploaded contract and confirming it before the
-  review starts. Until then every new negotiation reads Independent.
+When an associate picks a file, `POST /api/analyses/read` reads the property
+name and the brand off it by local rules (`lib/intake/read.ts`). No model is
+called and nothing is stored. The form fills the name, shows the wording it
+came from, and preselects the brand's set for the associate to confirm.
+
+- The standards control appears only when more than one set is in use.
+- A brand whose set is off is still recorded in the audit log, and the
+  review reads Independent.
+- A contract naming two brands, or one only in a comparison, gets Independent.
+- Upload refuses a set that is off (`confirmedSet` in `lib/standards/usable.ts`).
+
+## Not built yet
 - Hilton's and Hyatt's terms, which come from CD's documents.
 - Which sub-brands count as Hilton or Hyatt. The seeded brand names are
   "Hilton" and "Hyatt" alone.

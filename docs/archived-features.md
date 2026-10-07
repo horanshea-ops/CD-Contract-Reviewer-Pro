@@ -61,9 +61,9 @@ as well once the app runs on CD's own Anthropic API key.
 - A scanned PDF with no text layer cannot have its quotes checked, so its
   details land in "Needs a look".
 
-**Reused by the beta.** `lib/historical/details.ts` checks each detail the model
-gives against the contract's own words. The upload confirm step uses the same
-check for the property name and brand, so that file stays in use.
+**Shared with the beta.** `readContractText`, which turns a PDF, DOCX or DOC
+into text locally, moved out of this folder to `lib/read-contract-text.ts`. The
+upload confirm step and historical uploads both import it from there.
 
 ## Exposure math
 

@@ -513,8 +513,41 @@ Tag `archive/2026-10-06-pre-beta` marks the last commit with all three live.
         starts.
       - The AI-use check runs first, on the local text. A contract it stops
         gets no model read, and the associate types the fields.
-      - The read costs about a cent and doesn't count against the monthly
-        review limit.
+      - ~~The read costs about a cent and doesn't count against the monthly
+        review limit.~~ Superseded. The read is local rules, with no model
+        call and no cost (user, 2026-10-07).
+      - **Built 2026-10-07 on `upload/intake-confirm`, cut from
+        `standards/brand-sets`. Not merged.**
+        - Picking a file posts it to `POST /api/analyses/read`, which
+          stores nothing and returns the property name, the brand, and
+          the sets a review can read. `lib/intake/read.ts` holds the rules.
+        - **Property name.** A labelled row or cell ("Hotel:", "Hotel
+          Name:"), or the party the contract defines as the Hotel. Read
+          correctly on 16 of 16 contracts on file, which are three
+          layouts.
+        - **Brand.** A brand in the property name, or the one brand the
+          contract names outside a comparison. "Hilton Head" is ignored.
+          Two brands give Independent, with the reason. **Untested on a
+          real contract**, since every stored one is redacted or
+          invented.
+        - Each filled field shows the contract's wording it came from. A
+          name the associate typed is never overwritten.
+        - The standards control shows only when more than one set is in
+          use, so it is absent today.
+        - The audit row for an upload keeps what was read beside what was
+          confirmed, to measure the rules during the beta.
+        - Lint, typecheck and 1,527 tests pass. Checked in the browser
+          with two small invented files: the name fills with its
+          evidence, a typed name survives a second pick, and a file that
+          names no hotel leaves the field blank.
+        - Not yet seen in a browser: the standards control, which needs a
+          brand's set switched on, and that can't be done from dev while
+          the live site reads every standard whatever its set.
+        - **To test the brand rules:** leave the hotel's brand in the next
+          redacted test contracts, or use a stand-in such as "Hilton
+          Sampleville".
+        - Sub-brands without the family name ("Conrad", "Andaz") read as
+          Independent until CD answers question 2.
 - [ ] **5. CD's updated documents.** Waiting on CD.
       - Updated baseline for the Independent standards, plus the Hilton and
         Hyatt standard contracts. Extract the key terms from each into its
