@@ -469,6 +469,49 @@ for what is shown. Every pinned model request is unchanged.
         - Lint, typecheck and 1,464 tests pass. The free request check
           accepts all 16 pinned requests. Checked in the browser on
           `cb3daee0`: no figure with the switch off, $170,696 with it on.
+      - **Paid tests, 2026-10-07, on a $1.50 budget from the user. Not
+        merged: one of the two runs didn't finish.**
+        - **Florida `4a7e89f6`, through the app on Sonnet 5.5 ($0.381,
+          3m42s, no thinking). Passed.**
+          - 57 findings: 40 business, 8 legal, 9 other. 37 of 37 changed
+            clauses quoted. No finding carries a dollar figure.
+          - Attrition, commission and F&B all have findings. The app
+            raised the F&B shortfall finding itself (80% against 35%).
+          - 32 clauses were judged short or missing. Two got no finding
+            (banquet service levels, labor disputes), and the note names
+            them. The 4 October run left seven.
+          - The reading call asked for the five must-raise terms and cost
+            about 5 cents. The review recorded `independent` as its set.
+            The upload's audit row holds the property name the app read.
+          - One yellow box, `[X]%` on gratuity. This is the first 5.5 run
+            to carry it.
+          - Redline replay: 33 of 40 applied, every oracle check passed.
+        - **Open problem this run shows: the cancellation tiers stay out of
+          the redline, with no warning on the card.** Five cancellation
+          changes and one F&B change were left out as "runs across a
+          paragraph break". The model quoted one table cell, and that
+          cell holds two paragraphs (the amount, then the bracketed
+          formula). The same happened on `9244158e`. On `4f803f16` the
+          model quoted whole rows and all applied. Fix: treat a change
+          inside one cell that spans its paragraphs as a table
+          replacement. Engine work, free, and it needs its own plan.
+        - **Harborview eval on 5.5 did not finish.** It ran 9m23s with no
+          answer, against 3m36s on 4 October, and was stopped before the
+          SDK's own retry at 10 minutes could charge again. Whether the
+          call was billed is unknown. Bayfront was never reached.
+          - The eval path gives the call no deadline, so it waits 10
+            minutes and then retries up to twice, and `with-retry.ts`
+            retries up to four times on top. The app caps a call at 7
+            minutes with no retry.
+          - Florida was started while Harborview was running. That may
+            have slowed it, and it muddies the reading.
+          - In the app a 9-minute call would have been cut at 7 minutes
+            and the review lost. One slow call is not a pattern, and it
+            isn't cleared either.
+        - **Before the next paid run:** give the eval capture the app's
+          7-minute cap and no retries, run one contract at a time with
+          nothing else in flight, and price it from the Console's actual
+          usage.
       - **Waiting on a yes for the paid step.**
         - One Florida review on 5.5 through the app, about $0.45 to $0.50.
         - The seven-contract eval on 5.5, roughly $2 to $3, to be quoted
