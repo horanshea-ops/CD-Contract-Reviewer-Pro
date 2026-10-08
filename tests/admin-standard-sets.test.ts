@@ -160,3 +160,94 @@ describe("switching a set on or off", () => {
     expect((await switchSet(json({ is_active: true }), params("marriott"))).status).toBe(404);
   });
 });
+
+describe("changing the brands a set covers", () => {
+  const change = (key: string, brand_names: unknown) => switchSet(json({ brand_names }), params(key));
+  const listOf = (key: string) => state.tables.standard_sets.find((s) => s.key === key)?.brand_names;
+
+  beforeEach(() => {
+    state.tables.standard_sets = [
+      set("independent", "Independent", { is_default: true, is_active: true }),
+      set("hilton", "Hilton", { brand_names: ["Hilton", "Conrad"] }),
+      set("hyatt", "Hyatt", { brand_names: ["Hyatt", "Andaz"] }),
+    ];
+  });
+
+  it("refuses associates and signed-out visitors", async () => {
+    state.associate = { ...ADMIN, is_admin: false };
+    expect((await change("hyatt", ["Hyatt", "Thompson"])).status).toBe(403);
+    state.associate = null;
+    expect((await change("hyatt", ["Hyatt", "Thompson"])).status).toBe(401);
+    expect(listOf("hyatt")).toEqual(["Hyatt", "Andaz"]);
+  });
+
+  it("saves a new list, and records the list before and after", async () => {
+    const res = await change("hyatt", ["Hyatt", "Andaz", "Thompson"]);
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).brand_names).toEqual(["Hyatt", "Andaz", "Thompson"]);
+    expect(listOf("hyatt")).toEqual(["Hyatt", "Andaz", "Thompson"]);
+    expect(state.audit).toEqual([
+      expect.objectContaining({
+        actorId: ADMIN.id,
+        action: "standard_set_brands_changed",
+        metadata: { set_key: "hyatt", before: ["Hyatt", "Andaz"], after: ["Hyatt", "Andaz", "Thompson"] },
+      }),
+    ]);
+  });
+
+  it("tidies names, and keeps one entry for a brand written two ways", async () => {
+    await change("hilton", ["Hilton", "  DoubleTree   by Hilton ", "doubletree", "", "Conrad"]);
+    expect(listOf("hilton")).toEqual(["Hilton", "DoubleTree by Hilton", "Conrad"]);
+  });
+
+  it("refuses a brand another set already lists, and says which", async () => {
+    const res = await change("hilton", ["Hilton", "Conrad", "Andaz"]);
+
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("Andaz is already listed under Hyatt.");
+    expect(listOf("hilton")).toEqual(["Hilton", "Conrad"]);
+  });
+
+  it("refuses another set's own name, and the default set's", async () => {
+    expect((await (await change("hilton", ["Hilton", "Hyatt"])).json()).error).toBe("Hyatt is already listed under Hyatt.");
+    expect((await (await change("hilton", ["Hilton", "Independent"])).json()).error).toBe(
+      "Independent is the set for every other hotel, so it can't be listed."
+    );
+  });
+
+  it("keeps the set's own name on its list, so the list is never empty", async () => {
+    for (const names of [[], ["Conrad"]]) {
+      const res = await change("hilton", names);
+      expect(res.status).toBe(409);
+      expect((await res.json()).error).toBe("Hilton is the set's own name, so it stays on the list.");
+    }
+    expect(listOf("hilton")).toEqual(["Hilton", "Conrad"]);
+  });
+
+  it("gives the default set no list", async () => {
+    const res = await change("independent", ["Independent", "Boutique"]);
+
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("Independent covers every hotel not listed under another set, so it has no list.");
+    expect(listOf("independent")).toEqual([]);
+  });
+
+  it("needs a list of names, a sensible length, and a set that exists", async () => {
+    expect((await change("hyatt", "Thompson")).status).toBe(400);
+    expect((await change("hyatt", ["Hyatt", 7])).status).toBe(400);
+    expect((await change("hyatt", ["Hyatt", "x".repeat(81)])).status).toBe(400);
+    expect((await change("hyatt", ["Hyatt", ...Array.from({ length: 60 }, (_, i) => `Brand ${i}`)])).status).toBe(400);
+    expect((await change("marriott", ["Marriott"])).status).toBe(404);
+    expect(state.audit).toEqual([]);
+  });
+
+  it("leaves the switch alone when the list changes, and the list alone when the switch does", async () => {
+    await change("hyatt", ["Hyatt", "Thompson"]);
+    expect(state.tables.standard_sets.find((s) => s.key === "hyatt")).toMatchObject({ is_active: false, brand_names: ["Hyatt", "Thompson"] });
+
+    state.tables.standards.push(standard("hyatt", "attrition"));
+    await switchSet(json({ is_active: true }), params("hyatt"));
+    expect(state.tables.standard_sets.find((s) => s.key === "hyatt")).toMatchObject({ is_active: true, brand_names: ["Hyatt", "Thompson"] });
+  });
+});

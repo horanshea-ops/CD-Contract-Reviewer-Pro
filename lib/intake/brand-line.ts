@@ -1,4 +1,4 @@
-import { familyOf, setBrands, setForBrand, type BrandSetLike } from "./brands";
+import { placeBrand, type BrandSetLike } from "./brands";
 import type { BrandRead } from "./read";
 
 /** A set of standards as the new-review form knows it. */
@@ -28,16 +28,20 @@ export function brandLine(read: BrandRead | null, sets: BrandLineSet[], brand: s
     return read ? `No brand found in the contract. ${ask}` : ask;
   }
 
-  const lines: string[] = [];
-  const family = familyOf(typed, setBrands(sets));
-  if (read?.brand && read.brand === typed && read.evidence) lines.push(`From the contract: “${read.evidence}”`);
-  else if (family && family.toLowerCase() !== typed.toLowerCase()) lines.push(`${typed} is ${article(family)} ${family} brand.`);
+  const placed = placeBrand(typed, sets);
+  if (!placed) return ask;
 
-  const own = setForBrand(typed, sets);
-  if (typed.toLowerCase() === fallback.toLowerCase()) lines.push(`This review will use ${fallback}'s standards.`);
-  else if (!own) lines.push(`There are no specific standards for this brand, so this review will run against ${fallback}'s standards.`);
-  else if (!own.in_use) lines.push(`${own.name}'s standards aren't switched on yet, so this review will use ${fallback}'s.`);
-  else lines.push(`This review will use ${own.name}'s standards.`);
+  const lines: string[] = [];
+  if (read?.brand && read.brand === typed && read.evidence) lines.push(`From the contract: “${read.evidence}”`);
+  else if (placed.written) lines.push(`${placed.written} is ${article(placed.brand)} ${placed.brand} brand.`);
+
+  const own = placed.set;
+  if (placed.brand === fallback) lines.push(`This review will use ${fallback}'s standards.`);
+  else if (own?.in_use) lines.push(`This review will use ${own.name}'s standards.`);
+  else if (own) lines.push(`${own.name}'s standards aren't switched on yet, so this review will use ${fallback}'s.`);
+  else if (placed.leftOutOf) {
+    lines.push(`${placed.brand} isn't on ${placed.leftOutOf.name}'s list of brands, so this review will run against ${fallback}'s standards.`);
+  } else lines.push(`There are no specific standards for this brand, so this review will run against ${fallback}'s standards.`);
 
   return lines.join(" ");
 }

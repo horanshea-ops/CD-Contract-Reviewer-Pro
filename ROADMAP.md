@@ -397,7 +397,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 |---|---|
 | Live on `main` | Archive of Analytics and historical uploads. Exposure figures hidden. Standards sets by brand. Upload confirm step with the property name and the hotel's actual brand. Table fixes: one copy per replaced table, and one change per paragraph. |
 | Not live | Nothing in code. Sonnet 5.5, the two-call review, streaming, the 10-minute limit and the second ask merged on 2026-10-08. Render still names Sonnet 5 until the user changes `ANTHROPIC_MODEL`. |
-| Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
+| Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. 017 (the brands each set covers), by the user on 2026-10-08. |
 
 **Sonnet 5.5 passed its gate on 2026-10-08 and is merged to `main`.** The
 last step is the user's: set Render's `ANTHROPIC_MODEL` to
@@ -523,12 +523,28 @@ History of the switch, oldest first:
    - Lint, the type check and 1,589 tests pass. Each line was read in the
      dev browser by typing a brand. Not checked there: the brand read off
      a picked file, since the dev browser can't pick one.
-   - **Next here (user's idea, 2026-10-08): show which lines each set of
-     standards covers.** The Standards library would list every sub-brand
-     under each set, so coverage is not a black box. Today the list of
-     lines lives in code (`lib/intake/brands.ts`), and each set already
-     has a `brand_names` column. To decide in its plan: a read-only list,
-     or one CD's admins can edit. Needs its own plan.
+   - **Done 2026-10-08, live on `main`: each set shows the brands it
+     covers, and an admin edits the list** (user's idea and rules, same day).
+     - The list is on the Standards screen under the set, with a remove
+       button on each brand and a box to add one. Independent has no list,
+       because it takes every hotel no list names.
+     - **The list alone decides coverage** (`placeBrand` in
+       `lib/intake/brands.ts`). A brand on a list is shown and recorded
+       under the set's name. A brand taken off its family's list runs
+       against Independent, and the new-review form says so. The code's
+       own brand list still finds a brand's name in a contract, and names
+       families CD has no set for.
+     - A brand sits on one list only. A set's own name stays on its list.
+       A change reaches negotiations started afterwards, and every change
+       is in the audit log with the list before and after.
+     - Migration 017 filled the two lists (Hilton 15, Hyatt 11), applied by
+       the user on 2026-10-08. **The lists come from the app's built-in
+       list, not CD's agreements. CD should read them.**
+     - Lint, the type check and 1,606 tests pass. In the dev browser, with
+       the user's approval of one write to the shared database: a brand
+       another set lists was refused, "Zz Test Brand" was added to Hyatt
+       and removed again, and the new-review form placed Andaz, DoubleTree
+       and Sheraton correctly against the real lists.
    - Also here: a screen to add a fourth standards set.
 6. The hand-off guide (item 7 below).
 

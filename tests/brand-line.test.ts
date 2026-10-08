@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { brandLine, type BrandLineSet } from "@/lib/intake/brand-line";
+import { HILTON_BRANDS, HYATT_BRANDS } from "./helpers/brand-lists";
 
 /**
  * The line under the brand on the new-review form. It says which standards a
@@ -8,8 +9,8 @@ import { brandLine, type BrandLineSet } from "@/lib/intake/brand-line";
 
 const SETS: BrandLineSet[] = [
   { key: "independent", name: "Independent", brand_names: [], is_default: true, in_use: true },
-  { key: "hilton", name: "Hilton", brand_names: ["Hilton"], is_default: false, in_use: true },
-  { key: "hyatt", name: "Hyatt", brand_names: ["Hyatt"], is_default: false, in_use: false },
+  { key: "hilton", name: "Hilton", brand_names: HILTON_BRANDS, is_default: false, in_use: true },
+  { key: "hyatt", name: "Hyatt", brand_names: HYATT_BRANDS, is_default: false, in_use: false },
 ];
 
 const read = (brand: string | null, evidence: string | null = null, note: string | null = null) => ({ brand, set: null, evidence, note });
@@ -47,6 +48,11 @@ describe("the line under the brand", () => {
     expect(brandLine(read("Hyatt", "Hyatt Regency Sampleville"), SETS, "Hyatt")).toBe(
       "From the contract: “Hyatt Regency Sampleville” Hyatt's standards aren't switched on yet, so this review will use Independent's."
     );
+  });
+
+  it("says when a brand has been left off its family's list", () => {
+    const sets = SETS.map((set) => (set.key === "hilton" ? { ...set, brand_names: HILTON_BRANDS.filter((b) => b !== "Conrad") } : set));
+    expect(brandLine(null, sets, "Conrad")).toBe("Conrad isn't on Hilton's list of brands, so this review will run against Independent's standards.");
   });
 
   it("asks for a brand when there is none, and never names standards for a blank", () => {

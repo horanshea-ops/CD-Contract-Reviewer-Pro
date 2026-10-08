@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Tables } from "./helpers/fake-db";
+import { HILTON_BRANDS, HYATT_BRANDS } from "./helpers/brand-lists";
 import { buildDocx, para, run, table } from "./helpers/docx-package";
 
 /**
@@ -49,7 +50,7 @@ const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.doc
 const set = (key: string, name: string, over: Record<string, unknown> = {}) => ({
   key,
   name,
-  brand_names: key === "independent" ? [] : [name],
+  brand_names: key === "hilton" ? HILTON_BRANDS : key === "hyatt" ? HYATT_BRANDS : key === "independent" ? [] : [name],
   is_default: false,
   is_active: false,
   source_document: "",
@@ -148,8 +149,8 @@ describe("what the read returns", () => {
     const body = await (await read(await request(PARTY("Seaside Grand Resort")))).json();
     expect(body.sets).toEqual([
       { key: "independent", name: "Independent", brand_names: [], is_default: true, in_use: true },
-      { key: "hilton", name: "Hilton", brand_names: ["Hilton"], is_default: false, in_use: true },
-      { key: "hyatt", name: "Hyatt", brand_names: ["Hyatt"], is_default: false, in_use: false },
+      { key: "hilton", name: "Hilton", brand_names: HILTON_BRANDS, is_default: false, in_use: true },
+      { key: "hyatt", name: "Hyatt", brand_names: HYATT_BRANDS, is_default: false, in_use: false },
     ]);
   });
 
