@@ -399,9 +399,13 @@ below wherever the two differ. Each item gets its own plan before any code.
 | Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: one Harborview run, when the user allows a paid run.** On
-2026-10-08 the user chose thinking allowed at effort `medium` and put paid
-runs on hold. That setting is now the judging call's own on the branch.
+**Next step: freeze the setup for the beta, then gate it once.** On
+2026-10-08 the user chose thinking allowed at effort `medium`, and it is now
+the one setting every Sonnet 5.5 call sends on the branch. Paid runs are on
+hold. The gate (Harborview, then Florida, about $1.00 together) is good only
+for the exact setup it tests, so it waits until these are settled:
+the held prompt items in "Free work waiting" item 4, the user's question of
+which findings earn a card, and CD's updated Independent baseline.
 The finish line and the rules for paid runs are in "Sonnet 5.5: the finish
 line" under item 2 below.
 
@@ -453,10 +457,12 @@ line" under item 2 below.
     work item 4 below.
 - ~~Delete `ANALYTICS`, `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on
   Render.~~ Done by the user, 2026-10-08.
-- Read the Claude Console's usage for 2026-10-07. Known spend is $1.34:
-  Florida $0.381, the compile check about $0.05, Harborview at `low`
-  $0.628 and Riverwalk at `medium` $0.278. Two Harborview calls timed out
-  that morning and may or may not have been billed.
+- ~~Read the Claude Console's usage for 2026-10-07.~~ The user reported
+  $2.30 spent since the reload (2026-10-08). $1.34 is itemised: Florida
+  $0.381, the compile check about $0.05, Harborview at `low` $0.628 and
+  Riverwalk at `medium` $0.278. The other $0.96 matches the two Harborview
+  calls that timed out on the morning of 7 October, so a timed-out call is
+  billed in full.
 - Fix one sentence in the gratuity standard on the Standards screen: "not
   staff pay should be disclosed" lost a comma or dash on 2026-10-05.
 - From CD: updated Independent baseline, Hilton and Hyatt contracts, and
@@ -480,6 +486,13 @@ line" under item 2 below.
    prose, and the model's own arithmetic in proposed wording. On
    `4a7e89f6` it changed an F&B formula to 35% and left the amount at
    $80,000.
+   - **Live on `main` since 2026-10-08 (`197ea1f`): the card flags an
+     amount that no longer follows from its formula** (`lib/proposed-figures.ts`).
+     It gives the amount the contract's own base produces, warns without
+     holding the change out of the redline, and makes no model call. A
+     replay over all 30 stored reviews (975 findings, 26 with an amount
+     beside a formula) flagged 6, all in the two reviews known to be wrong.
+     The model still makes the mistake. This catches it for the associate.
 5. A screen to add a fourth standards set, and which sub-brands count as
    Hilton or Hyatt (question 2 for CD).
 6. The hand-off guide (item 7 below).
@@ -740,6 +753,13 @@ for what is shown. Every pinned model request is unchanged.
           fields, `thinking` and `effort`. The eval's flags still
           override it. Lint, typecheck and 1,569 tests pass, and the free
           request check accepts all 16 pinned requests.
+        - **Every Sonnet 5.5 call shares the setting (user's question,
+          2026-10-08).** `ANSWER_DEFAULTS` in `lib/anthropic.ts`. The
+          reading call, both emails and the archived and eval-only calls
+          had stayed on thinking off at `high`, a switch only Sonnet 5.5
+          has. Seven more pinned Sonnet 5.5 requests changed in the same
+          two fields. The reading call and the emails are unproven on
+          this setting until a paid review or draft runs. 1,578 tests pass.
         - **Before the next paid run:** run one contract at a time with
           nothing else in flight, and price it from the Console's actual
           usage. The eval capture already has the app's limit and one try.
