@@ -396,19 +396,29 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live on `main` | Archive of Analytics and historical uploads. Exposure figures hidden. Standards sets by brand. Upload confirm step with the property name and the hotel's actual brand. Table fixes: one copy per replaced table, and one change per paragraph. |
-| Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
+| Not live | Nothing in code. Sonnet 5.5, the two-call review, streaming, the 10-minute limit and the second ask merged on 2026-10-08. Render still names Sonnet 5 until the user changes `ANTHROPIC_MODEL`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: freeze the setup for the beta, then gate it once.** On
-2026-10-08 the user chose thinking allowed at effort `medium`, and it is now
-the one setting every Sonnet 5.5 call sends on the branch. Paid runs are on
-hold. The gate (Harborview, then Florida, about $1.00 together) is good only
-for the exact setup it tests. The user decided on 2026-10-08 that none of
-the three held prompt items in "Free work waiting" item 4 goes in before the
-gate. Still waiting, on CD: which findings earn a card, the future-rate-cap
-question, and the updated Independent baseline.
-The finish line and the rules for paid runs are in "Sonnet 5.5: the finish
-line" under item 2 below.
+**Sonnet 5.5 passed its gate on 2026-10-08 and is merged to `main`.** The
+last step is the user's: set Render's `ANTHROPIC_MODEL` to
+`claude-sonnet-5-5`. Until then the live site runs the merged code on
+Sonnet 5. Tag `archive/2026-10-08-pre-sonnet-5-5` marks `main` before the
+merge.
+
+- **The gate run: Harborview through the app, uploaded by the user
+  (`a70ff3c5`, about $0.68, 322s).** 33 of 34 key items. The first pass
+  left no clause without a finding, so the second ask never ran. The
+  redline rebuilt with no failed check. Run record
+  `sonnet55-harborview-app-2026-10-08`.
+- **Still waiting, on CD:** which findings earn a card, the future-rate-cap
+  question, and the updated Independent baseline. Each changes the library
+  or the instructions, and a check on the cheap contract (about $0.30) is
+  due when it lands.
+- **Unproven on the new setting:** the two email drafts.
+- **Next item:** the brand on the new-review form ("Free work waiting"
+  item 5).
+
+History of the switch, oldest first:
 
 1. **Done 2026-10-07, on `review/one-reading-pass`, not merged: the review
    call is streamed, and a review gets 10 minutes.** Harborview failed on
@@ -774,6 +784,26 @@ for what is shown. Every pinned model request is unchanged.
           has. Seven more pinned Sonnet 5.5 requests changed in the same
           two fields. The reading call and the emails are unproven on
           this setting until a paid review or draft runs. 1,578 tests pass.
+        - **Gate run `sonnet55-harborview-app-2026-10-08` (review
+          `a70ff3c5`, about $0.68, 322s). Passed.** The user uploaded
+          Harborview through the app on the branch, so one run covered the
+          long contract and the app's own path.
+          - 33 of 34 key items, against a bar of 32. The miss is the future
+            rate cap again, judged not applicable.
+          - **The model thought this time:** 16,795 of 55,532 output
+            tokens. It thought on neither earlier run at `low` or
+            `medium`. The judging call took 312s, past the old 300-second
+            wall, so streaming is proven on the real API inside the app.
+          - The first pass was complete. No clause was judged short and
+            left without a finding, and the second ask did not run.
+          - 79 findings: 65 business, 13 legal, 1 other. 33 clauses have a
+            finding, at most four each.
+          - Redline replay applied 63, with no failed check. Two were left
+            out for blanks the associate fills (`[X]` square feet on
+            function space, and one on cancellation).
+          - The library came from the database, with the user's gratuity
+            sentence fixed minutes before.
+          - Not covered: a real contract on this setting, and the emails.
         - **Before the next paid run:** run one contract at a time with
           nothing else in flight, and price it from the Console's actual
           usage. The eval capture already has the app's limit and one try.
