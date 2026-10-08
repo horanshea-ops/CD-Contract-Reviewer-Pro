@@ -236,6 +236,24 @@ describe("term extraction in processAnalysis", () => {
     expect(updatesTo("analyses").find((u) => u.status === "complete")?.document_notes).toBeNull();
   });
 
+  it("saves the second ask with the review's usage, so its cost is counted", async () => {
+    const short = { ...analysisInput, clause_review: [{ clause_type: "rate_parity", verdict: "missing", basis: "Silent." }] };
+    create.mockImplementation(async (params: ModelRequest) =>
+      answerName(params) === "record_analysis" ? toolResponse("record_analysis", short) : termsResponse
+    );
+    await processAnalysis("analysis-1");
+
+    const complete = updatesTo("analyses").find((u) => u.status === "complete");
+    expect(complete?.token_usage).toMatchObject({
+      follow_up: { asked_for: ["rate_parity"], findings_added: 0, tokens: { input: 100, output: 10 } },
+    });
+
+    db.writes = [];
+    create.mockImplementation(async (params: ModelRequest) => (answerName(params) === "record_analysis" ? analysisResponse : termsResponse));
+    await processAnalysis("analysis-1");
+    expect(updatesTo("analyses").find((u) => u.status === "complete")?.token_usage).toMatchObject({ follow_up: null });
+  });
+
   it("gives the review call the model budget as its time limit", async () => {
     await processAnalysis("analysis-1");
 

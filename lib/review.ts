@@ -1,10 +1,10 @@
-import { skippedClausesNote } from "./analysis-review";
+import { clauseKey, skippedClauses, skippedClausesNote, type ClauseReview } from "./analysis-review";
 import { analyzeContract, type AnalyzeContractPdfArgs, type AnalyzableDocument, type CategorizedAnalysis } from "./anthropic";
 import { positionsFrom, type PositionsRead } from "./exposures/cd-positions";
 import { withComputedExposures } from "./exposures/compute";
 import { exposuresEnabled } from "./exposures/enabled";
 import { EXPOSURE_TERM_KEYS, MUST_RAISE_TERM_KEYS, NO_FIGURES, readFigures, TIER_ANSWER_KEYS, type FigureReading } from "./exposures/figures";
-import { applyCategories } from "./finding-categories";
+import { applyCategories, type CategorizedFinding } from "./finding-categories";
 import { mustRaise } from "./must-raise";
 import type { LocatablePart } from "./redline-engine/locate";
 import { HOTEL_TERM_CATALOG } from "./terms/catalog";
@@ -24,7 +24,8 @@ import { validateTerms } from "./terms/validate";
  * Whether a clause gets a finding is the judging call's choice, and it can
  * judge a clause short and write nothing. For the numbers CD always raises,
  * the app writes the finding itself from the checked terms (lib/must-raise.ts).
- * Any other clause left without a finding is named in one note.
+ * For any other clause left without a finding, the judging call is asked once
+ * more, for those clauses alone. A clause still uncovered is named in one note.
  *
  * The reader's answers vary from run to run. When a reading has cancellation
  * terms in it and leaves out an answer the cancellation figure needs, the
@@ -72,9 +73,24 @@ export type ReadingOutcome =
   | ({ ok: true } & Reading & FigureReading & { reask: Reask | null; positions: PositionsRead })
   | { ok: false; error: string };
 
+/** A second ask of the judging call, for clauses it judged short and left without a finding. */
+export interface FollowUp {
+  asked_for: string[];
+  /** Findings the second ask wrote on those clauses. */
+  findings_added: number;
+  tokens?: Reading["tokens"];
+  /** Why the second ask gave nothing: it failed, or too little time was left to make it. */
+  error?: string;
+}
+
 export interface ContractReview extends CategorizedAnalysis {
   reading: ReadingOutcome;
+  /** Null when the judging call left no clause to ask about. */
+  follow_up: FollowUp | null;
 }
+
+/** A second ask needs about this long. With less left, the note names the clauses. */
+const ASK_AGAIN_MIN_MS = 90_000;
 
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const keyOf = (entry: unknown) => String((entry as { term_key?: unknown } | null)?.term_key ?? "").trim();
@@ -116,6 +132,52 @@ async function readContract(args: ReadArgs): Promise<Reading & FigureReading & {
   }
 }
 
+/** What the second ask is told about the first pass. */
+export function askAgainNote(skipped: ClauseReview[]): string {
+  const verdicts = skipped.map((entry) => `- ${entry.clause_type}: ${entry.verdict}. ${entry.basis}`).join("\n");
+  return (
+    `EARLIER PASS:\n\nAn earlier pass of this review gave the clause types below these verdicts and recorded no finding for them. ` +
+    `The verdicts stand. Record the findings for these clause types now. ` +
+    `Record nothing else: leave other_findings and document_notes empty.\n\n${verdicts}`
+  );
+}
+
+/**
+ * Asks the judging call once more, with a library cut down to the clause types
+ * it judged short and left without a finding. Never throws, so a failed second
+ * ask leaves the review as the first pass made it.
+ */
+async function askAgain(review: AnalyzeContractPdfArgs, skipped: ClauseReview[]): Promise<{ findings: CategorizedFinding[]; record: FollowUp }> {
+  const asked = new Set(skipped.map((entry) => clauseKey(entry.clause_type)));
+  const asked_for = skipped.map((entry) => entry.clause_type);
+
+  try {
+    const second = await analyzeContract({
+      ...review,
+      standards: review.standards.filter((standard) => asked.has(clauseKey(standard.clause_type))),
+      contextNote: [review.contextNote, askAgainNote(skipped)].filter(Boolean).join("\n\n"),
+    });
+
+    // Anything else the second pass wrote would repeat the first.
+    const findings = second.findings.filter((finding) => finding.category !== "other" && asked.has(clauseKey(finding.clause_type)));
+    return {
+      findings,
+      record: {
+        asked_for,
+        findings_added: findings.length,
+        tokens: {
+          input: second.input_tokens,
+          output: second.output_tokens,
+          cache_read: second.cache_read_input_tokens,
+          cache_creation: second.cache_creation_input_tokens,
+        },
+      },
+    };
+  } catch (err) {
+    return { findings: [], record: { asked_for, findings_added: 0, error: messageOf(err) } };
+  }
+}
+
 export async function reviewContract({ parts, catalog, ...review }: ReviewContractArgs): Promise<ContractReview> {
   const exposures = exposuresEnabled();
 
@@ -151,7 +213,23 @@ export async function reviewContract({ parts, catalog, ...review }: ReviewContra
   const figures = reading.ok ? reading.figures : NO_FIGURES;
 
   const byApp = reading.ok ? mustRaise(figures, reading.terms, analysis.findings, review.standards, cd.positions) : { findings: [], uncovered: [] };
-  const findings = [...analysis.findings, ...applyCategories(byApp.findings, review.standards)];
+  const firstPass = [...analysis.findings, ...applyCategories(byApp.findings, review.standards)];
+
+  const skipped = skippedClauses(analysis.review_gaps, firstPass).flatMap(
+    (clauseType) => analysis.clause_review.find((entry) => clauseKey(entry.clause_type) === clauseKey(clauseType)) ?? []
+  );
+  const timeLeft = review.deadline === undefined ? Infinity : review.deadline - Date.now();
+  const asked =
+    skipped.length === 0
+      ? null
+      : timeLeft >= ASK_AGAIN_MIN_MS
+        ? await askAgain(review, skipped)
+        : { findings: [], record: { asked_for: skipped.map((entry) => entry.clause_type), findings_added: 0, error: "Too little time was left to ask again." } };
+  if (asked) {
+    const { asked_for, findings_added, error } = asked.record;
+    console.warn(`reviewContract: asked again for ${asked_for.join(", ")}, and ${error ? `got nothing — ${error}` : `${findings_added} findings came back`}`);
+  }
+  const findings = [...firstPass, ...(asked?.findings ?? [])];
 
   const notes = [
     skippedClausesNote(analysis.review_gaps, findings),
@@ -168,5 +246,6 @@ export async function reviewContract({ parts, catalog, ...review }: ReviewContra
     document_notes: [...analysis.document_notes, ...notes],
     deal_figures: figures,
     reading,
+    follow_up: asked?.record ?? null,
   };
 }

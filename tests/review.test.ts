@@ -407,3 +407,120 @@ describe("with exposure math archived (EXPOSURES off)", () => {
     expect(askedFor(readingRequest())).toHaveLength(HOTEL_TERM_CATALOG.terms.length);
   });
 });
+
+describe("asking the judging call again for a clause it left without a finding", () => {
+  // The first pass rates two clauses short and writes a finding for one.
+  const judged = toolResponse("record_analysis", {
+    clause_review: [
+      { clause_type: "cutoff_date", verdict: "falls_short", basis: "The cutoff is 45 days out." },
+      { clause_type: "rate_parity", verdict: "missing", basis: "The contract is silent on lower public rates." },
+    ],
+    findings: [{ ...finding("cutoff_date"), quoted_text: "Run of House: $149.00 per night." }],
+    flagged_findings: [],
+    document_notes: [],
+    other_findings: [],
+  });
+
+  const second = (input: Record<string, unknown>) =>
+    toolResponse(
+      "record_analysis",
+      { clause_review: [{ clause_type: "rate_parity", verdict: "missing", basis: "Silent." }], flagged_findings: [], document_notes: [], other_findings: [], ...input },
+      { input_tokens: 700, output_tokens: 70 }
+    );
+
+  const isSecondAsk = (request: ModelRequest) => JSON.stringify(request).includes("EARLIER PASS");
+  const secondAsks = () => requests().filter((r) => answerName(r) === "record_analysis" && isSecondAsk(r));
+
+  /** The judging call answers `judged` first, then `again` when asked a second time. */
+  const answering = (again: () => unknown) =>
+    create.mockImplementation(async (params: ModelRequest) => {
+      if (answerName(params) !== "record_analysis") return termsResponse;
+      return isSecondAsk(params) ? again() : judged;
+    });
+
+  beforeEach(() => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    answering(() => second({ findings: [{ ...finding("rate_parity"), is_missing_clause: true, quoted_text: null }] }));
+  });
+
+  it("asks with a library cut down to the skipped clause, and says what the first pass judged", async () => {
+    await run();
+
+    expect(secondAsks()).toHaveLength(1);
+    const request = JSON.stringify(secondAsks()[0]);
+    expect(request).toContain('\\"clause_type\\": \\"rate_parity\\"');
+    expect(request).not.toContain('\\"clause_type\\": \\"cutoff_date\\"');
+    expect(request).toContain("- rate_parity: missing. The contract is silent on lower public rates.");
+  });
+
+  it("adds the findings that come back, and drops the note", async () => {
+    const result = await run();
+
+    expect(result.findings.filter((f) => f.clause_type === "rate_parity")).toHaveLength(1);
+    expect(result.document_notes).toEqual([]);
+    expect(result.follow_up).toEqual({
+      asked_for: ["rate_parity"],
+      findings_added: 1,
+      tokens: { input: 700, output: 70, cache_read: 0, cache_creation: 0 },
+    });
+  });
+
+  it("keeps the first pass's usage and verdicts as they were", async () => {
+    const result = await run();
+    expect(result).toMatchObject({ input_tokens: 100, output_tokens: 10 });
+    expect(result.clause_review.find((entry) => entry.clause_type === "rate_parity")?.basis).toBe("The contract is silent on lower public rates.");
+  });
+
+  it("doesn't ask when every clause judged short has a finding", async () => {
+    create.mockImplementation(async (params: ModelRequest) => (answerName(params) === "record_analysis" ? analysisResponse : termsResponse));
+    const result = await run();
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result.follow_up).toBeNull();
+  });
+
+  it("keeps only findings on the clauses it asked about, and none of the second pass's other findings or notes", async () => {
+    answering(() =>
+      second({
+        findings: [{ ...finding("rate_parity"), is_missing_clause: true, quoted_text: null }, finding("attrition")],
+        other_findings: [{ headline: "Parking is extra.", quoted_text: "Run of House: $149.00 per night.", finding_text: "Not in the library." }],
+        document_notes: [{ headline: "Two dates disagree.", detail: "" }],
+      })
+    );
+    const result = await run();
+
+    // The app raises attrition itself from the reading. The second pass's own attrition finding is dropped.
+    expect(result.findings.filter((f) => f.clause_type === "rate_parity")).toHaveLength(1);
+    expect(result.findings.filter((f) => f.clause_type === "attrition" && f.headline === "Too high.")).toEqual([]);
+    expect(result.findings.filter((f) => f.category === "other")).toEqual([]);
+    expect(result.document_notes).toEqual([]);
+    expect(result.follow_up?.findings_added).toBe(1);
+  });
+
+  it("leaves the review complete and the note in place when the second ask fails", async () => {
+    answering(() => {
+      throw new Error("overloaded");
+    });
+    const result = await run();
+
+    expect(result.findings.some((f) => f.clause_type === "cutoff_date")).toBe(true);
+    expect(result.findings.some((f) => f.clause_type === "rate_parity")).toBe(false);
+    expect(result.document_notes).toEqual([expect.objectContaining({ headline: "The review left 1 clause without a finding." })]);
+    expect(result.follow_up).toEqual({ asked_for: ["rate_parity"], findings_added: 0, error: "overloaded" });
+  });
+
+  it("keeps the note when the second ask writes nothing for the clause", async () => {
+    answering(() => second({ findings: [] }));
+    const result = await run();
+    expect(result.document_notes).toEqual([expect.objectContaining({ headline: "The review left 1 clause without a finding." })]);
+    expect(result.follow_up).toMatchObject({ asked_for: ["rate_parity"], findings_added: 0 });
+  });
+
+  it("doesn't ask with under 90 seconds left", async () => {
+    const result = await run({ deadline: Date.now() + 60_000 });
+
+    expect(secondAsks()).toHaveLength(0);
+    expect(result.document_notes).toEqual([expect.objectContaining({ headline: "The review left 1 clause without a finding." })]);
+    expect(result.follow_up).toEqual({ asked_for: ["rate_parity"], findings_added: 0, error: "Too little time was left to ask again." });
+  });
+});

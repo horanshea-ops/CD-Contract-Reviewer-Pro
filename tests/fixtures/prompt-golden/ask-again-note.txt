@@ -1,0 +1,6 @@
+EARLIER PASS:
+
+An earlier pass of this review gave the clause types below these verdicts and recorded no finding for them. The verdicts stand. Record the findings for these clause types now. Record nothing else: leave other_findings and document_notes empty.
+
+- commission: missing. The contract is silent on commission.
+- construction_renovation: falls_short. No notice is required.

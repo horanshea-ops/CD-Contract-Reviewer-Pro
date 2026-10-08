@@ -307,6 +307,8 @@ export async function processAnalysis(analysisId: string) {
           // The reading call's own usage, so a review's whole cost can be worked out.
           reading: result.reading.ok ? result.reading.tokens : { error: result.reading.error },
         },
+          // The second ask for skipped clauses, when the review made one.
+          follow_up: result.follow_up,
       })
       .eq("id", analysisId);
 

@@ -9,7 +9,7 @@ import {
   readBackEvalTerms,
 } from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
-import { MUST_RAISE_CATALOG } from "@/lib/review";
+import { askAgainNote, MUST_RAISE_CATALOG } from "@/lib/review";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
 /**
@@ -237,5 +237,15 @@ describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
       `./fixtures/prompt-golden/eval-readback-request${suffix}.json`
     );
+  });
+});
+
+describe("the second ask for skipped clauses", () => {
+  it("tells the model what the first pass judged, in these words", async () => {
+    const note = askAgainNote([
+      { clause_type: "commission", verdict: "missing", basis: "The contract is silent on commission." },
+      { clause_type: "construction_renovation", verdict: "falls_short", basis: "No notice is required." },
+    ]);
+    await expect(note).toMatchFileSnapshot("./fixtures/prompt-golden/ask-again-note.txt");
   });
 });

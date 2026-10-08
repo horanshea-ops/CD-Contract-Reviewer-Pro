@@ -130,7 +130,16 @@ export function normalizeFindings(findings: Finding[]): Finding[] {
   });
 }
 
-const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
+/** A clause type's name in one spelling, so two mentions of it compare equal. */
+export const clauseKey = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+/** The clause types a review judged short of the standard that no finding covers. */
+export function skippedClauses(gaps: ReviewGap[], findings: Pick<Finding, "clause_type">[]): string[] {
+  const covered = new Set(findings.map((f) => clauseKey(f.clause_type)));
+  return gaps
+    .filter((gap) => gap.kind === "short_without_finding" && !covered.has(clauseKey(gap.clause_type)))
+    .map((gap) => gap.clause_type);
+}
 
 /**
  * One note for a review that judged clauses short of the standard and wrote
@@ -138,10 +147,7 @@ const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replac
  * it the associate has no way to tell the review left those clauses out.
  */
 export function skippedClausesNote(gaps: ReviewGap[], findings: Pick<Finding, "clause_type">[]): { headline: string; detail: string } | null {
-  const covered = new Set(findings.map((f) => normalize(f.clause_type)));
-  const skipped = gaps
-    .filter((gap) => gap.kind === "short_without_finding" && !covered.has(normalize(gap.clause_type)))
-    .map((gap) => gap.clause_type.replace(/_/g, " "));
+  const skipped = skippedClauses(gaps, findings).map((clauseType) => clauseType.replace(/_/g, " "));
   if (skipped.length === 0) return null;
 
   const clauses = skipped.length === 1 ? "1 clause" : `${skipped.length} clauses`;
@@ -157,15 +163,15 @@ export function reconcileReview(
 ): ReconciledReview {
   const { findings, dropped_findings } = dropNonChanges(normalizeFindings(review.findings));
 
-  const verdicts = new Map(review.clause_review.map((entry) => [normalize(entry.clause_type), entry]));
-  const flagged = new Set(findings.map((finding) => normalize(finding.clause_type)));
+  const verdicts = new Map(review.clause_review.map((entry) => [clauseKey(entry.clause_type), entry]));
+  const flagged = new Set(findings.map((finding) => clauseKey(finding.clause_type)));
   const review_gaps: ReviewGap[] = [];
 
   for (const { clause_type } of standards) {
-    const entry = verdicts.get(normalize(clause_type));
+    const entry = verdicts.get(clauseKey(clause_type));
     if (!entry) {
       review_gaps.push({ kind: "no_verdict", clause_type });
-    } else if (!NEEDS_NO_CHANGE.includes(entry.verdict) && !flagged.has(normalize(clause_type))) {
+    } else if (!NEEDS_NO_CHANGE.includes(entry.verdict) && !flagged.has(clauseKey(clause_type))) {
       review_gaps.push({ kind: "short_without_finding", clause_type, verdict: entry.verdict });
     }
   }
