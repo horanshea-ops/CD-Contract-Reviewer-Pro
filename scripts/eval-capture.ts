@@ -182,7 +182,7 @@ async function main() {
       console.log(`    judging call: ${call(analysis.elapsed_ms, analysis.output_tokens, analysis.thinking_tokens)}`);
       if (analysis.follow_up) {
         const { asked_for, findings_added, error, tokens, thinking_tokens, elapsed_ms } = analysis.follow_up;
-        console.log(`    second ask, for ${asked_for.join(", ")}: ${error ?? `${findings_added} findings, ${call(elapsed_ms, tokens?.output ?? 0, thinking_tokens)}`}`);
+        console.log(`    second ask, for ${asked_for.join(", ")}: ${error ?? `${findings_added === 1 ? "1 finding" : `${findings_added} findings`}, ${call(elapsed_ms, tokens?.output ?? 0, thinking_tokens)}`}`);
       }
     } catch (err) {
       // A failed document is recorded, never dropped. Scoring counts its key
