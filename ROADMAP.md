@@ -494,8 +494,21 @@ line" under item 2 below.
      replay over all 30 stored reviews (975 findings, 26 with an amount
      beside a formula) flagged 6, all in the two reviews known to be wrong.
      The model still makes the mistake. This catches it for the associate.
-5. A screen to add a fourth standards set, and which sub-brands count as
-   Hilton or Hyatt (question 2 for CD).
+5. **Next item (user, 2026-10-08): the brand on the new-review form.** Needs
+   its own plan.
+   - A brand is entered on every review, including a brand with no
+     standards set of its own. Such a review still reads Independent.
+     To settle in the plan: whether the field becomes required, and what
+     an independent hotel enters.
+   - **Every Hyatt line is Hyatt.** All Hyatt contracts are negotiated on
+     Hyatt's one set of standards, so Hyatt Regency, Grand Hyatt, Park
+     Hyatt and the rest are not told apart. This answers question 2 for CD
+     as far as Hyatt goes. Today `lib/intake/brands.ts` shows the most
+     specific name ("Hyatt Regency"), and `setForBrand` matches a set by
+     the word in the name, so Andaz, Thompson, Alila and Miraval would miss
+     the Hyatt set. To confirm in the plan: whether Hilton's lines are
+     treated the same way.
+   - Also here: a screen to add a fourth standards set.
 6. The hand-off guide (item 7 below).
 
 **Archived for the beta.** Three features are off the live build and kept in
