@@ -1,3 +1,4 @@
+import { figureCheck } from "../proposed-figures";
 import { dropRestated, rewritesExistingWording, struckSentences } from "./restated";
 import { wordingProblem } from "./wording";
 import { rowCells, splitAcrossCells } from "./cell-split";
@@ -29,6 +30,8 @@ export interface FindingPreview {
   export_issue: string | null;
   /** The wording the redline will insert, when it differs from `language`. */
   redline_language: string | null;
+  /** One sentence for the card when a proposed amount doesn't follow from its formula. The change still exports. */
+  figure_check?: string;
 }
 
 const NONE: FindingPreview = { export_issue: null, redline_language: null };
@@ -118,6 +121,12 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
           : null,
       redline_language: changed ? restated.language : null,
     });
+  }
+
+  for (const f of findings) {
+    const preview = previews.get(f.id);
+    const figure_check = figureCheck(f.quoted_text, f.language);
+    if (preview && figure_check) previews.set(f.id, { ...preview, figure_check });
   }
 
   return previews;
