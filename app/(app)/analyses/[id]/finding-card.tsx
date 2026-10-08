@@ -50,6 +50,8 @@ export interface Finding {
   export_issue?: string | null;
   /** The wording the redline will insert, when it differs from the proposal or edit. */
   redline_language?: string | null;
+  /** A proposed amount that doesn't follow from its formula, with the arithmetic. Worked out by the analysis API. */
+  figure_check?: string | null;
 }
 
 // Shared with the standards library screen.
@@ -301,6 +303,12 @@ export default function FindingCard({
       {finding.export_issue && language.trim() && (
         <Meta as="p" className="mt-3 rounded-md bg-[var(--severity-medium-bg)] text-[var(--text-primary)] px-2.5 py-1.5">
           {finding.export_issue}
+        </Meta>
+      )}
+
+      {finding.figure_check && language.trim() && (
+        <Meta as="p" className="mt-3 rounded-md bg-[var(--severity-medium-bg)] text-[var(--text-primary)] px-2.5 py-1.5">
+          {finding.figure_check}
         </Meta>
       )}
 
