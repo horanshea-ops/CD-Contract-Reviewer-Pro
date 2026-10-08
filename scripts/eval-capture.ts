@@ -4,6 +4,7 @@ loadEnvLocal();
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { MODEL_CALL_BUDGET_MS } from "../lib/analysis-status";
+import type { AnswerOptions } from "../lib/anthropic";
 import { extractDocx } from "../lib/docx";
 import { contractText } from "../lib/docx/contract-text";
 import { standardsMismatch } from "../lib/eval/score";
@@ -31,6 +32,9 @@ import { costOf, withRetry } from "./with-retry";
  * contract that fails, and prints what each contract cost.
  */
 
+const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
+type Effort = (typeof EFFORTS)[number];
+
 const CORPUS_DIR = path.join("data", "sample-contracts", "eval");
 const KEY_PATH = path.join("data", "eval", "synthetic-key-v1.json");
 const RUNS_DIR = path.join("data", "eval", "runs");
@@ -43,6 +47,20 @@ async function main() {
   const model = modelAt === -1 ? undefined : process.argv[modelAt + 1];
 
   const resume = process.argv.includes("--resume");
+
+  // `--effort <level>` and `--thinking adaptive` give the judging call a
+  // setting other than the app's, to measure it. The run record says which.
+  const effortAt = process.argv.indexOf("--effort");
+  const effort = effortAt === -1 ? undefined : process.argv[effortAt + 1];
+  if (effort !== undefined && !EFFORTS.includes(effort as Effort)) {
+    throw new Error(`--effort takes one of ${EFFORTS.join(", ")}`);
+  }
+  const thinkingAt = process.argv.indexOf("--thinking");
+  const thinking = thinkingAt === -1 ? undefined : process.argv[thinkingAt + 1];
+  if (thinking !== undefined && thinking !== "adaptive" && thinking !== "off") {
+    throw new Error("--thinking takes adaptive or off");
+  }
+  const answer: AnswerOptions | undefined = effort || thinking ? { effort: effort as Effort | undefined, thinking } : undefined;
 
   const retriesAt = process.argv.indexOf("--retries");
   const tries = retriesAt === -1 ? 1 : Math.max(1, Number(process.argv[retriesAt + 1]) || 1);
@@ -116,6 +134,7 @@ async function main() {
             standardsVersion: standards.version,
             model,
             parts: extracted.parts,
+            answer,
 
             // The limit a review gets in the app, counted from this try.
             deadline: Date.now() + MODEL_CALL_BUDGET_MS,
@@ -126,11 +145,12 @@ async function main() {
       const elapsed = Date.now() - started;
       documents.push({ contract: entry.contract, analysis, error: null, elapsed_ms: elapsed });
       const reading = analysis.reading.ok ? analysis.reading.tokens : null;
+      const again = analysis.follow_up?.tokens ?? null;
       const cost = costOf({
-        input: analysis.input_tokens + (reading?.input ?? 0),
-        output: analysis.output_tokens + (reading?.output ?? 0),
-        cacheRead: (analysis.cache_read_input_tokens ?? 0) + (reading?.cache_read ?? 0),
-        cacheWrite: (analysis.cache_creation_input_tokens ?? 0) + (reading?.cache_creation ?? 0),
+        input: analysis.input_tokens + (reading?.input ?? 0) + (again?.input ?? 0),
+        output: analysis.output_tokens + (reading?.output ?? 0) + (again?.output ?? 0),
+        cacheRead: (analysis.cache_read_input_tokens ?? 0) + (reading?.cache_read ?? 0) + (again?.cache_read ?? 0),
+        cacheWrite: (analysis.cache_creation_input_tokens ?? 0) + (reading?.cache_creation ?? 0) + (again?.cache_creation ?? 0),
       });
       spent += cost;
       console.log(
@@ -139,6 +159,11 @@ async function main() {
           `${(elapsed / 1000).toFixed(0)}s, ${cost.toFixed(3)}`
       );
       for (const gap of analysis.review_gaps) console.log(`    gap: ${gap.kind} ${gap.clause_type}`);
+      console.log(`    judging call: ${analysis.output_tokens.toLocaleString()} output tokens, ${(analysis.thinking_tokens ?? 0).toLocaleString()} of them thinking`);
+      if (analysis.follow_up) {
+        const { asked_for, findings_added, error } = analysis.follow_up;
+        console.log(`    asked again for ${asked_for.join(", ")}: ${error ?? `${findings_added} findings`}`);
+      }
     } catch (err) {
       // A failed document is recorded, never dropped. Scoring counts its key
       // items as missed, because a pipeline that cannot read a contract finds
@@ -159,6 +184,7 @@ async function main() {
     model_id: documents.find((d) => d.analysis)?.analysis?.model_id ?? model ?? "unknown",
     standards_version: standards.version,
     standards_hash: standards.hash,
+    ...(answer ? { settings: { effort, thinking } } : {}),
     documents,
   };
 

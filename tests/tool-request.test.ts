@@ -117,6 +117,14 @@ describe("the request shape for each model", () => {
     });
   });
 
+  it("lets a caller turn thinking on and set the effort, for measuring another setting", () => {
+    expect(answerRequest(NEW, tool, { thinking: "adaptive", effort: "low" })).toMatchObject({
+      thinking: { type: "adaptive" },
+      output_config: { effort: "low" },
+    });
+    expect(answerRequest("claude-sonnet-5", tool, { thinking: "adaptive", effort: "low" })).toEqual(answerRequest("claude-sonnet-5", tool));
+  });
+
   it("leaves between_tools off any other unforced model, which would reject it", () => {
     expect(answerRequest("claude-some-future-model", tool)).not.toHaveProperty("thinking");
   });

@@ -146,6 +146,8 @@ export interface RunRecord {
   model_id: string;
   standards_version: string;
   standards_hash: string;
+  /** Effort and thinking the judging call was given, when a run tried something other than the app's defaults. */
+  settings?: { effort?: string; thinking?: string };
   documents: RunDocument[];
 }
 

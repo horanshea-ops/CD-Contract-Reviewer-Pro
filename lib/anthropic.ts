@@ -68,6 +68,8 @@ export interface AnalysisResult {
   cache_creation_input_tokens: number;
   /** Characters of thinking the model wrote before its answer. Thinking is billed as output. Absent on older runs. */
   thinking_chars?: number;
+  /** Output tokens spent on thinking, as the API counts them. Thinking text can be hidden, and this still counts it. */
+  thinking_tokens?: number;
 }
 
 /** A fresh review, with each finding's category stamped from the library. Saved eval runs predate categories. */
@@ -107,6 +109,13 @@ const BETWEEN_TOOLS_MODELS = new Set(["claude-sonnet-5-5"]);
 
 type Effort = NonNullable<Anthropic.Messages.OutputConfig["effort"]>;
 
+/** How a call asks an unforced model to work. The app uses the defaults. An eval sets them to measure another setting. */
+export interface AnswerOptions {
+  effort?: Effort;
+  /** "adaptive" lets the model think before it answers. "off" is the least thinking the model allows. */
+  thinking?: "off" | "adaptive";
+}
+
 /**
  * A tool's schema as an output format takes it. Every object is closed with
  * additionalProperties: false. An enum beside a list of types is refused, so
@@ -136,12 +145,13 @@ export function formatSchema<T>(schema: T): T {
  * Effort is stated for an unforced model because its levels differ from
  * Sonnet 5's, and "between_tools" is refused above "high".
  */
-export function answerRequest(model: string, tool: Anthropic.Messages.Tool, effort: Effort = "high") {
+export function answerRequest(model: string, tool: Anthropic.Messages.Tool, { effort = "high", thinking = "off" }: AnswerOptions = {}) {
   if (forcesTool(model)) {
     return { tools: [tool], tool_choice: { type: "tool" as const, name: tool.name } };
   }
+  const leastThinking = BETWEEN_TOOLS_MODELS.has(model) ? { thinking: { type: "between_tools" as const } } : {};
   return {
-    ...(BETWEEN_TOOLS_MODELS.has(model) ? { thinking: { type: "between_tools" as const } } : {}),
+    ...(thinking === "adaptive" ? { thinking: { type: "adaptive" as const } } : leastThinking),
     output_config: {
       effort,
       format: { type: "json_schema" as const, schema: formatSchema(tool.input_schema) as Record<string, unknown> },
@@ -468,6 +478,8 @@ export interface AnalyzeContractPdfArgs {
   comments?: DocumentComment[];
   /** How many comments the file holds, when that is more than `comments` carries. */
   commentsTotal?: number;
+  /** Effort and thinking for this call. Left out by the app, which uses the defaults. */
+  answer?: AnswerOptions;
 }
 
 /**
@@ -563,6 +575,7 @@ export async function analyzeContract({
   deadline,
   comments,
   commentsTotal,
+  answer,
 }: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -603,7 +616,7 @@ export async function analyzeContract({
         max_tokens: 100000,
 
         system: withAnswerInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, findingsToolSchema(org)),
-        ...answerRequest(modelId, findingsToolSchema(org)),
+        ...answerRequest(modelId, findingsToolSchema(org), answer),
         messages: [{ role: "user", content: userContent }],
       },
       // Each attempt gets what is left of the deadline. The retry below works within it too.
@@ -660,6 +673,7 @@ export async function analyzeContract({
       cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
       thinking_chars: response.content.reduce((sum, block) => sum + (block.type === "thinking" ? block.thinking.length : 0), 0),
+      thinking_tokens: usage.output_tokens_details?.thinking_tokens ?? 0,
     };
   }
 
