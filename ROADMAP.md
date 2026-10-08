@@ -435,11 +435,22 @@ line" under item 2 below.
 
 **Owed by the user.**
 
-- **HIGH PRIORITY: look at two rebuilt redlines in Word.** Both fixes are
-  live and no human has opened a result. In `data/private/replay/`:
-  `4f803f16-redline.docx` (one struck schedule and one new one) and
-  `4a7e89f6-redline.docx` (each cancellation tier changed in place, the
-  schedule appearing once). Try Accept All and Reject All on copies.
+- ~~**HIGH PRIORITY: look at two rebuilt redlines in Word.**~~ **Checked by
+  the user in Word for Mac, 2026-10-08. Both table fixes render correctly.**
+  - `4f803f16-redline.docx`: the schedule is struck once and inserted once,
+    all five tiers changed. `4a7e89f6-redline.docx`: each tier's amount is
+    struck with the new one beside it, "times 70%," is inserted, and the
+    schedule appears once. Both `-clean.docx` files read correctly.
+  - **Still untested by a person: Accept All and Reject All.** The user's
+    Word licence is view-only. The app's own reject-all round trip passes
+    on both files. Low priority, for whenever an editable Word is to hand.
+  - **The check showed two wrong figures inside the tables. They are the
+    model's arithmetic, and the table code placed them faithfully.** On
+    `4a7e89f6` the last F&B tier reads $80,000 beside "times 35%". On
+    `4f803f16` it reads $64,000 beside "times 80%". The tier above
+    ($50,000 at 50%) puts the minimum at $100,000. The two reviews also
+    worked the room fees from different minimum room nights. This is free
+    work item 4 below.
 - ~~Delete `ANALYTICS`, `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on
   Render.~~ Done by the user, 2026-10-08.
 - Read the Claude Console's usage for 2026-10-07. Known spend is $1.34:
