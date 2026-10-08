@@ -227,7 +227,7 @@ export async function reviewContract({ parts, catalog, ...review }: ReviewContra
         : { findings: [], record: { asked_for: skipped.map((entry) => entry.clause_type), findings_added: 0, error: "Too little time was left to ask again." } };
   if (asked) {
     const { asked_for, findings_added, error } = asked.record;
-    console.warn(`reviewContract: asked again for ${asked_for.join(", ")}, and ${error ? `got nothing — ${error}` : `${findings_added} findings came back`}`);
+    console.warn(`reviewContract: asked again for ${asked_for.join(", ")}, and ${error ? `got nothing — ${error}` : `${findings_added === 1 ? "1 finding" : `${findings_added} findings`} came back`}`);
   }
   const findings = [...firstPass, ...(asked?.findings ?? [])];
 
