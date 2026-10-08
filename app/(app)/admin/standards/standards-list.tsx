@@ -16,6 +16,7 @@ import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import type { StandardSet } from "@/lib/standards/sets";
 import type { Category, LibrarySeverity } from "@/lib/standards/types";
+import { BrandsCovered } from "./brands-covered";
 import { StandardsSetBar } from "./standards-set-bar";
 
 export interface StandardRow {
@@ -310,6 +311,8 @@ export default function StandardsList({
       <Meta as="p" className="mt-8 text-[var(--text-muted)] hidden sm:block">
         Drag a standard into another group to change its category.
       </Meta>
+
+      {set && <BrandsCovered set={set} onChanged={setSet} />}
 
       <AddStandardDialog
         open={adding}

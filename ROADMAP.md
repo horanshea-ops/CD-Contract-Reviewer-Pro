@@ -391,32 +391,56 @@ contract review: upload, review, redline and export. Work until then goes to
 getting those right. This section orders that work and overrides "Next up"
 below wherever the two differ. Each item gets its own plan before any code.
 
-**Start here (state at the end of 2026-10-07).**
+**Start here (state at the end of 2026-10-08).**
 
 | | |
 |---|---|
-| Live on `main` | Archive of Analytics and historical uploads. Exposure figures hidden. Standards sets by brand. Upload confirm step with the property name and the hotel's actual brand. Table fixes: one copy per replaced table, and one change per paragraph. |
-| Not live | Nothing in code. Sonnet 5.5, the two-call review, streaming, the 10-minute limit and the second ask merged on 2026-10-08. Render still names Sonnet 5 until the user changes `ANTHROPIC_MODEL`. |
-| Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. 017 (the brands each set covers), by the user on 2026-10-08. |
+| Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
+| Live on `main` | Everything built to date. Nothing is waiting on a branch except the parked `phase/2-1-same-file-reuse`. |
+| Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
+| Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
 
-**Sonnet 5.5 passed its gate on 2026-10-08 and is merged to `main`.** The
-last step is the user's: set Render's `ANTHROPIC_MODEL` to
-`claude-sonnet-5-5`. Until then the live site runs the merged code on
-Sonnet 5. Tag `archive/2026-10-08-pre-sonnet-5-5` marks `main` before the
-merge.
+**What went live on 2026-10-08.**
 
-- **The gate run: Harborview through the app, uploaded by the user
-  (`a70ff3c5`, about $0.68, 322s).** 33 of 34 key items. The first pass
-  left no clause without a finding, so the second ask never ran. The
-  redline rebuilt with no failed check. Run record
-  `sonnet55-harborview-app-2026-10-08`.
-- **Still waiting, on CD:** which findings earn a card, the future-rate-cap
-  question, and the updated Independent baseline. Each changes the library
-  or the instructions, and a check on the cheap contract (about $0.30) is
-  due when it lands.
-- **Unproven on the new setting:** the two email drafts.
-- **Next item:** the brand on the new-review form ("Free work waiting"
-  item 5).
+- **Sonnet 5.5**, with the two-call review, the streamed review call, a
+  10-minute limit, a 100,000-token output cap, and the second ask for
+  clauses judged short with no finding (capped at 8). Every call sends
+  thinking allowed at effort `medium` (`ANSWER_DEFAULTS`).
+- **The standards loader fails loudly.** Three tries, then the review fails
+  with a plain message, in place of silently using the bundled library.
+- **The card flags a proposed amount that no longer follows from its
+  formula** (`lib/proposed-figures.ts`).
+- **The brand on the new-review form** is required and read by family.
+- **Each standards set lists the brands it covers**, at the foot of the
+  Standards screen, one to a row, and an admin adds or removes them.
+
+**Do first next session.**
+
+1. **Ask how the first live review on Sonnet 5.5 went.** No real contract
+   has run on the final setting. The gate was a synthetic contract. If the
+   user hasn't run one, it is the smoke test.
+2. **One client-email draft on the new setting**, about 2 cents, with a yes.
+   Emails are unproven at thinking allowed, effort `medium`.
+3. **Ask the user to look at the brand a real upload reads.** The dev
+   browser can't pick a file, so that path rests on tests.
+
+**Waiting on CD. Each needs a check on Riverwalk (about $0.30) when it lands,
+because it changes the library or the instructions.**
+
+- Which findings earn a card. The user said on 2026-10-08 that 100 cards
+  add no value, since an associate will accept or ignore them blindly. The
+  preferred route is CD marking must-haves per standard. Cutting
+  low-severity findings is the fallback.
+- Whether a contract with one fixed rate for one event should get a
+  future-rate-cap finding. Sonnet 5.5 judged it not applicable on all four
+  runs, and the answer key expects a finding.
+- The updated Independent baseline, the Hilton and Hyatt contracts, and
+  CD's own Anthropic API key (deviation 9).
+- What CD's Hilton and Hyatt agreements really cover. The two brand lists
+  are the app's own guess.
+
+**Rules for paid runs** are under item 2 below ("Rules for paid runs, from a
+self-audit the user asked for"). Spend on 2026-10-07 and 08 was about $3.00.
 
 History of the switch, oldest first:
 
@@ -474,18 +498,20 @@ History of the switch, oldest first:
   Riverwalk at `medium` $0.278. The other $0.96 matches the two Harborview
   calls that timed out on the morning of 7 October, so a timed-out call is
   billed in full.
-- Fix one sentence in the gratuity standard on the Standards screen: "not
-  staff pay should be disclosed" lost a comma or dash on 2026-10-05.
+- ~~Fix one sentence in the gratuity standard.~~ Done by the user,
+  2026-10-08, by removing the phrase.
 - From CD: updated Independent baseline, Hilton and Hyatt contracts, and
   test contracts. Leave the hotel's brand in when redacting, or use a
   stand-in such as "Hilton Sampleville".
 
-**Not yet checked in a browser.**
+**Not yet checked by a person.**
 
-- The brand field as free text (deployed 2026-10-07, tests only).
-- Copy, Switch on and Switch off on the Standards screen. They are safe to
-  try now that the set-aware code is live. Copying Independent into Hilton
-  is also the intended first step when CD's Hilton contract arrives.
+- The brand read off an uploaded file, and the grey line under it.
+- Copy, Switch on and Switch off on the Standards screen. Copying
+  Independent into Hilton is the intended first step when CD's Hilton
+  contract arrives.
+- Accept All and Reject All in Word on a redline (the user's Word licence
+  is view-only).
 
 **Free work waiting, in a sensible order.**
 
@@ -525,8 +551,9 @@ History of the switch, oldest first:
      a picked file, since the dev browser can't pick one.
    - **Done 2026-10-08, live on `main`: each set shows the brands it
      covers, and an admin edits the list** (user's idea and rules, same day).
-     - The list is on the Standards screen under the set, with a remove
-       button on each brand and a box to add one. Independent has no list,
+     - The list is at the foot of the Standards screen, below the set's
+       standards, one brand to a row (moved there at the user's request the
+       same day), with a Remove button on each row and a box to add one. Independent has no list,
        because it takes every hotel no list names.
      - **The list alone decides coverage** (`placeBrand` in
        `lib/intake/brands.ts`). A brand on a list is shown and recorded
