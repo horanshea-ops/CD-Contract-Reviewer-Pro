@@ -399,7 +399,9 @@ below wherever the two differ. Each item gets its own plan before any code.
 | Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: the user chooses the setting to gate, then one Harborview run.**
+**Next step: make the chosen setting the branch's own, then one Harborview
+run when the user allows a paid run.** On 2026-10-08 the user chose thinking
+allowed at effort `medium` and put paid runs on hold.
 The finish line and the rules for paid runs are in "Sonnet 5.5: the finish
 line" under item 2 below.
 
@@ -424,8 +426,8 @@ line" under item 2 below.
 4. **Done 2026-10-07, on the branch: Riverwalk with thinking allowed at
    effort `medium` passed its bar.** 26 of 27 in 130s for $0.278. The model
    chose not to think. Detail under item 2 below.
-5. **Next paid run, needs a yes: Harborview at the setting the user picks**,
-   about $0.45 to $0.60. Pass is 32 of 34 inside 10 minutes with the second
+5. **Next paid run, on hold, needs a yes: Harborview with thinking allowed
+   at effort `medium`**, about $0.45 to $0.60. Pass is 32 of 34 inside 10 minutes with the second
    ask covering 8 clauses or fewer.
 6. **On a pass, Florida through the app if the setting changed, then merge
    and deploy.** The user then changes Render's `ANTHROPIC_MODEL` to
@@ -438,10 +440,12 @@ line" under item 2 below.
   `4f803f16-redline.docx` (one struck schedule and one new one) and
   `4a7e89f6-redline.docx` (each cancellation tier changed in place, the
   schedule appearing once). Try Accept All and Reject All on copies.
-- Delete `ANALYTICS`, `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on Render.
-- Read the Claude Console's usage for 2026-10-07. Known spend is $0.381
-  (Florida) and about $0.05 (compile check). Two Harborview calls timed out
-  and may or may not have been billed.
+- ~~Delete `ANALYTICS`, `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on
+  Render.~~ Done by the user, 2026-10-08.
+- Read the Claude Console's usage for 2026-10-07. Known spend is $1.34:
+  Florida $0.381, the compile check about $0.05, Harborview at `low`
+  $0.628 and Riverwalk at `medium` $0.278. Two Harborview calls timed out
+  that morning and may or may not have been billed.
 - Fix one sentence in the gratuity standard on the Standards screen: "not
   staff pay should be disclosed" lost a comma or dash on 2026-10-05.
 - From CD: updated Independent baseline, Hilton and Hyatt contracts, and
