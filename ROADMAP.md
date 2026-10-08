@@ -399,8 +399,9 @@ below wherever the two differ. Each item gets its own plan before any code.
 | Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: decide the standards-loader fix, then run Harborview with
-thinking off on the streamed build.**
+**Next step: the user chooses the setting to gate, then one Harborview run.**
+The finish line and the rules for paid runs are in "Sonnet 5.5: the finish
+line" under item 2 below.
 
 1. **Done 2026-10-07, on `review/one-reading-pass`, not merged: the review
    call is streamed, and a review gets 10 minutes.** Harborview failed on
@@ -414,18 +415,21 @@ thinking off on the streamed build.**
    Harborview run with thinking on at `low` scored 33 of 34 in 237s for
    $0.628. It did not test thinking, and the second ask did most of the
    work. The detail is under item 2 below.
-3. **Waiting on the user's yes: stop the standards loader falling back in
-   silence.** A one-off database error (`JWT issued at future`) sent that
-   paid run to the bundled library. The same loader serves live reviews.
-   No finished review has been affected (19 of 30 record the database, 11
-   predate the record). Proposed: three tries, then fail the review with a
-   plain message, and the eval refuses the bundled copy without a flag.
-4. **Run Harborview on 5.5 with the app's own setting** (thinking off,
-   effort `high`), alone, about $0.55, with a yes. This run was held by the
-   user on 2026-10-07. Pass is finishing inside 10 minutes with at least 32
-   of 34 key items.
-5. **On a pass, merge the 5.5 branch and deploy.** The user then changes
-   Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5`.
+3. **Done 2026-10-07, live on `main` (`6c3f988`): the standards loader
+   no longer falls back in silence.** A one-off database error (`JWT issued
+   at future`) had sent a paid run to the bundled library. A read is now
+   tried three times, then the review fails with a plain message. No
+   finished review was ever affected (19 of 30 record the database, 11
+   predate the record).
+4. **Done 2026-10-07, on the branch: Riverwalk with thinking allowed at
+   effort `medium` passed its bar.** 26 of 27 in 130s for $0.278. The model
+   chose not to think. Detail under item 2 below.
+5. **Next paid run, needs a yes: Harborview at the setting the user picks**,
+   about $0.45 to $0.60. Pass is 32 of 34 inside 10 minutes with the second
+   ask covering 8 clauses or fewer.
+6. **On a pass, Florida through the app if the setting changed, then merge
+   and deploy.** The user then changes Render's `ANTHROPIC_MODEL` to
+   `claude-sonnet-5-5`.
 
 **Owed by the user.**
 
@@ -665,6 +669,54 @@ for what is shown. Every pinned model request is unchanged.
           - **Lead worth a plan after the beta:** judging first and
             writing findings second, as two deliberate steps. The second
             step skipped nothing here, and it could run in parallel.
+        - **Sonnet 5.5: the finish line (user approved, 2026-10-07).** One
+          fixed setting must pass all four.
+          - Riverwalk: 26 of 27 key items or better.
+          - Harborview: 32 of 34 or better, inside 10 minutes.
+          - The first pass writes its own findings. The second ask covers
+            8 clauses or fewer.
+          - Florida through the app completes, and its redline rebuilds
+            with no failed check.
+        - **Rules for paid runs, from a self-audit the user asked for.**
+          - One change per run, against a named comparison.
+          - The smallest contract that can answer the question.
+            Harborview is for the final gate.
+          - Every proposal lists what could make the run tell us nothing.
+          - Every quote carries a ceiling, and `--limit` enforces it.
+          - A suspected cause is proven on the stand-in server first.
+        - **Second ask capped at 8 clauses (`07d46e8`).** More than 8 left
+          without a finding means the first pass stopped early. The review
+          fails with a plain message. Each call's time and thinking tokens
+          are recorded, and the eval prints its terms before it spends.
+        - **The answer key was left alone on purpose.** A rebuild is free
+          and would only restamp it. Its checks are hand-written from the
+          bundled library. Today's library differs from that copy in 25
+          of 34 standards, nearly all by two to four characters. Attendee
+          data handling is a third shorter, commission's severity changed,
+          and termination rights' fallback wording changed.
+        - **Paid run `sonnet55-riverwalk-think-medium-2026-10-07` ($0.278,
+          130s): thinking allowed, effort `medium`, live library.**
+          - 26 of 27 key items. Sonnet 5 found 27 of 27 in 167s on 23
+            September, on an older prompt.
+          - **The model did not think.** The API reported no thinking
+            tokens, and the billed output (16,479 tokens) matches the
+            length of the answer alone. Allowed to think at `low` and at
+            `medium`, Sonnet 5.5 goes straight to the answer on this job.
+          - **The first pass was complete.** One clause (named storm) was
+            judged missing with no finding. The second ask wrote it in 6
+            seconds for about 3 cents, which is the job it was built for.
+          - 39 findings: 29 business, 7 legal, 3 other. 31 clauses have a
+            finding, 27 of them exactly one.
+          - Seven findings sit on clauses the key says the contract meets
+            (F&B minimum, vendors, master account, cutoff date, mandatory
+            fees). Sonnet 5 had three such on 23 September.
+          - Redline replay applied 28, with no failed check. One was left
+            out for an unfilled `[X]%` on gratuity.
+          - **The one miss is the future rate cap, for the third 5.5 run
+            running.** Each time the model judged it not applicable,
+            because the contract fixes one rate for one event. The key
+            expects a finding. Whether CD wants that finding on a
+            single-event contract is a question for the user.
         - **Before the next paid run:** run one contract at a time with
           nothing else in flight, and price it from the Console's actual
           usage. The eval capture already has the app's limit and one try.
