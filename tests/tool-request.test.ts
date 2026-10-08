@@ -160,12 +160,20 @@ describe("Sonnet 5.5 requests", () => {
     expect(await unforcedRequests()).toHaveLength(7);
   });
 
-  it("carry no tool, skip thinking, state the effort, and say the reply is the record", async () => {
-    for (const params of await unforcedRequests()) {
-      expect(params).not.toHaveProperty("tools");
-      expect(params).not.toHaveProperty("tool_choice");
+  it("carry no tool, state thinking and effort, and say the reply is the record", async () => {
+    const [judging, ...others] = await unforcedRequests();
+
+    // The judging call may think, at medium effort. Every other call skips thinking at high.
+    expect(judging.thinking).toEqual({ type: "adaptive" });
+    expect(judging.output_config.effort).toBe("medium");
+    for (const params of others) {
       expect(params.thinking).toEqual({ type: "between_tools" });
       expect(params.output_config.effort).toBe("high");
+    }
+
+    for (const params of [judging, ...others]) {
+      expect(params).not.toHaveProperty("tools");
+      expect(params).not.toHaveProperty("tool_choice");
       expect(params.output_config.format.type).toBe("json_schema");
       const system = typeof params.system === "string" ? params.system : params.system[0].text;
       expect(system).toContain("Your whole reply is one JSON record in the required format");

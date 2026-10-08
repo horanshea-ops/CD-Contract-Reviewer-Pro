@@ -107,8 +107,8 @@ async function main() {
   report("error" in forced, "a forced tool on Sonnet 5.5", "error" in forced ? forced.error : "accepted");
 
   const base = await load(ANALYSIS_NEW);
-  const format = (base.output_config as { format: { schema: unknown } }).format;
-  const tooHigh = await count({ ...base, output_config: { effort: "xhigh", format } });
+  const { effort, format } = base.output_config as { effort: string; format: { schema: unknown } };
+  const tooHigh = await count({ ...base, thinking: { type: "between_tools" }, output_config: { effort: "xhigh", format } });
   report("error" in tooHigh, "between_tools at effort xhigh", "error" in tooHigh ? tooHigh.error : "accepted");
 
   console.log("\nThe model must see the instructions written inside the schema:");
@@ -116,7 +116,7 @@ async function main() {
   const full = await count(base);
   const bare = await count({
     ...base,
-    output_config: { effort: "high", format: { ...format, schema: withoutDescriptions(format.schema) } },
+    output_config: { effort, format: { ...format, schema: withoutDescriptions(format.schema) } },
   });
   if ("tokens" in full && "tokens" in bare) {
     report(bare.tokens < full.tokens, "descriptions count toward the request", `${full.tokens} tokens with them, ${bare.tokens} without`);

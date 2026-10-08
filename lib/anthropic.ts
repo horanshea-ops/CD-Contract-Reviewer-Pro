@@ -480,9 +480,17 @@ export interface AnalyzeContractPdfArgs {
   comments?: DocumentComment[];
   /** How many comments the file holds, when that is more than `comments` carries. */
   commentsTotal?: number;
-  /** Effort and thinking for this call. Left out by the app, which uses the defaults. */
+  /** Effort and thinking for this call. The app leaves it out and gets JUDGING_ANSWER. */
   answer?: AnswerOptions;
 }
+
+/**
+ * How the judging call asks an unforced model to work. Thinking is allowed,
+ * the one mode every newer model takes, and the model decides whether to use
+ * it. Effort is medium, the level at which a first pass wrote its findings in
+ * full and met the eval's bar.
+ */
+export const JUDGING_ANSWER: AnswerOptions = { effort: "medium", thinking: "adaptive" };
 
 /**
  * A list field from the tool input. A long response sometimes carries a list
@@ -577,7 +585,7 @@ export async function analyzeContract({
   deadline,
   comments,
   commentsTotal,
-  answer,
+  answer = JUDGING_ANSWER,
 }: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {

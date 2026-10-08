@@ -4,7 +4,7 @@ loadEnvLocal();
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { MODEL_CALL_BUDGET_MS } from "../lib/analysis-status";
-import type { AnswerOptions } from "../lib/anthropic";
+import { JUDGING_ANSWER, type AnswerOptions } from "../lib/anthropic";
 import { extractDocx } from "../lib/docx";
 import { contractText } from "../lib/docx/contract-text";
 import { standardsMismatch } from "../lib/eval/score";
@@ -48,8 +48,8 @@ async function main() {
 
   const resume = process.argv.includes("--resume");
 
-  // `--effort <level>` and `--thinking adaptive` give the judging call a
-  // setting other than the app's, to measure it. The run record says which.
+  // `--effort <level>` and `--thinking <adaptive|off>` change the judging
+  // call's setting from the app's, to measure another. The run record says which.
   const effortAt = process.argv.indexOf("--effort");
   const effort = effortAt === -1 ? undefined : process.argv[effortAt + 1];
   if (effort !== undefined && !EFFORTS.includes(effort as Effort)) {
@@ -60,7 +60,9 @@ async function main() {
   if (thinking !== undefined && thinking !== "adaptive" && thinking !== "off") {
     throw new Error("--thinking takes adaptive or off");
   }
-  const answer: AnswerOptions | undefined = effort || thinking ? { effort: effort as Effort | undefined, thinking } : undefined;
+  const answer: AnswerOptions | undefined =
+    effort || thinking ? { ...JUDGING_ANSWER, ...(effort ? { effort: effort as Effort } : {}), ...(thinking ? { thinking } : {}) } : undefined;
+  const setting = answer ?? JUDGING_ANSWER;
 
   // `--limit <seconds>` gives each review less than the app's time. A call
   // writes about 180 tokens a second, so a time limit is a cost limit.
@@ -114,7 +116,8 @@ async function main() {
   console.log(`Corpus: ${key.contracts.length} contracts from ${key.version}`);
   console.log(
     `This run: ${only ? only.join(", ") : "every contract"}, model ${model ?? process.env.ANTHROPIC_MODEL ?? "the app's default"}, ` +
-      `thinking ${thinking ?? "off"}, effort ${effort ?? "high"}, ${limitMs / 1000}s a review, ${tries === 1 ? "one try" : `${tries} tries`}\n`
+      `thinking ${setting.thinking}, effort ${setting.effort}${answer ? "" : " (the app's setting)"}, ` +
+      `${limitMs / 1000}s a review, ${tries === 1 ? "one try" : `${tries} tries`}\n`
   );
 
   const documents: RunDocument[] = [];
@@ -204,7 +207,7 @@ async function main() {
     model_id: documents.find((d) => d.analysis)?.analysis?.model_id ?? model ?? "unknown",
     standards_version: standards.version,
     standards_hash: standards.hash,
-    ...(answer ? { settings: { effort, thinking } } : {}),
+    ...(answer ? { settings: { effort: answer.effort, thinking: answer.thinking } } : {}),
     documents,
   };
 

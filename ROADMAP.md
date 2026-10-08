@@ -399,9 +399,9 @@ below wherever the two differ. Each item gets its own plan before any code.
 | Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: make the chosen setting the branch's own, then one Harborview
-run when the user allows a paid run.** On 2026-10-08 the user chose thinking
-allowed at effort `medium` and put paid runs on hold.
+**Next step: one Harborview run, when the user allows a paid run.** On
+2026-10-08 the user chose thinking allowed at effort `medium` and put paid
+runs on hold. That setting is now the judging call's own on the branch.
 The finish line and the rules for paid runs are in "Sonnet 5.5: the finish
 line" under item 2 below.
 
@@ -721,6 +721,14 @@ for what is shown. Every pinned model request is unchanged.
             because the contract fixes one rate for one event. The key
             expects a finding. Whether CD wants that finding on a
             single-event contract is a question for the user.
+        - **Thinking allowed at effort `medium` is the judging call's
+          setting on the branch (user's choice, 2026-10-08).**
+          `JUDGING_ANSWER` in `lib/anthropic.ts`. The second ask shares it.
+          The reading call, both emails and every Sonnet 5 request are
+          unchanged. The pinned Sonnet 5.5 review request changed in two
+          fields, `thinking` and `effort`. The eval's flags still
+          override it. Lint, typecheck and 1,569 tests pass, and the free
+          request check accepts all 16 pinned requests.
         - **Before the next paid run:** run one contract at a time with
           nothing else in flight, and price it from the Console's actual
           usage. The eval capture already has the app's limit and one try.
