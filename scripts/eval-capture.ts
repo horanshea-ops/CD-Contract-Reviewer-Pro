@@ -74,6 +74,14 @@ async function main() {
   const key: AnswerKey = JSON.parse(await readFile(KEY_PATH, "utf8"));
   const standards = await loadStandardsLibrary();
 
+  // A paid run on the bundled copy measures a library the app doesn't use.
+  if (standards.source === "bundled_fallback" && !process.argv.includes("--bundled")) {
+    throw new Error(
+      `The standards library came from the bundled copy, not the database (${standards.fallbackReason}). ` +
+        `Nothing was sent. Pass --bundled to run on the bundled copy on purpose.`
+    );
+  }
+
   // Analyses an earlier attempt at this label already got. A dropped connection
   // should not mean paying to re-analyse the contracts that went through.
   const already = new Map<string, RunDocument>();
