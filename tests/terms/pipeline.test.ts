@@ -15,7 +15,7 @@ import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 const { create, scanForAiUseTerms, sets } = vi.hoisted(() => ({
   create: vi.fn(),
   scanForAiUseTerms: vi.fn(() => [] as { term: string }[]),
-  sets: { asked: [] as string[], unusable: [] as string[] },
+  sets: { asked: [] as string[], unusable: [] as string[], unreadable: false },
 }));
 
 vi.mock("@anthropic-ai/sdk", () => ({
@@ -32,6 +32,7 @@ vi.mock("@/lib/standards/load", async () => {
     // Stands in for the loader: the set asked for is used unless a test says it can't be.
     loadStandardsLibrary: async (setKey = "independent") => {
       sets.asked.push(setKey);
+      if (sets.unreadable) throw new Error("The standards library couldn't be read, so nothing was reviewed (JWT issued at future). Use Retry to run it again.");
       const refused = sets.unusable.includes(setKey);
       return {
         entries: STANDARDS_LIBRARY,
@@ -137,6 +138,7 @@ beforeEach(() => {
   db.threadError = null;
   sets.asked = [];
   sets.unusable = [];
+  sets.unreadable = false;
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("TERM_EXTRACTION", "");
   create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
@@ -192,6 +194,15 @@ describe("term extraction in processAnalysis", () => {
     create.mockImplementation(async () => analysisResponse);
     await processAnalysis("analysis-1");
     expect(updatesTo("analyses").find((u) => u.status === "complete")?.document_notes).toBeNull();
+  });
+
+  it("fails the review, without calling the model, when the standards library can't be read", async () => {
+    sets.unreadable = true;
+    await processAnalysis("analysis-1");
+
+    expect(create).not.toHaveBeenCalled();
+    expect(updatesTo("analyses").find((u) => u.status === "failed")?.error).toMatch(/standards library couldn't be read, so nothing was reviewed/);
+    expect(updatesTo("analyses").some((u) => u.status === "complete")).toBe(false);
   });
 
   it("gives the review call the model budget as its time limit", async () => {
