@@ -403,9 +403,10 @@ below wherever the two differ. Each item gets its own plan before any code.
 2026-10-08 the user chose thinking allowed at effort `medium`, and it is now
 the one setting every Sonnet 5.5 call sends on the branch. Paid runs are on
 hold. The gate (Harborview, then Florida, about $1.00 together) is good only
-for the exact setup it tests, so it waits until these are settled:
-the held prompt items in "Free work waiting" item 4, the user's question of
-which findings earn a card, and CD's updated Independent baseline.
+for the exact setup it tests. The user decided on 2026-10-08 that none of
+the three held prompt items in "Free work waiting" item 4 goes in before the
+gate. Still waiting, on CD: which findings earn a card, the future-rate-cap
+question, and the updated Independent baseline.
 The finish line and the rules for paid runs are in "Sonnet 5.5: the finish
 line" under item 2 below.
 
