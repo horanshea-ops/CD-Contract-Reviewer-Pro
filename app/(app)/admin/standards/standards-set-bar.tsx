@@ -8,6 +8,7 @@ import { FIELD_LABEL_CLASSES } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { Body } from "@/components/ui/typography";
 import type { StandardSet } from "@/lib/standards/sets";
+import { BrandsCovered } from "./brands-covered";
 
 /**
  * Which set of standards the screen shows, and whether reviews read it.
@@ -15,6 +16,7 @@ import type { StandardSet } from "@/lib/standards/sets";
  * A set is the whole library for its brand's reviews once it is switched on,
  * so the switch says how many standards that is and asks first. An empty set
  * has nothing to switch on, and is offered a copy of the default set instead.
+ * Beneath it sits the list of brands the set covers.
  */
 export function StandardsSetBar<Row>({
   sets,
@@ -30,6 +32,7 @@ export function StandardsSetBar<Row>({
   count: number;
   /** Whether the set holds removed standards, which a copy would collide with. */
   hasRemoved: boolean;
+  /** The set after a change to its switch or its brands. */
   onSwitched: (set: StandardSet) => void;
   onCopied: (rows: Row[]) => void;
 }) {
@@ -124,6 +127,8 @@ export function StandardsSetBar<Row>({
           )}
         </div>
       )}
+
+      <BrandsCovered set={set} onChanged={onSwitched} />
 
       <DialogShell
         open={confirming}

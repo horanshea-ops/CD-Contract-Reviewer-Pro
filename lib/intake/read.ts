@@ -1,5 +1,5 @@
 import type { StandardSet } from "../standards/sets";
-import { BRAND_PLACES, brandsIn, setBrands, setForBrand, type HotelBrand } from "./brands";
+import { BRAND_PLACES, brandsIn, placeBrand, setBrands, type HotelBrand } from "./brands";
 
 /**
  * Reads the property name and the hotel brand off a contract at upload, by
@@ -120,21 +120,19 @@ function sentences(text: string): string[] {
 /**
  * The hotel's brand, and the standards set its reviews read.
  *
- * The brand is the hotel's family, whether or not it has standards of its
- * own, since a family's lines share one set of standards. A brand in the
- * property name settles it. Otherwise the contract must name exactly one
- * brand family, outside any comparison. Two families, or none, give no brand,
- * and the associate enters it.
+ * The brand is placed among the standards sets (`placeBrand`), so a brand on
+ * a set's list is given under the set's name. A brand in the property name
+ * settles it. Otherwise the contract must name exactly one brand family,
+ * outside any comparison. Two families, or none, give no brand, and the
+ * associate enters it.
  */
 export function readBrand(text: string, propertyName: string | null, sets: BrandSet[]): BrandRead {
   // A set's own brand names count even when the built-in list lacks them.
   const extra = setBrands(sets);
-  const read = (brand: HotelBrand, evidence: string): BrandRead => ({
-    brand: brand.family,
-    set: setForBrand(brand.family, sets)?.key ?? null,
-    evidence,
-    note: null,
-  });
+  const read = (brand: HotelBrand, evidence: string): BrandRead => {
+    const placed = placeBrand(brand.name, sets);
+    return { brand: placed?.brand ?? brand.family, set: placed?.set?.key ?? null, evidence, note: null };
+  };
 
   const inName = brandsIn(propertyName ?? "", { nameOnly: true, extra });
   if (inName.length === 1) return read(inName[0], flat(propertyName!));

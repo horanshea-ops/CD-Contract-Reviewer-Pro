@@ -2,15 +2,19 @@
  * Hotel brands, as contracts write them, for reading a contract's brand by
  * local rules (lib/intake/read.ts).
  *
- * The brand shown to the associate is the hotel's brand family, whether or
- * not CD has standards specific to it. CD negotiates one set of standards per
- * family, so a family's lines are not told apart: Hyatt Regency is Hyatt, and
- * DoubleTree is Hilton. Which standards a review reads is answered by
- * `setForBrand`.
+ * This list finds a brand's name in a contract and says which family it
+ * belongs to. It does not decide which standards a review reads. Each
+ * standards set holds its own list of the brands it covers, which an admin
+ * edits on the Standards screen, and `placeBrand` matches a brand against
+ * those lists.
  *
- * `family` groups a brand with its parent. A `nameOnly` brand is also an
- * ordinary word or a person's name, so it is read from the property name or
- * the brand field and never from the body of the contract.
+ * A brand on a set's list is shown under the set's name, so a family's lines
+ * are not told apart: Hyatt Regency is Hyatt. A brand of a family CD has no
+ * set for is shown as the family.
+ *
+ * A `nameOnly` brand is also an ordinary word or a person's name, so it is
+ * read from the property name or the brand field and never from the body of
+ * the contract.
  */
 
 export interface HotelBrand {
@@ -119,41 +123,87 @@ export function brandsIn(text: string, { nameOnly = false, extra = [] as HotelBr
   return found;
 }
 
-/** A standards set's own brand names as brands of that set, for names the list above lacks. */
-export function setBrands(sets: BrandSetLike[]): HotelBrand[] {
-  return sets.filter((set) => !set.is_default).flatMap((set) => set.brand_names.map((name) => ({ name, family: set.name })));
-}
-
-/**
- * The family a brand name belongs to, or null for a name no list has.
- * "Hyatt Regency" and "Andaz" are both Hyatt.
- */
-export function familyOf(name: string | null | undefined, extra: HotelBrand[] = []): string | null {
-  return brandsIn(name ?? "", { nameOnly: true, extra })[0]?.family ?? null;
-}
-
 /** A set of standards, as far as matching a brand to it goes. */
 export interface BrandSetLike {
   key: string;
   name: string;
+  /** The brands the set covers. An admin edits the list on the Standards screen. */
   brand_names: string[];
   is_default: boolean;
 }
 
 /**
- * The standards set a brand's reviews read, or null for the default set.
- *
- * A set covers its whole family. "DoubleTree by Hilton" is Hilton's by its
- * name, and "Conrad" is Hilton's by its family. A set's own name is its
- * family's name, so a brand read as "Kessler" finds the Kessler set.
+ * A brand name in one spelling, so two ways of writing a brand compare equal:
+ * "DoubleTree" and "DoubleTree by Hilton", "Omni" and "Omni Hotels",
+ * "Le Méridien" and "Le Meridien".
  */
-export function setForBrand<T extends BrandSetLike>(brand: string | null | undefined, sets: T[]): T | null {
-  const name = (brand ?? "").replace(BRAND_PLACES, " ").trim();
-  if (!name) return null;
+export function brandKey(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/\s+by\s+.+$/, "")
+    .replace(/\s+hotels?$/, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
 
-  const family = familyOf(name, setBrands(sets));
-  const names = family ? [name, family] : [name];
-  const covers = (set: T) =>
-    names.some((n) => n.toLowerCase() === set.name.toLowerCase()) || set.brand_names.some((b) => names.some((n) => wordOf(b).test(n)));
-  return sets.find((set) => !set.is_default && covers(set)) ?? null;
+/**
+ * A set's listed brands that the list above lacks, so a contract naming one
+ * is still read. A single added word is read from the property name and the
+ * brand field only, since a common word would match all through a contract.
+ */
+export function setBrands(sets: BrandSetLike[]): HotelBrand[] {
+  return sets
+    .filter((set) => !set.is_default)
+    .flatMap((set) => set.brand_names.map((name) => ({ name, family: set.name, ...(/\s/.test(name.trim()) ? {} : { nameOnly: true }) })));
+}
+
+/** Where a brand sits among the standards sets. */
+export interface BrandPlacement<T extends BrandSetLike> {
+  /** The brand as the form shows it and a negotiation records it. */
+  brand: string;
+  /** The set whose list holds the brand. Null means the default set. */
+  set: T | null;
+  /** The brand as it was written, when it is shown under another name. */
+  written: string | null;
+  /** The set of the brand's own family, when that set's list leaves the brand out. */
+  leftOutOf: T | null;
+}
+
+/**
+ * Places a brand, as read from a contract or typed by an associate.
+ *
+ * A set covers the brands on its list and no others. Its own name always
+ * counts, so a brand recorded under the set's name finds the set again. A
+ * brand on a list is shown as the set's name. A brand its family's set leaves
+ * out is shown by its own name. A brand of a family with no set is shown as
+ * the family. Null for a blank.
+ */
+export function placeBrand<T extends BrandSetLike>(brand: string | null | undefined, sets: T[]): BrandPlacement<T> | null {
+  const typed = (brand ?? "").replace(BRAND_PLACES, " ").replace(/\s+/g, " ").trim();
+  if (!typed) return null;
+
+  const fallback = sets.find((set) => set.is_default);
+  if (fallback && brandKey(typed) === brandKey(fallback.name)) return { brand: fallback.name, set: null, written: null, leftOutOf: null };
+
+  const known = brandsIn(typed, { nameOnly: true, extra: setBrands(sets) })[0] ?? null;
+  const name = known?.name ?? typed;
+  const key = brandKey(name);
+  const others = sets.filter((set) => !set.is_default);
+
+  const covering = others.find((set) => brandKey(set.name) === key || set.brand_names.some((listed) => brandKey(listed) === key));
+  if (covering) {
+    return { brand: covering.name, set: covering, written: brandKey(typed) === brandKey(covering.name) ? null : typed, leftOutOf: null };
+  }
+  if (!known) return { brand: typed, set: null, written: null, leftOutOf: null };
+
+  const familySet = others.find((set) => brandKey(set.name) === brandKey(known.family)) ?? null;
+  if (familySet) return { brand: known.name, set: null, written: null, leftOutOf: familySet };
+  return { brand: known.family, set: null, written: brandKey(typed) === brandKey(known.family) ? null : typed, leftOutOf: null };
+}
+
+/** The standards set a brand's reviews read, or null for the default set. */
+export function setForBrand<T extends BrandSetLike>(brand: string | null | undefined, sets: T[]): T | null {
+  return placeBrand(brand, sets)?.set ?? null;
 }
