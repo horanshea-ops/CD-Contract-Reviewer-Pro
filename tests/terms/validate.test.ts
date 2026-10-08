@@ -81,7 +81,7 @@ describe("rejecting what cannot be stored", () => {
   const reasons = (...entries: unknown[]) => run(...entries).rejected.map((r) => r.reason);
 
   it("rejects a key the catalog does not have", () => {
-    expect(reasons(entry("attrition.nonsense", 1, "ninety percent (90%)"))[0]).toMatch(/not in catalog hotel-v1/);
+    expect(reasons(entry("attrition.nonsense", 1, "ninety percent (90%)"))[0]).toMatch(/not in catalog hotel-v3/);
   });
 
   it("rejects an entry with no quote", () => {
@@ -136,6 +136,73 @@ describe("verifying each value against the document", () => {
     expect(verification(entry("rebates.comp_room_ratio", 75, "one (1) complimentary room per seventy-five (75) paid room nights"))).toBe("verified");
     expect(verification(entry("rebates.comp_room_ratio", 40, "one (1) complimentary room per seventy-five (75) paid room nights"))).toBe("contradicted");
     expect(verification(entry("deal.peak_night_rooms", 340, "a block of 340 guest rooms on the peak night"))).toBe("verified");
+  });
+
+  describe("a count of rooms or room nights", () => {
+    const BLOCK = [
+      "| Date | Mon | Tue | Wed | Total |",
+      "| --- | --- | --- | --- | --- |",
+      "| Total Room Block | 70 | 100 | 360 | 530 |",
+      "| Suites | 5 | 10 | 10 | 40 |",
+      "| 3 | 4 | 7 |",
+      "Total Room Nights: 2,900",
+      "You agree to use at least 2,280 room nights, which is eighty percent (80%) of the 2,900 in the block.",
+      "Run of House: 150 rooms at $149.00 per night for 30 days, arriving June 14, 2027.",
+    ].join("\n");
+    const check = (term_key: string, value: number, quote: string) =>
+      validateTerms([entry(term_key, value, quote)], HOTEL_TERM_CATALOG, [{ part: "document", text: BLOCK }]).stated[0].verification;
+    const block = (value: number, quote: string) => check("deal.room_block_room_nights", value, quote);
+
+    it("verifies a count that stands alone in its quote", () => {
+      expect(block(2900, "Total Room Nights: 2,900")).toBe("verified");
+    });
+
+    it("verifies the total of a quoted row, and no other number in it", () => {
+      const row = "Total Room Block | 70 | 100 | 360 | 530";
+      expect(block(530, row)).toBe("verified");
+      expect(block(360, row)).toBe("located");
+      expect(block(540, row)).toBe("contradicted");
+    });
+
+    it("only locates a count beside others that don't add up to it", () => {
+      expect(block(40, "Suites | 5 | 10 | 10 | 40")).toBe("located");
+      expect(check("attrition.minimum_room_nights", 2280, "at least 2,280 room nights, which is eighty percent (80%) of the 2,900 in the block")).toBe("located");
+    });
+
+    it("judges a bare cell by the table row it sits in", () => {
+      expect(block(530, "530")).toBe("verified");
+      expect(block(40, "40")).toBe("located");
+      // A row with no label says nothing about what its numbers are.
+      expect(block(7, "7")).toBe("located");
+      // Not a table cell at all.
+      expect(block(2900, "2,900")).toBe("located");
+    });
+
+    it("accepts a total the contract doesn't print, when the quote's table adds up to it", () => {
+      const NIGHTLY = [
+        "| Date | Rooms | Group Rate |",
+        "| --- | --- | --- |",
+        "| Night 1 | 170 | $289.00 |",
+        "| Night 2 | 170 | $289.00 |",
+        "| Night 3 | 170 | $289.00 |",
+        "| Night 4 | 170 | $289.00 |",
+        "",
+        "Hotel will hold a block of 340 guest rooms on the peak night.",
+      ].join("\n");
+      const nightly = (value: number, quote: string) =>
+        validateTerms([entry("deal.room_block_room_nights", value, quote)], HOTEL_TERM_CATALOG, [{ part: "document", text: NIGHTLY }]).stated[0].verification;
+
+      expect(nightly(680, "Night 1 | 170 | $289.00")).toBe("verified");
+      expect(nightly(680, "Rooms")).toBe("verified");
+      // No column adds up to these, and prose is not a table.
+      expect(nightly(850, "Night 1 | 170 | $289.00")).toBe("contradicted");
+      expect(nightly(680, "a block of 340 guest rooms on the peak night")).toBe("contradicted");
+    });
+
+    it("doesn't count an amount, a percentage, a duration or a date as rooms", () => {
+      expect(check("deal.peak_night_rooms", 150, "Run of House: 150 rooms at $149.00 per night for 30 days, arriving June 14, 2027.")).toBe("verified");
+      expect(check("attrition.minimum_room_nights", 2280, "at least 2,280 room nights, which is eighty percent (80%)")).toBe("verified");
+    });
   });
 
   it("verifies both ends of a date range", () => {

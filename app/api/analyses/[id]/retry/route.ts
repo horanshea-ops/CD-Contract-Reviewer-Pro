@@ -8,7 +8,7 @@ import { retryability } from "@/lib/analysis-status";
 
 // Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
 // upload and saves. Render runs a long-lived server and ignores it.
-export const maxDuration = 600;
+export const maxDuration = 720;
 
 /**
  * Re-runs an analysis that failed or stalled, on the file already in storage.

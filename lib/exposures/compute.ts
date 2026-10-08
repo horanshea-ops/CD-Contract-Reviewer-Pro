@@ -1,10 +1,6 @@
 import type { Finding } from "../anthropic";
 import { evaluateFormula } from "../exposure";
-import {
-  ATTRITION_TRIGGER_OF_BLOCK,
-  FB_SHORTFALL_RATE,
-  ROOM_PROFIT_OF_RATE,
-} from "./cd-positions";
+import type { CdPositions } from "./cd-positions";
 import type { DealFigures } from "./figures";
 
 /**
@@ -21,6 +17,9 @@ import type { DealFigures } from "./figures";
  *   of room profit.
  * - Food and beverage: none of the minimum is spent. Only computed when the
  *   contract states the share of a shortfall it charges.
+ *
+ * CD's side of each comparison comes from the standards library, read by
+ * positionsFrom (./cd-positions.ts) and passed in.
  *
  * The formula is kept with the figure so the review card can show it.
  */
@@ -41,7 +40,7 @@ function result(formula: string, basis: string): ComputedExposure | null {
   return { amount: Math.round(amount * 100) / 100, formula, basis };
 }
 
-export function attritionExposure(f: DealFigures): ComputedExposure | null {
+export function attritionExposure(f: DealFigures, p: CdPositions): ComputedExposure | null {
   const block = f.room_block_room_nights;
   const rate = f.group_rate;
   const damages = f.attrition_damages_pct;
@@ -50,18 +49,18 @@ export function attritionExposure(f: DealFigures): ComputedExposure | null {
   const minimum =
     f.minimum_room_nights ?? (f.attrition_threshold_pct === null ? null : Math.round(f.attrition_threshold_pct * block));
   if (minimum === null) return null;
-  const trigger = Math.round(block * ATTRITION_TRIGGER_OF_BLOCK);
+  const trigger = Math.round(block * p.attritionTrigger);
   if (minimum <= trigger) return null;
 
   const sym = symbolOf(f);
   return result(
     `(${minimum} - ${trigger}) * ${sym}${rate} * ${damages}`,
-    `At ${percent(ATTRITION_TRIGGER_OF_BLOCK)} pickup (${whole(trigger)} room nights), where CD's standard owes nothing, ` +
+    `At ${percent(p.attritionTrigger)} pickup (${whole(trigger)} room nights), where CD's standard owes nothing, ` +
       `this contract charges for ${whole(minimum - trigger)} nights at ${percent(damages)} of ${sym}${whole(rate)}.`
   );
 }
 
-export function cancellationExposure(f: DealFigures): ComputedExposure | null {
+export function cancellationExposure(f: DealFigures, p: CdPositions): ComputedExposure | null {
   const rate = f.group_rate;
   if (rate === null) return null;
 
@@ -71,25 +70,25 @@ export function cancellationExposure(f: DealFigures): ComputedExposure | null {
   if (nights === null) return null;
 
   return result(
-    `${nights} * ${symbolOf(f)}${rate} * ${top.room_pct} * (1 - ${ROOM_PROFIT_OF_RATE})`,
+    `${nights} * ${symbolOf(f)}${rate} * ${top.room_pct} * (1 - ${p.roomProfit})`,
     `In the "${top.label}" tier, this contract charges ${percent(top.room_pct)} of the full rate on ${whole(nights)} room nights. ` +
-      `CD's standard charges ${percent(top.room_pct)} of room profit, which is ${percent(ROOM_PROFIT_OF_RATE)} of the rate.`
+      `CD's standard charges ${percent(top.room_pct)} of room profit, which is ${percent(p.roomProfit)} of the rate.`
   );
 }
 
-export function fbMinimumExposure(f: DealFigures): ComputedExposure | null {
+export function fbMinimumExposure(f: DealFigures, p: CdPositions): ComputedExposure | null {
   const minimum = f.fb_minimum;
   const shortfall = f.fb_shortfall_pct;
-  if (minimum === null || shortfall === null || shortfall <= FB_SHORTFALL_RATE) return null;
+  if (minimum === null || shortfall === null || shortfall <= p.fbShortfall) return null;
 
   return result(
-    `${symbolOf(f)}${minimum} * (${shortfall} - ${FB_SHORTFALL_RATE})`,
+    `${symbolOf(f)}${minimum} * (${shortfall} - ${p.fbShortfall})`,
     `If none of the ${symbolOf(f)}${whole(minimum)} minimum is spent, this contract charges ${percent(shortfall)} of the shortfall. ` +
-      `CD's standard charges ${percent(FB_SHORTFALL_RATE)}.`
+      `CD's standard charges ${percent(p.fbShortfall)}.`
   );
 }
 
-const CALCULATIONS: Partial<Record<string, (f: DealFigures) => ComputedExposure | null>> = {
+const CALCULATIONS: Partial<Record<string, (f: DealFigures, p: CdPositions) => ComputedExposure | null>> = {
   attrition: attritionExposure,
   cancellation: cancellationExposure,
   fb_minimum: fbMinimumExposure,
@@ -101,11 +100,11 @@ const CALCULATIONS: Partial<Record<string, (f: DealFigures) => ComputedExposure 
  * a schedule changed cell by cell, is counted once. Every other finding
  * carries none.
  */
-export function withComputedExposures<T extends Finding>(findings: T[], figures: DealFigures): T[] {
+export function withComputedExposures<T extends Finding>(findings: T[], figures: DealFigures, positions: CdPositions): T[] {
   const placed = new Set<string>();
   return findings.map((finding) => {
     const calculate = CALCULATIONS[finding.clause_type];
-    const exposure = calculate && !placed.has(finding.clause_type) ? calculate(figures) : null;
+    const exposure = calculate && !placed.has(finding.clause_type) ? calculate(figures, positions) : null;
     if (calculate) placed.add(finding.clause_type);
     return {
       ...finding,

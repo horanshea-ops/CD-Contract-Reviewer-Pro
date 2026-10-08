@@ -9,7 +9,8 @@ import { reconcileReview, type ClauseReview, type DroppedFinding, type ReviewGap
 import { toNotes, type DocumentNote } from "./document-notes";
 import { toOtherFindings } from "./other-findings";
 import { applyCategories, toFlaggedFindings, type CategorizedFinding } from "./finding-categories";
-import { checkFigures, type DealFigures } from "./exposures/figures";
+import { DEFAULT_POSITIONS } from "./exposures/cd-positions";
+import { NO_FIGURES, type DealFigures } from "./exposures/figures";
 import { withComputedExposures } from "./exposures/compute";
 import { currencyOf } from "./exposure";
 import { formatCurrency } from "./format";
@@ -57,7 +58,7 @@ export interface AnalysisResult {
   review_gaps: ReviewGap[];
   dropped_findings: DroppedFinding[];
   document_notes: DocumentNote[];
-  /** The contract's figures the app checked and computed exposures from. Absent on runs captured before them. */
+  /** The contract's figures the exposures were computed from. reviewContract sets it. Absent on runs captured before them. */
   deal_figures?: DealFigures;
   model_id: string;
   standards_library_version: string;
@@ -67,6 +68,10 @@ export interface AnalysisResult {
   cache_creation_input_tokens: number;
   /** Characters of thinking the model wrote before its answer. Thinking is billed as output. Absent on older runs. */
   thinking_chars?: number;
+  /** Output tokens spent on thinking, as the API counts them. Thinking text can be hidden, and this still counts it. */
+  thinking_tokens?: number;
+  /** How long the call took, a retry included. Output tokens over this is the model's writing speed. */
+  elapsed_ms?: number;
 }
 
 /** A fresh review, with each finding's category stamped from the library. Saved eval runs predate categories. */
@@ -74,18 +79,157 @@ export interface CategorizedAnalysis extends AnalysisResult {
   findings: CategorizedFinding[];
 }
 
-const FINDINGS_TOOL_NAME = "record_analysis";
+/**
+ * Models that accept a forced tool_choice. Their requests force the tool, as
+ * every request did before Sonnet 5.5.
+ *
+ * Every other model, Sonnet 5.5 onward, rejects a forced tool_choice. Its
+ * request carries no tool. The API holds the reply to the tool's schema, so
+ * the answer comes back as JSON text in the same shape.
+ */
+const FORCED_TOOL_MODELS = new Set([
+  "claude-sonnet-5",
+  "claude-opus-5",
+  "claude-opus-4-8",
+  "claude-opus-4-7",
+  "claude-opus-4-6",
+  "claude-sonnet-4-6",
+  "claude-haiku-4-5",
+  "claude-haiku-4-5-20251001",
+]);
 
-/** One figure from the contract and the words that state it. */
-const figure = (description: string) => ({
-  type: ["object", "null"],
-  description,
-  properties: {
-    value: { type: "number", description: "The figure as written: 2280 for 2,280, 149 for $149.00, 469 for €469.00, 80 for 80%." },
-    quoted_text: { type: "string", description: "Words copied exactly from the contract that state this figure." },
-  },
-  required: ["value", "quoted_text"],
-});
+export function forcesTool(model: string): boolean {
+  return FORCED_TOOL_MODELS.has(model);
+}
+
+/**
+ * Models that take thinking "between_tools", which skips the thinking ahead of
+ * the answer. Every other model rejects the setting. The app doesn't send it.
+ * An eval can, to measure a call with thinking off.
+ */
+const BETWEEN_TOOLS_MODELS = new Set(["claude-sonnet-5-5"]);
+
+type Effort = NonNullable<Anthropic.Messages.OutputConfig["effort"]>;
+
+/** How a call asks an unforced model to work. The app uses ANSWER_DEFAULTS. An eval sets them to measure another setting. */
+export interface AnswerOptions {
+  effort?: Effort;
+  /** "adaptive" lets the model think before it answers. "off" is the least thinking the model allows. */
+  thinking?: "off" | "adaptive";
+}
+
+/**
+ * The one setting every call sends an unforced model. Thinking is allowed,
+ * the one mode every newer model takes, and the model decides whether to use
+ * it. Effort is medium, the level at which a review's first pass wrote its
+ * findings in full and met the eval's bar.
+ */
+export const ANSWER_DEFAULTS: Required<AnswerOptions> = { effort: "medium", thinking: "adaptive" };
+
+/**
+ * A tool's schema as an output format takes it. Every object is closed with
+ * additionalProperties: false. An enum beside a list of types is refused, so
+ * a nullable enum is written as anyOf.
+ */
+export function formatSchema<T>(schema: T): T {
+  if (Array.isArray(schema)) return schema.map(formatSchema) as T;
+  if (schema === null || typeof schema !== "object") return schema;
+  const node: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    node[key] = key === "enum" || key === "required" ? value : formatSchema(value);
+  }
+
+  const { type, enum: values, ...rest } = node;
+  if (Array.isArray(type) && Array.isArray(values)) {
+    const anyOf = type.map((t) => (t === "null" ? { type: "null" } : { type: t, enum: values.filter((v) => v !== null) }));
+    return { ...rest, anyOf } as T;
+  }
+
+  if (type === "object" || (Array.isArray(type) && type.includes("object"))) node.additionalProperties = false;
+  return node as T;
+}
+
+/**
+ * How one call asks for its answer, shaped for the model.
+ *
+ * Effort is stated for an unforced model because its levels differ from
+ * Sonnet 5's. With thinking off, "between_tools" is refused above "high".
+ */
+export function answerRequest(
+  model: string,
+  tool: Anthropic.Messages.Tool,
+  { effort = ANSWER_DEFAULTS.effort, thinking = ANSWER_DEFAULTS.thinking }: AnswerOptions = {}
+) {
+  if (forcesTool(model)) {
+    return { tools: [tool], tool_choice: { type: "tool" as const, name: tool.name } };
+  }
+  const leastThinking = BETWEEN_TOOLS_MODELS.has(model) ? { thinking: { type: "between_tools" as const } } : {};
+  return {
+    ...(thinking === "adaptive" ? { thinking: { type: "adaptive" as const } } : leastThinking),
+    output_config: {
+      effort,
+      format: { type: "json_schema" as const, schema: formatSchema(tool.input_schema) as Record<string, unknown> },
+    },
+  };
+}
+
+/**
+ * The system prompt, with what an unforced model needs in place of the tool:
+ * a line saying the reply is the record, and the tool's description. A prompt
+ * in blocks gets it at the end of its first block, the rules, ahead of the
+ * cached library or catalog.
+ */
+export function withAnswerInstruction<T extends string | Anthropic.Messages.TextBlockParam[]>(
+  system: T,
+  model: string,
+  tool: Anthropic.Messages.Tool
+): T {
+  if (forcesTool(model)) return system;
+  const line = `\n\nYour whole reply is one JSON record in the required format, with nothing before or after it. ${tool.description ?? ""}`.trimEnd();
+  if (typeof system === "string") return `${system}${line}` as T;
+  const [first, ...rest] = system;
+  return [{ ...first, text: `${first.text}${line}` }, ...rest] as T;
+}
+
+/**
+ * The model's answer as an object. A forced model answers in a tool call, and
+ * an unforced one in JSON text.
+ */
+export function readAnswer(response: Anthropic.Messages.Message, what: string): Record<string, unknown> {
+  const call = response.content.find((block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use");
+  if (call) return call.input as Record<string, unknown>;
+
+  const text = response.content
+    .filter((block): block is Anthropic.Messages.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("")
+    .trim();
+  if (!text) throw new Error(`Model did not return ${what} (no tool_use block or JSON text in response).`);
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Model returned ${what} that isn't valid JSON. stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
+    );
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`Model returned ${what} that isn't a JSON object. stop_reason=${response.stop_reason}`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
+/** The model declined the request. Retrying would decline the same way, so it isn't. */
+export class RefusalError extends Error {}
+
+function checkRefusal(response: Anthropic.Messages.Message, what: string) {
+  if (response.stop_reason === "refusal") {
+    throw new RefusalError(`The model declined to ${what}. It wasn't retried, because a retry would decline the same way.`);
+  }
+}
+
+const FINDINGS_TOOL_NAME = "record_analysis";
 
 export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) => ({
   name: FINDINGS_TOOL_NAME,
@@ -199,53 +343,6 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
           required: ["headline", "detail"],
         },
       },
-      deal_figures: {
-        type: "object",
-        description:
-          "The contract's own figures, each with the words it comes from, for the reviewer's tool to work out exposures. Null for any figure the contract doesn't state.",
-        properties: {
-          room_block_room_nights: figure("Total room nights in the room block, as the contract totals them."),
-          group_rate: figure("The main group room rate per night, in the contract's currency."),
-          minimum_room_nights: figure("The room nights the group commits to use before attrition damages apply."),
-          attrition_threshold_pct: figure("Where the contract states the commitment as a share of the block instead: that percentage."),
-          attrition_damages_pct: figure("The percentage of the room rate owed for each room night short of the commitment."),
-          cancellation_tiers: {
-            type: "array",
-            description: "Every tier of the room cancellation schedule.",
-            items: {
-              type: "object",
-              properties: {
-                label: { type: "string", description: "The tier as the contract names it, such as \"90 Days or Less\"." },
-                room_pct: { type: "number", description: "The tier's room cancellation percentage, as written: 90 for 90%." },
-                base: {
-                  type: "string",
-                  enum: ["minimum_room_nights", "room_block", "other"],
-                  description: "Which room nights the percentage applies to.",
-                },
-                charges: {
-                  type: "string",
-                  enum: ["rate", "room_profit"],
-                  description: "Whether the percentage is of the full room rate or of room profit.",
-                },
-                quoted_text: { type: "string", description: "The contract's words for this tier, stating its percentage." },
-              },
-              required: ["label", "room_pct", "base", "charges", "quoted_text"],
-            },
-          },
-          fb_minimum: figure("The food and beverage minimum the group commits to spend, in the contract's currency."),
-          fb_shortfall_pct: figure("The percentage of a food and beverage shortfall the group owes. Null when the contract states none."),
-        },
-        required: [
-          "room_block_room_nights",
-          "group_rate",
-          "minimum_room_nights",
-          "attrition_threshold_pct",
-          "attrition_damages_pct",
-          "cancellation_tiers",
-          "fb_minimum",
-          "fb_shortfall_pct",
-        ],
-      },
       other_findings: {
         type: "array",
         description: `Every term no clause type in the standards library covers that still shifts cost, liability or control onto the group, the most consequential first. Nothing a finding or document note already says.`,
@@ -269,7 +366,7 @@ export const findingsToolSchema = ({ name, shortName: firm }: OrgProfile = ORG) 
         },
       },
     },
-    required: ["clause_review", "findings", "flagged_findings", "document_notes", "other_findings", "deal_figures"],
+    required: ["clause_review", "findings", "flagged_findings", "document_notes", "other_findings"],
   },
 });
 
@@ -336,7 +433,6 @@ Rules:
 - In document_notes, name each place the contract contradicts itself, such as two different dates for the same event. Record one only when you can quote both sides, and check any arithmetic before calling a figure wrong. The reviewer's tool checks table totals, night counts and whether dates fall in order itself, so leave those out.
 - A contract often pairs an event agreement with separate terms and conditions. For each topic both parts address, such as walk, commission, finance or late charges, cancellation, renovation and deposits, compare their terms and record a note for each difference, quoting both. Also record one where a formula uses a different figure from the threshold it applies, or where a clause grants a right in one sentence and withholds it in another.
 - After the standards library, read the whole contract for terms no clause type in the library covers that still shift cost, liability or control onto the group. Examples include a default under any other agreement that lets the hotel end this one; a damages waiver that protects only the hotel; a right to demand prepayment on the hotel's own judgment; a duty to answer for a third party's acts; a right to end the agreement over a minor or technical breach, such as using the hotel's name or logo without approval; the hotel keeping payment for a service it withdraws, such as ending a function without a refund; a waiver of the group's right to dispute card charges; a bonus, points or payment to an individual planner rather than the group, which can create a conflict of interest; a condition that delays when the group's notice takes effect, such as until damages are paid; or forfeiting deposits or credit when the group rebooks. Read to the end of the contract before deciding what to record. Record each in other_findings with its quote, most consequential first. Propose no wording for them, because the library takes no position on them and the reviewer decides whether to raise them. A term a library clause type covers belongs in findings, never in other_findings.
-- Record the contract's figures in deal_figures, each with the words it comes from. Write percentages as they appear, 80 for 80%. Quote words that state the figure itself, since the reviewer's tool checks every figure against its quote and works out every dollar exposure from them. Leave a figure null when the contract doesn't state it; never work one out.
 - proposed_language should be ready to paste into a memo back to the property, adapted from the standards library's fallback language to fit this contract's specifics where relevant.`;
 
   const libraryBlock = `\n\nSTANDARDS LIBRARY (version ${standardsVersion}):\n${JSON.stringify(
@@ -392,12 +488,12 @@ export interface AnalyzeContractPdfArgs {
   /** Epoch ms by which the review must finish. Each attempt stops there, and
    *  the retry is skipped when too little time is left for it. */
   deadline?: number;
-  /** The contract as text, for checking the figures the model quotes. Defaults to a text document's own text. */
-  contractText?: string;
   /** Comments already in the file. They reach the model in a block of their own, after the contract. */
   comments?: DocumentComment[];
   /** How many comments the file holds, when that is more than `comments` carries. */
   commentsTotal?: number;
+  /** Effort and thinking for this call. The app leaves it out and gets ANSWER_DEFAULTS. */
+  answer?: AnswerOptions;
 }
 
 /**
@@ -431,6 +527,58 @@ const MIN_RETRY_MS = 120_000;
 /** An answer cut off at the output limit. Retrying would be cut off the same way, so it isn't. */
 class CutOffError extends Error {}
 
+/** A review stopped at its time limit. No time is left for a retry, so there isn't one. */
+class TimeLimitError extends Error {}
+
+/** How much of an answer a message holds, in characters. */
+function answerLength(message: Anthropic.Messages.Message | undefined): number {
+  return (message?.content ?? []).reduce((sum, block) => {
+    if (block.type === "text") return sum + block.text.length;
+    if (block.type === "tool_use") return sum + JSON.stringify(block.input ?? {}).length;
+    return sum;
+  }, 0);
+}
+
+/**
+ * Sends a request as a stream and returns the whole message.
+ *
+ * Node drops a request that has heard nothing back for 300 seconds, and an
+ * unstreamed review is silent until its last word. A stream carries bytes
+ * from the first word on, so a long review survives.
+ *
+ * The SDK's timeout covers only the wait for the first byte. `limitMs` stops
+ * the stream itself. The SDK's retries don't know about the limit, so they're
+ * off whenever there is one.
+ */
+async function streamedMessage(
+  client: Anthropic,
+  params: Anthropic.Messages.MessageStreamParams,
+  limitMs?: number
+): Promise<Anthropic.Messages.Message> {
+  const stream = client.messages.stream(params, limitMs === undefined ? undefined : { timeout: limitMs, maxRetries: 0 });
+
+  let stopped = false;
+  const timer =
+    limitMs === undefined
+      ? undefined
+      : setTimeout(() => {
+          stopped = true;
+          stream.abort();
+        }, limitMs);
+
+  try {
+    return await stream.finalMessage();
+  } catch (err) {
+    if (!stopped) throw err;
+    throw new TimeLimitError(
+      `The review was still being written when its time ran out, and it was stopped ` +
+        `(${answerLength(stream.currentMessage).toLocaleString("en-US")} characters of the answer had arrived). Use Retry to run it again.`
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function analyzeContract({
   document,
   standards,
@@ -439,9 +587,9 @@ export async function analyzeContract({
   model,
   org = ORG,
   deadline,
-  contractText,
   comments,
   commentsTotal,
+  answer,
 }: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -451,7 +599,7 @@ export async function analyzeContract({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const userContent: Anthropic.Messages.ContentBlockParam[] =
     document.kind === "pdf"
@@ -470,24 +618,26 @@ export async function analyzeContract({
   const remaining = () => (deadline === undefined ? undefined : Math.max(deadline - Date.now(), 1_000));
 
   async function attempt(): Promise<CategorizedAnalysis> {
-    const timeout = remaining();
-    const response = await client.messages.create({
-      model: modelId,
+    const response = await streamedMessage(
+      client,
+      {
+        model: modelId,
 
-      // Each finding carries full replacement language, and clause_review adds
-      // a line per clause type, so output grows with the library. The deadline
-      // stops a long review well before this does.
-      max_tokens: 64000,
+        // Each finding carries full replacement language, and clause_review adds
+        // a line per clause type, so output grows with the library. Sonnet 5.5
+        // writes about 180 tokens a second, so this cap and the ten-minute
+        // deadline are reached at about the same time.
+        max_tokens: 100000,
 
-      system: buildSystemPrompt(standards, standardsVersion, org),
-      tools: [findingsToolSchema(org)],
-      tool_choice: { type: "tool", name: FINDINGS_TOOL_NAME },
-      messages: [{ role: "user", content: userContent }],
-    },
-    // An explicit timeout lifts the SDK's non-streaming cap on max_tokens.
-    // The SDK's own retries don't know about the deadline, so they're off
-    // whenever there is one. The retry below does the same job within it.
-    timeout === undefined ? { timeout: 600_000 } : { timeout, maxRetries: 0 });
+        system: withAnswerInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, findingsToolSchema(org)),
+        ...answerRequest(modelId, findingsToolSchema(org), answer),
+        messages: [{ role: "user", content: userContent }],
+      },
+      // Each attempt gets what is left of the deadline. The retry below works within it too.
+      remaining()
+    );
+
+    checkRefusal(response, "review this contract");
 
     if (response.stop_reason === "max_tokens") {
       throw new CutOffError(
@@ -496,24 +646,13 @@ export async function analyzeContract({
       );
     }
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-
-    if (!toolUseBlock) {
-      throw new Error("Model did not return structured findings (no tool_use block in response).");
-    }
-
-    const input = toolUseBlock.input as Record<string, unknown>;
+    const input = readAnswer(response, "structured findings");
     const parsed = {
       clause_review: listField<ClauseReview>(input.clause_review),
       findings: listField<Finding>(input.findings),
       flagged_findings: toFlaggedFindings(listField(input.flagged_findings), standards),
       document_notes: toNotes(input.document_notes),
       other_findings: toOtherFindings(listField(input.other_findings), org.shortName),
-      deal_figures: checkFigures(input.deal_figures, [
-        { part: "document", text: contractText ?? (document.kind === "text" ? document.text : "") },
-      ]),
     };
 
     // tool_choice makes this reliable, not guaranteed — the model can still
@@ -538,13 +677,9 @@ export async function analyzeContract({
     return {
       ...reviewed,
       // Kept out of reconcileReview, which checks findings against the library's clause types.
-      // Every exposure figure is the app's own, worked out from the checked figures.
-      findings: applyCategories(
-        withComputedExposures([...reviewed.findings, ...parsed.other_findings], parsed.deal_figures),
-        standards
-      ),
+      // No finding carries an exposure here. reviewContract adds them from the reading pass's figures.
+      findings: applyCategories(withComputedExposures([...reviewed.findings, ...parsed.other_findings], NO_FIGURES, DEFAULT_POSITIONS), standards),
       document_notes: parsed.document_notes,
-      deal_figures: parsed.deal_figures,
       model_id: modelId,
       standards_library_version: standardsVersion,
       input_tokens: usage.input_tokens,
@@ -552,20 +687,24 @@ export async function analyzeContract({
       cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
       thinking_chars: response.content.reduce((sum, block) => sum + (block.type === "thinking" ? block.thinking.length : 0), 0),
+      thinking_tokens: usage.output_tokens_details?.thinking_tokens ?? 0,
     };
   }
 
+  const started = Date.now();
+  const timed = async () => ({ ...(await attempt()), elapsed_ms: Date.now() - started });
+
   try {
-    return await attempt();
+    return await timed();
   } catch (err) {
-    if (err instanceof CutOffError) throw err;
+    if (err instanceof CutOffError || err instanceof RefusalError || err instanceof TimeLimitError) throw err;
     const left = remaining();
     if (left !== undefined && left < MIN_RETRY_MS) {
       const reason = err instanceof Error ? err.message : String(err);
       throw new Error(`The review failed with too little time left to try again (${reason}). Use Retry to run it again.`);
     }
     console.error("analyzeContract: first attempt failed, retrying once —", err);
-    return await attempt();
+    return await timed();
   }
 }
 
@@ -647,7 +786,7 @@ export async function generateClientEmail({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const changes = findings.filter((f) => f.category !== "legal");
   const counsel = findings.filter((f) => f.category === "legal");
@@ -678,21 +817,17 @@ export async function generateClientEmail({
   async function attempt(): Promise<ClientEmailResult> {
     const response = await client.messages.create({
       model: modelId,
-      max_tokens: 4000,
-      system: buildClientEmailPrompt(org),
-      tools: [clientEmailToolSchema(org)],
-      tool_choice: { type: "tool", name: CLIENT_EMAIL_TOOL_NAME },
+
+      // An unforced model may think first, and thinking counts toward this limit.
+      max_tokens: forcesTool(modelId) ? 4000 : 16000,
+
+      system: withAnswerInstruction(buildClientEmailPrompt(org), modelId, clientEmailToolSchema(org)),
+      ...answerRequest(modelId, clientEmailToolSchema(org)),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     });
+    checkRefusal(response, "draft this email");
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-    if (!toolUseBlock) {
-      throw new Error("Model did not return a structured email draft (no tool_use block in response).");
-    }
-
-    const parsed = toolUseBlock.input as { subject?: string; body?: string };
+    const parsed = readAnswer(response, "a structured email draft") as { subject?: string; body?: string };
     if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
       throw new Error(
         `Model returned malformed JSON (missing subject or body). stop_reason=${response.stop_reason}`
@@ -711,6 +846,7 @@ export async function generateClientEmail({
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof RefusalError) throw err;
     console.error("generateClientEmail: first attempt failed, retrying once —", err);
     return await attempt();
   }
@@ -818,28 +954,24 @@ export async function generatePropertyEmail({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const userText = buildPropertyEmailPayload(items, propertyLabel);
 
   async function attempt(): Promise<PropertyEmailResult> {
     const response = await client.messages.create({
       model: modelId,
-      max_tokens: 2000,
-      system: buildPropertyEmailPrompt(org),
-      tools: [PROPERTY_EMAIL_TOOL_SCHEMA],
-      tool_choice: { type: "tool", name: PROPERTY_EMAIL_TOOL_NAME },
+
+      // An unforced model may think first, and thinking counts toward this limit.
+      max_tokens: forcesTool(modelId) ? 2000 : 16000,
+
+      system: withAnswerInstruction(buildPropertyEmailPrompt(org), modelId, PROPERTY_EMAIL_TOOL_SCHEMA),
+      ...answerRequest(modelId, PROPERTY_EMAIL_TOOL_SCHEMA),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     });
+    checkRefusal(response, "draft this email");
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-    if (!toolUseBlock) {
-      throw new Error("Model did not return a structured email draft (no tool_use block in response).");
-    }
-
-    const parsed = toolUseBlock.input as { subject?: string; body?: string };
+    const parsed = readAnswer(response, "a structured email draft") as { subject?: string; body?: string };
     if (typeof parsed.subject !== "string" || typeof parsed.body !== "string") {
       throw new Error(`Model returned malformed JSON (missing subject or body). stop_reason=${response.stop_reason}`);
     }
@@ -856,6 +988,7 @@ export async function generatePropertyEmail({
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof RefusalError) throw err;
     console.error("generatePropertyEmail: first attempt failed, retrying once —", err);
     return await attempt();
   }
@@ -956,7 +1089,7 @@ Rules:
 - Each meaning names exactly one figure. Where a clause states several numbers, record the one the meaning describes.
 - Read the whole document before answering, including tables, exhibits, headers and footers. A term may sit anywhere.
 - Report percentages as the number written (90 for 90%, 1.5 for 1.5%), dollar amounts as plain numbers (289 for $289.00), days, months, hours and rooms as plain numbers, and dates as YYYY-MM-DD. For an enum, give one of the listed values, or "other" if none fits.
-- quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that states it.
+- quoted_text must be copied verbatim from the contract — the shortest span that states the value, usually a sentence or clause. For a value in a table, quote the one cell that holds the value itself, never the cell that labels its row or column.
 - Quote one continuous span where you can. If you must shorten a long one, mark each cut with "..." and keep every piece word for word and in its original order.
 - If the document is supplied as text, its layout markers are ours, not the contract's: "#" marks a heading, "|" separates table cells, and list numbers like "1.a" are reconstructed. Never include a "#", a "|", or a reconstructed list number inside quoted_text.
 - If the contract states a term more than once with different values, record each as its own entry. If it repeats the same value, one entry is enough.
@@ -975,6 +1108,8 @@ export interface ExtractContractTermsArgs {
   document: AnalyzableDocument;
   catalog: TermCatalog;
   model?: string;
+  /** Epoch ms by which the reading must finish, so it can never outlast the review it runs beside. */
+  deadline?: number;
 }
 
 export interface ExtractContractTermsResult {
@@ -991,6 +1126,7 @@ export async function extractContractTerms({
   document,
   catalog,
   model,
+  deadline,
 }: ExtractContractTermsArgs): Promise<ExtractContractTermsResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -998,7 +1134,7 @@ export async function extractContractTerms({
   }
 
   const client = new Anthropic({ apiKey });
-  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
 
   const userContent: Anthropic.Messages.ContentBlockParam[] =
     document.kind === "pdf"
@@ -1009,20 +1145,15 @@ export async function extractContractTerms({
     const response = await client.messages.create({
       model: modelId,
       max_tokens: 16000,
-      system: buildTermExtractionPrompt(catalog),
-      tools: [termsToolSchema(catalog)],
-      tool_choice: { type: "tool", name: TERMS_TOOL_NAME },
+      system: withAnswerInstruction(buildTermExtractionPrompt(catalog), modelId, termsToolSchema(catalog)),
+      ...answerRequest(modelId, termsToolSchema(catalog)),
       messages: [{ role: "user", content: userContent }],
-    });
+    },
+    // The SDK's own retries don't know about the deadline, so they're off whenever there is one.
+    deadline === undefined ? undefined : { timeout: Math.max(deadline - Date.now(), 1_000), maxRetries: 0 });
+    checkRefusal(response, "read this contract's terms");
 
-    const toolUseBlock = response.content.find(
-      (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-    );
-    if (!toolUseBlock) {
-      throw new Error("Model did not return extracted terms (no tool_use block in response).");
-    }
-
-    const parsed = toolUseBlock.input as { terms?: unknown[] };
+    const parsed = readAnswer(response, "extracted terms") as { terms?: unknown[] };
     if (!Array.isArray(parsed.terms)) {
       throw new Error(
         `Model returned malformed term extraction (no terms array). stop_reason=${response.stop_reason}, output_tokens=${response.usage.output_tokens}`
@@ -1042,6 +1173,7 @@ export async function extractContractTerms({
   try {
     return await attempt();
   } catch (err) {
+    if (err instanceof RefusalError) throw err;
     console.error("extractContractTerms: first attempt failed, retrying once —", err);
     return await attempt();
   }
@@ -1143,12 +1275,12 @@ export function historicalRequest({
   catalog: TermCatalog;
   model?: string;
 }): Anthropic.Messages.MessageCreateParamsNonStreaming {
+  const modelId = model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5";
   return {
-    model: model || process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
+    model: modelId,
     max_tokens: 16000,
-    system: buildHistoricalPrompt(catalog),
-    tools: [historicalToolSchema(catalog)],
-    tool_choice: { type: "tool", name: HISTORICAL_TOOL_NAME },
+    system: withAnswerInstruction(buildHistoricalPrompt(catalog), modelId, historicalToolSchema(catalog)),
+    ...answerRequest(modelId, historicalToolSchema(catalog)),
     messages: [
       {
         role: "user",
@@ -1175,9 +1307,7 @@ export interface HistoricalReading {
 export function readHistoricalResponse(response: Anthropic.Messages.Message): HistoricalReading {
   if (response.stop_reason === "refusal") throw new Error("The model declined to read this contract.");
   if (response.stop_reason === "max_tokens") throw new Error("The reading ran past the output limit and was cut off.");
-  const block = response.content.find((b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use");
-  if (!block) throw new Error("The model didn't record the contract (no tool_use block).");
-  const input = block.input as { details?: unknown; terms?: unknown };
+  const input = readAnswer(response, "a record of the contract") as { details?: unknown; terms?: unknown };
   if (!input.details || typeof input.details !== "object" || !Array.isArray(input.terms)) {
     throw new Error("The model's record was missing its details or terms.");
   }
@@ -1194,6 +1324,26 @@ function batchClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.local.example).");
   return new Anthropic({ apiKey });
+}
+
+/**
+ * A request's input tokens. The endpoint bills nothing and rejects a request
+ * the model wouldn't accept, so it is also a free check of a request's shape.
+ */
+export async function countRequestTokens(params: Anthropic.Messages.MessageCountTokensParams): Promise<number> {
+  const { input_tokens } = await batchClient().messages.countTokens(params);
+  return input_tokens;
+}
+
+/**
+ * Sends a request for one output token, and returns what it was billed.
+ *
+ * The counting endpoint doesn't compile an output format's schema, so a schema
+ * too large to compile only fails here. Paid, at the request's input tokens.
+ */
+export async function sendOneTokenRequest(params: Omit<Anthropic.Messages.MessageCreateParamsNonStreaming, "max_tokens">) {
+  const { usage } = await batchClient().messages.create({ ...params, max_tokens: 1 }, { maxRetries: 0 });
+  return { input_tokens: usage.input_tokens, output_tokens: usage.output_tokens };
 }
 
 /** Sends historical contracts to the Batch service, keyed by their ids. */
@@ -1407,21 +1557,14 @@ export async function draftEvalClauses({
     .stream({
       model: modelId,
       max_tokens: 16000,
-      system: buildEvalDraftPrompt(voice),
-      tools: [DRAFT_TOOL_SCHEMA],
-      tool_choice: { type: "tool", name: DRAFT_TOOL_NAME },
+      system: withAnswerInstruction(buildEvalDraftPrompt(voice), modelId, DRAFT_TOOL_SCHEMA),
+      ...answerRequest(modelId, DRAFT_TOOL_SCHEMA),
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     })
     .finalMessage();
+  checkRefusal(response, "draft these clauses");
 
-  const toolUseBlock = response.content.find(
-    (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-  );
-  if (!toolUseBlock) {
-    throw new Error("Model did not return drafted clauses (no tool_use block in response).");
-  }
-
-  const parsed = toolUseBlock.input as { clauses?: DraftedClauseResult[] };
+  const parsed = readAnswer(response, "drafted clauses") as { clauses?: DraftedClauseResult[] };
   if (!Array.isArray(parsed.clauses)) {
     throw new Error(`Model returned malformed clause draft. stop_reason=${response.stop_reason}`);
   }
@@ -1525,9 +1668,8 @@ export async function readBackEvalTerms({
     .stream({
       model: modelId,
       max_tokens: 16000,
-      system: buildEvalReadBackPrompt(),
-      tools: [READBACK_TOOL_SCHEMA],
-      tool_choice: { type: "tool", name: READBACK_TOOL_NAME },
+      system: withAnswerInstruction(buildEvalReadBackPrompt(), modelId, READBACK_TOOL_SCHEMA),
+      ...answerRequest(modelId, READBACK_TOOL_SCHEMA),
       messages: [
         {
           role: "user",
@@ -1536,15 +1678,9 @@ export async function readBackEvalTerms({
       ],
     })
     .finalMessage();
+  checkRefusal(response, "read these terms back");
 
-  const toolUseBlock = response.content.find(
-    (block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use"
-  );
-  if (!toolUseBlock) {
-    throw new Error("Model did not return term read-back (no tool_use block in response).");
-  }
-
-  const parsed = toolUseBlock.input as { answers?: ReadBackEvalTermsResult["answers"] };
+  const parsed = readAnswer(response, "a term read-back") as { answers?: ReadBackEvalTermsResult["answers"] };
   if (!Array.isArray(parsed.answers)) {
     throw new Error(`Model returned malformed term read-back. stop_reason=${response.stop_reason}`);
   }

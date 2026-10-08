@@ -17,6 +17,8 @@ export interface TermDefinition {
   kind: TermKind;
   /** Number kind only. Percentages are stored as fractions, so 90% is 0.9. */
   unit?: NumericUnit;
+  /** Rooms unit only. True for one side of a ratio such as 1 per 40, whose quote always holds both sides. */
+  ratio?: boolean;
   /** Enum kind only: each value and what it means. "other" is always accepted too. */
   options?: Record<string, string>;
   /** What the value is. For a boolean, what true and false each mean. */
@@ -51,7 +53,7 @@ export type TermValue = number | string | boolean | ScheduleTier[];
 export type Verification =
   /** The quote is in the document and contains the value. */
   | "verified"
-  /** The quote is in the document; the value has no figure to check against it. */
+  /** The quote is in the document, and either holds no figure to check or doesn't single this one out. */
   | "located"
   /** The quote is in the document and states a different figure. */
   | "contradicted"

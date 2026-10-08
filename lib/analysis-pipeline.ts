@@ -1,11 +1,15 @@
 import { createAdminClient } from "./supabase/admin";
-import { analyzeContract, type AnalyzableDocument } from "./anthropic";
+import type { AnalyzableDocument } from "./anthropic";
 import { extractDocx, type ContractPicture, type DocumentComment } from "./docx";
 import { pictureContext } from "./document-checks";
 import { textSentToModel } from "./document-comments";
 import { contractText } from "./docx/contract-text";
 import type { LocatablePart } from "./redline-engine/locate";
-import { extractionRecord, extractTerms, termRows } from "./terms/extract";
+import { exposuresEnabled } from "./exposures/enabled";
+import { exposureReading } from "./exposures/figures";
+import { reviewContract, type ReadingOutcome } from "./review";
+import { HOTEL_TERM_CATALOG } from "./terms/catalog";
+import { extractionRecord, termRows } from "./terms/extract";
 import { loadStandardsLibrary } from "./standards/load";
 import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
@@ -183,32 +187,26 @@ export async function processAnalysis(analysisId: string) {
       }
     }
 
-    // §2.0.2 — term extraction, off unless TERM_EXTRACTION=on. It runs
-    // alongside the review and after the AI-use gate, since it also sends the
-    // contract to the model. Both outcomes resolve rather than reject, so a
-    // failed pass can never fail the review or leave a rejection unhandled.
-    const termsPass =
-      process.env.TERM_EXTRACTION === "on"
-        ? extractTerms({ document, parts: readParts ?? [{ part: "document", text: scanText }] }).then(
-            (outcome) => ({ ok: true as const, ...outcome }),
-            (err: unknown) => ({ ok: false as const, error: err instanceof Error ? err.message : String(err) })
-          )
-        : null;
-
     // Marks the review as one that called the model, which is what the monthly allowance counts.
     const modelCalledAt = new Date().toISOString();
     await admin.from("analyses").update({ token_usage: { model_called_at: modelCalledAt } }).eq("id", analysisId);
 
-    const result = await analyzeContract({
+    // Both calls run after the AI-use gate, since each sends the contract to
+    // the model. The reading call reads the whole catalog when
+    // TERM_EXTRACTION=on (§2.0.2). Otherwise it reads the terms exposures need,
+    // or only the terms the app raises findings from while exposures are archived.
+    const storesTerms = process.env.TERM_EXTRACTION === "on";
+    const result = await reviewContract({
       document,
       standards: standards.entries,
       standardsVersion: standards.version,
       contextNote: pictureContext(pictures),
       deadline,
-      // A PDF reaches the model as a file, so its figures are checked against the text read from it.
-      contractText: scanText ?? undefined,
       comments,
       commentsTotal,
+      // A PDF reaches the model as a file, so the reader's quotes are checked against the text read from it.
+      parts: readParts ?? [{ part: "document", text: scanText }],
+      catalog: storesTerms ? HOTEL_TERM_CATALOG : undefined,
     });
 
     const unquoted = result.findings.filter((f) => f.category === "business" && !f.is_missing_clause && !f.quoted_text?.trim());
@@ -306,6 +304,13 @@ export async function processAnalysis(analysisId: string) {
           cache_read_input_tokens: result.cache_read_input_tokens,
           cache_creation_input_tokens: result.cache_creation_input_tokens,
           thinking_chars: result.thinking_chars ?? 0,
+          thinking_tokens: result.thinking_tokens ?? 0,
+          // The judging call's time. Output tokens over this is the model's writing speed.
+          elapsed_ms: result.elapsed_ms ?? null,
+          // The reading call's own usage, so a review's whole cost can be worked out.
+          reading: result.reading.ok ? result.reading.tokens : { error: result.reading.error },
+          // The second ask for skipped clauses, when the review made one.
+          follow_up: result.follow_up,
         },
       })
       .eq("id", analysisId);
@@ -336,7 +341,7 @@ export async function processAnalysis(analysisId: string) {
       },
     });
 
-    if (termsPass) await saveTerms(admin, analysisId, await termsPass);
+    await saveReading(admin, analysisId, result.reading, storesTerms);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
 
@@ -355,23 +360,29 @@ export async function processAnalysis(analysisId: string) {
   }
 }
 
-type TermsOutcome =
-  | ({ ok: true } & Awaited<ReturnType<typeof extractTerms>>)
-  | { ok: false; error: string };
-
 /**
- * Stores a term extraction pass. Best-effort by design: nothing reads terms
- * yet, so a failure here is logged and recorded, never raised into a review
- * that has already completed.
+ * Records a review's reading call on `analyses.term_extraction`. The record
+ * holds the pass, the figures taken from it, and why any figure is missing.
+ * Every review gets one. The `contract_terms` rows are written only when
+ * `storeRows` is set, since Analytics reads them.
+ *
+ * Best-effort by design. A failure here is logged and recorded, never raised
+ * into a review that has already completed.
  *
  * Any earlier rows for the analysis are replaced, so a re-run never leaves two
  * passes' terms side by side.
  */
-async function saveTerms(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: TermsOutcome) {
+async function saveReading(admin: ReturnType<typeof createAdminClient>, analysisId: string, outcome: ReadingOutcome, storeRows: boolean) {
   try {
-    let record = extractionRecord(outcome);
+    let record: Record<string, unknown> = extractionRecord(outcome);
+    const asked_for = storeRows ? "whole_catalog" : exposuresEnabled() ? "exposure_terms" : "must_raise_terms";
+    const read = !outcome.ok
+      ? {}
+      : exposuresEnabled()
+        ? { asked_for, exposures: exposureReading(outcome.terms, outcome), reask: outcome.reask, cd_positions: outcome.positions }
+        : { asked_for, figures: outcome.figures, cd_positions: outcome.positions };
 
-    if (outcome.ok) {
+    if (outcome.ok && storeRows) {
       const cleared = await admin.from("contract_terms").delete().eq("analysis_id", analysisId);
       const inserted = cleared.error
         ? cleared
@@ -385,7 +396,7 @@ async function saveTerms(admin: ReturnType<typeof createAdminClient>, analysisId
       }
     }
 
-    const { error } = await admin.from("analyses").update({ term_extraction: record }).eq("id", analysisId);
+    const { error } = await admin.from("analyses").update({ term_extraction: { ...record, ...read } }).eq("id", analysisId);
     if (error) throw new Error(error.message);
   } catch (err) {
     console.error(

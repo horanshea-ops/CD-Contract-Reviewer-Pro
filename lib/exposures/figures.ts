@@ -1,15 +1,13 @@
-import type { NumericUnit } from "../quantities";
-import type { LocatablePart } from "../redline-engine/locate";
-import { normalizeValue, verify } from "../terms/validate";
-import type { TermDefinition } from "../terms/types";
+import { parseQuantities } from "../quantities";
+import { USABLE_VERIFICATIONS, type ExtractedTerms, type StatedTerm } from "../terms/types";
 
 /**
  * The contract's own figures, as the exposure calculations need them.
  *
- * The model reads each figure and quotes the words it comes from. A figure is
- * kept only when its quote is in the contract and states that figure, the
- * same check the terms pass makes. An exposure built on anything else would
- * be a number the app can't trace back to the contract.
+ * The reading pass records each term with the words it comes from, and checks
+ * each quote against the contract (lib/terms/validate.ts). A figure is kept
+ * only when its term passed that check. An exposure built on anything else
+ * would be a number the app can't trace back to the contract.
  */
 
 /** Whether a cancellation tier charges a share of the full rate or of room profit. */
@@ -43,6 +41,8 @@ export interface DealFigures {
   fb_minimum: number | null;
   /** Fraction of a shortfall owed. Null when the contract states none. */
   fb_shortfall_pct: number | null;
+  /** Fraction of room revenue the hotel pays as commission. No exposure uses it; the must-raise check does. */
+  commission_pct: number | null;
   /** Taken from the quotes of the amounts above. Null when no amount was kept. */
   currency: Currency | null;
 }
@@ -56,19 +56,12 @@ export const NO_FIGURES: DealFigures = {
   cancellation_tiers: [],
   fb_minimum: null,
   fb_shortfall_pct: null,
+  commission_pct: null,
   currency: null,
 };
 
 type MoneyKey = "group_rate" | "fb_minimum";
 type ScalarKey = Exclude<keyof DealFigures, "cancellation_tiers" | "currency" | MoneyKey>;
-
-const UNITS: Record<ScalarKey, NumericUnit> = {
-  room_block_room_nights: "rooms",
-  minimum_room_nights: "rooms",
-  attrition_threshold_pct: "pct",
-  attrition_damages_pct: "pct",
-  fb_shortfall_pct: "pct",
-};
 
 const MONEY_KEYS: readonly MoneyKey[] = ["group_rate", "fb_minimum"];
 
@@ -99,89 +92,198 @@ function amountsIn(quote: string): { value: number; currency: Currency }[] {
   return found;
 }
 
-const definition = (key: string, unit: NumericUnit): TermDefinition => ({ key, kind: "number", unit, meaning: key });
+/** The catalog term each figure is read from. */
+const SCALAR_TERMS: Record<ScalarKey, string> = {
+  room_block_room_nights: "deal.room_block_room_nights",
+  minimum_room_nights: "attrition.minimum_room_nights",
+  attrition_threshold_pct: "attrition.threshold",
+  attrition_damages_pct: "attrition.liability_rate",
+  fb_shortfall_pct: "fb_minimum.shortfall_rate",
+  commission_pct: "commission.commission_pct",
+};
 
-/** A figure's value when its quote is in the contract and states it, else null. */
-function checked(raw: unknown, key: string, unit: NumericUnit, parts: LocatablePart[]): number | null {
-  if (!raw || typeof raw !== "object") return null;
-  const { value, quoted_text } = raw as { value?: unknown; quoted_text?: unknown };
-  if (typeof quoted_text !== "string" || !quoted_text.trim()) return null;
-  const def = definition(key, unit);
-  const normalized = normalizeValue(def, value);
-  if (!normalized.ok || typeof normalized.value !== "number") return null;
-  return verify(def, normalized.value, quoted_text, null, parts) === "verified" ? normalized.value : null;
+const MONEY_TERMS: Record<MoneyKey, string> = {
+  group_rate: "deal.group_rate_usd",
+  fb_minimum: "deal.fb_minimum_usd",
+};
+
+const TIER_TERMS = {
+  pct: "cancellation.top_tier_pct",
+  charges: "cancellation.damages_basis",
+  base: "cancellation.damages_room_nights",
+  schedule: "cancellation.schedule",
+};
+
+/** Every catalog term a figure is read from. A reading pass must ask for at least these. */
+export const EXPOSURE_TERM_KEYS: readonly string[] = [
+  ...Object.values(SCALAR_TERMS),
+  ...Object.values(MONEY_TERMS),
+  ...Object.values(TIER_TERMS),
+];
+
+/**
+ * The terms behind the findings the app raises itself (lib/must-raise.ts): the
+ * commission rate, the attrition floor and the F&B shortfall rate. A reading
+ * pass asks for these alone while exposure math is archived.
+ */
+export const MUST_RAISE_TERM_KEYS: readonly string[] = [
+  SCALAR_TERMS.room_block_room_nights,
+  SCALAR_TERMS.minimum_room_nights,
+  SCALAR_TERMS.attrition_threshold_pct,
+  SCALAR_TERMS.fb_shortfall_pct,
+  SCALAR_TERMS.commission_pct,
+];
+
+const asPercent = (fraction: number) => `${Number((fraction * 100).toFixed(4))}%`;
+
+const CHARGES_OF: Record<string, TierCharge> = { gross_revenue: "rate", room_profit: "room_profit" };
+const BASE_OF: Record<string, TierBase> = { minimum_commitment: "minimum_room_nights", room_block: "room_block" };
+
+/** The three answers about the tier closest to arrival. A cancellation figure needs all of them. */
+export const TIER_ANSWER_KEYS: readonly string[] = [TIER_TERMS.pct, TIER_TERMS.charges, TIER_TERMS.base];
+
+/** What happened to a term on its way to a figure. Kept with the review, so a missing exposure can be explained afterwards. */
+export interface FigureNote {
+  term_key: string;
+  reason: string;
 }
 
-/** An amount and its currency when the quote is in the contract and states it, else null. */
-function checkedMoney(raw: unknown, key: string, parts: LocatablePart[]): { value: number; currency: Currency } | null {
-  if (!raw || typeof raw !== "object") return null;
-  const { value, quoted_text } = raw as { value?: unknown; quoted_text?: unknown };
-  if (typeof quoted_text !== "string" || !quoted_text.trim()) return null;
-  const def = definition(key, "usd");
-  const normalized = normalizeValue(def, value);
-  if (!normalized.ok || typeof normalized.value !== "number") return null;
-  const amount = normalized.value;
-
-  // verify() places the quote in the contract and reads dollar amounts itself.
-  const verdict = verify(def, amount, quoted_text, null, parts);
-  if (verdict === "unlocated" || verdict === "contradicted") return null;
-  if (verdict === "verified") return { value: amount, currency: "$" };
-  const match = amountsIn(quoted_text).find((a) => Math.abs(a.value - amount) < 1e-9);
-  return match ? { value: amount, currency: match.currency } : null;
+export interface FigureReading {
+  figures: DealFigures;
+  notes: FigureNote[];
+  /**
+   * The tier answers a reading with cancellation terms in it left out or gave
+   * unusably. A second reading can fill these. A term read with two values
+   * isn't among them, since another reading can't settle it.
+   */
+  unanswered: string[];
 }
 
-const BASES: readonly TierBase[] = ["minimum_room_nights", "room_block", "other"];
-const CHARGES: readonly TierCharge[] = ["rate", "room_profit"];
+/**
+ * The figures as the reading pass's checked terms give them, with a note for
+ * each term that was read and gave none.
+ *
+ * A number is kept only when its quote is in the contract and states it. An
+ * amount in another currency can't be checked that way, so it is kept when its
+ * quote is in the contract and carries that amount with a currency mark. A
+ * term the contract states with two different values gives no figure.
+ */
+export function readFigures(terms: ExtractedTerms): FigureReading {
+  const notes: FigureNote[] = [];
+  const note = (term_key: string, reason: string) => {
+    if (notes.some((n) => n.term_key === term_key && n.reason === reason)) return;
+    notes.push({ term_key, reason });
+  };
 
-function checkedTiers(raw: unknown, parts: LocatablePart[]): CancellationTier[] {
-  if (!Array.isArray(raw)) return [];
-  const tiers: CancellationTier[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object") continue;
-    const { label, room_pct, base, charges, quoted_text } = item as Record<string, unknown>;
-    if (typeof label !== "string" || !BASES.includes(base as TierBase) || !CHARGES.includes(charges as TierCharge)) continue;
-    const pct = checked({ value: room_pct, quoted_text }, "cancellation.tier", "pct", parts);
-    if (pct === null) continue;
-    tiers.push({ label: label.trim(), room_pct: pct, base: base as TierBase, charges: charges as TierCharge });
-  }
-  return tiers;
-}
+  const conflicted = new Set(terms.conflicts);
+  const stated = (key: string): StatedTerm | null => {
+    if (conflicted.has(key)) {
+      note(key, "The reading gave more than one value for it, so none is used.");
+      return null;
+    }
+    return terms.stated.find((t) => t.term_key === key) ?? null;
+  };
 
-/** Why a figure the model gave was not kept, for the server log. Null when it gave none. */
-function rejection(raw: unknown, key: string, unit: NumericUnit, parts: LocatablePart[]): string | null {
-  if (!raw || typeof raw !== "object") return null;
-  const { value, quoted_text } = raw as { value?: unknown; quoted_text?: unknown };
-  if (value === null || value === undefined) return null;
-  if (typeof quoted_text !== "string" || !quoted_text.trim()) return "it came with no quote";
-  const def = definition(key, unit);
-  const normalized = normalizeValue(def, value);
-  if (!normalized.ok || typeof normalized.value !== "number") return "its value is not a number";
-  const verdict = verify(def, normalized.value, quoted_text, null, parts);
-  return verdict === "unlocated" ? "its quote is not in the contract" : `its quote does not state it (${verdict})`;
-}
+  const number = (key: string): number | null => {
+    const term = stated(key);
+    if (!term) return null;
+    if (term.verification !== "verified" || typeof term.value !== "number") {
+      note(key, `Its quote does not single out the value (${term.verification}).`);
+      return null;
+    }
+    return term.value;
+  };
 
-export function checkFigures(raw: unknown, parts: LocatablePart[]): DealFigures {
-  if (!raw || typeof raw !== "object") return NO_FIGURES;
-  const input = raw as Record<string, unknown>;
-  const figures: DealFigures = { ...NO_FIGURES, cancellation_tiers: checkedTiers(input.cancellation_tiers, parts) };
-  for (const key of Object.keys(UNITS) as ScalarKey[]) {
-    figures[key] = checked(input[key], key, UNITS[key], parts);
-    if (figures[key] === null) logRejected(key, rejection(input[key], key, UNITS[key], parts));
-  }
+  const money = (key: string): { value: number; currency: Currency } | null => {
+    const term = stated(key);
+    if (!term || typeof term.value !== "number") return null;
+    const amount = term.value;
+    if (term.verification === "verified") return { value: amount, currency: "$" };
+    const match = term.verification === "located" ? amountsIn(term.quoted_text).find((a) => Math.abs(a.value - amount) < 1e-9) : null;
+    if (!match) note(key, `Its quote does not state the amount (${term.verification}).`);
+    return match ? { value: amount, currency: match.currency } : null;
+  };
+
+  const choice = (key: string): string | null => {
+    const term = stated(key);
+    return term && USABLE_VERIFICATIONS.includes(term.verification) && typeof term.value === "string" ? term.value : null;
+  };
+
+  const figures: DealFigures = { ...NO_FIGURES, cancellation_tiers: [] };
+  for (const key of Object.keys(SCALAR_TERMS) as ScalarKey[]) figures[key] = number(SCALAR_TERMS[key]);
   for (const key of MONEY_KEYS) {
-    const money = checkedMoney(input[key], key, parts);
-    figures[key] = money?.value ?? null;
-    figures.currency ??= money?.currency ?? null;
-    if (!money) logRejected(key, rejection(input[key], key, "usd", parts));
+    const amount = money(MONEY_TERMS[key]);
+    figures[key] = amount?.value ?? null;
+    figures.currency ??= amount?.currency ?? null;
   }
 
-  const given = Array.isArray(input.cancellation_tiers) ? input.cancellation_tiers.length : 0;
-  if (given > figures.cancellation_tiers.length) {
-    console.warn(`[exposures] kept ${figures.cancellation_tiers.length} of ${given} cancellation tiers the model gave`);
+  // The tier closest to arrival is the only one an exposure reads.
+  const scheduleTerm = stated(TIER_TERMS.schedule);
+  const tiers = scheduleTerm && USABLE_VERIFICATIONS.includes(scheduleTerm.verification) && Array.isArray(scheduleTerm.value) ? scheduleTerm.value : [];
+  const nearest = [...tiers].sort((a, b) => a.days_prior_min - b.days_prior_min)[0] ?? null;
+  const scheduleStates = (pct: number) =>
+    parseQuantities(scheduleTerm?.quoted_text ?? "").some((q) => q.unit === "pct" && Math.abs(q.value - pct) < 1e-9);
+
+  let pct = number(TIER_TERMS.pct);
+  if (pct !== null && nearest && Math.abs(nearest.pct - pct) > 1e-9) {
+    note(TIER_TERMS.schedule, `The schedule's closest tier says ${asPercent(nearest.pct)}, and the top-tier percentage says ${asPercent(pct)}. The top-tier percentage is used.`);
   }
-  return figures;
+  if (pct === null && nearest && !conflicted.has(TIER_TERMS.pct)) {
+    if (scheduleStates(nearest.pct)) {
+      pct = nearest.pct;
+      note(TIER_TERMS.pct, "The percentage was taken from the schedule's tier closest to arrival, whose quote states it.");
+    } else {
+      note(TIER_TERMS.schedule, "The schedule's quote doesn't state its closest tier's percentage, so the schedule can't stand in for the top-tier percentage.");
+    }
+  }
+
+  const basis = choice(TIER_TERMS.charges);
+  const charges = CHARGES_OF[basis ?? ""];
+  const baseChoice = choice(TIER_TERMS.base);
+  const base = BASE_OF[baseChoice ?? ""] ?? "other";
+
+  if (pct === null) note(TIER_TERMS.pct, "No cancellation figure, because the reading gave no usable top-tier percentage.");
+  if (!charges) {
+    note(TIER_TERMS.charges, `No cancellation figure, because the reading didn't say whether the percentage is charged on the rate or on room profit (${basis ?? "not stated"}).`);
+  }
+  if (pct !== null && charges) {
+    if (base === "other") {
+      note(TIER_TERMS.base, `No cancellation figure, because the reading didn't say which room nights the percentage applies to (${baseChoice ?? "not stated"}).`);
+    }
+    figures.cancellation_tiers = [{ label: nearest?.label.trim() || "closest to arrival", room_pct: pct, base, charges }];
+  }
+
+  const answered: Record<string, boolean> = {
+    [TIER_TERMS.pct]: pct !== null,
+    [TIER_TERMS.charges]: basis !== null,
+    [TIER_TERMS.base]: baseChoice !== null,
+  };
+  const cancellationRead = terms.stated.some((t) => Object.values(TIER_TERMS).includes(t.term_key));
+  const unanswered = cancellationRead ? TIER_ANSWER_KEYS.filter((key) => !answered[key] && !conflicted.has(key)) : [];
+
+  return { figures, notes, unanswered };
 }
 
-function logRejected(key: string, reason: string | null) {
-  if (reason) console.warn(`[exposures] dropped ${key} because ${reason}`);
+export const figuresFromTerms = (terms: ExtractedTerms): DealFigures => readFigures(terms).figures;
+
+/**
+ * What a review keeps of its reading: the figures, why any is missing, and
+ * the exposure terms as the reader gave them.
+ */
+export function exposureReading(terms: ExtractedTerms, { figures, notes }: FigureReading = readFigures(terms)) {
+  return {
+    figures,
+    notes,
+    terms: terms.stated
+      .filter((t) => EXPOSURE_TERM_KEYS.includes(t.term_key))
+      .map(({ term_key, value, quoted_text, source_section, verification, confidence }) => ({
+        term_key,
+        value,
+        quoted_text,
+        source_section,
+        verification,
+        confidence,
+      })),
+    not_stated: terms.not_stated.filter((key) => EXPOSURE_TERM_KEYS.includes(key)),
+  };
 }

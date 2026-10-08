@@ -1,0 +1,1078 @@
+{
+  "run_id": "sonnet55-riverwalk-think-medium-2026-10-07",
+  "created_at": "2026-10-08T04:53:35.839Z",
+  "model_id": "claude-sonnet-5-5",
+  "standards_version": "v1-industry-default",
+  "standards_hash": "4376a61738577bfba51510b42eaf1f5092cdbdbf42fccd366a85475e1b503a0d",
+  "settings": {
+    "effort": "medium",
+    "thinking": "adaptive"
+  },
+  "documents": [
+    {
+      "contract": "eval-05-riverwalk.docx",
+      "analysis": {
+        "findings": [
+          {
+            "clause_type": "banquet_service_levels",
+            "is_missing_clause": true,
+            "severity": "low",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No staffing ratios or labor fee limits for banquets",
+            "finding_text": "Contract guarantees no server or bartender ratios and does not bar labor fees.",
+            "cd_standard": "Guaranteed server and bartender ratios, no labor fees except functions under 25.",
+            "proposed_language": "At all meal functions, Hotel will provide at least one server for every twenty-five (25) guests at a plated breakfast and every twenty (20) guests at a plated lunch or dinner, and one server for every forty (40) guests at a buffet breakfast and every thirty (30) guests at a buffet lunch or dinner, with no extra service or labor charge for these ratios. At all functions where alcohol is served, Hotel will provide no fewer than one (1) bartender for every seventy-five (75) guests at hosted bars and one (1) bartender for every one hundred (100) guests at cash bars, with no bartender or service fees. There will be no special labor or service fees for any Group food or beverage function, except that functions of fewer than twenty-five (25) people will incur a labor fee of $150.",
+            "redline_note": "Sets service staffing levels for food and beverage functions.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Staffing ratios up to 20% looser than the standard, e.g. one server per 30 guests at plated breakfasts."
+          },
+          {
+            "clause_type": "fb_minimum",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "7. Food and Beverage Minimum",
+            "quoted_text": "Menu pricing shall remain locked at the rate quoted by the Hotel for twelve (12) months from the date of this agreement, after which the Hotel may adjust pricing in writing with sixty (60) days' notice.",
+            "headline": "Menu pricing can rise before event; affiliate F&B not counted",
+            "finding_text": "Pricing is locked only twelve months from signing, so the Hotel may reprice well before the October 2027 event. Contract is silent on counting affiliate and exhibitor F&B toward the minimum.",
+            "cd_standard": "Menu prices set no earlier than 12 months before the event; affiliate and exhibitor F&B counts.",
+            "proposed_language": "Menu prices for the Event's food and beverage functions will be confirmed at the Hotel's pricing in effect on the date of this agreement, or established not earlier than twelve (12) months prior to the Event. Food and beverage revenue from all affiliate organizations and exhibitors meeting in conjunction with Group's event will count toward the minimum.",
+            "redline_note": "Fixes menu pricing and counts affiliate food and beverage toward the minimum.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Shortfall billed at 35–50% of the gap. Menu pricing locked 6–12 months before arrival."
+          },
+          {
+            "clause_type": "exclusivity_vendors",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "12. Outside Vendors",
+            "quoted_text": "Group may engage its own audio-visual, decorating, security and transportation vendors, and shall not be required to use vendors designated or preferred by Hotel for such services.",
+            "headline": "Vendor freedom omits floral, tours and similar services",
+            "finding_text": "Freedom covers only four categories; floral, tours and similar services are not named.",
+            "cd_standard": "Group may use supplier of its choice for AV, decorating, security, floral, transportation, tours, and similar, no fee.",
+            "proposed_language": "Group may engage its own audio-visual, decorating, security, floral, transportation, and tour vendors, and similar suppliers, and shall not be required to use vendors designated or preferred by Hotel for any service category.",
+            "redline_note": "",
+            "model_confidence": "medium",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "rebates",
+            "is_missing_clause": false,
+            "severity": "low",
+            "location_section": "9. Complimentary Rooms",
+            "quoted_text": "Group shall receive one (1) complimentary room for every forty (40) rooms the Hotel occupies during the event dates of October 19-21, 2027.",
+            "headline": "Complimentary rooms not cumulative; audit and fee rooms not counted",
+            "finding_text": "Formula does not state cumulative calculation or count miscoded rooms, no-show and cancellation fee room nights, or provide complimentary in-room internet.",
+            "cd_standard": "1 per 40 cumulative occupied room nights, all occupied rooms count, fee nights count, free internet.",
+            "proposed_language": "Group shall receive one (1) complimentary room for every forty (40) occupied, revenue-producing room nights actualized, calculated cumulatively across the entire room block (total room nights divided by 40), regardless of whether the contracted block was otherwise met. All occupied rooms will be counted toward Group's pickup, including rooms credited to Group through a room block audit. Each no-show fee and each cancellation fee charged will be credited as one (1) room night toward Group's pickup. Hotel will provide complimentary internet in attendees' guest rooms, regardless of brand loyalty program participation.",
+            "redline_note": "Clarifies how complimentary rooms accrue and what counts toward pickup.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "One complimentary room per 40–50 occupied room nights."
+          },
+          {
+            "clause_type": "review_audit_dates",
+            "is_missing_clause": true,
+            "severity": "low",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No block reviews, pickup reports or audit right",
+            "finding_text": "Contract has no room-block review, reporting or audit provisions.",
+            "cd_standard": "24/12-month reviews, pickup and post-event reports, room block audit.",
+            "proposed_language": "Hotel and Group will review the room block in writing twenty-four (24) months prior to arrival and again twelve (12) months prior to arrival. At Group's sole discretion, Group may increase or decrease the room block by up to ten percent (10%) at each review and twenty percent (20%) cumulatively, at the group rate; the resulting block becomes Group's room block commitment for purposes of the attrition clause. Hotel will provide Group a weekly guestroom pickup report starting sixty (60) days prior to the cutoff date, and final room pickup reports with supporting documentation within ten (10) days of departure. Within thirty (30) days of departure, Hotel will provide a full post-event report, including rooms actualized, a reservation pace report starting 90 days prior to cutoff, suite and double-occupancy usage, a food and beverage revenue recap by Group and affiliate functions, outlet and other spend by attendees on room and master account charges, audio-visual spend, internet bandwidth usage, and exhibitor fees and revenue; failure to provide this report within thirty (30) days may delay payment of the master account. At Group's request and at no cost, Hotel will compare its in-house guest list against Group's registration list, either jointly with a representative of Group or by permitting a ConferenceDirect or Group representative to do so independently, and Group will keep the list confidential. Any guest room occupied by an individual on Group's registration list but not coded to Group within Hotel's system, including rooms booked at qualified brand-associate or business rates or through Internet distribution channels, will be credited to Group's pickup regardless of the rate paid or reservation method.",
+            "redline_note": "Adds block reviews, reporting and a room-block audit.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "termination_rights",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "6. Termination for Cause",
+            "quoted_text": "Upon valid termination for cause, the Hotel shall refund deposits without deduction within fourteen (14) days.",
+            "headline": "Termination limited to breach; refund slower than five days",
+            "finding_text": "Group can walk only for uncured material breach; epidemic, labor, ownership, renovation, service reduction, convention center and discrimination-law triggers are absent, and refund takes 14 days.",
+            "cd_standard": "Listed termination causes without liability, refund within 5 days, separate from cancellation scale.",
+            "proposed_language": "Upon valid termination for cause, the Hotel shall refund deposits without deduction within five (5) days. Group may also terminate this Agreement without liability, and Hotel will refund all deposits and prepayments within five (5) days, upon any of the following: (a) force majeure as defined in this Agreement; (b) Group's determination that any infectious disease outbreak, epidemic, or pandemic is affecting Group's ability to hold the Event as intended; (c) a labor dispute involving Hotel's employees, including an expired collective bargaining agreement, picketing, strike, or lockout arising within ninety (90) days of or during the Event; (d) a material change in Hotel's ownership, management company, or brand affiliation, or Hotel's bankruptcy or foreclosure; (e) renovation or remodeling that Group determines will interfere with its meeting, or a change to a new build's operational date or scope; (f) a reduction in Hotel's facilities or services for which no mutually agreeable alternative is reached within thirty (30) days; (g) the convention center or overflow hotels on which the Event depends not being open, available, and fully operational over the Event dates; or (h) adoption of state or local legislation that permits discrimination against attendees. None of the foregoing triggers the liquidated damages in the cancellation clause.",
+            "redline_note": "Adds termination triggers and a faster refund without cancellation damages.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "brand_ownership_change",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No notice or exit on ownership, brand or bankruptcy change",
+            "finding_text": "Contract is silent on changes in ownership, management, brand, bankruptcy or foreclosure.",
+            "cd_standard": "30-day notice and 30-day no-liability termination with refund.",
+            "proposed_language": "Should Hotel undergo a material change in ownership, management company, or brand affiliation, or file for bankruptcy, or have foreclosure occur, Hotel will inform Group in writing within thirty (30) days of such change or filing. Group may, at its sole discretion, terminate this Agreement without liability within thirty (30) days of receiving that notice. Hotel will refund all deposits and prepayments made by Group within five (5) days of the notice of termination.",
+            "redline_note": "Adds notice and a termination right on ownership or brand change.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Hotel notice within 30–60 days of the change. Group's termination window of at least 30 days after notice."
+          },
+          {
+            "clause_type": "labor_disputes",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No labor dispute notice or cancellation right",
+            "finding_text": "Contract has no notice duty or exit for strikes, lockouts or expired union contracts.",
+            "cd_standard": "Annual CBA notice, prompt dispute notice, no-liability cancellation within 90 days.",
+            "proposed_language": "One (1) year in advance, or within thirty (30) days of signing this Agreement if that is later, Hotel will provide Group in writing a list of all collective bargaining agreement expiration dates for the ensuing year. Hotel will notify Group in writing within ten (10) working days after becoming aware of any labor dispute involving Hotel's employees, including picketing, an expired labor contract, or an existing or impending strike, lockout, or boycott. If, within ninety (90) days prior to or during the Event, Hotel's contract with its union employees has expired, picketing occurs, or a strike or lockout occurs, Group may cancel this Agreement by written notice without liability, regardless of whether Hotel is able to perform. Any deposits or payments made by Group will be promptly refunded. This clause supersedes all other provisions of this Agreement.",
+            "redline_note": "Adds labor dispute notice and a cancellation right.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Notice of contract expiry 6–12 months ahead. Cancellation without liability for disputes within 60–90 days of the event."
+          },
+          {
+            "clause_type": "master_account_billing",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "10. Master Account and Billing",
+            "quoted_text": "In the event any balance remains unpaid after thirty (30) days from invoice date, the Hotel shall assess a monthly finance charge of one percent (1%) on the unpaid balance, compounding monthly until paid in full.",
+            "headline": "Finance charge compounds and applies to disputed balances",
+            "finding_text": "Compounding monthly and applying to any unpaid balance, including disputed amounts, exceeds a simple 1% cap on undisputed balances and has no legal-maximum limit.",
+            "cd_standard": "Finance charge no more than 1% per month or legal maximum, on undisputed balance only.",
+            "proposed_language": "If payment of all undisputed charges is not received within thirty (30) days of the final invoice, a finance charge not to exceed one percent (1.0%) per month, or the maximum allowed by law, whichever is less, will apply to the unpaid, undisputed balance. No finance charge will accrue on any amount disputed in good faith within the dispute period.",
+            "redline_note": "Caps the finance charge and limits it to undisputed balances.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Finance charge capped at 1–1.5% per month, after a dispute window of at least 30 days."
+          },
+          {
+            "clause_type": "master_account_billing",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "10. Master Account and Billing",
+            "quoted_text": "If Group does not provide advance credit approval, Group shall remit prepayment equal to a stated percentage of the anticipated room and food and beverage charges, as specified in the Hotel's proposal to Group.",
+            "headline": "Prepayment open-ended; no automatic credit or staged schedule",
+            "finding_text": "Prepayment percentage sits in an external proposal, with no automatic credit if Hotel fails to send an application and no staged schedule.",
+            "cd_standard": "Credit extended if hotel does not send application; denied credit pays 25/25/50 schedule; payable on invoice.",
+            "proposed_language": "Hotel will review its own credit files and credit reporting services to confirm Group's credit. If Hotel fails to send Group a credit application, or fails to send a written reminder to complete it, Hotel will extend credit to Group. If Group's credit is approved, the master account is payable upon receipt of invoice. If credit is denied, Group will pay twenty-five percent (25%) of estimated charges within fourteen (14) business days of the denial, twenty-five percent (25%) one (1) month prior to the Event, and fifty percent (50%) three (3) days before the Event.",
+            "redline_note": "Sets credit review and a staged deposit schedule.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Finance charge capped at 1–1.5% per month, after a dispute window of at least 30 days."
+          },
+          {
+            "clause_type": "walk_relocation",
+            "is_missing_clause": true,
+            "severity": "high",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No protection if Hotel walks attendees",
+            "finding_text": "Contract is silent on walks, so attendees could be relocated with no compensation and attrition could still apply.",
+            "cd_standard": "Advance contact, comparable accommodations, transport, rebate, pickup credit, no attrition.",
+            "proposed_language": "If Hotel is unable to accommodate any member of Group holding a confirmed reservation, Hotel will contact Group in advance, will not walk members of Group before transient guests and other groups, and will review Group's attendee list with Group to identify those who cannot be walked under any circumstances. For each displaced guest, Hotel will, at its own expense: (a) provide accommodations at a comparable hotel as close as possible, at no charge to the guest, for each night the guest is displaced; (b) provide complimentary round-trip ground transportation between the Hotel and the alternate hotel for each day the guest is displaced; (c) forward the displaced guest's telephone messages, mail, and packages; and (d) when the guest returns, provide upgraded accommodations if available and a welcome amenity from the General Manager. Hotel will credit Group's master account $200 for each night a guest is relocated, regardless of that guest's rate. Each displaced room will be credited toward Group's final pickup and remain commissionable at the group rate, and Group will not be liable for attrition damages if any guest is walked on any night. If Hotel walks ten (10) or more guests, or ten percent (10%) or more of the contracted peak-night block, Hotel will owe Group reasonable additional compensation.",
+            "redline_note": "Adds protections and compensation for walked guests.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "resale_mitigation_duty",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "4. Cancellation and Liquidated Damages",
+            "quoted_text": "Any revenue the Hotel generates by reselling rooms within the cancelled portion of the Group's block shall be retained by the Hotel with no credit applied against the Group's liquidated damages obligation.",
+            "headline": "Hotel keeps resale proceeds with no credit to Group",
+            "finding_text": "Hotel can resell cancelled rooms and still collect full damages, with no documented mitigation duty.",
+            "cd_standard": "Documented duty to resell and credit proceeds; damages due 30 days after meeting dates with evidence.",
+            "proposed_language": "Hotel will undertake all reasonable efforts to resell canceled rooms and food and beverage functions, and will credit those revenues against any cancellation or attrition damages owed by Group, not to exceed the full amount of such damages. Hotel will document in writing its efforts to market the dates proactively through all group and transient channels. Cancellation damages, if any, are due thirty (30) days after the meeting dates, provided Hotel supplies reasonable evidence of its mitigation efforts and that the rooms and space held for Group went unsold. All Hotel records relating to mitigation, including actual occupancy reports, will be made available to Group upon request.",
+            "redline_note": "Requires resale efforts and credits proceeds against damages.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Cancellation damages due 30–60 days after the meeting dates."
+          },
+          {
+            "clause_type": "function_space",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No function rooms, sizes or included equipment specified",
+            "finding_text": "Contract names no meeting space and has no rental waiver or in-room equipment commitment.",
+            "cd_standard": "Named rooms with square footage and ceiling height, no changes without consent, complimentary space and basic equipment.",
+            "proposed_language": "Hotel will hold the meeting and function space set out in this Agreement, with room rental charges waived, and will specify each function space assignment, minimum square footage, and ceiling height requirement in this Agreement. No change will be made to the function space assignments without the written consent of both parties. Meeting space outlined in Group's program agenda will be provided on a complimentary basis. Hotel will provide in each meeting room, at no charge, one wired microphone, a podium, power (including existing power outlets), proper lighting, and HVAC.",
+            "redline_note": "Specifies function space and included meeting room equipment.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "cutoff_date",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "3. Reservation Cutoff Date",
+            "quoted_text": "After this cutoff date has passed, the hotel makes no guarantee that rooms will remain available at the negotiated group rate.",
+            "headline": "No group rate guarantee after cutoff",
+            "finding_text": "After cutoff the group rate is not guaranteed and rack rates may apply; no provision for unassigned rooms.",
+            "cd_standard": "Group rate continues while hotel sells to public; unassigned rooms held on prepayment, refunded, or released after consultation.",
+            "proposed_language": "After the cutoff date, Hotel will continue to hold any rooms in Group's block not assigned to a specific attendee if Group pays for them in full at that time, and will refund those advance payments after the Event for any such rooms later paid for by Group attendees; alternatively, after consultation with Group, Hotel will offer unassigned rooms to other individuals or groups to reduce any damages Group may owe under the attrition clause. Group members may continue to reserve rooms at the group rate for as long as Hotel is selling rooms to the general public, regardless of room type; once the room block has sold, Hotel will honor the group rate for as long as it is selling the contracted room type to the general public.",
+            "redline_note": "Keeps the group rate available after cutoff and addresses unassigned rooms.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "21–30 days before arrival."
+          },
+          {
+            "clause_type": "cutoff_date",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "3. Reservation Cutoff Date",
+            "quoted_text": "The availability of rooms and the continued application of the group rate are not guaranteed after the cutoff date, and the guest accepts the risk that only standard rack rates may be offered.",
+            "headline": "Attendees bear risk of rack rates after cutoff",
+            "finding_text": "Contradicts group-rate continuation and shifts rack-rate risk onto attendees.",
+            "cd_standard": "Group rate honored while hotel sells to the public.",
+            "proposed_language": "Attendees reserving after the cutoff date will receive the group rate for as long as Hotel is selling rooms to the general public.",
+            "redline_note": "Keeps the group rate available to late bookers.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "21–30 days before arrival."
+          },
+          {
+            "clause_type": "reservation_procedures",
+            "is_missing_clause": true,
+            "severity": "low",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No attendee-friendly reservation handling terms",
+            "finding_text": "Contract has no confirmation, name-change, cancellation, no-show or deposit terms.",
+            "cd_standard": "Confirmations in 4 days, name changes, cancellation until 6 pm arrival day, no-show reinstatement, refundable deposits, cancellation money credited.",
+            "proposed_language": "Upon request, Hotel will send each registered guest confirmation of their reservation, and of any change to it, at no charge within four (4) days of receiving the information, or within two (2) business days if the request is received within thirty (30) days of arrival. The room block and reservation procedures will be loaded into Hotel's central reservation and property management systems. Name changes may be made to room reservations at the group rate at any time up to and including the arrival date. No cancellation fee will be assessed for any room cancelled before 6:00 p.m. on the day of arrival. Hotel will reinstate no-shows for the following night at the rate of their existing reservation unless Group directs otherwise. Any individual reservation deposit will be refunded if notice of cancellation is received at least three (3) working days before arrival, and any individual cancellation money Hotel receives will be credited toward any attrition damages owed by Group.",
+            "redline_note": "Adds attendee reservation handling procedures.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "cancellation",
+            "is_missing_clause": false,
+            "severity": "high",
+            "location_section": "4. Cancellation and Liquidated Damages",
+            "quoted_text": "If the Group cancels this Agreement or reduces the room block in writing before the Event, the Group shall owe liquidated damages calculated as a percentage of gross room revenue that would have been earned on the cancelled or reduced rooms, based on the nightly group rates in effect at the time of cancellation.",
+            "headline": "Damages based on gross revenue, not room profit",
+            "finding_text": "Percentages apply to gross room revenue instead of 70% of the net rate less allowable attrition.",
+            "cd_standard": "100% of room profit = 70% of net group rate times block less allowable attrition.",
+            "proposed_language": "If the Group cancels this Agreement or reduces the room block in writing before the Event, the Group shall owe liquidated damages calculated as a percentage of room profit on the cancelled or reduced rooms, where one hundred percent (100%) of room profit is defined as seventy percent (70%) of the confirmed single net group rate at the time of cancellation, multiplied by the final adjusted room block less allowable attrition.",
+            "redline_note": "Bases damages on room profit rather than gross revenue.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Room profit up to 80% of the single net group rate. Keep the sliding scale and the hotel's duty to resell."
+          },
+          {
+            "clause_type": "cancellation",
+            "is_missing_clause": false,
+            "severity": "high",
+            "location_section": "4. Cancellation and Liquidated Damages",
+            "quoted_text": "If the Group subsequently rebooks rooms with the Hotel for a different date or event, such rebooking shall not reduce or eliminate any damages already owed by the Group for the cancelled Event.",
+            "headline": "No credit for damages paid if group rebooks",
+            "finding_text": "Rebooking gives no credit, and no actual-damages limit exists.",
+            "cd_standard": "Credit up to 100% of damages paid if a CD client rebooks within 3 years; actual damages only.",
+            "proposed_language": "Should a ConferenceDirect client rebook the Hotel for another meeting within three (3) years, Hotel will credit up to 100% of the cancellation damages paid toward the new booking's room revenue, not to exceed the damages paid; if the rebooking group is not the group that paid, the credit will be refunded directly to the group that paid. Any award for breach of this Agreement is limited to actual damages; punitive damages will not apply.",
+            "redline_note": "Credits damages paid against a later rebooking.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Room profit up to 80% of the single net group rate. Keep the sliding scale and the hotel's duty to resell."
+          },
+          {
+            "clause_type": "cancellation",
+            "is_missing_clause": false,
+            "severity": "high",
+            "location_section": "4. Cancellation and Liquidated Damages",
+            "quoted_text": "52%",
+            "headline": "180-91 day tier above room-profit basis",
+            "finding_text": "With damages on 70% room profit, tiers apply to profit rather than gross; this tier is restated on that basis.",
+            "cd_standard": "Sliding scale tiers on room-profit basis.",
+            "proposed_language": "52%",
+            "redline_note": "Confirms tier applies to room profit.",
+            "model_confidence": "low",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Room profit up to 80% of the single net group rate. Keep the sliding scale and the hotel's duty to resell."
+          },
+          {
+            "clause_type": "attrition",
+            "is_missing_clause": false,
+            "severity": "high",
+            "location_section": "2. Attrition",
+            "quoted_text": "Attrition is measured on a night-by-night basis, and the Group's block commitment is deemed satisfied only to the extent that occupied rooms meet or exceed ninety percent (90%) of the rooms reserved for each night of the Event.",
+            "headline": "Night-by-night attrition with 90% threshold",
+            "finding_text": "Attrition is per night with a 90% trigger instead of cumulative against a 70% trigger.",
+            "cd_standard": "Cumulative, triggered only below 70% of block.",
+            "proposed_language": "Attrition liability, if any, will be calculated on a cumulative (not night-by-night) basis, with liability triggered only if Group's actual pickup falls below seventy percent (70%) of the total contracted room block.",
+            "redline_note": "Measures attrition cumulatively against the whole block.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Trigger up to 80% of the block, still measured cumulatively. Damages up to 80% of the single net group rate."
+          },
+          {
+            "clause_type": "attrition",
+            "is_missing_clause": false,
+            "severity": "high",
+            "location_section": "2. Attrition",
+            "quoted_text": "Any rooms within the Group's block that remain unoccupied and were not released in accordance with this Agreement shall be charged at ninety percent (90%) of the nightly group rate, with such charges due within forty-five (45) days of the Event conclusion.",
+            "headline": "Unoccupied rooms charged at 90% of rate",
+            "finding_text": "Charge is 90% of rate on all unoccupied rooms rather than 70% lost profit on unsold rooms only; no settlement of all damages or rebooking credit.",
+            "cd_standard": "70% of net rate on unsold rooms below threshold; payment settles all damages; rebooking credit.",
+            "proposed_language": "For each unsold room night below that threshold, Group will pay an amount equal to seventy percent (70%) of Group's single confirmed net group rate (plus tax, if required by applicable law), calculated as the lesser of the number of unsold rooms in the Hotel that night or the shortfall between Group's minimum block and actual pickup, with such charges due within forty-five (45) days of the Event conclusion. After receipt of this payment, Hotel will not seek additional damages from Group related to the room block commitment. Should a ConferenceDirect client rebook the Hotel within three (3) years, Hotel will credit up to 100% of the attrition damages paid toward the new booking's room revenue, not to exceed the damages paid.",
+            "redline_note": "",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Trigger up to 80% of the block, still measured cumulatively. Damages up to 80% of the single net group rate."
+          },
+          {
+            "clause_type": "gratuity_service_charge",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "Gratuity and service charge not defined",
+            "finding_text": "Contract is silent on gratuity and service charge percentages and distribution.",
+            "cd_standard": "Separately defined, confirmed percentages; gratuity to staff; none on rental or labor-fee equipment.",
+            "proposed_language": "[X] percent ([X]%) of the food and beverage total, plus applicable tax, will be added to Group's account as a gratuity and fully distributed to the servers, and where applicable, bussers and bartenders assigned to the Event. Any service charge of [X] percent ([X]%), plus applicable tax, is separate from gratuity, is not distributed as a tip, and is retained by Hotel. Both percentages are confirmed in this Agreement. Hotel will not add a gratuity or service charge to meeting room rental fees or to any rented equipment that also carries a labor fee.",
+            "redline_note": "",
+            "model_confidence": "medium",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "av_internet",
+            "is_missing_clause": true,
+            "severity": "low",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No AV or internet pricing and bandwidth commitments",
+            "finding_text": "Contract has no AV quote, bandwidth minimum or discount.",
+            "cd_standard": "Honor AV and internet quotes, 10/1 Mbps, 20% discount, no AV tie-in.",
+            "proposed_language": "Hotel will honor the pricing of the attached audio-visual quote, prepared from Group's specifications at the time of contracting, and will apply a discount of twenty percent (20%) to any additional audio-visual needs, regardless of which provider is in place during the Event. Hotel will likewise honor the attached internet bandwidth quote, which provides a minimum of 10 Mbps download and 1 Mbps upload speed, with a discount of twenty percent (20%) on any additional needs. Use of Hotel's in-house audio-visual provider, exclusively or otherwise, will not be a condition of any discounted or complimentary service, such as internet.",
+            "redline_note": "Adds AV and internet pricing and bandwidth commitments.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "mandatory_fees",
+            "is_missing_clause": false,
+            "severity": "medium",
+            "location_section": "8. Mandatory Fees and Surcharges",
+            "quoted_text": "All other mandatory fees and surcharges due from Group are limited to those disclosed in writing before this agreement is executed.",
+            "headline": "No approval for later add-ons or early check-in fee waiver",
+            "finding_text": "Silent on written approval before later charges and on attendee early check-in and bag fees.",
+            "cd_standard": "Written approval for add-ons; no early check-in or bag fees.",
+            "proposed_language": "All other mandatory fees and surcharges due from Group are limited to those disclosed in writing before this agreement is executed. Should Group require additional services or equipment after signature, Hotel must obtain Group's written approval before providing the service and before posting the charge to the master account. Hotel will not charge attendees an early check-in fee when their room type is available, and will waive checked-bag fees for attendees arriving before check-in time or departing after check-out time.",
+            "redline_note": "Requires approval of later charges and bars attendee check-in fees.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "commission",
+            "is_missing_clause": true,
+            "severity": "high",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No commission payable to ConferenceDirect",
+            "finding_text": "Contract does not provide commission on room revenue.",
+            "cd_standard": "10% commission on all actualized room revenue, paid within 30 days.",
+            "proposed_language": "All rates confirmed in this Agreement are commissionable at ten percent (10%) to ConferenceDirect, LLC. Hotel will pay commission to ConferenceDirect on all actualized room revenue, regardless of rate paid and including all rooms outside the block, within thirty (30) days of Group's departure, whether or not the master account has been paid in full. Hotel agrees that Group could not have negotiated more favorable room rates, terms, and concessions had Group negotiated directly with Hotel rather than through ConferenceDirect, and Hotel and Group agree that commission for this booking is non-cancelable and non-transferable to another party or agency. Commission on any additional rooms or amendments will be no less than ten percent (10%) or the amount in this Agreement, whichever is higher, regardless of room rate paid. Should the standard hotel or brand commission percentage increase before the Event, the higher percentage will apply; should Hotel change management company or brand affiliation, the new management will honor the existing commission, or the new brand's commission if higher. Hotel will pay ConferenceDirect ten percent (10%) of any liquidated damages paid by Group within ten (10) days of receiving them.",
+            "redline_note": "Adds commission terms for the booking.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          },
+          {
+            "clause_type": "facilities_services",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No remedy if hotel closes facilities or cuts service",
+            "finding_text": "Contract has no protection against closures or service reductions.",
+            "cd_standard": "Equal alternatives at hotel expense; cancel without liability after 30 days.",
+            "proposed_language": "If Hotel closes or limits the hours of service of any current restaurant, health club, spa, fitness facility, contracted meeting space, or other hospitality venue or facility by more than twenty-five percent (25%) of its published capacity or full-service offering, or limits, restricts, or reduces the guest-to-staff service ratio of its housekeeping, restaurant, banquet, maintenance and engineering, safety and security, or any other service in a manner a hotel industry executive would agree is material, Hotel will first have the option to provide equal alternative facilities or services, mutually agreeable and solely at Hotel's expense. Should no mutually agreeable alternative be reached within thirty (30) days, Group may cancel this Agreement without liability upon written notice to Hotel, or the parties may instead modify this Agreement on mutually agreeable terms.",
+            "redline_note": "Adds alternatives and an exit if facilities are reduced.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Closures or cuts of more than 25–35% trigger the alternatives duty."
+          },
+          {
+            "clause_type": "construction_renovation",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No renovation disclosure or exit right",
+            "finding_text": "Contract has no renovation representation, notice or termination right.",
+            "cd_standard": "No-renovation representation, 30 days' notice, termination if interference.",
+            "proposed_language": "As of the date of this Agreement, Hotel has no plans for renovation or remodeling of any facilities to be used by Group, other than ordinary maintenance. If Hotel later confirms any such plans, Hotel will notify Group in writing within thirty (30) days, describing: (a) the planned scope of the project; (b) the schedule for commencement and completion; (c) the anticipated impact on areas Group will use; and (d) Hotel's plan for minimizing that impact. Hotel promises that any such construction or remodeling will not interfere with Group's use of the Hotel, and the parties will negotiate in good faith to resolve any concerns and amend this Agreement as needed. If Group determines the construction or remodeling will interfere with its meeting, Group may terminate this Agreement without liability upon written notice given within thirty (30) days of receiving Hotel's plans.",
+            "redline_note": "Adds renovation disclosure and a termination right.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Written notice within 30–60 days of plans being confirmed."
+          },
+          {
+            "clause_type": "rate_parity",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No guarantee against lower rates sold to others",
+            "finding_text": "Contract has no rate parity commitment.",
+            "cd_standard": "No lower rates during event; adjust retroactively; parity with other groups within 7 days.",
+            "proposed_language": "Hotel guarantees it will not sell guestrooms at a rate lower than Group's contracted group rate during the Event dates, with the exception of qualified rates (government, airline, and contracted corporate negotiated rates). If Hotel offers a lower guestroom rate, Hotel will adjust the rate for all prior reservations in Group's block to match and make the adjusted rate available to all Group attendees. Commission will be paid on the contracted rate regardless of any rate adjustment, and such rooms remain creditable toward Group's pickup, complimentary-room credits, attrition, and any other concession based on pickup. Hotel further agrees that Group's rate will be no higher than the group rate given to any other group over the period from seven (7) days before through seven (7) days after the room block dates.",
+            "redline_note": "Adds rate parity protection for the group.",
+            "model_confidence": "high",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": "Group rate no higher than other groups' rates within 3–7 days of the event."
+          },
+          {
+            "clause_type": "force_majeure",
+            "is_missing_clause": false,
+            "severity": "high",
+            "location_section": "5. Force Majeure",
+            "quoted_text": "The party seeking to invoke force majeure must provide written notice within five (5) business days of the event or restriction, accompanied by reasonable evidence of its occurrence and material impact on performance.",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "Short notice window may defeat the right to cancel",
+            "finding_text": "The group loses force majeure protection if it misses a five-business-day notice. The clause also does not list terrorism, CDC advisories, government closures or emergency declarations, nor a 20% attendee-cancellation trigger, and offers no smaller-meeting relief.",
+            "cd_standard": "Either party should be able to cancel without liability when a cause beyond its control would, in its reasonable judgment, make performance illegal, impossible, commercially impracticable, or inadvisable (including for health or safety reasons), or would cause or lead Group to reasonably anticipate cancellations by 20% or more of attendees. Qualifying causes should explicitly include terrorism, disease and epidemics, CDC and government travel advisories, government closures and emergency declarations, and government, corporate, and educational travel restrictions, alongside the traditional list. Group should keep this right even for conditions known at signing; if Group holds a smaller meeting instead, the hotel should waive attrition, F&B, and rental fees and offer the lowest rate it offers anyone. Deposits should be refunded promptly.",
+            "proposed_language": "",
+            "model_confidence": "medium",
+            "category": "legal",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "assignment_subcontracting",
+            "is_missing_clause": true,
+            "severity": "low",
+            "location_section": null,
+            "quoted_text": null,
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "No right to assign to successor or affiliate",
+            "finding_text": "The contract is silent on assignment, so the group may have no clear right to transfer it to a successor management company. This could leave the group exposed if its management changes.",
+            "cd_standard": "The group should be able to assign the contract to a successor management company or affiliated entity (common for associations that rotate management) without the hotel's consent being unreasonably withheld, particularly where the event itself is unchanged.",
+            "proposed_language": "",
+            "model_confidence": "high",
+            "category": "legal",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "insurance_indemnification",
+            "is_missing_clause": false,
+            "severity": "high",
+            "location_section": "13. Insurance and Indemnification",
+            "quoted_text": "Group shall procure and maintain general liability insurance with limits of not less than $1,000,000.00 per occurrence, with Hotel named as an additional insured.",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "Insurance duty falls on Group alone",
+            "finding_text": "Only the group must carry insurance, and indemnity extends to breach and violation of law, which broadens exposure beyond negligence. There is no survival term, and the indemnity wording is internally inconsistent.",
+            "cd_standard": "Indemnification should be mutual and limited to each party's own negligence or willful misconduct, including each party's reasonable attorney's fees, and should survive the end of the agreement the group should never indemnify the hotel for the hotel's own negligence. Insurance should be a mutual obligation, with each party carrying adequate insurance to protect its own activities, rather than a requirement imposed on the group alone.",
+            "proposed_language": "",
+            "model_confidence": "medium",
+            "category": "legal",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "ada_compliance",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "No accessibility commitments by the hotel",
+            "finding_text": "The contract has no accessibility warranty or division of auxiliary aid costs. The group could bear unexpected accessibility obligations or exposure.",
+            "cd_standard": "The hotel should warrant that its guest rooms, common areas, function space, and transportation services comply with the ADA's public accommodation requirements, with each party indemnifying the other only for its own ADA obligations and a clear division of who funds auxiliary aids in event space (group) versus guest rooms and common areas (hotel).",
+            "proposed_language": "",
+            "model_confidence": "high",
+            "category": "legal",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "attendee_data_handling",
+            "is_missing_clause": true,
+            "severity": "low",
+            "location_section": null,
+            "quoted_text": null,
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "No limit on hotel use of attendee data",
+            "finding_text": "Nothing restricts the hotel from using or sharing rooming list data for marketing. Attendee information could be used without the group's consent.",
+            "cd_standard": "Rooming list and attendee data provided to the hotel for reservation purposes should not be used by the hotel for its own marketing or sold to third parties without the group's consent.",
+            "proposed_language": "",
+            "model_confidence": "high",
+            "category": "legal",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "hotel_cancellation",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "No damages if hotel cancels without right",
+            "finding_text": "The contract gives no remedy if the hotel cancels. The group could be left with only a deposit refund while bearing relocation costs.",
+            "cd_standard": "If the hotel cancels the agreement without a right to do so under the contract, it should owe the group all direct, indirect, and consequential damages including staff time and travel to find a new venue, room rate and airfare differences, function space rental, attorney's fees, and communication and printing costs, not just a refund of deposits.",
+            "proposed_language": "",
+            "model_confidence": "high",
+            "category": "legal",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "nondiscrimination",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "No nondiscrimination commitment to attendees",
+            "finding_text": "The contract has no commitment against discrimination toward attendees and no exit if local law permits it. The group could face attendee harm and reputational exposure.",
+            "cd_standard": "The hotel should commit that it and its staff will not discriminate against any attendee on the basis of sex, gender identity or expression, age, race, color, religion, national or ethnic origin, disability, sexual orientation, genetic information, family, marital, or military status, or similar grounds, even where state or federal law would allow it. If the state or city adopts legislation that allows such discrimination or bars local nondiscrimination measures, the group should be able to terminate without liability.",
+            "proposed_language": "",
+            "model_confidence": "high",
+            "category": "legal",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "general",
+            "is_missing_clause": false,
+            "severity": "note",
+            "location_section": null,
+            "quoted_text": "Any cancellation notice must be sent to the Hotel's director of sales via email to the address designated in the booking confirmation, and the cancellation shall be effective only upon the Hotel's written acknowledgment of receipt.",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "Cancellation effective only on hotel's written acknowledgment",
+            "finding_text": "The hotel controls when a cancellation takes effect by choosing when to acknowledge it. Delay could push the group into a higher damages tier.",
+            "cd_standard": "Not covered by CD's standards library. Raise it at your discretion.",
+            "proposed_language": "",
+            "model_confidence": "medium",
+            "category": "other",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "general",
+            "is_missing_clause": false,
+            "severity": "note",
+            "location_section": null,
+            "quoted_text": "Group shall remain liable to Hotel for any failure by such vendors to comply with Hotel policies or for any damage they cause to Hotel's property.",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "Group answers for outside vendors' compliance and damage",
+            "finding_text": "The group takes on liability for third parties' acts, including policy non-compliance, adding cost exposure beyond the vendors' own insurance.",
+            "cd_standard": "Not covered by CD's standards library. Raise it at your discretion.",
+            "proposed_language": "",
+            "model_confidence": "medium",
+            "category": "other",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "general",
+            "is_missing_clause": false,
+            "severity": "note",
+            "location_section": null,
+            "quoted_text": "Any dispute regarding attrition calculations must be raised in writing within sixty (60) days following receipt of the attrition invoice, or the calculation shall be deemed accepted.",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "headline": "Disputes waived after 60 days; unverified invoices deemed accepted",
+            "finding_text": "A missed window bars challenge to the hotel's attrition figures, which the hotel calculates from its own records and may take 20 business days to produce.",
+            "cd_standard": "Not covered by CD's standards library. Raise it at your discretion.",
+            "proposed_language": "",
+            "model_confidence": "medium",
+            "category": "other",
+            "compromise_range": "",
+            "redline_note": ""
+          },
+          {
+            "clause_type": "named_storm",
+            "is_missing_clause": true,
+            "severity": "medium",
+            "location_section": null,
+            "quoted_text": null,
+            "headline": "No separate named-storm cancellation right for forecast storms",
+            "finding_text": "The contract has no named-storm clause. Section 5 force majeure covers illegal, impossible or commercially impracticable performance and unsafe travel, but it does not clearly cover a storm that is forecast to affect the Hotel without causing damage. It also requires notice within five business days and supporting evidence. CD's standards treat named-storm as its own clause rather than assuming force majeure covers it. Severity stays at the library default of medium.",
+            "cd_standard": "A separate, narrower named-storm clause with its own notice period and cancellation window, allowing either party to cancel the affected portion without liability when a named storm is forecast to affect the Hotel's location within 72 hours of any event date, regardless of physical damage.",
+            "proposed_language": "In the event a named storm (hurricane, tropical storm) is forecast to affect the Hotel's location within 72 hours of any event date, either party may cancel the affected portion of the event without liability upon written or verbal (followed by written) notice, regardless of whether the storm ultimately causes physical damage to the Hotel.",
+            "redline_note": "",
+            "model_confidence": "medium",
+            "exposure_amount": null,
+            "exposure_formula": null,
+            "exposure_basis": null,
+            "category": "business",
+            "compromise_range": ""
+          }
+        ],
+        "clause_review": [
+          {
+            "clause_type": "banquet_service_levels",
+            "verdict": "missing",
+            "basis": "Position requires server ratios, bartender ratios, no labor fees except under 25 people; contract is silent on all."
+          },
+          {
+            "clause_type": "fb_minimum",
+            "verdict": "falls_short",
+            "basis": "Shortfall at 35% of the gap meets; pricing locked only 12 months from agreement date, not set no earlier than 12 months before event; silent on affiliate and exhibitor F&B counting toward minimum."
+          },
+          {
+            "clause_type": "force_majeure",
+            "verdict": "falls_short",
+            "basis": "Mutual no-liability termination, illegal/impossible/impracticable, government restrictions, epidemics, prompt refund meet; lacks explicit terrorism, CDC advisories, government closures/emergency declarations, 20% attendee cancellation trigger, known-conditions right, and smaller-meeting relief; adds 5-business-day notice condition."
+          },
+          {
+            "clause_type": "exclusivity_vendors",
+            "verdict": "falls_short",
+            "basis": "Outside AV, decorating, security, transportation allowed with no fee; floral, tours and similar not named; Group must comply with hotel policies and indemnities and is liable for vendors."
+          },
+          {
+            "clause_type": "rebates",
+            "verdict": "falls_short",
+            "basis": "1 per 40 occupied rooms and no forfeiture on shortfall meet; silent on cumulative across block, miscoded/audit rooms, no-show and cancellation fee room nights, and complimentary in-room internet."
+          },
+          {
+            "clause_type": "assignment_subcontracting",
+            "verdict": "missing",
+            "basis": "No assignment clause; position needs assignment to successor management or affiliate without unreasonable withholding."
+          },
+          {
+            "clause_type": "review_audit_dates",
+            "verdict": "missing",
+            "basis": "No 24/12-month block reviews, pickup reports, post-event report, or room-block audit right; only an occupancy records request in attrition."
+          },
+          {
+            "clause_type": "insurance_indemnification",
+            "verdict": "falls_short",
+            "basis": "Indemnity is mutual and limited to own conduct at the end, but includes breach and violation of law, no survival term; insurance obligation is on Group only."
+          },
+          {
+            "clause_type": "termination_rights",
+            "verdict": "falls_short",
+            "basis": "Separate from cancellation scale and refund; but only material breach and force majeure; lacks epidemic at Group's judgment, labor dispute, ownership change, renovation, facility reductions, convention center, discrimination legislation; refund 14 days not 5."
+          },
+          {
+            "clause_type": "damage_deposit",
+            "verdict": "not_applicable",
+            "basis": "Deposit is zero dollars, so no deposit is collected; terms otherwise match."
+          },
+          {
+            "clause_type": "brand_ownership_change",
+            "verdict": "missing",
+            "basis": "Silent on notice of brand, management, ownership change or bankruptcy and termination right."
+          },
+          {
+            "clause_type": "ada_compliance",
+            "verdict": "missing",
+            "basis": "No accessibility warranty or auxiliary aid allocation."
+          },
+          {
+            "clause_type": "attendee_data_handling",
+            "verdict": "missing",
+            "basis": "No limits on hotel use of rooming list or attendee data."
+          },
+          {
+            "clause_type": "named_storm",
+            "verdict": "missing",
+            "basis": "San Antonio, Texas is inland, outside the coastal hurricane-belt focus of this clause; force majeure covers unsafe travel."
+          },
+          {
+            "clause_type": "labor_disputes",
+            "verdict": "missing",
+            "basis": "No notice of CBA expirations or labor disputes and no 90-day cancellation right."
+          },
+          {
+            "clause_type": "master_account_billing",
+            "verdict": "falls_short",
+            "basis": "30-day dispute window meets; finance charge 1% monthly but compounding, no 'or legal maximum' cap and applies to disputed amounts; no automatic credit if hotel fails to send application; prepayment open-ended percentage rather than staged schedule; no payable-on-receipt terms."
+          },
+          {
+            "clause_type": "walk_relocation",
+            "verdict": "missing",
+            "basis": "No walk protections at all."
+          },
+          {
+            "clause_type": "resale_mitigation_duty",
+            "verdict": "falls_short",
+            "basis": "Hotel retains resale revenue with no credit and no documented mitigation duty; damages invoiced within 30 days of notice rather than 30 days after meeting dates."
+          },
+          {
+            "clause_type": "hotel_cancellation",
+            "verdict": "missing",
+            "basis": "No remedy if hotel cancels without right."
+          },
+          {
+            "clause_type": "function_space",
+            "verdict": "missing",
+            "basis": "No function rooms named, no square footage, ceiling heights, rental waiver or in-room equipment."
+          },
+          {
+            "clause_type": "cutoff_date",
+            "verdict": "falls_short",
+            "basis": "21 days meets; after cutoff group rate only if block rooms remain, with rack-rate risk, no continued rate while hotel sells to public, no unassigned-room hold/release terms."
+          },
+          {
+            "clause_type": "future_rate_cap",
+            "verdict": "not_applicable",
+            "basis": "Rate of $168 is stated as a fixed rate with no unconfirmed future-year rate."
+          },
+          {
+            "clause_type": "reservation_procedures",
+            "verdict": "missing",
+            "basis": "Silent on confirmations, name changes, individual cancellations, no-show reinstatement, deposits."
+          },
+          {
+            "clause_type": "cancellation",
+            "verdict": "falls_short",
+            "basis": "Sliding scale with dollar-tier percentages disclosed; but based on gross room revenue not 70% of net rate less allowable attrition; no mitigation credit; no rebooking credit; no actual-damages limit; tiers up to 70%."
+          },
+          {
+            "clause_type": "nondiscrimination",
+            "verdict": "missing",
+            "basis": "No nondiscrimination commitment or termination right."
+          },
+          {
+            "clause_type": "facilities_services",
+            "verdict": "missing",
+            "basis": "No terms on facility or service reductions."
+          },
+          {
+            "clause_type": "construction_renovation",
+            "verdict": "missing",
+            "basis": "No renovation representation, notice or termination right."
+          },
+          {
+            "clause_type": "rate_parity",
+            "verdict": "missing",
+            "basis": "No rate parity guarantee."
+          },
+          {
+            "clause_type": "commission",
+            "verdict": "missing",
+            "basis": "No commission to ConferenceDirect at all."
+          },
+          {
+            "clause_type": "governing_law_venue",
+            "verdict": "meets",
+            "basis": "Law of Group's state, exclusive venue in Group's county, no punitive damages, each party bears own attorney's fees."
+          },
+          {
+            "clause_type": "attrition",
+            "verdict": "falls_short",
+            "basis": "Night-by-night, 90% trigger, charge at 90% of rate, no 70% profit basis, no credit-back on rebook, no payment-settles-all; 95% occupancy credit and records audit present."
+          },
+          {
+            "clause_type": "gratuity_service_charge",
+            "verdict": "missing",
+            "basis": "Contract is silent on gratuity and service charge percentages."
+          },
+          {
+            "clause_type": "av_internet",
+            "verdict": "missing",
+            "basis": "No AV quote, bandwidth or discount terms."
+          },
+          {
+            "clause_type": "mandatory_fees",
+            "verdict": "meets",
+            "basis": "Written disclosure before signature, undisclosed charges waived, no resort fee; silent on post-signature written approval and early check-in/bag fees, so falls short."
+          }
+        ],
+        "clauses_checked": [
+          "banquet_service_levels",
+          "fb_minimum",
+          "force_majeure",
+          "exclusivity_vendors",
+          "rebates",
+          "assignment_subcontracting",
+          "review_audit_dates",
+          "insurance_indemnification",
+          "termination_rights",
+          "damage_deposit",
+          "brand_ownership_change",
+          "ada_compliance",
+          "attendee_data_handling",
+          "named_storm",
+          "labor_disputes",
+          "master_account_billing",
+          "walk_relocation",
+          "resale_mitigation_duty",
+          "hotel_cancellation",
+          "function_space",
+          "cutoff_date",
+          "future_rate_cap",
+          "reservation_procedures",
+          "cancellation",
+          "nondiscrimination",
+          "facilities_services",
+          "construction_renovation",
+          "rate_parity",
+          "commission",
+          "governing_law_venue",
+          "attrition",
+          "gratuity_service_charge",
+          "av_internet",
+          "mandatory_fees"
+        ],
+        "review_gaps": [
+          {
+            "kind": "short_without_finding",
+            "clause_type": "named_storm",
+            "verdict": "missing"
+          },
+          {
+            "kind": "finding_on_meets",
+            "clause_type": "mandatory_fees"
+          }
+        ],
+        "dropped_findings": [],
+        "document_notes": [
+          {
+            "headline": "Cancellation section grants no-liability window that conflicts with the table.",
+            "detail": "Text: \"The Group may cancel this Agreement without liability if written cancellation notice is provided more than twelve (12) months in advance\"; table: \"365 days or more prior to arrival\" as None."
+          },
+          {
+            "headline": "Attrition threshold differs between sections.",
+            "detail": "Section 2 says \"ninety percent (90%) of the rooms reserved for each night\" while charging \"ninety percent (90%) of the nightly group rate\"; the intro refers to \"the percentage specified herein\"."
+          }
+        ],
+        "model_id": "claude-sonnet-5-5",
+        "standards_library_version": "v1-industry-default",
+        "input_tokens": 5089,
+        "output_tokens": 16479,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 21646,
+        "thinking_chars": 0,
+        "thinking_tokens": 0,
+        "elapsed_ms": 123690,
+        "deal_figures": {
+          "room_block_room_nights": null,
+          "group_rate": null,
+          "minimum_room_nights": null,
+          "attrition_threshold_pct": 0.9,
+          "attrition_damages_pct": null,
+          "cancellation_tiers": [],
+          "fb_minimum": null,
+          "fb_shortfall_pct": 0.35,
+          "commission_pct": null,
+          "currency": null
+        },
+        "reading": {
+          "ok": true,
+          "entries": [
+            {
+              "term_key": "attrition.threshold",
+              "value": 90,
+              "quoted_text": "the Group's block commitment is deemed satisfied only to the extent that occupied rooms meet or exceed ninety percent (90%) of the rooms reserved for each night of the Event",
+              "source_section": "2. Attrition",
+              "confidence": "high"
+            },
+            {
+              "term_key": "fb_minimum.shortfall_rate",
+              "value": 35,
+              "quoted_text": "Group shall pay a shortfall charge calculated as thirty-five percent (35%) of the difference between the minimum and actual spend",
+              "source_section": "7. Food and Beverage Minimum",
+              "confidence": "high"
+            }
+          ],
+          "terms": {
+            "catalog_version": "hotel-v3",
+            "stated": [
+              {
+                "term_key": "attrition.threshold",
+                "value": 0.9,
+                "unit": "pct",
+                "quoted_text": "the Group's block commitment is deemed satisfied only to the extent that occupied rooms meet or exceed ninety percent (90%) of the rooms reserved for each night of the Event",
+                "source_section": "2. Attrition",
+                "confidence": "high",
+                "verification": "verified"
+              },
+              {
+                "term_key": "fb_minimum.shortfall_rate",
+                "value": 0.35,
+                "unit": "pct",
+                "quoted_text": "Group shall pay a shortfall charge calculated as thirty-five percent (35%) of the difference between the minimum and actual spend",
+                "source_section": "7. Food and Beverage Minimum",
+                "confidence": "high",
+                "verification": "verified"
+              }
+            ],
+            "not_stated": [
+              "deal.room_block_room_nights",
+              "attrition.minimum_room_nights",
+              "commission.commission_pct"
+            ],
+            "rejected": [],
+            "conflicts": []
+          },
+          "model_id": "claude-sonnet-5-5",
+          "tokens": {
+            "input": 5089,
+            "output": 219,
+            "cache_read": 0,
+            "cache_creation": 1984
+          },
+          "figures": {
+            "room_block_room_nights": null,
+            "group_rate": null,
+            "minimum_room_nights": null,
+            "attrition_threshold_pct": 0.9,
+            "attrition_damages_pct": null,
+            "cancellation_tiers": [],
+            "fb_minimum": null,
+            "fb_shortfall_pct": 0.35,
+            "commission_pct": null,
+            "currency": null
+          },
+          "notes": [
+            {
+              "term_key": "cancellation.top_tier_pct",
+              "reason": "No cancellation figure, because the reading gave no usable top-tier percentage."
+            },
+            {
+              "term_key": "cancellation.damages_basis",
+              "reason": "No cancellation figure, because the reading didn't say whether the percentage is charged on the rate or on room profit (not stated)."
+            }
+          ],
+          "unanswered": [],
+          "reask": null,
+          "positions": {
+            "positions": {
+              "attritionTrigger": 0.7,
+              "roomProfit": 0.7,
+              "fbShortfall": 0.35,
+              "commission": 0.1
+            },
+            "unread": []
+          }
+        },
+        "follow_up": {
+          "asked_for": [
+            "named_storm"
+          ],
+          "findings_added": 1,
+          "tokens": {
+            "input": 5227,
+            "output": 624,
+            "cache_read": 0,
+            "cache_creation": 6071
+          },
+          "thinking_tokens": 0,
+          "elapsed_ms": 5893
+        }
+      },
+      "error": null,
+      "elapsed_ms": 129608
+    }
+  ]
+}

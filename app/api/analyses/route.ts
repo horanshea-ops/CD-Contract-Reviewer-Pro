@@ -15,7 +15,7 @@ import { brandChoices, brandOnNegotiation } from "@/lib/standards/usable";
 
 // Read by serverless hosts only. It covers MODEL_CALL_BUDGET_MS plus the
 // upload and saves. Render runs a long-lived server and ignores it.
-export const maxDuration = 600;
+export const maxDuration = 720;
 
 const STORAGE_BUCKET = "contracts";
 const MAX_FILE_BYTES = 32 * 1024 * 1024; // 32MB — see build brief §5 on checking current PDF limits

@@ -1,5 +1,5 @@
 import { collapseWhitespace, normalizeText } from "../docx/normalize";
-import { parseQuantities } from "../quantities";
+import { parseQuantities, withoutQuantities } from "../quantities";
 import { locateQuote, type LocatablePart } from "../redline-engine/locate";
 import { catalogIndex } from "./catalog";
 import type {
@@ -168,18 +168,121 @@ const sameNumber = (a: number, b: number) => Math.abs(a - b) < 1e-9;
 const bareIntegers = (text: string) =>
   [...text.matchAll(/(?<![\d.]|\d,)\d+(?:,\d{3})*(?!\d|,\d)/g)].map((m) => Number(m[0].replace(/,/g, "")));
 
+const MONTH_WORDS = MONTHS.flatMap((m) => [m, m.slice(0, 3)]).join("|");
+
+/** "April 12-16, 2027", "Apr. 12", "June 2027" and "4/12/2027". */
+const DATE_RE = new RegExp(
+  String.raw`\b(?:${MONTH_WORDS})\.?\s+\d{1,2}(?!,?\d)(?:\s*[-–]\s*\d{1,2})?(?:,?\s+\d{4})?\b|\b(?:${MONTH_WORDS})\.?\s+\d{4}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b`,
+  "gi"
+);
+
+/** The room counts in a text: its bare integers, leaving out amounts, percentages, durations and dates. */
+const roomCounts = (text: string) => bareIntegers(withoutQuantities(text.replace(DATE_RE, " "))).filter((n) => n !== 0);
+
+/**
+ * Whether a set of room counts singles one value out. A count standing alone
+ * does. So does a total, which is the one count the others add up to.
+ */
+function singlesOut(counts: number[], value: number): boolean {
+  const others = counts.filter((n) => !sameNumber(n, value));
+  if (others.length === 0) return true;
+  const repeats = counts.length - others.length - 1;
+  return sameNumber(others.reduce((sum, n) => sum + n, repeats * value), value);
+}
+
+/** The cells of every table row that holds the quote as one whole cell. */
+function rowsHolding(parts: LocatablePart[], quote: string): string[][] {
+  const cell = flat(quote);
+  return parts
+    .flatMap((part) => part.text.split("\n"))
+    .filter((line) => line.includes("|"))
+    .map((line) => line.split("|").map((c) => c.trim()).filter((c) => c.length > 0))
+    .filter((cells) => cells.some((c) => flat(c) === cell));
+}
+
+/** A row singles a count out when it carries a label and its number-only cells do. */
+function rowSinglesOut(cells: string[], value: number): boolean {
+  const counts = cells.filter(isCount).map((c) => Number(c.replace(/,/g, "")));
+  return cells.some((c) => /[a-z]/i.test(c)) && singlesOut(counts, value);
+}
+
+const cellsOf = (line: string) => line.split("|").map((c) => c.trim()).filter((c) => c.length > 0);
+const isCount = (cell: string) => /^\d[\d,]*$/.test(cell);
+
+/** Every table in the contract's text, as rows of cells. A table is a run of lines that hold cell marks. */
+function tablesIn(parts: LocatablePart[]): string[][][] {
+  const tables: string[][][] = [];
+  for (const part of parts) {
+    let rows: string[][] = [];
+    for (const line of [...part.text.split("\n"), ""]) {
+      if (line.includes("|")) {
+        if (!/^[\s|:-]+$/.test(line)) rows.push(cellsOf(line));
+      } else if (rows.length > 0) {
+        tables.push(rows);
+        rows = [];
+      }
+    }
+  }
+  return tables;
+}
+
+/**
+ * Whether the table a quote sits in has a column of counts that add up to the
+ * value. A room block is often printed night by night with no total, and the
+ * total is then a sum the contract supports without stating.
+ */
+function tableAddsUpTo(parts: LocatablePart[], quote: string, value: number): boolean {
+  const wanted = flat(cellsOf(quote).join(" "));
+  if (!wanted) return false;
+
+  return tablesIn(parts).some((rows) => {
+    if (!rows.some((cells) => flat(cells.join(" ")).includes(wanted))) return false;
+    const width = Math.max(...rows.map((cells) => cells.length));
+    for (let column = 0; column < width; column++) {
+      const counts = rows.map((cells) => cells[column]).filter((cell) => cell !== undefined && isCount(cell));
+      const total = counts.reduce((sum, cell) => sum + Number(cell.replace(/,/g, "")), 0);
+      if (counts.length > 1 && sameNumber(total, value)) return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Whether a quote bears out a count of rooms or room nights.
+ *
+ * Holding the number is not enough. A quoted table row holds every night's
+ * count, and any of them would pass. The quote must single the value out, and
+ * a value sitting among counts that don't add up to it is only located. A
+ * value the quote doesn't hold is still borne out when the quote's table adds
+ * up to it.
+ */
+function roomCountEvidence(value: number, quote: string, parts: LocatablePart[]): Verification {
+  const counts = roomCounts(quote);
+  if (!counts.some((n) => sameNumber(n, value))) {
+    if (tableAddsUpTo(parts, quote, value)) return "verified";
+    return counts.length === 0 ? "located" : "contradicted";
+  }
+
+  // A bare cell doesn't say which number it is, so the table row it sits in is judged in its place.
+  if (counts.length === 1 && !/[a-z]/i.test(quote)) {
+    return rowsHolding(parts, quote).some((cells) => rowSinglesOut(cells, value)) ? "verified" : "located";
+  }
+  return singlesOut(counts, value) ? "verified" : "located";
+}
+
 /** Whether a quote bears out its figure. Words-only figures and zero meanings have nothing to check. */
-function numberEvidence(def: TermDefinition, value: number, quote: string): Verification {
+function numberEvidence(def: TermDefinition, value: number, quote: string, parts: LocatablePart[]): Verification {
   const quantities = parseQuantities(quote).filter((q) => q.unit === def.unit);
   if (quantities.length > 0) {
     return quantities.some((q) => sameNumber(q.value, value)) ? "verified" : "contradicted";
   }
-  // Rooms and bare counts carry no unit word to parse, so read the digits.
+  if (def.unit !== "rooms") return "located";
+  if (!def.ratio) return roomCountEvidence(value, quote, parts);
+
+  // A ratio's quote holds both of its sides, so holding the value is all it can show.
   const integers = bareIntegers(quote);
-  if (def.unit === "rooms" && integers.length > 0) {
-    return integers.some((n) => sameNumber(n, value)) ? "verified" : "contradicted";
-  }
-  return "located";
+  if (integers.length === 0) return "located";
+  return integers.some((n) => sameNumber(n, value)) ? "verified" : "contradicted";
 }
 
 function dateEvidence(iso: string, quote: string): Verification {
@@ -193,7 +296,7 @@ function dateEvidence(iso: string, quote: string): Verification {
 
 export function verify(def: TermDefinition, value: TermValue, quote: string, section: string | null, parts: LocatablePart[]): Verification {
   if (!quoteFound(parts, quote, section)) return "unlocated";
-  if (def.kind === "number") return numberEvidence(def, value as number, quote);
+  if (def.kind === "number") return numberEvidence(def, value as number, quote, parts);
   if (def.kind === "date") return dateEvidence(value as string, quote);
   return "located";
 }

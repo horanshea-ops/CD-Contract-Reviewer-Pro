@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { analyzeContract, extractContractTerms, generateClientEmail, generatePropertyEmail, historicalRequest } from "@/lib/anthropic";
+import {
+  analyzeContract,
+  draftEvalClauses,
+  extractContractTerms,
+  generateClientEmail,
+  generatePropertyEmail,
+  historicalRequest,
+  readBackEvalTerms,
+} from "@/lib/anthropic";
 import { STANDARDS_LIBRARY, STANDARDS_LIBRARY_VERSION } from "@/lib/standards/v1";
+import { askAgainNote, MUST_RAISE_CATALOG } from "@/lib/review";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 
 /**
@@ -16,7 +25,7 @@ const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
-    messages = { create };
+    messages = { create, stream: (params: unknown) => ({ finalMessage: () => create(params) }) };
   },
 }));
 
@@ -26,14 +35,18 @@ const toolResponse = (input: unknown) => ({
   usage: { input_tokens: 0, output_tokens: 0 },
 });
 
-const MODEL = "claude-sonnet-5";
+/** Sonnet 5 is forced to its tool. Sonnet 5.5 can't be, so its requests differ. */
+const MODELS = [
+  { model: "claude-sonnet-5", suffix: "" },
+  { model: "claude-sonnet-5-5", suffix: "-sonnet-5-5" },
+];
 
 beforeEach(() => {
   create.mockReset();
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
 });
 
-describe("request goldens", () => {
+describe.each(MODELS)("request goldens ($model)", ({ model: MODEL, suffix }) => {
   it("analysis", async () => {
     create.mockResolvedValue(toolResponse({ clause_review: [], findings: [], document_notes: "" }));
 
@@ -46,7 +59,7 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/analysis-request.json"
+      `./fixtures/prompt-golden/analysis-request${suffix}.json`
     );
   });
 
@@ -133,7 +146,7 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/client-email-request.json"
+      `./fixtures/prompt-golden/client-email-request${suffix}.json`
     );
   });
 
@@ -147,7 +160,7 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/property-email-request.json"
+      `./fixtures/prompt-golden/property-email-request${suffix}.json`
     );
   });
 
@@ -161,12 +174,78 @@ describe("request goldens", () => {
     });
 
     await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
-      "./fixtures/prompt-golden/term-extraction-request.json"
+      `./fixtures/prompt-golden/term-extraction-request${suffix}.json`
+    );
+  });
+
+  // The reading call of a review while exposure math is archived: the five terms the app raises findings from.
+  it("reading call, must-raise terms", async () => {
+    create.mockResolvedValue(toolResponse({ terms: [] }));
+
+    await extractContractTerms({
+      document: { kind: "text", text: "CONTRACT BODY" },
+      catalog: MUST_RAISE_CATALOG,
+      model: MODEL,
+    });
+
+    await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/reading-must-raise-request${suffix}.json`
     );
   });
 
   it("historical contract", async () => {
     const request = historicalRequest({ document: { kind: "text", text: "CONTRACT BODY" }, catalog: HOTEL_TERM_CATALOG, model: MODEL });
-    await expect(JSON.stringify(request, null, 2)).toMatchFileSnapshot("./fixtures/prompt-golden/historical-contract-request.json");
+    await expect(JSON.stringify(request, null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/historical-contract-request${suffix}.json`
+    );
+  });
+
+  it("eval clause draft", async () => {
+    create.mockResolvedValue(toolResponse({ clauses: [] }));
+
+    await draftEvalClauses({
+      hotel: "Hotel Example",
+      group: "Example Association",
+      city: "Tampa",
+      state: "FL",
+      dates: "March 3-6, 2027",
+      voice: "terse",
+      clauses: [
+        {
+          clause_type: "attrition",
+          section_title: "Attrition",
+          fields: [{ field: "threshold", label: "Attrition threshold", directive: 'State the threshold as "eighty percent (80%)".' }],
+        },
+      ],
+      model: MODEL,
+    });
+
+    await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/eval-draft-request${suffix}.json`
+    );
+  });
+
+  it("eval term read-back", async () => {
+    create.mockResolvedValue(toolResponse({ answers: [] }));
+
+    await readBackEvalTerms({
+      contractText: "CONTRACT BODY",
+      questions: [{ id: "q1", question: "Does the contract allow resale of unused rooms?", options: ["yes", "no", "unstated"] }],
+      model: MODEL,
+    });
+
+    await expect(JSON.stringify(create.mock.calls[0][0], null, 2)).toMatchFileSnapshot(
+      `./fixtures/prompt-golden/eval-readback-request${suffix}.json`
+    );
+  });
+});
+
+describe("the second ask for skipped clauses", () => {
+  it("tells the model what the first pass judged, in these words", async () => {
+    const note = askAgainNote([
+      { clause_type: "commission", verdict: "missing", basis: "The contract is silent on commission." },
+      { clause_type: "construction_renovation", verdict: "falls_short", basis: "No notice is required." },
+    ]);
+    await expect(note).toMatchFileSnapshot("./fixtures/prompt-golden/ask-again-note.txt");
   });
 });

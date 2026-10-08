@@ -1,7 +1,7 @@
 /**
  * The contract terms the Analytics tab compares across contracts.
  *
- * Keys match the hotel-v1 term catalog (lib/terms/catalog.ts), so extracted
+ * Keys match the hotel-v3 term catalog (lib/terms/catalog.ts), so extracted
  * terms map straight across once the database source exists. `deal.room_nights`
  * is the one key the catalog doesn't have yet.
  *

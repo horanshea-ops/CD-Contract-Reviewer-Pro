@@ -6,6 +6,7 @@ import { contractText } from "@/lib/docx/contract-text";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
 import { extractionRecord, extractTerms, termRows } from "@/lib/terms/extract";
 import type { TermCatalog } from "@/lib/terms/types";
+import { answerSchema } from "../helpers/model-request";
 
 /**
  * One extraction pass end to end, with the model mocked: the request it sends,
@@ -60,9 +61,9 @@ describe("a term extraction pass over eval-01", () => {
     await extractTerms({ document: { kind: "text", text }, parts });
 
     const request = create.mock.calls[0][0];
-    expect(request.system[1].text).toContain("TERM CATALOG (version hotel-v1)");
+    expect(request.system[1].text).toContain("TERM CATALOG (version hotel-v3)");
     expect(request.system[1].cache_control).toEqual({ type: "ephemeral" });
-    expect(request.tools[0].input_schema.properties.terms.items.properties.term_key.enum).toHaveLength(
+    expect(answerSchema(request).properties.terms.items.properties.term_key.enum).toHaveLength(
       HOTEL_TERM_CATALOG.terms.length
     );
     expect(request.messages[0].content[0].text).toBe(`CONTRACT TEXT:\n\n${text}`);
@@ -84,7 +85,7 @@ describe("a term extraction pass over eval-01", () => {
     const { terms, model_id } = await extractTerms({ document: { kind: "text", text }, parts });
     const status = Object.fromEntries(terms.stated.map((t) => [t.term_key, t.verification]));
 
-    expect(model_id).toBe("claude-sonnet-5");
+    expect(model_id).toBe("claude-sonnet-5-5");
     expect(status).toEqual({
       "attrition.threshold": "verified",
       "attrition.basis": "located",
@@ -119,7 +120,7 @@ describe("a term extraction pass over eval-01", () => {
     const record = extractionRecord({ ok: true, ...outcome });
     expect(record).toMatchObject({
       status: "complete",
-      catalog_version: "hotel-v1",
+      catalog_version: "hotel-v3",
       stated: 1,
       not_stated: HOTEL_TERM_CATALOG.terms.length - 1,
       verification: { verified: 1, located: 0, contradicted: 0, unlocated: 0 },
@@ -154,7 +155,7 @@ describe("a catalog from another vertical", () => {
     });
 
     const request = create.mock.calls[0][0];
-    expect(request.tools[0].input_schema.properties.terms.items.properties.term_key.enum).toEqual([
+    expect(answerSchema(request).properties.terms.items.properties.term_key.enum).toEqual([
       "uptime.monthly_pct",
       "support.response_hours",
     ]);

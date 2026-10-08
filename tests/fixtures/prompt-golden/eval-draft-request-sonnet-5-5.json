@@ -1,0 +1,79 @@
+{
+  "model": "claude-sonnet-5-5",
+  "max_tokens": 16000,
+  "system": "You are drafting clauses of a hotel group sales agreement. The agreement is fictional and is being written as test material for a contract-review tool. The hotel, the group, and every figure are invented.\n\nYou are drafting from the HOTEL's side, so the clauses favour the hotel wherever the directives say they do. Do not soften a term, add a protection the directives do not ask for, or note that a term is unusual. Write it as a hotel's own counsel would write it.\n\nWrite plainly and without ornament. Two paragraphs per clause, 130 to 190 words in total.\n\nFor each clause you are given a list of terms it must state, each with a directive.\n\nRules, all of which matter:\n- State every listed term. A term you leave out makes the clause unusable.\n- Where a directive puts wording in double quotes, reproduce that wording exactly, character for character, inside your prose. Do not paraphrase it, requote it, or change its punctuation.\n- State each term in exactly ONE sentence. Do not restate a figure elsewhere in the clause.\n- Do not state any term the directives do not mention. In particular, never invent a percentage, a dollar amount, or a deadline that was not given to you.\n- Return one anchor for EVERY term listed under a clause, using that term's identifier. A clause listing five terms gets five anchors. Leaving one out fails the clause.\n- Return, for each term, the single sentence from your own prose that states it — copied character for character, including its final punctuation. This is checked mechanically, and a sentence that is not a verbatim substring of your paragraphs is rejected.\n- Write contract prose only. No headings, no section numbers, no bullet points, no markdown.\n- Write out numbers the way hotel contracts do, with the digits in parentheses, exactly as the directives show them.\n- Return each clause under the identifier the request gave it — \"fb_minimum\", not \"Food and Beverage Minimum\". The quoted section title is only there to tell you what the clause is about.\n\nTwo things separate a real clause from a list of terms, and both are required.\n\nFirst, write the machinery around the terms. A real clause says how notice is given and to whom, who calculates a figure and from what records, when an amount falls due, what happens if a party disagrees, and how the clause reads against the rest of the agreement. The required terms are the skeleton. A clause that states them and stops is not finished.\n\nSecond, where a directive begins \"Say, in your own words\", what follows is a NOTE ABOUT MEANING, not text to paste. It is written in plain English so you cannot mistake what the term does. Rewrite it as contract language — different sentence shape, contract vocabulary, the defined terms this agreement uses. Reproducing the note as written is a failure, and is checked.\n\nYour whole reply is one JSON record in the required format, with nothing before or after it. Record the drafted clauses, each with the sentence that states every required term.",
+  "thinking": {
+    "type": "adaptive"
+  },
+  "output_config": {
+    "effort": "medium",
+    "format": {
+      "type": "json_schema",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "clauses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "clause_type": {
+                  "type": "string",
+                  "description": "The clause identifier exactly as the request gave it — fb_minimum, walk_relocation, and so on. Never the section title."
+                },
+                "paragraphs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Contract prose. Plain sentences, no headings, no numbering, no markdown."
+                },
+                "anchors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "field": {
+                        "type": "string"
+                      },
+                      "sentence": {
+                        "type": "string",
+                        "description": "The one sentence stating this term, copied character for character from paragraphs above."
+                      }
+                    },
+                    "required": [
+                      "field",
+                      "sentence"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "clause_type",
+                "paragraphs",
+                "anchors"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "clauses"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Hotel: Hotel Example, Tampa, FL\nGroup: Example Association\nEvent dates: March 3-6, 2027\n\nDraft the following clauses.\n\nCLAUSE attrition — \"Attrition\" — 1 terms, so return exactly 1 anchors\n  - threshold (Attrition threshold): State the threshold as \"eighty percent (80%)\"."
+        }
+      ]
+    }
+  ]
+}

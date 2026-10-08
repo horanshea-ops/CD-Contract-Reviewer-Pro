@@ -9,18 +9,18 @@
  */
 
 /** Past the model budget below, with room for the saves after it. */
-export const STALE_ANALYSIS_MINUTES = 10;
+export const STALE_ANALYSIS_MINUTES = 12;
 
 /**
  * How long the model call may run, counted from the start of processAnalysis.
- * It ends well before the stall check above, so a slow review fails with an
- * error instead of sitting at "processing" until the associate retries.
+ * It ends before the stall check above, so a slow review fails with an error
+ * instead of sitting at "processing" until the associate retries.
  *
- * Seven minutes fits one slow attempt and a retry. The longest single attempt
- * measured is 253s, on the synthetic eval corpus. The routes' maxDuration
- * leaves room for the upload before and the saves after.
+ * Ten minutes fits one long review, or a failed attempt and a retry. The
+ * review is streamed, so the whole ten minutes is usable. The routes'
+ * maxDuration leaves room for the upload before and the saves after.
  */
-export const MODEL_CALL_BUDGET_MS = 420_000;
+export const MODEL_CALL_BUDGET_MS = 600_000;
 
 export interface AnalysisRun {
   status: string;

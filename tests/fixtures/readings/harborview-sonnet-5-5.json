@@ -1,0 +1,102 @@
+{
+  "contract": "eval-01-harborview.docx",
+  "model_id": "claude-sonnet-5-5",
+  "captured": "2026-10-04",
+  "source": "data/eval/runs/sonnet55-harborview-2026-10-04.json",
+  "entries": [
+    {
+      "term_key": "deal.room_block_room_nights",
+      "value": 680,
+      "quoted_text": "Night 1  | 170  | $289.00",
+      "source_section": "1. Room Block and Rates",
+      "confidence": "low"
+    },
+    {
+      "term_key": "deal.group_rate_usd",
+      "value": 289,
+      "quoted_text": "at a group rate of $289.00 per room, per night, single or double occupancy, exclusive of applicable state and local occupancy taxes",
+      "source_section": "1. Room Block and Rates",
+      "confidence": "high"
+    },
+    {
+      "term_key": "attrition.threshold",
+      "value": 90,
+      "quoted_text": "Group shall be deemed in attrition if actual occupancy falls below the attrition threshold of ninety percent (90%) on any night.",
+      "source_section": "2. Attrition",
+      "confidence": "high"
+    },
+    {
+      "term_key": "attrition.liability_rate",
+      "value": 100,
+      "quoted_text": "Group shall be liable for attrition damages at the rate of one hundred percent (100%) of the nightly room rate for each unoccupied room within the block.",
+      "source_section": "2. Attrition",
+      "confidence": "high"
+    },
+    {
+      "term_key": "cancellation.damages_basis",
+      "value": "gross_revenue",
+      "quoted_text": "liquidated damages calculated as a percentage of gross room revenue that would have been earned by the Hotel",
+      "source_section": "5. Cancellation and Liquidated Damages",
+      "confidence": "high"
+    },
+    {
+      "term_key": "cancellation.damages_room_nights",
+      "value": "room_block",
+      "quoted_text": "based upon the negotiated room rate and the full room block size",
+      "source_section": "5. Cancellation and Liquidated Damages",
+      "confidence": "high"
+    },
+    {
+      "term_key": "cancellation.top_tier_pct",
+      "value": 100,
+      "quoted_text": "100%",
+      "source_section": "5. Cancellation and Liquidated Damages",
+      "confidence": "high"
+    },
+    {
+      "term_key": "cancellation.schedule",
+      "value": [
+        {
+          "label": "365 days or more prior to arrival",
+          "days_prior_min": 365,
+          "days_prior_max": null,
+          "pct": 25
+        },
+        {
+          "label": "364 through 181 days prior to arrival",
+          "days_prior_min": 181,
+          "days_prior_max": 364,
+          "pct": 50
+        },
+        {
+          "label": "180 through 91 days prior to arrival",
+          "days_prior_min": 91,
+          "days_prior_max": 180,
+          "pct": 75
+        },
+        {
+          "label": "90 through 31 days prior to arrival",
+          "days_prior_min": 31,
+          "days_prior_max": 90,
+          "pct": 90
+        },
+        {
+          "label": "30 days or fewer prior to arrival",
+          "days_prior_min": 0,
+          "days_prior_max": 30,
+          "pct": 100
+        }
+      ],
+      "quoted_text": "30 days or fewer prior to arrival",
+      "source_section": "5. Cancellation and Liquidated Damages",
+      "confidence": "high"
+    },
+    {
+      "term_key": "fb_minimum.shortfall_rate",
+      "value": 100,
+      "quoted_text": "The shortfall payment rate shall be one hundred percent (100%) of the difference between the minimum guarantee and actual consumption.",
+      "source_section": "11. Food and Beverage Minimum",
+      "confidence": "high"
+    }
+  ]
+}

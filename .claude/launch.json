@@ -8,6 +8,12 @@
       "port": 3000
     },
     {
+      "name": "next-dev-sonnet-5-5",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["ANTHROPIC_MODEL=claude-sonnet-5-5", "npm", "run", "dev"],
+      "port": 3000
+    },
+    {
       "name": "next-prod",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start", "--", "-p", "3001"],

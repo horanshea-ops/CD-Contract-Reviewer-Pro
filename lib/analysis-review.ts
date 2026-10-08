@@ -35,7 +35,7 @@ export type ReviewGap =
 
 export interface DroppedFinding {
   finding: Finding;
-  reason: "proposes_no_change" | "moves_cutoff_earlier";
+  reason: "placeholder" | "proposes_no_change" | "moves_cutoff_earlier";
 }
 
 export interface ReconciledReview {
@@ -78,10 +78,28 @@ export function movesCutoffEarlier(finding: Finding): boolean {
   return contract !== null && proposed !== null && proposed > contract;
 }
 
+const PLACEHOLDER = /^\s*placeholder\b/i;
+
+/**
+ * Whether a finding is a stand-in the model never filled in. It writes the
+ * word "placeholder" into a finding now and then, or leaves one with no text
+ * of its own. Accepted, such a finding would put that word into a redline.
+ */
+export function isPlaceholder(finding: Finding): boolean {
+  if ([finding.headline, finding.finding_text, finding.proposed_language].some((field) => PLACEHOLDER.test(field ?? ""))) return true;
+  return !finding.headline?.trim() && !finding.finding_text?.trim();
+}
+
 export function dropNonChanges(findings: Finding[]): { findings: Finding[]; dropped_findings: DroppedFinding[] } {
   const dropped_findings: DroppedFinding[] = [];
   const kept = findings.filter((finding) => {
-    const reason = proposesNoChange(finding) ? "proposes_no_change" : movesCutoffEarlier(finding) ? "moves_cutoff_earlier" : null;
+    const reason = isPlaceholder(finding)
+      ? "placeholder"
+      : proposesNoChange(finding)
+        ? "proposes_no_change"
+        : movesCutoffEarlier(finding)
+          ? "moves_cutoff_earlier"
+          : null;
     if (!reason) return true;
     dropped_findings.push({ finding, reason });
     return false;
@@ -112,7 +130,32 @@ export function normalizeFindings(findings: Finding[]): Finding[] {
   });
 }
 
-const normalize = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
+/** A clause type's name in one spelling, so two mentions of it compare equal. */
+export const clauseKey = (clauseType: string) => clauseType.trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+/** The clause types a review judged short of the standard that no finding covers. */
+export function skippedClauses(gaps: ReviewGap[], findings: Pick<Finding, "clause_type">[]): string[] {
+  const covered = new Set(findings.map((f) => clauseKey(f.clause_type)));
+  return gaps
+    .filter((gap) => gap.kind === "short_without_finding" && !covered.has(clauseKey(gap.clause_type)))
+    .map((gap) => gap.clause_type);
+}
+
+/**
+ * One note for a review that judged clauses short of the standard and wrote
+ * no finding for them, or null when every such clause has a finding. Without
+ * it the associate has no way to tell the review left those clauses out.
+ */
+export function skippedClausesNote(gaps: ReviewGap[], findings: Pick<Finding, "clause_type">[]): { headline: string; detail: string } | null {
+  const skipped = skippedClauses(gaps, findings).map((clauseType) => clauseType.replace(/_/g, " "));
+  if (skipped.length === 0) return null;
+
+  const clauses = skipped.length === 1 ? "1 clause" : `${skipped.length} clauses`;
+  return {
+    headline: `The review left ${clauses} without a finding.`,
+    detail: `It judged ${skipped.length === 1 ? "this" : "these"} short of the standard and wrote nothing: ${skipped.join(", ")}. Read ${skipped.length === 1 ? "it" : "them"} yourself, or run the review again.`,
+  };
+}
 
 export function reconcileReview(
   review: { findings: Finding[]; clause_review: ClauseReview[] },
@@ -120,15 +163,15 @@ export function reconcileReview(
 ): ReconciledReview {
   const { findings, dropped_findings } = dropNonChanges(normalizeFindings(review.findings));
 
-  const verdicts = new Map(review.clause_review.map((entry) => [normalize(entry.clause_type), entry]));
-  const flagged = new Set(findings.map((finding) => normalize(finding.clause_type)));
+  const verdicts = new Map(review.clause_review.map((entry) => [clauseKey(entry.clause_type), entry]));
+  const flagged = new Set(findings.map((finding) => clauseKey(finding.clause_type)));
   const review_gaps: ReviewGap[] = [];
 
   for (const { clause_type } of standards) {
-    const entry = verdicts.get(normalize(clause_type));
+    const entry = verdicts.get(clauseKey(clause_type));
     if (!entry) {
       review_gaps.push({ kind: "no_verdict", clause_type });
-    } else if (!NEEDS_NO_CHANGE.includes(entry.verdict) && !flagged.has(normalize(clause_type))) {
+    } else if (!NEEDS_NO_CHANGE.includes(entry.verdict) && !flagged.has(clauseKey(clause_type))) {
       review_gaps.push({ kind: "short_without_finding", clause_type, verdict: entry.verdict });
     }
   }

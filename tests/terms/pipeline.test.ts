@@ -3,6 +3,8 @@ import path from "node:path";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MODEL_CALL_BUDGET_MS, STALE_ANALYSIS_MINUTES } from "@/lib/analysis-status";
 import { HOTEL_TERM_CATALOG } from "@/lib/terms/catalog";
+import { EXPOSURE_CATALOG, MUST_RAISE_CATALOG } from "@/lib/review";
+import { answerName, answerSchema, type ModelRequest } from "../helpers/model-request";
 
 /**
  * processAnalysis with term extraction switched off, on, failing, and gated.
@@ -20,7 +22,7 @@ const { create, scanForAiUseTerms, sets } = vi.hoisted(() => ({
 
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
-    messages = { create };
+    messages = { create, stream: (...args: unknown[]) => ({ finalMessage: () => create(...args) }) };
   },
 }));
 vi.mock("@/lib/ai-use-scan", () => ({ scanForAiUseTerms, scanForAdjacentTerms: () => [] }));
@@ -120,7 +122,7 @@ const termsResponse = toolResponse("record_contract_terms", {
   terms: [{ term_key: "deal.group_rate_usd", value: 289, quoted_text: "a group rate of $289.00 per room", confidence: "high" }],
 });
 
-const toolCalled = () => create.mock.calls.map((c) => c[0].tool_choice.name);
+const toolCalled = () => create.mock.calls.map((c) => answerName(c[0]));
 const updatesTo = (table: string) => db.writes.filter((w) => w.table === table && w.op === "update").map((w) => w.payload as Record<string, unknown>);
 const termWrites = () => db.writes.filter((w) => w.table === "contract_terms");
 
@@ -141,8 +143,9 @@ beforeEach(() => {
   sets.unreadable = false;
   vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
   vi.stubEnv("TERM_EXTRACTION", "");
-  create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
-    params.tool_choice.name === "record_analysis" ? analysisResponse : termsResponse
+  vi.stubEnv("EXPOSURES", "on");
+  create.mockImplementation(async (params: ModelRequest) =>
+    answerName(params) === "record_analysis" ? analysisResponse : termsResponse
   );
 });
 
@@ -166,18 +169,57 @@ describe("a contract stopped at the AI-use check", () => {
 });
 
 describe("term extraction in processAnalysis", () => {
-  it("is off by default: one model call, no term writes", async () => {
+  it("is off by default: the reading call asks only for the exposure terms, and no term row is stored", async () => {
     await processAnalysis("analysis-1");
 
-    expect(toolCalled()).toEqual(["record_analysis"]);
+    expect(toolCalled().sort()).toEqual(["record_analysis", "record_contract_terms"]);
+    const reading = create.mock.calls.map((c) => c[0]).find((body) => answerName(body) === "record_contract_terms");
+    expect(answerSchema(reading).properties.terms.items.properties.term_key.enum).toEqual(EXPOSURE_CATALOG.terms.map((t) => t.key));
     expect(termWrites()).toEqual([]);
-    expect(updatesTo("analyses").some((u) => "term_extraction" in u)).toBe(false);
+
+    const complete = updatesTo("analyses").find((u) => u.status === "complete");
+    expect(complete?.token_usage).toMatchObject({ reading: { input: 100, output: 10 } });
+  });
+
+  it("keeps the reading with the review while off: the figures, the terms behind them, and what was left out", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await processAnalysis("analysis-1");
+
+    const record = updatesTo("analyses").find((u) => "term_extraction" in u)?.term_extraction as Record<string, unknown>;
+    expect(record).toMatchObject({
+      status: "complete",
+      asked_for: "exposure_terms",
+      reask: null,
+      exposures: {
+        figures: { group_rate: 289, currency: "$", room_block_room_nights: null, cancellation_tiers: [] },
+        terms: [{ term_key: "deal.group_rate_usd", value: 289, quoted_text: "a group rate of $289.00 per room", verification: "verified" }],
+      },
+    });
+    const exposures = record.exposures as { not_stated: string[]; notes: { term_key: string }[] };
+    expect(exposures.not_stated).toContain("cancellation.top_tier_pct");
+    expect(exposures.notes.map((n) => n.term_key)).toEqual(["cancellation.top_tier_pct", "cancellation.damages_basis"]);
+    expect(termWrites()).toEqual([]);
+  });
+
+  it("records a failed reading while off, so missing exposures are explained", async () => {
+    create.mockImplementation(async (params: ModelRequest) => {
+      if (answerName(params) === "record_contract_terms") throw new Error("Connection error.");
+      return analysisResponse;
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await processAnalysis("analysis-1");
+
     expect(updatesTo("analyses").some((u) => u.status === "complete")).toBe(true);
+    expect(updatesTo("analyses").find((u) => "term_extraction" in u)?.term_extraction).toMatchObject({
+      status: "failed",
+      error: "Connection error.",
+    });
   });
 
   it("saves the model's notes on the document, and saves none when it wrote none", async () => {
-    create.mockImplementation(async (params: { tool_choice: { name: string } }) =>
-      params.tool_choice.name === "record_analysis"
+    create.mockImplementation(async (params: ModelRequest) =>
+      answerName(params) === "record_analysis"
         ? toolResponse("record_analysis", {
             ...analysisInput,
             document_notes: [{ headline: "The meeting dates say 2010, and the room block says 2015.", detail: "" }],
@@ -196,6 +238,24 @@ describe("term extraction in processAnalysis", () => {
     expect(updatesTo("analyses").find((u) => u.status === "complete")?.document_notes).toBeNull();
   });
 
+  it("saves the second ask with the review's usage, so its cost is counted", async () => {
+    const short = { ...analysisInput, clause_review: [{ clause_type: "rate_parity", verdict: "missing", basis: "Silent." }] };
+    create.mockImplementation(async (params: ModelRequest) =>
+      answerName(params) === "record_analysis" ? toolResponse("record_analysis", short) : termsResponse
+    );
+    await processAnalysis("analysis-1");
+
+    const complete = updatesTo("analyses").find((u) => u.status === "complete");
+    expect(complete?.token_usage).toMatchObject({
+      follow_up: { asked_for: ["rate_parity"], findings_added: 0, tokens: { input: 100, output: 10 } },
+    });
+
+    db.writes = [];
+    create.mockImplementation(async (params: ModelRequest) => (answerName(params) === "record_analysis" ? analysisResponse : termsResponse));
+    await processAnalysis("analysis-1");
+    expect(updatesTo("analyses").find((u) => u.status === "complete")?.token_usage).toMatchObject({ follow_up: null });
+  });
+
   it("fails the review, without calling the model, when the standards library can't be read", async () => {
     sets.unreadable = true;
     await processAnalysis("analysis-1");
@@ -208,7 +268,7 @@ describe("term extraction in processAnalysis", () => {
   it("gives the review call the model budget as its time limit", async () => {
     await processAnalysis("analysis-1");
 
-    const options = create.mock.calls.find(([body]) => body.tools?.[0]?.name === "record_analysis")?.[1];
+    const options = create.mock.calls.find(([body]) => answerName(body) === "record_analysis")?.[1];
     expect(options.maxRetries).toBe(0);
     expect(options.timeout).toBeGreaterThan(MODEL_CALL_BUDGET_MS - 60_000);
     expect(options.timeout).toBeLessThanOrEqual(MODEL_CALL_BUDGET_MS);
@@ -230,6 +290,8 @@ describe("term extraction in processAnalysis", () => {
     await processAnalysis("analysis-1");
 
     expect(toolCalled().sort()).toEqual(["record_analysis", "record_contract_terms"]);
+    const reading = create.mock.calls.map((c) => c[0]).find((body) => answerName(body) === "record_contract_terms");
+    expect(answerSchema(reading).properties.terms.items.properties.term_key.enum).toHaveLength(HOTEL_TERM_CATALOG.terms.length);
     const [cleared, inserted] = termWrites();
     expect(cleared.op).toBe("delete");
     expect(inserted.payload).toHaveLength(HOTEL_TERM_CATALOG.terms.length);
@@ -242,8 +304,8 @@ describe("term extraction in processAnalysis", () => {
 
   it("never fails the review when extraction fails", async () => {
     vi.stubEnv("TERM_EXTRACTION", "on");
-    create.mockImplementation(async (params: { tool_choice: { name: string } }) => {
-      if (params.tool_choice.name === "record_contract_terms") throw new Error("Connection error.");
+    create.mockImplementation(async (params: ModelRequest) => {
+      if (answerName(params) === "record_contract_terms") throw new Error("Connection error.");
       return analysisResponse;
     });
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -278,6 +340,24 @@ describe("term extraction in processAnalysis", () => {
 
     expect(create).not.toHaveBeenCalled();
     expect(termWrites()).toEqual([]);
+  });
+});
+
+describe("the reading kept with a review while exposure math is archived", () => {
+  it("asks for the safety-net terms, and stores the figures read with no exposure record", async () => {
+    vi.stubEnv("EXPOSURES", "");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await processAnalysis("analysis-1");
+
+    const reading = create.mock.calls.map((c) => c[0]).find((body) => answerName(body) === "record_contract_terms");
+    expect(answerSchema(reading).properties.terms.items.properties.term_key.enum).toEqual(MUST_RAISE_CATALOG.terms.map((t) => t.key));
+
+    const record = updatesTo("analyses").find((u) => "term_extraction" in u)?.term_extraction as Record<string, unknown>;
+    expect(record).toMatchObject({ status: "complete", asked_for: "must_raise_terms", figures: { commission_pct: null } });
+    expect(record).not.toHaveProperty("exposures");
+
+    const saved = db.writes.filter((w) => w.table === "findings" && w.op === "insert").flatMap((w) => w.payload as { exposure_amount: unknown }[]);
+    for (const row of saved) expect(row.exposure_amount).toBeNull();
   });
 });
 
@@ -319,7 +399,7 @@ describe("the standards set a review reads", () => {
 
   it("fails before the model is called when the negotiation's set can't be read", async () => {
     db.row = { thread_id: "thread-1" };
-    db.threadError = "column negotiation_threads.standards_set does not exist";
+    db.threadError = 'column negotiation_threads.standards_set does not exist';
     await processAnalysis("analysis-1");
 
     expect(create).not.toHaveBeenCalled();

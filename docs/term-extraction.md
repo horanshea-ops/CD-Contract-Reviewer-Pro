@@ -28,7 +28,7 @@ Findings say "the attrition threshold is unfavourable". Terms say
 - Percentages are stored as fractions, so 90% is `0.9`.
 - Each meaning names exactly one figure. A named-storm clause carries a 72-hour trigger and a 24-hour notice deadline, and only a precise meaning says which to record.
 - Another vertical writes its own catalog. The extraction code reads no term by name.
-- Version is `hotel-v1`. A drift test keeps it aligned with the eval corpus's fields.
+- Version is `hotel-v2`. A drift test keeps it aligned with the eval corpus's fields.
 
 ## Verification
 
@@ -143,3 +143,10 @@ Sonnet 5. Scored after the corrections and checker fix below, which is free to r
 - **The prompt says "hotel or venue".** That wording is industry-specific in the same way as the analysis prompt (§2.0.3).
 - **PDF uploads verify against positioned-line text.** Hyphenation at a line break can leave a sound quote unlocated.
 - **Schedules keyed by calendar date aren't modelled.** The bands are days before arrival. A contract that dates its tiers needs the arrival date to convert, and the extractor won't guess it.
+
+## Exposures read from terms (2026-10-03)
+
+- The term pass is the only reader of a contract's numbers. `lib/review.ts` runs it beside every review.
+- `figuresFromTerms` (`lib/exposures/figures.ts`) turns checked terms into the figures the exposure calculations take.
+- With `TERM_EXTRACTION` off, the pass asks for the exposure terms alone (`EXPOSURE_CATALOG`) and stores no rows. With it on, the pass reads the whole catalog and stores them, as before.
+- `hotel-v2` adds `deal.room_block_room_nights`, `attrition.minimum_room_nights` and `cancellation.damages_room_nights`. The seven eval contracts don't state them, so the key records each as unkeyed.

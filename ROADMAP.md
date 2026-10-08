@@ -396,33 +396,84 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live on `main` | Archive of Analytics and historical uploads. Exposure figures hidden. Standards sets by brand. Upload confirm step with the property name and the hotel's actual brand. Table fixes: one copy per replaced table, and one change per paragraph. |
-| Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
+| Not live | Nothing in code. Sonnet 5.5, the two-call review, streaming, the 10-minute limit and the second ask merged on 2026-10-08. Render still names Sonnet 5 until the user changes `ANTHROPIC_MODEL`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: stream the review call, then run Harborview again.**
+**Sonnet 5.5 passed its gate on 2026-10-08 and is merged to `main`.** The
+last step is the user's: set Render's `ANTHROPIC_MODEL` to
+`claude-sonnet-5-5`. Until then the live site runs the merged code on
+Sonnet 5. Tag `archive/2026-10-08-pre-sonnet-5-5` marks `main` before the
+merge.
 
-1. **Stream the review call** (`lib/anthropic.ts`, on `review/one-reading-pass`).
-   Harborview failed on Sonnet 5.5 twice on 2026-10-07, at 9m23s with no
-   limit and at 301s with a 420s limit. A review call is one long request
-   with no bytes back until it ends, and it appears to be dropped at about
-   five minutes. Streaming keeps bytes flowing. Free to build. Opus work,
-   with its own plan. That branch's copy of this file has the evidence.
-2. **Run Harborview on 5.5 again**, alone, about $0.48, with a yes. Pass is
-   finishing inside 7 minutes with at least 32 of 34 key items.
-3. **On a pass, merge the 5.5 branch and deploy.** The user then changes
-   Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5`.
+- **The gate run: Harborview through the app, uploaded by the user
+  (`a70ff3c5`, about $0.68, 322s).** 33 of 34 key items. The first pass
+  left no clause without a finding, so the second ask never ran. The
+  redline rebuilt with no failed check. Run record
+  `sonnet55-harborview-app-2026-10-08`.
+- **Still waiting, on CD:** which findings earn a card, the future-rate-cap
+  question, and the updated Independent baseline. Each changes the library
+  or the instructions, and a check on the cheap contract (about $0.30) is
+  due when it lands.
+- **Unproven on the new setting:** the two email drafts.
+- **Next item:** the brand on the new-review form ("Free work waiting"
+  item 5).
+
+History of the switch, oldest first:
+
+1. **Done 2026-10-07, on `review/one-reading-pass`, not merged: the review
+   call is streamed, and a review gets 10 minutes.** Harborview failed on
+   Sonnet 5.5 twice that day, at 9m23s with no limit and at 301s with a
+   420s limit. The cause is proven. Node drops a request that has heard
+   nothing back for 300 seconds, and an unstreamed review is silent until
+   it ends. It applies to Sonnet 5 on the live build too, whose slowest
+   measured review took 253s. The evidence is under item 2 below.
+2. **Done 2026-10-07, same branch: output cap 100,000, the second ask for
+   skipped write-ups, and an eval switch for effort and thinking.** One paid
+   Harborview run with thinking on at `low` scored 33 of 34 in 237s for
+   $0.628. It did not test thinking, and the second ask did most of the
+   work. The detail is under item 2 below.
+3. **Done 2026-10-07, live on `main` (`6c3f988`): the standards loader
+   no longer falls back in silence.** A one-off database error (`JWT issued
+   at future`) had sent a paid run to the bundled library. A read is now
+   tried three times, then the review fails with a plain message. No
+   finished review was ever affected (19 of 30 record the database, 11
+   predate the record).
+4. **Done 2026-10-07, on the branch: Riverwalk with thinking allowed at
+   effort `medium` passed its bar.** 26 of 27 in 130s for $0.278. The model
+   chose not to think. Detail under item 2 below.
+5. **Next paid run, on hold, needs a yes: Harborview with thinking allowed
+   at effort `medium`**, about $0.45 to $0.60. Pass is 32 of 34 inside 10 minutes with the second
+   ask covering 8 clauses or fewer.
+6. **On a pass, Florida through the app if the setting changed, then merge
+   and deploy.** The user then changes Render's `ANTHROPIC_MODEL` to
+   `claude-sonnet-5-5`.
 
 **Owed by the user.**
 
-- **HIGH PRIORITY: look at two rebuilt redlines in Word.** Both fixes are
-  live and no human has opened a result. In `data/private/replay/`:
-  `4f803f16-redline.docx` (one struck schedule and one new one) and
-  `4a7e89f6-redline.docx` (each cancellation tier changed in place, the
-  schedule appearing once). Try Accept All and Reject All on copies.
-- Delete `ANALYTICS`, `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on Render.
-- Read the Claude Console's usage for 2026-10-07. Known spend is $0.381
-  (Florida) and about $0.05 (compile check). Two Harborview calls timed out
-  and may or may not have been billed.
+- ~~**HIGH PRIORITY: look at two rebuilt redlines in Word.**~~ **Checked by
+  the user in Word for Mac, 2026-10-08. Both table fixes render correctly.**
+  - `4f803f16-redline.docx`: the schedule is struck once and inserted once,
+    all five tiers changed. `4a7e89f6-redline.docx`: each tier's amount is
+    struck with the new one beside it, "times 70%," is inserted, and the
+    schedule appears once. Both `-clean.docx` files read correctly.
+  - **Still untested by a person: Accept All and Reject All.** The user's
+    Word licence is view-only. The app's own reject-all round trip passes
+    on both files. Low priority, for whenever an editable Word is to hand.
+  - **The check showed two wrong figures inside the tables. They are the
+    model's arithmetic, and the table code placed them faithfully.** On
+    `4a7e89f6` the last F&B tier reads $80,000 beside "times 35%". On
+    `4f803f16` it reads $64,000 beside "times 80%". The tier above
+    ($50,000 at 50%) puts the minimum at $100,000. The two reviews also
+    worked the room fees from different minimum room nights. This is free
+    work item 4 below.
+- ~~Delete `ANALYTICS`, `ANALYTICS_SOURCE` and `ANALYTICS_DEMO` on
+  Render.~~ Done by the user, 2026-10-08.
+- ~~Read the Claude Console's usage for 2026-10-07.~~ The user reported
+  $2.30 spent since the reload (2026-10-08). $1.34 is itemised: Florida
+  $0.381, the compile check about $0.05, Harborview at `low` $0.628 and
+  Riverwalk at `medium` $0.278. The other $0.96 matches the two Harborview
+  calls that timed out on the morning of 7 October, so a timed-out call is
+  billed in full.
 - Fix one sentence in the gratuity standard on the Standards screen: "not
   staff pay should be disclosed" lost a comma or dash on 2026-10-05.
 - From CD: updated Independent baseline, Hilton and Hyatt contracts, and
@@ -438,7 +489,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 
 **Free work waiting, in a sensible order.**
 
-1. Streaming, above.
+1. ~~Streaming~~, done above.
 2. The card can't warn when a change inside a table cell will be left
    out, since the stored review text has no paragraph breaks inside a cell.
 3. A replaced table that holds a hotel comment still falls back to PDF.
@@ -446,8 +497,28 @@ below wherever the two differ. Each item gets its own plan before any code.
    prose, and the model's own arithmetic in proposed wording. On
    `4a7e89f6` it changed an F&B formula to 35% and left the amount at
    $80,000.
-5. A screen to add a fourth standards set, and which sub-brands count as
-   Hilton or Hyatt (question 2 for CD).
+   - **Live on `main` since 2026-10-08 (`197ea1f`): the card flags an
+     amount that no longer follows from its formula** (`lib/proposed-figures.ts`).
+     It gives the amount the contract's own base produces, warns without
+     holding the change out of the redline, and makes no model call. A
+     replay over all 30 stored reviews (975 findings, 26 with an amount
+     beside a formula) flagged 6, all in the two reviews known to be wrong.
+     The model still makes the mistake. This catches it for the associate.
+5. **Next item (user, 2026-10-08): the brand on the new-review form.** Needs
+   its own plan.
+   - A brand is entered on every review, including a brand with no
+     standards set of its own. Such a review still reads Independent.
+     To settle in the plan: whether the field becomes required, and what
+     an independent hotel enters.
+   - **Every Hyatt line is Hyatt.** All Hyatt contracts are negotiated on
+     Hyatt's one set of standards, so Hyatt Regency, Grand Hyatt, Park
+     Hyatt and the rest are not told apart. This answers question 2 for CD
+     as far as Hyatt goes. Today `lib/intake/brands.ts` shows the most
+     specific name ("Hyatt Regency"), and `setForBrand` matches a set by
+     the word in the name, so Andaz, Thompson, Alila and Miraval would miss
+     the Hyatt set. To confirm in the plan: whether Hilton's lines are
+     treated the same way.
+   - Also here: a screen to add a fourth standards set.
 6. The hand-off guide (item 7 below).
 
 **Archived for the beta.** Three features are off the live build and kept in
@@ -528,6 +599,214 @@ for what is shown. Every pinned model request is unchanged.
         - Lint, typecheck and 1,464 tests pass. The free request check
           accepts all 16 pinned requests. Checked in the browser on
           `cb3daee0`: no figure with the switch off, $170,696 with it on.
+      - **Paid tests, 2026-10-07, on a $1.50 budget from the user. Not
+        merged: one of the two runs didn't finish.**
+        - **Florida `4a7e89f6`, through the app on Sonnet 5.5 ($0.381,
+          3m42s, no thinking). Passed.**
+          - 57 findings: 40 business, 8 legal, 9 other. 37 of 37 changed
+            clauses quoted. No finding carries a dollar figure.
+          - Attrition, commission and F&B all have findings. The app
+            raised the F&B shortfall finding itself (80% against 35%).
+          - 32 clauses were judged short or missing. Two got no finding
+            (banquet service levels, labor disputes), and the note names
+            them. The 4 October run left seven.
+          - The reading call asked for the five must-raise terms and cost
+            about 5 cents. The review recorded `independent` as its set.
+            The upload's audit row holds the property name the app read.
+          - One yellow box, `[X]%` on gratuity. This is the first 5.5 run
+            to carry it.
+          - Redline replay: 33 of 40 applied, every oracle check passed.
+        - **Open problem this run shows: the cancellation tiers stay out of
+          the redline, with no warning on the card.** Five cancellation
+          changes and one F&B change were left out as "runs across a
+          paragraph break". The model quoted one table cell, and that
+          cell holds two paragraphs (the amount, then the bracketed
+          formula). The same happened on `9244158e`. On `4f803f16` the
+          model quoted whole rows and all applied. Fix: treat a change
+          inside one cell that spans its paragraphs as a table
+          replacement. Engine work, free, and it needs its own plan.
+        - **Harborview eval on 5.5 did not finish.** It ran 9m23s with no
+          answer, against 3m36s on 4 October, and was stopped before the
+          SDK's own retry at 10 minutes could charge again. Whether the
+          call was billed is unknown. Bayfront was never reached.
+          - The eval path gives the call no deadline, so it waits 10
+            minutes and then retries up to twice, and `with-retry.ts`
+            retries up to four times on top. The app caps a call at 7
+            minutes with no retry.
+          - Florida was started while Harborview was running. That may
+            have slowed it, and it muddies the reading.
+          - In the app a 9-minute call would have been cut at 7 minutes
+            and the review lost. One slow call is not a pattern, and it
+            isn't cleared either.
+        - **Second Harborview try, 2026-10-07, alone and capped: failed
+          again. The 5.5 branch stays unmerged.** The call ended with
+          "Request timed out" at 301 seconds, though its limit was 420.
+          Run record: `data/eval/runs/sonnet55-harborview-2026-10-07.json`.
+          - **A review call was one long request with no bytes coming
+            back until it ended, and it was dropped at five minutes.**
+            The first try that morning
+            had no limit, the SDK retried after the first drop, and it was
+            partway into a second attempt at 9m23s. Florida passes because
+            it finishes in 3m42s. Harborview finished in 3m36s on 4 October
+            and needs longer now.
+          - **It matters beyond the eval.** Any review in the app that needs
+            more than about five minutes would fail the same way, on either
+            model.
+          - Cost of the day's two failed tries is unknown. A timed-out call
+            may be billed for what it generated. The user should read the
+            Console's usage.
+        - **Cause proven and fixed, 2026-10-07 (free, commits `f4f2c93` and
+          `2c79da5`).**
+          - **The cause is Node.** Its built-in `fetch` stops waiting when a
+            server has sent nothing for 300 seconds. The SDK reports that
+            as "Request timed out", so it read as our own limit. Render,
+            the network and Anthropic play no part.
+          - **Proof, against a stand-in server on the dev machine.** An
+            unstreamed request with a 420s limit failed at 301.3s with the
+            same message. A streamed request whose answer came at 320s
+            finished at 320.0s.
+          - **The SDK's `timeout` covers only the wait for a stream's first
+            byte.** A stream given a 5s timeout ran 20s unstopped. So the
+            deadline stops the stream with a timer of its own
+            (`streamedMessage` in `lib/anthropic.ts`). A review stopped
+            that way says how many characters of the answer had arrived,
+            and is not retried.
+          - **A review gets 10 minutes, up from 7 (user, 2026-10-07).** The
+            stalled check moved from 10 minutes to 12 to stay above it,
+            and the three review routes' `maxDuration` to 720s. The
+            64,000-token output cap is a separate ceiling.
+          - **Left unstreamed on purpose:** the reading call and the two
+            email drafts. They finish far inside 300 seconds, and a failed
+            reading never fails a review.
+          - **Checks.** Lint, typecheck and 1,553 tests pass. No pinned
+            request changed, and the free request check accepts all 16.
+            The real `analyzeContract`, pointed at the stand-in server,
+            returned an answer that took 320s, stopped a stalled stream at
+            its 30s limit, and read a Sonnet 5 tool answer sent in pieces.
+          - **Not yet known: how long Harborview needs now.** Both tries
+            were cut off. Streaming removes the five-minute ceiling and
+            makes no review faster.
+        - **Output cap raised to 100,000 tokens (user, 2026-10-07,
+          `eeb3565`).** Sonnet 5.5 writes about 180 tokens a second, against
+          about 120 on Sonnet 5, so it reached the old 64,000 cap at under
+          six minutes. A review's time is its output tokens divided by that
+          speed, on every run recorded.
+        - **Second ask for skipped write-ups (`53c9699`).** On 4 October
+          three of the four key items 5.5 missed were judged short in its
+          own checklist and never written up. `reviewContract` now asks
+          the judging call once more, with the library cut down to those
+          clause types and the first verdicts quoted. It never fails a
+          review. Its usage is saved in `token_usage.follow_up`.
+        - **Eval switch (`f3eb6b8`).** `eval-capture` takes `--effort` and
+          `--thinking adaptive` for the judging call. The app's requests
+          are unchanged. A review records `thinking_tokens`.
+        - **Paid run `sonnet55-harborview-think-low-2026-10-07` ($0.628,
+          237s): thinking on, effort `low`.**
+          - 33 of 34 key items, against 30 on 4 October. The one miss is
+            the future rate cap, which the model judged not applicable.
+          - **It did not test thinking.** The API reported no thinking
+            tokens on the first pass. At `low` the model skips it.
+          - **At `low` the first pass stopped early.** It wrote all 34
+            verdicts and findings for two clauses, 4,939 tokens in all.
+            Alone it would have found about 3 of 34.
+          - **The second ask did the rest.** Asked for 30 clauses, it
+            wrote 64 findings and covered all 30, in 36,569 tokens.
+          - 72 findings: 64 business, 8 legal, none marked other. Redline
+            replay applied 63 of 64, with no failed check.
+          - Cost ran above a one-pass review because the contract went
+            out three times and the library was written to cache twice.
+          - **Caveat: it used the bundled library**, after a one-off
+            database error. The 4 October run used the database's copy
+            of that day. The two scores are not like for like.
+          - **Lead worth a plan after the beta:** judging first and
+            writing findings second, as two deliberate steps. The second
+            step skipped nothing here, and it could run in parallel.
+        - **Sonnet 5.5: the finish line (user approved, 2026-10-07).** One
+          fixed setting must pass all four.
+          - Riverwalk: 26 of 27 key items or better.
+          - Harborview: 32 of 34 or better, inside 10 minutes.
+          - The first pass writes its own findings. The second ask covers
+            8 clauses or fewer.
+          - Florida through the app completes, and its redline rebuilds
+            with no failed check.
+        - **Rules for paid runs, from a self-audit the user asked for.**
+          - One change per run, against a named comparison.
+          - The smallest contract that can answer the question.
+            Harborview is for the final gate.
+          - Every proposal lists what could make the run tell us nothing.
+          - Every quote carries a ceiling, and `--limit` enforces it.
+          - A suspected cause is proven on the stand-in server first.
+        - **Second ask capped at 8 clauses (`07d46e8`).** More than 8 left
+          without a finding means the first pass stopped early. The review
+          fails with a plain message. Each call's time and thinking tokens
+          are recorded, and the eval prints its terms before it spends.
+        - **The answer key was left alone on purpose.** A rebuild is free
+          and would only restamp it. Its checks are hand-written from the
+          bundled library. Today's library differs from that copy in 25
+          of 34 standards, nearly all by two to four characters. Attendee
+          data handling is a third shorter, commission's severity changed,
+          and termination rights' fallback wording changed.
+        - **Paid run `sonnet55-riverwalk-think-medium-2026-10-07` ($0.278,
+          130s): thinking allowed, effort `medium`, live library.**
+          - 26 of 27 key items. Sonnet 5 found 27 of 27 in 167s on 23
+            September, on an older prompt.
+          - **The model did not think.** The API reported no thinking
+            tokens, and the billed output (16,479 tokens) matches the
+            length of the answer alone. Allowed to think at `low` and at
+            `medium`, Sonnet 5.5 goes straight to the answer on this job.
+          - **The first pass was complete.** One clause (named storm) was
+            judged missing with no finding. The second ask wrote it in 6
+            seconds for about 3 cents, which is the job it was built for.
+          - 39 findings: 29 business, 7 legal, 3 other. 31 clauses have a
+            finding, 27 of them exactly one.
+          - Seven findings sit on clauses the key says the contract meets
+            (F&B minimum, vendors, master account, cutoff date, mandatory
+            fees). Sonnet 5 had three such on 23 September.
+          - Redline replay applied 28, with no failed check. One was left
+            out for an unfilled `[X]%` on gratuity.
+          - **The one miss is the future rate cap, for the third 5.5 run
+            running.** Each time the model judged it not applicable,
+            because the contract fixes one rate for one event. The key
+            expects a finding. Whether CD wants that finding on a
+            single-event contract is a question for the user.
+        - **Thinking allowed at effort `medium` is the judging call's
+          setting on the branch (user's choice, 2026-10-08).**
+          `JUDGING_ANSWER` in `lib/anthropic.ts`. The second ask shares it.
+          The reading call, both emails and every Sonnet 5 request are
+          unchanged. The pinned Sonnet 5.5 review request changed in two
+          fields, `thinking` and `effort`. The eval's flags still
+          override it. Lint, typecheck and 1,569 tests pass, and the free
+          request check accepts all 16 pinned requests.
+        - **Every Sonnet 5.5 call shares the setting (user's question,
+          2026-10-08).** `ANSWER_DEFAULTS` in `lib/anthropic.ts`. The
+          reading call, both emails and the archived and eval-only calls
+          had stayed on thinking off at `high`, a switch only Sonnet 5.5
+          has. Seven more pinned Sonnet 5.5 requests changed in the same
+          two fields. The reading call and the emails are unproven on
+          this setting until a paid review or draft runs. 1,578 tests pass.
+        - **Gate run `sonnet55-harborview-app-2026-10-08` (review
+          `a70ff3c5`, about $0.68, 322s). Passed.** The user uploaded
+          Harborview through the app on the branch, so one run covered the
+          long contract and the app's own path.
+          - 33 of 34 key items, against a bar of 32. The miss is the future
+            rate cap again, judged not applicable.
+          - **The model thought this time:** 16,795 of 55,532 output
+            tokens. It thought on neither earlier run at `low` or
+            `medium`. The judging call took 312s, past the old 300-second
+            wall, so streaming is proven on the real API inside the app.
+          - The first pass was complete. No clause was judged short and
+            left without a finding, and the second ask did not run.
+          - 79 findings: 65 business, 13 legal, 1 other. 33 clauses have a
+            finding, at most four each.
+          - Redline replay applied 63, with no failed check. Two were left
+            out for blanks the associate fills (`[X]` square feet on
+            function space, and one on cancellation).
+          - The library came from the database, with the user's gratuity
+            sentence fixed minutes before.
+          - Not covered: a real contract on this setting, and the emails.
+        - **Before the next paid run:** run one contract at a time with
+          nothing else in flight, and price it from the Console's actual
+          usage. The eval capture already has the app's limit and one try.
       - **Waiting on a yes for the paid step.**
         - One Florida review on 5.5 through the app, about $0.45 to $0.50.
         - The seven-contract eval on 5.5, roughly $2 to $3, to be quoted
@@ -767,9 +1046,9 @@ for what is shown. Every pinned model request is unchanged.
         and that branch's copy of this item is the fuller record.
       - Sonnet 5.5 costs the same per token as Sonnet 5.
       - It rejects a forced tool_choice. Forced-capable models keep today's
-        request byte for byte. Sonnet 5.5 gets tool_choice auto, a strict tool
-        with every object closed, and a prompt line to call the tool.
-      - The schema check passed. Both strict schemas compile.
+        request byte for byte. Sonnet 5.5 gets no tool: the schema goes as an
+        output format (`output_config.format`), with thinking `between_tools`
+        and effort `high` (user's decision, 2026-10-03).
       - **Blocker.** Harborview's review at the default effort (`high`) ran past
         10 minutes and was stopped. The app gave the model 240s then, and
         gives it 420s now. Sonnet 5.5 always thinks, and a forced Sonnet 5 call
@@ -798,28 +1077,291 @@ for what is shown. Every pinned model request is unchanged.
         - **Streaming.** The review call asks for 64k tokens without streaming.
           `.stream().finalMessage()` follows SDK guidance and lets the deadline
           cut a slow call cleanly. Optional second step.
-        - **Branch state.** One commit, well behind `main`, which now also
-          requires `quoted_text` and sends a comments block. Its 5.5 goldens
-          predate `redline_note` and `flagged_findings`. It doesn't cover the
-          historical-contract read or the two eval calls, and the Batch service
-          rejects a forced tool on 5.5 too.
+        - **Branch state (2026-10-03).** `main` is merged in. All seven model
+          calls work on 5.5, the historical-contract read and the two eval
+          calls included. The SDK is 0.131.0, which types `between_tools`.
+          Lint, typecheck and 1,356 tests pass, and every Sonnet 5 golden
+          matches `main`.
+        - **Structured outputs, not a strict tool (user, 2026-10-03).** With
+          `tool_choice: auto` the model can answer in text, and a missed call
+          on a four-minute review leaves no time for a retry. An output format
+          holds the reply to the schema, so a miss can't happen. The tool's
+          description moves into the system prompt. A nullable enum goes as
+          `anyOf`, which the format needs.
+        - **Refusal fallback left out (user, 2026-10-03).** It retries only
+          `cyber` and `frontier_llm`, and needs the beta endpoint. A decline
+          stops once with a clear message.
+        - **Free check passed** (`scripts/check-request-shapes.ts`, the
+          token-counting endpoint). All 14 goldens are accepted. A forced tool
+          on 5.5 and `between_tools` at `xhigh` are rejected. The schema's
+          descriptions count toward the request (24,083 tokens with them,
+          22,226 without), so the model sees them.
+        - **First 5.5 run `4f803f16` failed in its first second, at no cost
+          (2026-10-03).** Anthropic refused the review's output format with
+          "The compiled grammar is too large". The token-counting endpoint had
+          accepted it, because counting checks a schema's keywords and never
+          compiles it. `scripts/check-request-shapes.ts --compile` now makes
+          the cheapest real call that does (under a cent a form).
+        - **The cap belongs to the enforcement service.** Sonnet 5 refuses the
+          same form. Six of the seven forms compile. The review form (60
+          fields) doesn't, and no change that keeps every field enforced got
+          it under the cap. It compiles without the figures section, or
+          without the legal findings list. Probes cost $0.04 in all.
+        - **One reading pass (user, 2026-10-03), on `review/one-reading-pass`,
+          cut from `migrate/sonnet-5-5`.** The user chose to split reading from
+          judging now, and to do it once. A review is two calls side by side
+          (`lib/review.ts`). The judging call writes the findings. The reading
+          call is the term pass, and exposures are worked out from its checked
+          terms (`figuresFromTerms`). It asks for the exposure terms alone when
+          `TERM_EXTRACTION` is off, and the whole catalog when on, so each
+          number is read once.
+          - Catalog `hotel-v2` adds the block's total room nights, the minimum
+            room nights, and which room nights the cancellation fee applies to.
+          - The review form and prompt lose `deal_figures`, for both models, so
+            every golden changed. `checkFigures` is retired. The exposure
+            arithmetic is untouched, and the Florida and Rome figures give the
+            same amounts fed from terms.
+          - A failed reading call is retried once, then the review completes
+            with no exposures. The review screen doesn't yet say why they are
+            missing.
+          - A review costs about $0.05 more, since the contract is sent twice.
+          - Lint, typecheck and 1,366 tests pass. The free shape check passes.
+          - **Compile sweep passed (2026-10-03, $0.02).** All seven 5.5 forms
+            compile on a real call.
+          - **Reading call alone on Florida, Sonnet 5 (two runs, $0.07 each,
+            about 12 seconds).** The first gave no attrition exposure: the
+            reader quoted the row label "Total Room Block", so the check
+            refused the 2,900. The reader's rule now says to quote the cell
+            that holds the value, and the second run gives $157,524.40:
+            attrition $29,800 and cancellation $91,724.40, both as on
+            `c27f414d`, plus F&B $36,000.
+          - **A cancellation charge on the F&B minimum counts as F&B exposure
+            (user, 2026-10-03).** Florida has no underspend clause. Its table
+            charges 80% of the minimum inside 90 days, and
+            `fb_minimum.shortfall_rate` now says that counts. This answers
+            "F&B exposure went missing" in the list further down.
+          - **Known weakness.** A room-night figure is verified when its quote
+            holds that number anywhere. The reader quoted the whole table row,
+            so any number in the row would have verified. Worth tightening
+            before exposures are relied on.
+          - **Florida review `4f803f16` on Sonnet 5.5, split, as Jerry
+            (2026-10-03, $0.50).** Against `c27f414d` (Sonnet 5, one call):
+            - Time 3m27s against 4m07s. No thinking. No failed answer, no retry.
+            - Cost $0.50 against $0.40: judging $0.43 (32.9k tokens out against
+              29.2k) plus reading $0.07.
+            - 68 findings against 51 (business 50, legal 12, other 6). The same
+              32 clause types on both. Twelve clause types gained findings, so
+              the extra ones are more places, not more topics.
+            - 39 of 39 changed clauses quoted. Five quotes are still whole
+              table rows, the cancellation tiers.
+            - Notes: 39 kept, 11 blanked (8 for figures, 2 for repeating
+              internal wording, 1 for naming ConferenceDirect), against 20 and
+              15.
+            - Severity departs from the library default on 4 findings against
+              8.
+            - Redline from its findings: 44 of 49 applied against 28 of 34.
+              Every oracle check, the clean copy and both PDFs passed. The five
+              left out are the table-row quotes.
+            - **Exposure $65,800: attrition $29,800 and F&B $36,000, and no
+              cancellation figure.** The 5.5 reader gave no usable top tier or
+              damages basis, where Sonnet 5 as reader gave both twice. The
+              terms aren't stored with extraction off, so the cause is unseen.
+              The app now logs which piece was missing.
+            - The first try stalled on a network drop before any model call and
+              cost nothing. The row sat at "processing" until the ten-minute
+              stale rule allowed a retry.
+          - **Reading call alone on Florida, Sonnet 5.5 ($0.07, 8 seconds).**
+            It gives all three exposures, $157,524.40, the same as Sonnet 5 as
+            reader. So the review's missing cancellation figure came from a
+            reading that differed on the day, not from a reader that can't do
+            it. The reader's answers vary from run to run on the two terms
+            cancellation depends on.
+          - **Sturdier exposures (2026-10-03, free, built on the new Mac).**
+            Lint, typecheck, 1,385 tests and the free shape check pass. No
+            prompt, catalog wording or golden changed.
+            - **The reading is kept with every review.**
+              `analyses.term_extraction` now holds the figures, the exposure
+              terms as the reader gave them, and a note for each term that
+              gave no figure, whether `TERM_EXTRACTION` is on or off. A failed
+              reading is recorded too. The `contract_terms` rows stay behind
+              the switch, since Analytics reads them. No migration.
+            - **Room counts must be singled out.** A count of rooms or room
+              nights is verified when it is the only room count in its quote,
+              or when the other counts add up to it, as Florida's eight nights
+              add up to 2,900. A bare table cell is judged by its row. Anything
+              else is "located", which exposures don't build on. Amounts,
+              percentages, durations and dates aren't read as room counts. The
+              complimentary-room ratio keeps the old rule, since "1 per 40"
+              always holds two numbers. Checked on the real Florida row: 2,900
+              verifies and a nightly count doesn't.
+            - **Cancellation, the schedule as backstop.** With no usable
+              top-tier percentage, the schedule's closest tier supplies it,
+              only when the schedule's own quote states that percentage.
+            - **Cancellation, a second ask (user's choice, 2026-10-03).** When
+              a reading has cancellation terms and lacks a tier answer, the
+              reader is asked once more for the three tier answers alone
+              (`lib/review.ts`, `TIER_CATALOG`). Both readings are checked
+              together, so a disagreement gives no figure. It runs beside the
+              judging call and adds no wait. It costs about 5 to 7 cents on a
+              review where it fires.
+            - **Still weak.** A percentage is verified when its quote holds it
+              anywhere, as room counts were. The second ask doesn't fire when
+              the reader returns nothing about cancellation. The stored
+              readings will show whether either matters.
+            - **Not yet run against a model.** Every test here is mocked. The
+              first paid review will show the stored record and whether the
+              second ask fires.
+          - **Two paid runs on Sonnet 5.5 with the fixes (2026-10-04, $0.89).**
+            - **Florida `9244158e`, through the app as Jerry ($0.42, 2m39s).**
+              51 findings against 68 on `4f803f16`, the same file and model.
+              32 of 32 changed clauses quoted. Exposure $36,000, F&B alone.
+              - The stored reading explained both missing figures at no cost.
+              - Cancellation: the reader gave the percentage (90%), the
+                schedule and the room nights, and answered `other` for what
+                the percentage is charged on, at medium confidence. The
+                clause says room nights times the rate times 90%. The
+                catalog's two options ("gross room revenue", "lost room
+                profit") don't describe that formula plainly enough.
+              - The second ask did not fire, because `other` counts as an
+                answer. It would not have helped: a second reading saying
+                `gross_revenue` would clash with the first.
+              - Attrition: every figure was read and verified, but the
+                judging call wrote no attrition finding, so the exposure had
+                no card to sit on. It judged attrition `falls_short` and six
+                other clause types short or missing, and wrote no finding for
+                any of the seven. The app records such gaps in the audit log
+                and shows the associate nothing.
+              - The room block was quoted as a bare cell and verified by its
+                row, as the new rule intends.
+            - **Harborview eval `sonnet55-harborview-2026-10-04` ($0.47,
+              3m36s).** It finishes in time now. It ran past ten minutes
+              before the thinking fix.
+              - 30 of 34 key items found (88.2%). Sonnet 5 found 34 of 34 on
+                `combined-2026-09-23` and 33 of 34 on
+                `baseline-repeat-2026-09-22`. Those baselines used an earlier
+                prompt and library, so the comparison is rough.
+              - 90 findings, 55 of them scored as repeats of an issue already
+                reported. The four misses are medium items. Three are clause
+                types the model judged short and wrote no finding for.
+              - No exposures. The contract states no total of room nights, so
+                the reader added four nights of 170 and gave 680 with one
+                night's row as its quote. The check refused it, and attrition
+                and cancellation both need that total.
+            - **What this says.** The arithmetic never varied. What varies is
+              the reader's answers, and whether the judging call writes a
+              finding for the exposure to sit on. On two contracts 5.5 at
+              this setting is faster than Sonnet 5 and less consistent.
+            - **My own read of both contracts against the runs (2026-10-04).**
+              Almost every finding in every run is true to the text. The runs
+              differ in what they wrote down, and in arithmetic.
+              - Florida on 4 Oct dropped attrition, the commission rate and
+                rate protection. The 3 Oct run was the most complete of the
+                three.
+              - Proposed cancellation wording carried hand arithmetic. Sonnet
+                5's top tier was $213,023.60 where the sum is $214,023.60.
+              - Both models wrote "placeholder" findings. One was the proposed
+                wording of a business finding.
+              - The app's own table check caught three totals that every model
+                missed.
+              - Harborview's 90 findings are valid splits by term. The scorer
+                counts 55 as repeats because its key has one item a clause.
+            - **Sonnet 5 retires no sooner than 30 June 2027, and Sonnet 5.5
+              no sooner than 28 September 2027** (Anthropic's deprecations
+              page, read 2026-10-04, with 60 days' notice). The app will meet
+              a forced model change in its first year.
+            - **Built from these runs (2026-10-04, free). Lint, typecheck and
+              1,406 tests pass.**
+              1. **Must-raise numbers** (`lib/must-raise.ts`). The app reads
+                 the commission rate, the attrition floor and the F&B
+                 shortfall rate, compares each with CD's standard, and writes
+                 the finding itself when no finding covers the number. The
+                 wording is the contract's sentence with the number changed,
+                 offered only when the number sits in it once. The reading
+                 call always asks for the commission rate now.
+              2. **One note when a review is incomplete.** Clauses judged
+                 short with no finding are named in a single note. A card for
+                 each was considered and dropped (user, 2026-10-04), since a
+                 card with no wording is reading without a decision.
+              3. **A clearer cancellation question.** The two
+                 `cancellation.damages_basis` options now say what each is
+                 taken of. The catalog is `hotel-v3`.
+              4. **Totals that add up.** A room-night total the contract
+                 doesn't print is verified when a column of its table adds up
+                 to it.
+              5. **Placeholder findings dropped** and logged.
+              6. **Real reader answers replayed as tests**
+                 (`tests/readings-replay.test.ts`,
+                 `scripts/save-reading.ts`). On Harborview's saved answer the
+                 app now gives attrition $39,304 and cancellation $58,956,
+                 where the run gave none.
+              - **Considered and left out.** A must-raise rule for the
+                cancellation basis, a dollar check on proposed wording, and a
+                paid follow-up call for skipped clauses (8 to 10 cents a
+                review).
+              - **Not yet run against a model.** A reader-only check on
+                Florida and Harborview would cost about $0.11 and would show
+                the reworded question and the commission read on real
+                answers.
+              - **CD's numbers come from the standards library (user,
+                2026-10-04).** The attrition floor, room profit, the F&B
+                shortfall rate and commission were typed into code. The app
+                now reads each from the wording of its standard at the start
+                of a review (`lib/exposures/cd-positions.ts`), so an edit on
+                the Standards screen reaches the next review's dollar figures
+                and must-raise checks.
+                - The app finds each number by the words around it, such as
+                  "10% commission". If a standard is reworded so the number
+                  can't be found, the built-in value stands in.
+                - The Standards screen shows, under each of the four
+                  standards, the number in use, or a warning with wording the
+                  app can read. It updates as the admin types.
+                - Each review stores the numbers it used (`cd_positions` in
+                  `analyses.term_extraction`).
+                - A review already run keeps its figures.
+                - A separate number field was considered and left out, since
+                  it would give CD two places to keep in step.
+                - Checked live on the Standards screen: four readouts, 12%
+                  after an edit, a warning after a reword, nothing saved.
+          - **Still to do, each paid step with its own yes.** The Florida
+            review on Sonnet 5 with the split (about $0.45), if the split's
+            own effect needs isolating. Then the seven-contract evals, since
+            this changes Sonnet 5 too, before any merge to `main`.
+          - **Moving computers (2026-10-03).** Everything in git is on GitHub.
+            Three things live only on the old Mac and must be copied by hand:
+            `.env.local`, `data/private/`, and Claude's memory folder and
+            global `CLAUDE.md` under `~/.claude/`.
       - **Steps.** Opus work, since it changes every model request. Each paid
         step needs its own yes.
-        1. Merge `main` into the branch. Add `between_tools` and explicit
-           effort to the non-forced path in `toolRequest`. Cover the historical
-           and eval calls. Regenerate the goldens.
-        2. Check every request shape on the token-counting endpoint. It is free
-           and rejects bad `thinking` and `tool_choice` values.
+        1. Done. Merge `main` into the branch. Add `between_tools` and
+           explicit effort to the non-forced path (`answerRequest`). Cover the
+           historical and eval calls. Regenerate the goldens.
+        2. Done. Check every request shape on the token-counting endpoint. It
+           is free and rejects bad `thinking` and `tool_choice` values.
         3. Paid, about $0.40. Run the redlined Florida file
            (`data/private/florida-property-round1.docx`, git-ignored) on 5.5
            with `between_tools` at `high`. Compare time, tokens and findings
            with `c27f414d`, the Sonnet 5 run on the same file and the same
            code (4m07s, 24.8k in, 29.2k out, 51 findings, 27 of 27 changed
            clauses quoted, $121,524 exposure).
-        4. Paid, about $0.65 to $0.80. Run the seven-contract eval set and
-           score it against the existing baselines. Count missed tool calls.
+        4. Paid, about $2.35 on Sonnet 5.5 (corrected 2026-10-04; this line
+           said $0.65 to $0.80). Run the seven-contract eval set and score it
+           against the existing baselines.
+           - The last full run, `combined-2026-09-23` on Sonnet 5, cost $1.83
+             and took 26 minutes. Output is the expensive part, and the prompt
+             now asks for more of it.
+           - 5.5 wrote about 13% more on Florida, and each contract now gets
+             a reading call too, about $0.04.
+           - Per contract on 5.5: Harborview about $0.48, Crossroads $0.39,
+             Monarch $0.32, the other four about $0.29 each.
+           - `scripts/with-retry.ts` tries a failed contract up to four times,
+             and each try is paid. Watch a run and stop it on a first failure
+             when credit is short.
         5. If time and scores hold, change the Render variable. Sonnet 5 stays
            one variable away.
+           - **Reminder (user, 2026-10-03).** Once 5.5 runs cleanly on the
+             tool, set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5`. The
+             code's default is already 5.5, and Render's variable is what
+             keeps production on Sonnet 5 until then.
 - [x] **1. Analytics live for a demonstration (2026-09-29).** Deployed
       2026-09-28 (679eae3), with the three switches set on Render.
       - **Archived for the beta (2026-10-06).** See

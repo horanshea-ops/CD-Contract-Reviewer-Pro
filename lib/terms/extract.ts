@@ -18,14 +18,18 @@ export async function extractTerms({
   parts,
   catalog = HOTEL_TERM_CATALOG,
   model,
+  deadline,
 }: {
   document: AnalyzableDocument;
   parts: LocatablePart[];
   catalog?: TermCatalog;
   model?: string;
+  deadline?: number;
 }) {
-  const response = await extractContractTerms({ document, catalog, model });
+  const response = await extractContractTerms({ document, catalog, model, deadline });
   return {
+    /** As the model gave them, so a second reading's entries can be checked together with these. */
+    entries: response.entries,
     terms: validateTerms(response.entries, catalog, parts),
     model_id: response.model_id,
     tokens: {

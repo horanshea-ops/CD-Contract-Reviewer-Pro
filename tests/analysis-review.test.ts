@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Finding } from "@/lib/anthropic";
-import { movesCutoffEarlier, normalizeFindings, proposesNoChange, reconcileReview, type ClauseReview } from "@/lib/analysis-review";
+import { isPlaceholder, movesCutoffEarlier, normalizeFindings, proposesNoChange, reconcileReview, type ClauseReview } from "@/lib/analysis-review";
 import type { StandardEntry } from "@/lib/standards/types";
 
 function standard(clause_type: string): StandardEntry {
@@ -213,5 +213,30 @@ describe("movesCutoffEarlier", () => {
     expect(
       movesCutoffEarlier(cutoff("at least 14 days before arrival", "at least thirty (30) days before arrival", "construction_renovation"))
     ).toBe(false);
+  });
+});
+
+describe("a finding the model never filled in", () => {
+  it("is recognised by the word placeholder, or by having no text of its own", () => {
+    expect(isPlaceholder({ ...finding("master_account_billing", "placeholder"), finding_text: "placeholder" })).toBe(true);
+    expect(isPlaceholder({ ...finding("governing_law_venue", ""), finding_text: "placeholder - flagged separately below" })).toBe(true);
+    expect(isPlaceholder({ ...finding("nondiscrimination", ""), headline: "Placeholder" })).toBe(true);
+    expect(isPlaceholder({ ...finding("attrition"), headline: null, finding_text: " " })).toBe(true);
+  });
+
+  it("is not a real finding that lacks a headline, or one that mentions a placeholder in passing", () => {
+    expect(isPlaceholder({ ...finding("attrition"), headline: null })).toBe(false);
+    expect(isPlaceholder({ ...finding("attrition"), finding_text: "The rate is left as a placeholder in the contract." })).toBe(false);
+  });
+
+  it("is dropped from the review and recorded", () => {
+    const junk = { ...finding("attrition", "placeholder"), finding_text: "placeholder" };
+    const result = reconcileReview(
+      { findings: [junk, finding("cutoff_date")], clause_review: [verdict("attrition", "falls_short"), verdict("cutoff_date", "falls_short"), verdict("force_majeure", "meets")] },
+      STANDARDS
+    );
+    expect(result.findings.map((f) => f.clause_type)).toEqual(["cutoff_date"]);
+    expect(result.dropped_findings.map((d) => d.reason)).toEqual(["placeholder"]);
+    expect(result.review_gaps).toEqual([{ kind: "short_without_finding", clause_type: "attrition", verdict: "falls_short" }]);
   });
 });
