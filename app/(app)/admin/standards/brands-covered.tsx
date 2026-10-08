@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FIELD_LABEL_CLASSES } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
-import { Body, Meta } from "@/components/ui/typography";
+import { Body, Meta, Subtitle } from "@/components/ui/typography";
 import type { StandardSet } from "@/lib/standards/sets";
 
 /**
  * The brands a set covers, for an admin to read and change.
  *
  * The list alone decides which hotels' reviews read the set, so it is shown
- * in full. The set's own name stays on it. The default set takes every hotel
- * no list names, so it has no list and no controls.
+ * in full, one brand to a row, beneath the set's standards. The set's own
+ * name stays on it. The default set takes every hotel no list names, so it
+ * has no list and no controls.
  */
 export function BrandsCovered({ set, onChanged }: { set: StandardSet; onChanged: (set: StandardSet) => void }) {
   const { showToast } = useToast();
@@ -21,9 +21,12 @@ export function BrandsCovered({ set, onChanged }: { set: StandardSet; onChanged:
 
   if (set.is_default) {
     return (
-      <Body as="p" className="mt-3 text-[var(--text-secondary)]">
-        {set.name} has no brand list. It covers every hotel whose brand isn&apos;t listed under another set.
-      </Body>
+      <section className="mt-10">
+        <Subtitle>Brands covered</Subtitle>
+        <Body as="p" className="mt-2 text-[var(--text-secondary)]">
+          {set.name} has no brand list. It covers every hotel whose brand isn&apos;t listed under another set.
+        </Body>
+      </section>
     );
   }
 
@@ -58,19 +61,26 @@ export function BrandsCovered({ set, onChanged }: { set: StandardSet; onChanged:
   const isOwnName = (name: string) => name.trim().toLowerCase() === set.name.toLowerCase();
 
   return (
-    <div className="mt-4">
-      <p className={FIELD_LABEL_CLASSES}>Brands covered</p>
+    <section className="mt-10">
+      <Subtitle>Brands covered</Subtitle>
+      <Meta as="p" className="mt-1 text-[var(--text-muted)]">
+        The brands that count as {set.name}. Changes apply to negotiations started from now on.
+      </Meta>
 
-      <ul className="flex flex-wrap gap-2">
+      <ul className="mt-3 max-w-xl divide-y divide-[var(--border)] rounded-md border border-[var(--border-strong)] bg-[var(--surface)]">
         {set.brand_names.map((name) => (
-          <li
-            key={name}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--surface-muted)] px-3 py-1 text-sm text-[var(--text-primary)]"
-          >
-            {name}
-            {!isOwnName(name) && (
-              <button
-                type="button"
+          <li key={name} className="flex items-center justify-between gap-3 px-3 py-2">
+            <Body as="span" className="text-[var(--text-primary)]">
+              {name}
+            </Body>
+            {isOwnName(name) ? (
+              <Meta as="span" className="text-[var(--text-muted)]">
+                Always on the list
+              </Meta>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
                 aria-label={`Remove ${name}`}
                 disabled={busy}
                 onClick={() =>
@@ -79,10 +89,9 @@ export function BrandsCovered({ set, onChanged }: { set: StandardSet; onChanged:
                     `${name} removed from ${set.name}.`
                   )
                 }
-                className="rounded-full px-1 leading-none text-[var(--text-secondary)] hover:text-[var(--severity-high)] disabled:opacity-50"
               >
-                ×
-              </button>
+                Remove
+              </Button>
             )}
           </li>
         ))}
@@ -102,10 +111,6 @@ export function BrandsCovered({ set, onChanged }: { set: StandardSet; onChanged:
           Add
         </Button>
       </form>
-
-      <Meta as="p" className="mt-2 text-[var(--text-muted)]">
-        Changes apply to negotiations started from now on.
-      </Meta>
-    </div>
+    </section>
   );
 }
