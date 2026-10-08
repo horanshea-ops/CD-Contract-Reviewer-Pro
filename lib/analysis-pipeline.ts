@@ -305,6 +305,8 @@ export async function processAnalysis(analysisId: string) {
           cache_creation_input_tokens: result.cache_creation_input_tokens,
           thinking_chars: result.thinking_chars ?? 0,
           thinking_tokens: result.thinking_tokens ?? 0,
+          // The judging call's time. Output tokens over this is the model's writing speed.
+          elapsed_ms: result.elapsed_ms ?? null,
           // The reading call's own usage, so a review's whole cost can be worked out.
           reading: result.reading.ok ? result.reading.tokens : { error: result.reading.error },
           // The second ask for skipped clauses, when the review made one.

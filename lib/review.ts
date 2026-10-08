@@ -79,6 +79,8 @@ export interface FollowUp {
   /** Findings the second ask wrote on those clauses. */
   findings_added: number;
   tokens?: Reading["tokens"];
+  thinking_tokens?: number;
+  elapsed_ms?: number;
   /** Why the second ask gave nothing: it failed, or too little time was left to make it. */
   error?: string;
 }
@@ -91,6 +93,16 @@ export interface ContractReview extends CategorizedAnalysis {
 
 /** A second ask needs about this long. With less left, the note names the clauses. */
 const ASK_AGAIN_MIN_MS = 90_000;
+
+/**
+ * The most clauses a second ask repairs. A first pass that leaves more than
+ * this without a finding stopped early, and a second ask would be writing the
+ * review in its place. The worst first pass on a contract that finished left 7.
+ */
+const ASK_AGAIN_MAX_CLAUSES = 8;
+
+/** A first pass that judged the clauses and wrote findings for too few of them. A retry starts it over. */
+export class StoppedEarlyError extends Error {}
 
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const keyOf = (entry: unknown) => String((entry as { term_key?: unknown } | null)?.term_key ?? "").trim();
@@ -171,6 +183,8 @@ async function askAgain(review: AnalyzeContractPdfArgs, skipped: ClauseReview[])
           cache_read: second.cache_read_input_tokens,
           cache_creation: second.cache_creation_input_tokens,
         },
+        thinking_tokens: second.thinking_tokens ?? 0,
+        elapsed_ms: second.elapsed_ms,
       },
     };
   } catch (err) {
@@ -218,6 +232,16 @@ export async function reviewContract({ parts, catalog, ...review }: ReviewContra
   const skipped = skippedClauses(analysis.review_gaps, firstPass).flatMap(
     (clauseType) => analysis.clause_review.find((entry) => clauseKey(entry.clause_type) === clauseKey(clauseType)) ?? []
   );
+  if (skipped.length > ASK_AGAIN_MAX_CLAUSES) {
+    console.error(
+      `reviewContract: the first pass stopped early — ${skipped.length} clauses judged short have no finding, ` +
+        `after ${analysis.output_tokens} output tokens (${analysis.thinking_tokens ?? 0} thinking) in ${Math.round((analysis.elapsed_ms ?? 0) / 1000)}s`
+    );
+    throw new StoppedEarlyError(
+      `The review stopped before it finished: it judged ${skipped.length} clauses short of the standard and wrote no finding for them. Use Retry to run it again.`
+    );
+  }
+
   const timeLeft = review.deadline === undefined ? Infinity : review.deadline - Date.now();
   const asked =
     skipped.length === 0

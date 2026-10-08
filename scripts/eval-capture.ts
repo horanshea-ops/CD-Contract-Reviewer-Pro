@@ -62,6 +62,12 @@ async function main() {
   }
   const answer: AnswerOptions | undefined = effort || thinking ? { effort: effort as Effort | undefined, thinking } : undefined;
 
+  // `--limit <seconds>` gives each review less than the app's time. A call
+  // writes about 180 tokens a second, so a time limit is a cost limit.
+  const limitAt = process.argv.indexOf("--limit");
+  const limitMs = limitAt === -1 ? MODEL_CALL_BUDGET_MS : Number(process.argv[limitAt + 1]) * 1000;
+  if (!Number.isFinite(limitMs) || limitMs <= 0) throw new Error("--limit takes a number of seconds");
+
   const retriesAt = process.argv.indexOf("--retries");
   const tries = retriesAt === -1 ? 1 : Math.max(1, Number(process.argv[retriesAt + 1]) || 1);
 
@@ -105,7 +111,11 @@ async function main() {
   console.log(
     `Standards library: ${standards.entries.length} entries from ${standards.source}, version ${standards.version}`
   );
-  console.log(`Corpus: ${key.contracts.length} contracts from ${key.version}\n`);
+  console.log(`Corpus: ${key.contracts.length} contracts from ${key.version}`);
+  console.log(
+    `This run: ${only ? only.join(", ") : "every contract"}, model ${model ?? process.env.ANTHROPIC_MODEL ?? "the app's default"}, ` +
+      `thinking ${thinking ?? "off"}, effort ${effort ?? "high"}, ${limitMs / 1000}s a review, ${tries === 1 ? "one try" : `${tries} tries`}\n`
+  );
 
   const documents: RunDocument[] = [];
   let spent = 0;
@@ -144,8 +154,8 @@ async function main() {
             parts: extracted.parts,
             answer,
 
-            // The limit a review gets in the app, counted from this try.
-            deadline: Date.now() + MODEL_CALL_BUDGET_MS,
+            // The limit a review gets in the app unless --limit says less, counted from this try.
+            deadline: Date.now() + limitMs,
           }),
         tries
       );
@@ -167,10 +177,12 @@ async function main() {
           `${(elapsed / 1000).toFixed(0)}s, ${cost.toFixed(3)}`
       );
       for (const gap of analysis.review_gaps) console.log(`    gap: ${gap.kind} ${gap.clause_type}`);
-      console.log(`    judging call: ${analysis.output_tokens.toLocaleString()} output tokens, ${(analysis.thinking_tokens ?? 0).toLocaleString()} of them thinking`);
+      const call = (seconds: number | undefined, output: number, thinkingTokens: number | undefined) =>
+        `${((seconds ?? 0) / 1000).toFixed(0)}s, ${output.toLocaleString()} output tokens, ${(thinkingTokens ?? 0).toLocaleString()} of them thinking`;
+      console.log(`    judging call: ${call(analysis.elapsed_ms, analysis.output_tokens, analysis.thinking_tokens)}`);
       if (analysis.follow_up) {
-        const { asked_for, findings_added, error } = analysis.follow_up;
-        console.log(`    asked again for ${asked_for.join(", ")}: ${error ?? `${findings_added} findings`}`);
+        const { asked_for, findings_added, error, tokens, thinking_tokens, elapsed_ms } = analysis.follow_up;
+        console.log(`    second ask, for ${asked_for.join(", ")}: ${error ?? `${findings_added} findings, ${call(elapsed_ms, tokens?.output ?? 0, thinking_tokens)}`}`);
       }
     } catch (err) {
       // A failed document is recorded, never dropped. Scoring counts its key

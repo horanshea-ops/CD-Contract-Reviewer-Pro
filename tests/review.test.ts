@@ -463,6 +463,8 @@ describe("asking the judging call again for a clause it left without a finding",
       asked_for: ["rate_parity"],
       findings_added: 1,
       tokens: { input: 700, output: 70, cache_read: 0, cache_creation: 0 },
+      thinking_tokens: 0,
+      elapsed_ms: expect.any(Number),
     });
   });
 
@@ -514,6 +516,42 @@ describe("asking the judging call again for a clause it left without a finding",
     const result = await run();
     expect(result.document_notes).toEqual([expect.objectContaining({ headline: "The review left 1 clause without a finding." })]);
     expect(result.follow_up).toMatchObject({ asked_for: ["rate_parity"], findings_added: 0 });
+  });
+
+  it("fails the review when the first pass left more than 8 clauses without a finding", async () => {
+    const clauses = STANDARDS_LIBRARY.slice(0, 12).map((standard) => standard.clause_type);
+    create.mockImplementation(async (params: ModelRequest) =>
+      answerName(params) !== "record_analysis"
+        ? toolResponse("record_contract_terms", { terms: [] })
+        : toolResponse("record_analysis", {
+            clause_review: clauses.map((clause_type) => ({ clause_type, verdict: "falls_short", basis: "Short." })),
+            findings: [{ ...finding(clauses[0]), quoted_text: "Run of House: $149.00 per night." }],
+            flagged_findings: [],
+            document_notes: [],
+            other_findings: [],
+          })
+    );
+
+    await expect(run()).rejects.toThrow(/stopped before it finished: it judged 11 clauses short of the standard and wrote no finding/);
+    expect(secondAsks()).toHaveLength(0);
+  });
+
+  it("still asks again for exactly 8 clauses", async () => {
+    const clauses = STANDARDS_LIBRARY.slice(0, 9).map((standard) => standard.clause_type);
+    create.mockImplementation(async (params: ModelRequest) =>
+      answerName(params) !== "record_analysis"
+        ? toolResponse("record_contract_terms", { terms: [] })
+        : toolResponse("record_analysis", {
+            clause_review: clauses.map((clause_type) => ({ clause_type, verdict: "falls_short", basis: "Short." })),
+            findings: [{ ...finding(clauses[0]), quoted_text: "Run of House: $149.00 per night." }],
+            flagged_findings: [],
+            document_notes: [],
+            other_findings: [],
+          })
+    );
+
+    const result = await run();
+    expect(result.follow_up?.asked_for).toHaveLength(8);
   });
 
   it("doesn't ask with under 90 seconds left", async () => {

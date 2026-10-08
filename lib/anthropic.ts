@@ -70,6 +70,8 @@ export interface AnalysisResult {
   thinking_chars?: number;
   /** Output tokens spent on thinking, as the API counts them. Thinking text can be hidden, and this still counts it. */
   thinking_tokens?: number;
+  /** How long the call took, a retry included. Output tokens over this is the model's writing speed. */
+  elapsed_ms?: number;
 }
 
 /** A fresh review, with each finding's category stamped from the library. Saved eval runs predate categories. */
@@ -677,8 +679,11 @@ export async function analyzeContract({
     };
   }
 
+  const started = Date.now();
+  const timed = async () => ({ ...(await attempt()), elapsed_ms: Date.now() - started });
+
   try {
-    return await attempt();
+    return await timed();
   } catch (err) {
     if (err instanceof CutOffError || err instanceof RefusalError || err instanceof TimeLimitError) throw err;
     const left = remaining();
@@ -687,7 +692,7 @@ export async function analyzeContract({
       throw new Error(`The review failed with too little time left to try again (${reason}). Use Retry to run it again.`);
     }
     console.error("analyzeContract: first attempt failed, retrying once —", err);
-    return await attempt();
+    return await timed();
   }
 }
 
