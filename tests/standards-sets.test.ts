@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Tables } from "./helpers/fake-db";
 
 /**
@@ -10,11 +10,21 @@ import { fakeDb, type Tables } from "./helpers/fake-db";
  * being told.
  */
 
-const state = vi.hoisted(() => ({ tables: {} as Record<string, Record<string, unknown>[]> }));
+const state = vi.hoisted(() => ({ tables: {} as Record<string, Record<string, unknown>[]>, failures: 0 }));
 
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => fakeDb(state.tables as Tables) }));
+/** A database whose every read comes back with an error. */
+function failingDb(message: string) {
+  const result = { data: null, error: { message } };
+  const query: Record<string, unknown> = { select: () => query, is: () => query, then: (done: (r: typeof result) => unknown) => done(result) };
+  return { from: () => query };
+}
 
-import { hashStandards, loadStandardsLibrary } from "@/lib/standards/load";
+// The first `state.failures` clients fail every read. The rest read the tables.
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => (state.failures-- > 0 ? failingDb("JWT issued at future") : fakeDb(state.tables as Tables)),
+}));
+
+import { hashStandards, loadStandardsLibrary, StandardsUnreadableError } from "@/lib/standards/load";
 import { STANDARDS_LIBRARY } from "@/lib/standards/v1";
 
 const set = (key: string, name: string, over: Record<string, unknown> = {}) => ({
@@ -45,6 +55,7 @@ const standard = (set_key: string, clause_type: string, over: Record<string, unk
 });
 
 beforeEach(() => {
+  state.failures = 0;
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://localhost");
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "test-key");
   state.tables = {
@@ -135,5 +146,44 @@ describe("a set that can't be used", () => {
 
     expect(loaded).toMatchObject({ source: "bundled_fallback", set: "independent", requestedSet: "hilton" });
     expect(loaded.setNote).toMatch(/used Independent/);
+  });
+});
+
+describe("a database that can't be read", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Runs a load to its end, past the waits between tries. */
+  async function settle<T>(load: Promise<T>): Promise<T> {
+    const outcome = load.then(
+      (value) => ({ value }),
+      (error: unknown) => ({ error })
+    );
+    await vi.runAllTimersAsync();
+    const result = await outcome;
+    if ("error" in result) throw result.error;
+    return result.value;
+  }
+
+  it("reads the database on a later try when the first read fails", async () => {
+    state.failures = 2;
+    const loaded = await settle(loadStandardsLibrary());
+
+    expect(loaded).toMatchObject({ source: "database", set: "independent" });
+    expect(loaded.fallbackReason).toBeUndefined();
+  });
+
+  it("fails after three tries, and never reviews against the bundled copy", async () => {
+    state.failures = 3;
+    const load = settle(loadStandardsLibrary());
+
+    await expect(load).rejects.toBeInstanceOf(StandardsUnreadableError);
+    await expect(load).rejects.toThrow(/couldn't be read, so nothing was reviewed \(could not read the standards sets: JWT issued at future\)/);
   });
 });
