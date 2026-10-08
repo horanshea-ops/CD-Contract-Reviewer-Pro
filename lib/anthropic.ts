@@ -597,9 +597,10 @@ export async function analyzeContract({
         model: modelId,
 
         // Each finding carries full replacement language, and clause_review adds
-        // a line per clause type, so output grows with the library. The deadline
-        // stops a long review well before this does.
-        max_tokens: 64000,
+        // a line per clause type, so output grows with the library. Sonnet 5.5
+        // writes about 180 tokens a second, so this cap and the ten-minute
+        // deadline are reached at about the same time.
+        max_tokens: 100000,
 
         system: withAnswerInstruction(buildSystemPrompt(standards, standardsVersion, org), modelId, findingsToolSchema(org)),
         ...answerRequest(modelId, findingsToolSchema(org)),
