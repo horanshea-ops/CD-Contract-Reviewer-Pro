@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Body, Meta, Title } from "@/components/ui/typography";
-import { setForBrand } from "@/lib/intake/brands";
+import { brandLine } from "@/lib/intake/brand-line";
 
 interface OpenThread {
   id: string;
@@ -35,31 +35,6 @@ interface ContractRead {
   brand: { brand: string | null; set: string | null; evidence: string | null; note: string | null };
   /** Every set of standards, the default first. */
   sets: BrandChoice[];
-}
-
-/**
- * What to say under the brand: where it was read from, and which standards
- * the review will use. A brand with no standards of its own is compared with
- * the default set, and the associate is told so before the review starts.
- */
-function brandReason(read: ContractRead | null, sets: BrandChoice[], brand: string): string | null {
-  const fallback = sets.find((s) => s.is_default)?.name;
-  if (!fallback) return null;
-
-  const typed = brand.trim();
-  const own = setForBrand(typed, sets);
-  const lines: string[] = [];
-
-  if (read?.brand.brand && read.brand.brand === typed && read.brand.evidence) lines.push(`From the contract: “${read.brand.evidence}”`);
-  else if (!typed && read?.brand.note) lines.push(read.brand.note);
-  else if (!typed && read) lines.push("No brand found in the contract.");
-
-  if (!typed) lines.push(`This review will use ${fallback}'s standards.`);
-  else if (!own) lines.push(`There are no standards specific to ${typed}, so this review will use ${fallback}'s.`);
-  else if (!own.in_use) lines.push(`${own.name}'s standards aren't switched on yet, so this review will use ${fallback}'s.`);
-  else lines.push(`This review will use ${own.name}'s standards.`);
-
-  return lines.join(" ");
 }
 
 export default function UploadForm() {
@@ -132,6 +107,11 @@ export default function UploadForm() {
       setErrorMessage("Property name is required for a new negotiation.");
       return;
     }
+    if (negotiationMode === "new" && !brand.trim()) {
+      setStatus("error");
+      setErrorMessage("Hotel brand is required for a new negotiation. Enter Independent for a hotel with no brand.");
+      return;
+    }
     if (negotiationMode === "continuing" && !threadId) {
       setStatus("error");
       setErrorMessage("Choose which negotiation this continues.");
@@ -147,7 +127,7 @@ export default function UploadForm() {
     formData.append("negotiationMode", negotiationMode);
     if (negotiationMode === "new") {
       formData.append("propertyName", propertyName.trim());
-      if (brand.trim()) formData.append("brand", brand.trim());
+      formData.append("brand", brand.trim());
 
       // Kept beside the confirmed values, to show how often the read was right.
       if (read?.propertyName) formData.append("readPropertyName", read.propertyName.value);
@@ -249,20 +229,21 @@ export default function UploadForm() {
               </div>
 
               <div>
-                <Field label="Hotel brand" hint="(leave blank for an independent hotel)">
+                <Field label="Hotel brand">
                   <FieldInput
                     type="text"
+                    required
                     value={brand}
                     onChange={(e) => {
                       typedBrand.current = true;
                       setBrand(e.target.value);
                     }}
-                    placeholder="e.g. Hilton, Marriott, Hyatt Regency"
+                    placeholder="e.g. Hilton, Marriott, Hyatt, or Independent"
                   />
                 </Field>
-                {!reading && brandReason(read, sets, brand) && (
+                {!reading && brandLine(read?.brand ?? null, sets, brand) && (
                   <Meta as="p" className="mt-1.5 text-[var(--text-muted)]">
-                    {brandReason(read, sets, brand)}
+                    {brandLine(read?.brand ?? null, sets, brand)}
                   </Meta>
                 )}
               </div>

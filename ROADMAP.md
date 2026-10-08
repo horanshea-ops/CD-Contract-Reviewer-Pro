@@ -504,20 +504,31 @@ History of the switch, oldest first:
      replay over all 30 stored reviews (975 findings, 26 with an amount
      beside a formula) flagged 6, all in the two reviews known to be wrong.
      The model still makes the mistake. This catches it for the associate.
-5. **Next item (user, 2026-10-08): the brand on the new-review form.** Needs
-   its own plan.
-   - A brand is entered on every review, including a brand with no
-     standards set of its own. Such a review still reads Independent.
-     To settle in the plan: whether the field becomes required, and what
-     an independent hotel enters.
-   - **Every Hyatt line is Hyatt.** All Hyatt contracts are negotiated on
-     Hyatt's one set of standards, so Hyatt Regency, Grand Hyatt, Park
-     Hyatt and the rest are not told apart. This answers question 2 for CD
-     as far as Hyatt goes. Today `lib/intake/brands.ts` shows the most
-     specific name ("Hyatt Regency"), and `setForBrand` matches a set by
-     the word in the name, so Andaz, Thompson, Alila and Miraval would miss
-     the Hyatt set. To confirm in the plan: whether Hilton's lines are
-     treated the same way.
+5. **Done 2026-10-08, live on `main`: the brand on the new-review form
+   (user's rules, same day).**
+   - **A brand is entered on every new negotiation.** The field is
+     required, and the upload is refused without one. A hotel of no brand
+     is entered as "Independent".
+   - **A family's lines are not told apart, for every family.** Hyatt
+     Regency is read and recorded as Hyatt, DoubleTree and Hilton Garden
+     Inn as Hilton, Sheraton as Marriott. Lines without the family in
+     their name (Andaz, Thompson, Conrad) now get the family and its
+     standards. Three families show their parent company: IHG, Accor and
+     Choice. This answers question 2 for CD.
+   - The grey line under the field says which standards the review will
+     use (`lib/intake/brand-line.ts`). A brand with none of its own reads
+     "There are no specific standards for this brand, so this review will
+     run against Independent's standards."
+   - No database change. Negotiations already stored keep their brand.
+   - Lint, the type check and 1,589 tests pass. Each line was read in the
+     dev browser by typing a brand. Not checked there: the brand read off
+     a picked file, since the dev browser can't pick one.
+   - **Next here (user's idea, 2026-10-08): show which lines each set of
+     standards covers.** The Standards library would list every sub-brand
+     under each set, so coverage is not a black box. Today the list of
+     lines lives in code (`lib/intake/brands.ts`), and each set already
+     has a `brand_names` column. To decide in its plan: a read-only list,
+     or one CD's admins can edit. Needs its own plan.
    - Also here: a screen to add a fourth standards set.
 6. The hand-off guide (item 7 below).
 

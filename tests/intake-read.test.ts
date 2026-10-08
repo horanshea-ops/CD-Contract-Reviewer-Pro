@@ -89,20 +89,23 @@ describe("the brand", () => {
     });
   });
 
-  it("names a sub-brand in full, and gives it the family's standards when its name carries the family", () => {
-    expect(readBrand("", "DoubleTree by Hilton Sampleville", SETS)).toMatchObject({ brand: "DoubleTree by Hilton", set: "hilton" });
-    expect(readBrand("", "Hyatt Regency Sampleville", SETS)).toMatchObject({ brand: "Hyatt Regency", set: "hyatt" });
+  it("names a line by its family, since a family's lines share one set of standards", () => {
+    expect(readBrand("", "DoubleTree by Hilton Sampleville", SETS)).toMatchObject({ brand: "Hilton", set: "hilton", evidence: "DoubleTree by Hilton Sampleville" });
+    expect(readBrand("", "Hilton Garden Inn Sampleville", SETS)).toMatchObject({ brand: "Hilton", set: "hilton" });
+    expect(readBrand("", "Hyatt Regency Sampleville", SETS)).toMatchObject({ brand: "Hyatt", set: "hyatt" });
   });
 
   it("names a brand that has no standards of its own, and gives it no set", () => {
     expect(readBrand("", "Sampleville Marriott Marquis", SETS)).toMatchObject({ brand: "Marriott", set: null, note: null });
-    expect(readBrand("", "The Westin Sampleville", SETS)).toMatchObject({ brand: "Westin", set: null });
+    expect(readBrand("", "The Westin Sampleville", SETS)).toMatchObject({ brand: "Marriott", set: null });
+    expect(readBrand("", "Sheraton Sampleville", SETS)).toMatchObject({ brand: "Marriott", set: null });
+    expect(readBrand("", "Holiday Inn Sampleville", SETS)).toMatchObject({ brand: "IHG", set: null });
     expect(readBrand("", "Omni Sampleville Hotel", SETS)).toMatchObject({ brand: "Omni", set: null });
   });
 
-  it("names a sub-brand without the family name, and gives it no set until CD says it is covered", () => {
-    expect(readBrand("", "Conrad Sampleville", SETS)).toMatchObject({ brand: "Conrad", set: null });
-    expect(readBrand("", "Andaz Sampleville", SETS)).toMatchObject({ brand: "Andaz", set: null });
+  it("gives a line without the family in its name the family and its standards", () => {
+    expect(readBrand("", "Conrad Sampleville", SETS)).toMatchObject({ brand: "Hilton", set: "hilton" });
+    expect(readBrand("", "Andaz Sampleville", SETS)).toMatchObject({ brand: "Hyatt", set: "hyatt" });
   });
 
   it("takes the only brand the contract names, with the sentence it sits in", () => {
@@ -115,9 +118,9 @@ describe("the brand", () => {
     });
   });
 
-  it("counts two names from one family as one brand, and keeps the fuller name", () => {
+  it("counts two names from one family as one brand", () => {
     const text = "Points are earned under Hilton Honors.\nThis DoubleTree by Hilton hotel will hold the block.";
-    expect(readBrand(text, "Sampleville Grand", SETS)).toMatchObject({ brand: "DoubleTree by Hilton", set: "hilton", note: null });
+    expect(readBrand(text, "Sampleville Grand", SETS)).toMatchObject({ brand: "Hilton", set: "hilton", note: null });
   });
 
   it("counts a brand in an email address or in lower case", () => {
@@ -166,7 +169,7 @@ describe("the brand", () => {
 
   it("reads a set's own brand even when the built-in list doesn't have it", () => {
     const sets = [...SETS, { key: "kessler", name: "Kessler", brand_names: ["Kessler Collection"], is_default: false }];
-    expect(readBrand("", "The Kessler Collection Sampleville", sets)).toMatchObject({ brand: "Kessler Collection", set: "kessler" });
+    expect(readBrand("", "The Kessler Collection Sampleville", sets)).toMatchObject({ brand: "Kessler", set: "kessler" });
   });
 });
 
@@ -177,8 +180,13 @@ describe("the standards a brand's reviews read", () => {
     expect(setForBrand("hyatt regency", SETS)?.key).toBe("hyatt");
   });
 
+  it("is the family's set for a line without the family in its name", () => {
+    for (const brand of ["Conrad", "Embassy Suites", "Hampton Inn", "Waldorf Astoria"]) expect(setForBrand(brand, SETS)?.key, brand).toBe("hilton");
+    for (const brand of ["Andaz", "Thompson", "Alila", "Miraval"]) expect(setForBrand(brand, SETS)?.key, brand).toBe("hyatt");
+  });
+
   it("is the default set for any other brand, a blank, or a place", () => {
-    for (const brand of ["Marriott", "Conrad", "", null, "Hilton Head Resort", "Chilton Inn"]) {
+    for (const brand of ["Marriott", "Sheraton", "Independent", "", null, "Hilton Head Resort", "Chilton Inn"]) {
       expect(setForBrand(brand, SETS), String(brand)).toBeNull();
     }
   });

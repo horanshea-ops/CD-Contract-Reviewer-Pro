@@ -84,6 +84,12 @@ export async function POST(request: Request) {
   if (negotiationMode === "new" && !propertyName) {
     return NextResponse.json({ error: "Property name is required for a new negotiation." }, { status: 400 });
   }
+  if (negotiationMode === "new" && !brand?.trim()) {
+    return NextResponse.json(
+      { error: "Hotel brand is required for a new negotiation. Enter Independent for a hotel with no brand." },
+      { status: 400 }
+    );
+  }
   if (negotiationMode === "continuing" && !continuingThreadId) {
     return NextResponse.json({ error: "Choose which negotiation this continues." }, { status: 400 });
   }
