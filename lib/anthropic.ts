@@ -104,19 +104,27 @@ export function forcesTool(model: string): boolean {
 
 /**
  * Models that take thinking "between_tools", which skips the thinking ahead of
- * the answer. A forced call never thought first, so this keeps a review as
- * quick as it was. Every other model rejects the setting.
+ * the answer. Every other model rejects the setting. The app doesn't send it.
+ * An eval can, to measure a call with thinking off.
  */
 const BETWEEN_TOOLS_MODELS = new Set(["claude-sonnet-5-5"]);
 
 type Effort = NonNullable<Anthropic.Messages.OutputConfig["effort"]>;
 
-/** How a call asks an unforced model to work. The app uses the defaults. An eval sets them to measure another setting. */
+/** How a call asks an unforced model to work. The app uses ANSWER_DEFAULTS. An eval sets them to measure another setting. */
 export interface AnswerOptions {
   effort?: Effort;
   /** "adaptive" lets the model think before it answers. "off" is the least thinking the model allows. */
   thinking?: "off" | "adaptive";
 }
+
+/**
+ * The one setting every call sends an unforced model. Thinking is allowed,
+ * the one mode every newer model takes, and the model decides whether to use
+ * it. Effort is medium, the level at which a review's first pass wrote its
+ * findings in full and met the eval's bar.
+ */
+export const ANSWER_DEFAULTS: Required<AnswerOptions> = { effort: "medium", thinking: "adaptive" };
 
 /**
  * A tool's schema as an output format takes it. Every object is closed with
@@ -145,9 +153,13 @@ export function formatSchema<T>(schema: T): T {
  * How one call asks for its answer, shaped for the model.
  *
  * Effort is stated for an unforced model because its levels differ from
- * Sonnet 5's, and "between_tools" is refused above "high".
+ * Sonnet 5's. With thinking off, "between_tools" is refused above "high".
  */
-export function answerRequest(model: string, tool: Anthropic.Messages.Tool, { effort = "high", thinking = "off" }: AnswerOptions = {}) {
+export function answerRequest(
+  model: string,
+  tool: Anthropic.Messages.Tool,
+  { effort = ANSWER_DEFAULTS.effort, thinking = ANSWER_DEFAULTS.thinking }: AnswerOptions = {}
+) {
   if (forcesTool(model)) {
     return { tools: [tool], tool_choice: { type: "tool" as const, name: tool.name } };
   }
@@ -480,17 +492,9 @@ export interface AnalyzeContractPdfArgs {
   comments?: DocumentComment[];
   /** How many comments the file holds, when that is more than `comments` carries. */
   commentsTotal?: number;
-  /** Effort and thinking for this call. The app leaves it out and gets JUDGING_ANSWER. */
+  /** Effort and thinking for this call. The app leaves it out and gets ANSWER_DEFAULTS. */
   answer?: AnswerOptions;
 }
-
-/**
- * How the judging call asks an unforced model to work. Thinking is allowed,
- * the one mode every newer model takes, and the model decides whether to use
- * it. Effort is medium, the level at which a first pass wrote its findings in
- * full and met the eval's bar.
- */
-export const JUDGING_ANSWER: AnswerOptions = { effort: "medium", thinking: "adaptive" };
 
 /**
  * A list field from the tool input. A long response sometimes carries a list
@@ -585,7 +589,7 @@ export async function analyzeContract({
   deadline,
   comments,
   commentsTotal,
-  answer = JUDGING_ANSWER,
+  answer,
 }: AnalyzeContractPdfArgs): Promise<CategorizedAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {

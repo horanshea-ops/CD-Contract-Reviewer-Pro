@@ -4,7 +4,7 @@ loadEnvLocal();
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { MODEL_CALL_BUDGET_MS } from "../lib/analysis-status";
-import { JUDGING_ANSWER, type AnswerOptions } from "../lib/anthropic";
+import { ANSWER_DEFAULTS, type AnswerOptions } from "../lib/anthropic";
 import { extractDocx } from "../lib/docx";
 import { contractText } from "../lib/docx/contract-text";
 import { standardsMismatch } from "../lib/eval/score";
@@ -61,8 +61,8 @@ async function main() {
     throw new Error("--thinking takes adaptive or off");
   }
   const answer: AnswerOptions | undefined =
-    effort || thinking ? { ...JUDGING_ANSWER, ...(effort ? { effort: effort as Effort } : {}), ...(thinking ? { thinking } : {}) } : undefined;
-  const setting = answer ?? JUDGING_ANSWER;
+    effort || thinking ? { ...ANSWER_DEFAULTS, ...(effort ? { effort: effort as Effort } : {}), ...(thinking ? { thinking } : {}) } : undefined;
+  const setting = answer ?? ANSWER_DEFAULTS;
 
   // `--limit <seconds>` gives each review less than the app's time. A call
   // writes about 180 tokens a second, so a time limit is a cost limit.

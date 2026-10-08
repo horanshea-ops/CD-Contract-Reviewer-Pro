@@ -107,26 +107,27 @@ describe("the request shape for each model", () => {
     expect(answerRequest("claude-sonnet-5", tool)).toEqual({ tools: [tool], tool_choice: { type: "tool", name: "t" } });
   });
 
-  it("gives Sonnet 5.5 the schema as an output format, with no thinking ahead of the answer", () => {
+  it("gives Sonnet 5.5 the schema as an output format, with thinking allowed at medium effort", () => {
     expect(answerRequest(NEW, tool)).toEqual({
-      thinking: { type: "between_tools" },
+      thinking: { type: "adaptive" },
       output_config: {
-        effort: "high",
+        effort: "medium",
         format: { type: "json_schema", schema: { type: "object", properties: {}, additionalProperties: false } },
       },
     });
   });
 
-  it("lets a caller turn thinking on and set the effort, for measuring another setting", () => {
-    expect(answerRequest(NEW, tool, { thinking: "adaptive", effort: "low" })).toMatchObject({
-      thinking: { type: "adaptive" },
-      output_config: { effort: "low" },
+  it("lets a caller switch thinking off and set the effort, for measuring another setting", () => {
+    expect(answerRequest(NEW, tool, { thinking: "off", effort: "high" })).toMatchObject({
+      thinking: { type: "between_tools" },
+      output_config: { effort: "high" },
     });
-    expect(answerRequest("claude-sonnet-5", tool, { thinking: "adaptive", effort: "low" })).toEqual(answerRequest("claude-sonnet-5", tool));
+    expect(answerRequest("claude-sonnet-5", tool, { thinking: "off", effort: "low" })).toEqual(answerRequest("claude-sonnet-5", tool));
   });
 
-  it("leaves between_tools off any other unforced model, which would reject it", () => {
-    expect(answerRequest("claude-some-future-model", tool)).not.toHaveProperty("thinking");
+  it("gives any other unforced model the same setting, and never between_tools, which it would reject", () => {
+    expect(answerRequest("claude-some-future-model", tool)).toMatchObject({ thinking: { type: "adaptive" }, output_config: { effort: "medium" } });
+    expect(answerRequest("claude-some-future-model", tool, { thinking: "off" })).not.toHaveProperty("thinking");
   });
 
   it("closes every object, including nullable ones, and leaves enums and required lists alone", () => {
@@ -160,20 +161,12 @@ describe("Sonnet 5.5 requests", () => {
     expect(await unforcedRequests()).toHaveLength(7);
   });
 
-  it("carry no tool, state thinking and effort, and say the reply is the record", async () => {
-    const [judging, ...others] = await unforcedRequests();
-
-    // The judging call may think, at medium effort. Every other call skips thinking at high.
-    expect(judging.thinking).toEqual({ type: "adaptive" });
-    expect(judging.output_config.effort).toBe("medium");
-    for (const params of others) {
-      expect(params.thinking).toEqual({ type: "between_tools" });
-      expect(params.output_config.effort).toBe("high");
-    }
-
-    for (const params of [judging, ...others]) {
+  it("carry no tool, allow thinking at medium effort, and say the reply is the record", async () => {
+    for (const params of await unforcedRequests()) {
       expect(params).not.toHaveProperty("tools");
       expect(params).not.toHaveProperty("tool_choice");
+      expect(params.thinking).toEqual({ type: "adaptive" });
+      expect(params.output_config.effort).toBe("medium");
       expect(params.output_config.format.type).toBe("json_schema");
       const system = typeof params.system === "string" ? params.system : params.system[0].text;
       expect(system).toContain("Your whole reply is one JSON record in the required format");

@@ -15,10 +15,10 @@
     }
   ],
   "thinking": {
-    "type": "between_tools"
+    "type": "adaptive"
   },
   "output_config": {
-    "effort": "high",
+    "effort": "medium",
     "format": {
       "type": "json_schema",
       "schema": {
