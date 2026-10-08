@@ -1,4 +1,4 @@
-import { setForBrand } from "../intake/brands";
+import { familyOf, setBrands, setForBrand } from "../intake/brands";
 import type { createAdminClient } from "../supabase/admin";
 import { SET_COLUMNS, type StandardSet } from "./sets";
 
@@ -51,10 +51,19 @@ const MAX_BRAND_CHARS = 80;
  * for the set means the default.
  *
  * Any brand is recorded, since the hotel is that brand whether or not CD has
- * standards specific to it. A brand whose set is switched off is recorded
- * with that set, and its reviews read the default one and say so.
+ * standards specific to it. A line of a known family is recorded as the
+ * family, because a family's lines share one set of standards. A brand whose
+ * set is switched off is recorded with that set, and its reviews read the
+ * default one and say so.
  */
 export function brandOnNegotiation(brand: string | null | undefined, choices: BrandChoice[]): { brand: string | null; set: string | null } {
-  const name = brand?.replace(/\s+/g, " ").trim().slice(0, MAX_BRAND_CHARS) || null;
+  const typed = brand?.replace(/\s+/g, " ").trim().slice(0, MAX_BRAND_CHARS) || null;
+  if (!typed) return { brand: null, set: null };
+
+  // The default set's own name, typed for a hotel of no brand, is kept in the set's spelling.
+  const fallback = choices.find((choice) => choice.is_default);
+  if (fallback && typed.toLowerCase() === fallback.name.toLowerCase()) return { brand: fallback.name, set: null };
+
+  const name = familyOf(typed, setBrands(choices)) ?? typed;
   return { brand: name, set: setForBrand(name, choices)?.key ?? null };
 }

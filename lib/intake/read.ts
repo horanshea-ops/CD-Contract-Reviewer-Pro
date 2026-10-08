@@ -1,5 +1,5 @@
 import type { StandardSet } from "../standards/sets";
-import { BRAND_PLACES, brandsIn, setForBrand, type HotelBrand } from "./brands";
+import { BRAND_PLACES, brandsIn, setBrands, setForBrand, type HotelBrand } from "./brands";
 
 /**
  * Reads the property name and the hotel brand off a contract at upload, by
@@ -120,17 +120,18 @@ function sentences(text: string): string[] {
 /**
  * The hotel's brand, and the standards set its reviews read.
  *
- * The brand is the hotel's actual one, whether or not it has standards of its
- * own. A brand in the property name settles it. Otherwise the contract must
- * name exactly one brand family, outside any comparison. Two families, or
- * none, give no brand, and the associate enters it.
+ * The brand is the hotel's family, whether or not it has standards of its
+ * own, since a family's lines share one set of standards. A brand in the
+ * property name settles it. Otherwise the contract must name exactly one
+ * brand family, outside any comparison. Two families, or none, give no brand,
+ * and the associate enters it.
  */
 export function readBrand(text: string, propertyName: string | null, sets: BrandSet[]): BrandRead {
   // A set's own brand names count even when the built-in list lacks them.
-  const extra: HotelBrand[] = sets.filter((s) => !s.is_default).flatMap((s) => s.brand_names.map((name) => ({ name, family: s.name })));
+  const extra = setBrands(sets);
   const read = (brand: HotelBrand, evidence: string): BrandRead => ({
-    brand: brand.name,
-    set: setForBrand(brand.name, sets)?.key ?? null,
+    brand: brand.family,
+    set: setForBrand(brand.family, sets)?.key ?? null,
     evidence,
     note: null,
   });
@@ -152,7 +153,7 @@ export function readBrand(text: string, propertyName: string | null, sets: Brand
   const families = [...found.values()];
   if (families.length === 1) return read(families[0].brand, clip(families[0].sentence));
   if (families.length > 1) {
-    const list = families.map((hit) => hit.brand.name);
+    const list = families.map((hit) => hit.brand.family);
     const joined = list.length === 2 ? `both ${list[0]} and ${list[1]}` : `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
     return { brand: null, set: null, evidence: null, note: `This contract names ${joined}, so enter the brand yourself.` };
   }

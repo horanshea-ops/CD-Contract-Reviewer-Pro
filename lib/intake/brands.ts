@@ -2,14 +2,15 @@
  * Hotel brands, as contracts write them, for reading a contract's brand by
  * local rules (lib/intake/read.ts).
  *
- * The brand shown to the associate is the hotel's actual brand, whether or not
- * CD has standards specific to it. Which standards a review reads is a
- * separate question, answered by `setForBrand`.
+ * The brand shown to the associate is the hotel's brand family, whether or
+ * not CD has standards specific to it. CD negotiates one set of standards per
+ * family, so a family's lines are not told apart: Hyatt Regency is Hyatt, and
+ * DoubleTree is Hilton. Which standards a review reads is answered by
+ * `setForBrand`.
  *
- * `family` groups a brand with its parent, so two names from one family in a
- * contract ("DoubleTree by Hilton", "Hilton Honors") count as one brand. A
- * `nameOnly` brand is also an ordinary word or a person's name, so it is read
- * from the property name and never from the body of the contract.
+ * `family` groups a brand with its parent. A `nameOnly` brand is also an
+ * ordinary word or a person's name, so it is read from the property name or
+ * the brand field and never from the body of the contract.
  */
 
 export interface HotelBrand {
@@ -118,6 +119,19 @@ export function brandsIn(text: string, { nameOnly = false, extra = [] as HotelBr
   return found;
 }
 
+/** A standards set's own brand names as brands of that set, for names the list above lacks. */
+export function setBrands(sets: BrandSetLike[]): HotelBrand[] {
+  return sets.filter((set) => !set.is_default).flatMap((set) => set.brand_names.map((name) => ({ name, family: set.name })));
+}
+
+/**
+ * The family a brand name belongs to, or null for a name no list has.
+ * "Hyatt Regency" and "Andaz" are both Hyatt.
+ */
+export function familyOf(name: string | null | undefined, extra: HotelBrand[] = []): string | null {
+  return brandsIn(name ?? "", { nameOnly: true, extra })[0]?.family ?? null;
+}
+
 /** A set of standards, as far as matching a brand to it goes. */
 export interface BrandSetLike {
   key: string;
@@ -129,12 +143,17 @@ export interface BrandSetLike {
 /**
  * The standards set a brand's reviews read, or null for the default set.
  *
- * A brand has its own standards only when its name carries one of a set's
- * brand names: "DoubleTree by Hilton" is Hilton's, and "Conrad" is nobody's
- * until CD says which sub-brands its agreements cover.
+ * A set covers its whole family. "DoubleTree by Hilton" is Hilton's by its
+ * name, and "Conrad" is Hilton's by its family. A set's own name is its
+ * family's name, so a brand read as "Kessler" finds the Kessler set.
  */
 export function setForBrand<T extends BrandSetLike>(brand: string | null | undefined, sets: T[]): T | null {
   const name = (brand ?? "").replace(BRAND_PLACES, " ").trim();
   if (!name) return null;
-  return sets.find((set) => !set.is_default && set.brand_names.some((b) => wordOf(b).test(name))) ?? null;
+
+  const family = familyOf(name, setBrands(sets));
+  const names = family ? [name, family] : [name];
+  const covers = (set: T) =>
+    names.some((n) => n.toLowerCase() === set.name.toLowerCase()) || set.brand_names.some((b) => names.some((n) => wordOf(b).test(n)));
+  return sets.find((set) => !set.is_default && covers(set)) ?? null;
 }
