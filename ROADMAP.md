@@ -399,7 +399,8 @@ below wherever the two differ. Each item gets its own plan before any code.
 | Not live | Sonnet 5.5 and the two-call review, on `review/one-reading-pass`. |
 | Migrations applied | 015 (standards sets) and 016 (brand on a negotiation), both by the user on 2026-10-07. |
 
-**Next step: run Harborview again on the streamed review.**
+**Next step: decide the standards-loader fix, then run Harborview with
+thinking off on the streamed build.**
 
 1. **Done 2026-10-07, on `review/one-reading-pass`, not merged: the review
    call is streamed, and a review gets 10 minutes.** Harborview failed on
@@ -408,10 +409,22 @@ below wherever the two differ. Each item gets its own plan before any code.
    nothing back for 300 seconds, and an unstreamed review is silent until
    it ends. It applies to Sonnet 5 on the live build too, whose slowest
    measured review took 253s. The evidence is under item 2 below.
-2. **Run Harborview on 5.5 again**, alone, about $0.48, with a yes. Pass is
-   finishing inside 10 minutes with at least 32 of 34 key items. A time
-   over 7 minutes deserves a look, since it took 3m36s on 4 October.
-3. **On a pass, merge the 5.5 branch and deploy.** The user then changes
+2. **Done 2026-10-07, same branch: output cap 100,000, the second ask for
+   skipped write-ups, and an eval switch for effort and thinking.** One paid
+   Harborview run with thinking on at `low` scored 33 of 34 in 237s for
+   $0.628. It did not test thinking, and the second ask did most of the
+   work. The detail is under item 2 below.
+3. **Waiting on the user's yes: stop the standards loader falling back in
+   silence.** A one-off database error (`JWT issued at future`) sent that
+   paid run to the bundled library. The same loader serves live reviews.
+   No finished review has been affected (19 of 30 record the database, 11
+   predate the record). Proposed: three tries, then fail the review with a
+   plain message, and the eval refuses the bundled copy without a flag.
+4. **Run Harborview on 5.5 with the app's own setting** (thinking off,
+   effort `high`), alone, about $0.55, with a yes. This run was held by the
+   user on 2026-10-07. Pass is finishing inside 10 minutes with at least 32
+   of 34 key items.
+5. **On a pass, merge the 5.5 branch and deploy.** The user then changes
    Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5`.
 
 **Owed by the user.**
@@ -617,6 +630,41 @@ for what is shown. Every pinned model request is unchanged.
           - **Not yet known: how long Harborview needs now.** Both tries
             were cut off. Streaming removes the five-minute ceiling and
             makes no review faster.
+        - **Output cap raised to 100,000 tokens (user, 2026-10-07,
+          `eeb3565`).** Sonnet 5.5 writes about 180 tokens a second, against
+          about 120 on Sonnet 5, so it reached the old 64,000 cap at under
+          six minutes. A review's time is its output tokens divided by that
+          speed, on every run recorded.
+        - **Second ask for skipped write-ups (`53c9699`).** On 4 October
+          three of the four key items 5.5 missed were judged short in its
+          own checklist and never written up. `reviewContract` now asks
+          the judging call once more, with the library cut down to those
+          clause types and the first verdicts quoted. It never fails a
+          review. Its usage is saved in `token_usage.follow_up`.
+        - **Eval switch (`f3eb6b8`).** `eval-capture` takes `--effort` and
+          `--thinking adaptive` for the judging call. The app's requests
+          are unchanged. A review records `thinking_tokens`.
+        - **Paid run `sonnet55-harborview-think-low-2026-10-07` ($0.628,
+          237s): thinking on, effort `low`.**
+          - 33 of 34 key items, against 30 on 4 October. The one miss is
+            the future rate cap, which the model judged not applicable.
+          - **It did not test thinking.** The API reported no thinking
+            tokens on the first pass. At `low` the model skips it.
+          - **At `low` the first pass stopped early.** It wrote all 34
+            verdicts and findings for two clauses, 4,939 tokens in all.
+            Alone it would have found about 3 of 34.
+          - **The second ask did the rest.** Asked for 30 clauses, it
+            wrote 64 findings and covered all 30, in 36,569 tokens.
+          - 72 findings: 64 business, 8 legal, none marked other. Redline
+            replay applied 63 of 64, with no failed check.
+          - Cost ran above a one-pass review because the contract went
+            out three times and the library was written to cache twice.
+          - **Caveat: it used the bundled library**, after a one-off
+            database error. The 4 October run used the database's copy
+            of that day. The two scores are not like for like.
+          - **Lead worth a plan after the beta:** judging first and
+            writing findings second, as two deliberate steps. The second
+            step skipped nothing here, and it could run in parallel.
         - **Before the next paid run:** run one contract at a time with
           nothing else in flight, and price it from the Console's actual
           usage. The eval capture already has the app's limit and one try.
