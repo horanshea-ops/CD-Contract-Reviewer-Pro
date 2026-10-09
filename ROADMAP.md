@@ -397,7 +397,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
 | Live on `main` | Everything built to date, except the table change below. `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at two files in Word. See "Table rows, cell by cell" below. |
+| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at two files in Word. See "Table rows, cell by cell" below. `audit/1-1-blank-fields` merges after it. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -661,8 +661,12 @@ warning whether it is needed and whether the work can be done more simply.
 | 9 | Tests and CI | Tests that pass without checking anything (one was found on 2026-10-08), and gaps in the core path. | Not started |
 
 - **Piece 1's proposed fixes, in order.** Each waits for a plan and a yes.
-  1. Blanks as fields on the card. Blanks are 31 of the 52 left out, and
-     all 3 on Sonnet 5.5.
+  1. ~~Blanks as fields on the card.~~ **Built 2026-10-08 on
+     `audit/1-1-blank-fields`, cut from the table branch, not merged.**
+     Blanks are 31 of the 52 left out, and all 3 on Sonnet 5.5. The card
+     shows a field per blank and one button that saves and accepts. 1,643
+     tests pass. The save was not clicked in the dev browser, since it
+     writes to the shared database.
   2. One engine route that replaces wording across paragraphs. It removes 4
      refusals, the struck table's first trigger and the one skip left.
   3. Widen the oracle's id check to every kind of tracked-change record.

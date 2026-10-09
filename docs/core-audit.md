@@ -50,6 +50,14 @@ meet. Four is a small sample, and three of the four are the same contract.
 - Alternative, paid. Tell the model to take figures from the contract and to write wording that needs no figure when the contract has none. It needs a Riverwalk run (about $0.30), and the model may still leave a blank.
 - Question for the user. Does CD ever send a hotel wording with a blank for the hotel to fill? If so, some blanks could go out as they are.
 - Risk of the free fix is low. It is card work and touches no engine code.
+- **Built 2026-10-08 on `audit/1-1-blank-fields`, not merged.**
+  - The card shows one field per blank with the words around it, and one button, "Save and accept". A filled blank is saved as an ordinary edit.
+  - The yellow box for blanks is gone. Accept is absent while a blank is unfilled.
+  - One function (`blanksIn` in `lib/redline-engine/wording.ts`) finds blanks for the card and for the engine's own check.
+  - Lint, the type check and 1,643 tests pass. The replay of 25 reviews matches the table branch on every review.
+  - Seen in the dev browser on Harborview (`a70ff3c5`). Both blank cards show their fields and no Accept, and the other 77 cards are unchanged.
+  - Not checked in the browser: the save itself, which writes to the shared database and needs the user's yes. It reuses the Edit route.
+  - A real contract can produce a blank (user's question, same day). Two of the four deal-specific blanks came from the redacted Florida contract. The cause is CD's standard asking for a figure the contract doesn't state.
 
 **1.2 The engine can't replace wording that runs across paragraphs.**
 
@@ -128,7 +136,7 @@ meet. Four is a small sample, and three of the four are the same contract.
 | # | Fix | Cost | Needs |
 |---|---|---|---|
 | 1 | Merge the cell-by-cell table branch, which carries the crash fix | Done, waiting | The user's look at two files in Word |
-| 2 | Blanks as fields on the card (1.1) | Free, card work | A plan and a yes |
+| 2 | Blanks as fields on the card (1.1) | Built, not merged | The table branch merged first |
 | 3 | Replace wording across paragraphs (1.2) | Free, engine work | A plan and a yes |
 | 4 | Widen the oracle's id check (1.9) | Free, small | A plan and a yes |
 | 5 | Remove the old engine and the two dead reasons (1.6, 1.7) | Free, small | A yes, since it closes deviation 4 |
