@@ -27,9 +27,8 @@ export interface SourceRef {
   insideTable: boolean;
   /**
    * Which table and which cell, in document order within the part; null outside
-   * a table. §1.5 needs the identity, not just the fact: a change confined to
-   * one cell is edited in place, and one spanning cells replaces the whole
-   * table. Counted in the same pre-order the DOM reports, so these line up with
+   * a table. §1.5 needs the identity, not just the fact: a change spanning
+   * cells is made one cell at a time. Counted in the same pre-order the DOM reports, so these line up with
    * §1.6's table-shape check.
    */
   tableIndex: number | null;

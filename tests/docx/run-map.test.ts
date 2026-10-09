@@ -11,8 +11,8 @@ import { buildDocx } from "../helpers/docx-package";
  * `runs[runIndex]` must be the element the character actually came from — §1.5
  * splits and wraps that element, so if the index is off by one it edits the
  * wrong wording and nothing downstream would notice. And a character inside a
- * table has to say which cell, because a change confined to one cell is edited
- * in place while one spanning cells replaces the whole table.
+ * table has to say which cell, because a change spanning cells is made one
+ * cell at a time.
  */
 
 const FIXTURES = path.join("tests", "fixtures");

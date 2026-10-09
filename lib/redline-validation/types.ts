@@ -14,6 +14,7 @@ export type UnappliedReason =
   | "not_located"
   | "ambiguous_quote"
   | "crosses_boundary"
+  | "table_holds_comment"
   | "spans_non_text_content"
   | "overlaps_another_change"
   | "in_content_control"
@@ -51,6 +52,8 @@ export const UNAPPLIED_REASON_TEXT: Record<UnappliedReason, string> = {
     "The quoted wording appears in more than one clause and nothing in the finding says which one is meant.",
   crosses_boundary:
     "The wording runs across a table cell, a content control, or the property's own tracked change, which cannot be marked up safely. For a table row, use Edit to write one value per column, with | between them.",
+  table_holds_comment:
+    "The table holds a comment from the property, and this change can't be made one cell at a time. Marking it up would strike the table and remove the comment, so raise this change by hand.",
   spans_non_text_content:
     "The wording spans a tab, a line break, or a footnote marker, which the markup cannot carry across.",
   overlaps_another_change: "Another finding already marks up overlapping wording.",

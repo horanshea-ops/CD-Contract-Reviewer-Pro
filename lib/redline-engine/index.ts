@@ -10,7 +10,7 @@ import { appendClauses } from "./paragraphs";
 import { dropRestated, rewritesExistingWording, struckSentences } from "./restated";
 import { replaceSpan } from "./revise";
 import { runsForSpan } from "./runs";
-import { copyHolding, editCopy, replaceTable } from "./tables";
+import { copyHolding, editCopy, layOut, replaceTable } from "./tables";
 import { serializePart } from "./serialize";
 import { wordingProblem } from "./wording";
 import { isLocated, type Applicability, type LocatedSpan, type RevisionFinding, type SpanResolution } from "./types";
@@ -70,6 +70,40 @@ interface ParagraphPiece {
   changed: boolean;
 }
 
+/** The wording a span covers in one paragraph. */
+interface Stretch {
+  cell: number | null;
+  paragraph: number;
+  start: number;
+  end: number;
+}
+
+/** A span's wording, one stretch per paragraph, in document order. */
+function stretchesIn(part: WalkResult, span: LocatedSpan): Stretch[] {
+  const stretches: Stretch[] = [];
+  for (let i = span.start; i < span.end && i < part.map.length; i++) {
+    const entry = part.map[i];
+    if (isSynthetic(entry)) continue;
+    const last = stretches[stretches.length - 1];
+    if (last && last.paragraph === entry.paragraphIndex) last.end = i + 1;
+    else stretches.push({ cell: entry.cellIndex, paragraph: entry.paragraphIndex, start: i, end: i + 1 });
+  }
+  return stretches;
+}
+
+/** Each stretch with the wording it should read, or null when the wording can't be laid across them. */
+function piecesFor(part: WalkResult, span: LocatedSpan, stretches: Stretch[], proposal: string): ParagraphPiece[] | null {
+  const now = stretches.map((s) => part.text.slice(s.start, s.end));
+  const wording = splitAcrossCells(now, proposal);
+  if (!wording) return null;
+
+  return stretches.map((s, i) => ({
+    span: { ...span, start: s.start, end: s.end },
+    wording: wording[i],
+    changed: flat(wording[i]) !== flat(now[i]),
+  }));
+}
+
 /**
  * Lays a proposal out across the paragraphs its quote covers.
  *
@@ -80,27 +114,39 @@ interface ParagraphPiece {
  * there would put wording in the wrong paragraph.
  */
 function paragraphPieces(part: WalkResult, span: LocatedSpan, proposal: string): ParagraphPiece[] | null {
-  const stretches: { paragraph: number; start: number; end: number }[] = [];
-  for (let i = span.start; i < span.end && i < part.map.length; i++) {
-    const entry = part.map[i];
-    if (isSynthetic(entry)) continue;
-    const last = stretches[stretches.length - 1];
-    if (last && last.paragraph === entry.paragraphIndex) last.end = i + 1;
-    else stretches.push({ paragraph: entry.paragraphIndex, start: i, end: i + 1 });
+  const stretches = stretchesIn(part, span);
+  return stretches.length < 2 ? null : piecesFor(part, span, stretches, proposal);
+}
+
+/**
+ * Lays a proposal out across the table cells its quote covers, so each cell
+ * takes its own in-place change and the table stays where it is.
+ *
+ * The proposal is split per cell by the rule the table's copy uses. A cell
+ * holding several paragraphs then has its piece laid across them, as
+ * `paragraphPieces` does.
+ */
+function cellPieces(part: WalkResult, span: LocatedSpan, proposal: string): ParagraphPiece[] | { reason: string } {
+  const cells: Stretch[][] = [];
+  for (const stretch of stretchesIn(part, span)) {
+    const last = cells[cells.length - 1];
+    if (last && last[0].cell === stretch.cell) last.push(stretch);
+    else cells.push([stretch]);
   }
-  if (stretches.length < 2) return null;
 
-  const wording = splitAcrossCells(
-    stretches.map((s) => part.text.slice(s.start, s.end)),
-    proposal
+  const laid = layOut(
+    proposal,
+    cells.map((cell) => cell.map((s) => part.text.slice(s.start, s.end)).join(" "))
   );
-  if (!wording) return null;
+  if ("reason" in laid) return laid;
 
-  return stretches.map((s, i) => ({
-    span: { ...span, start: s.start, end: s.end },
-    wording: wording[i],
-    changed: flat(wording[i]) !== flat(part.text.slice(s.start, s.end)),
-  }));
+  const pieces: ParagraphPiece[] = [];
+  for (const [index, cell] of cells.entries()) {
+    const inCell = piecesFor(part, span, cell, laid.pieces[index]);
+    if (!inCell) return { reason: "A cell holds several paragraphs, and the change can't be laid out one paragraph at a time." };
+    pieces.push(...inCell);
+  }
+  return pieces;
 }
 
 /** Revision elements enclosing a run, outermost last. */
@@ -232,6 +278,25 @@ export async function generateRedline({
     });
   };
 
+  // Runs this export has already marked up. Editing inside one would read as a change to a change.
+  const touchesOurs = (runs: Element[]) => {
+    const ours = new Set(ids.ownRevisionIds);
+    return runs.some((run) => revisionAncestors(run).some((el) => ours.has(el.getAttribute("w:id") ?? "")));
+  };
+
+  /**
+   * Makes each changed piece as an ordinary in-place change. Every piece is
+   * checked before any is changed, so a refusal leaves the wording as it was.
+   */
+  const changeInPlace = (part: WalkResult, pieces: ParagraphPiece[]): "done" | "no_runs" | "overlaps" => {
+    const changes = pieces.filter((p) => p.changed).map((p) => ({ ...p, covered: runsForSpan(part, p.span) }));
+    if (changes.some((c) => c.covered.length === 0)) return "no_runs";
+    if (changes.some((c) => touchesOurs(c.covered))) return "overlaps";
+
+    for (const change of changes) replaceSpan({ covered: change.covered, replacement: change.wording, author, date, ids });
+    return "done";
+  };
+
   for (const finding of findings) {
     const issuedBefore = ids.ownRevisionIds.length;
 
@@ -327,6 +392,11 @@ export async function generateRedline({
       continue;
     }
 
+    // Every route below can split runs, even one that ends in a refusal, and a
+    // split leaves the walk pointing at runs no longer in the document. The
+    // next finding reads the document afresh.
+    walked = null;
+
     // A table this export has already replaced takes every later change in its one copy.
     if (copyHolding(part, span, tableCopies)) {
       const edited = editCopy({ part, span, replacement: language, ownIds: new Set(ids.ownRevisionIds) });
@@ -335,28 +405,31 @@ export async function generateRedline({
         continue;
       }
       editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
-      walked = null;
       applied("Made in the copy of the table this export already replaces.", edited.revisionIds);
       continue;
     }
 
-    if (verdict.strategy === "table_replacement") {
-      const replaced = replaceTable({ part, span, replacement: language, author, date, ids, copies: tableCopies });
+    if (verdict.strategy === "across_cells") {
+      const pieces = cellPieces(part, span, language);
+      if (!("reason" in pieces) && changeInPlace(part, pieces) === "done") {
+        editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
+        applied(verdict.detail);
+        continue;
+      }
+
+      // The change can't go in cell by cell, so the table is struck and an
+      // edited copy inserted. The attempt above may have split runs, so the
+      // document is read afresh.
+      const fresh = freshWalk().find((p) => p.part === span.part)!;
+      const replaced = replaceTable({ part: fresh, span, replacement: language, author, date, ids, copies: tableCopies });
       if (!replaced.ok) {
-        refuse(finding, "crosses_boundary", span.resolution, "blocked_table", replaced.reason);
+        refuse(finding, replaced.unapplied ?? "crosses_boundary", span.resolution, "blocked_table", replaced.reason);
         continue;
       }
       editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
-      walked = null;
-      applied(verdict.detail);
+      applied("The change can't be made one cell at a time, so the whole table is replaced as a tracked change.");
       continue;
     }
-
-    // Runs this export has already marked up. Editing inside one would read as a change to a change.
-    const touchesOurs = (runs: Element[]) => {
-      const ours = new Set(ids.ownRevisionIds);
-      return runs.some((run) => revisionAncestors(run).some((el) => ours.has(el.getAttribute("w:id") ?? "")));
-    };
 
     if (verdict.strategy === "per_paragraph") {
       const pieces = paragraphPieces(part, span, language);
@@ -371,13 +444,12 @@ export async function generateRedline({
         continue;
       }
 
-      // Every paragraph is checked before any is changed, so a refusal leaves the document as it was.
-      const changes = pieces.filter((p) => p.changed).map((p) => ({ ...p, covered: runsForSpan(part, p.span) }));
-      if (changes.some((c) => c.covered.length === 0)) {
+      const outcome = changeInPlace(part, pieces);
+      if (outcome === "no_runs") {
         refuse(finding, "not_located", span.resolution, "blocked_cross_paragraph", "The wording resolved to no editable runs.");
         continue;
       }
-      if (changes.some((c) => touchesOurs(c.covered))) {
+      if (outcome === "overlaps") {
         refuse(
           finding,
           "overlaps_another_change",
@@ -388,9 +460,7 @@ export async function generateRedline({
         continue;
       }
 
-      for (const change of changes) replaceSpan({ covered: change.covered, replacement: change.wording, author, date, ids });
       editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
-      walked = null;
       applied(verdict.detail);
       continue;
     }
@@ -416,7 +486,6 @@ export async function generateRedline({
 
     replaceSpan({ covered, replacement: language, author, date, ids });
     editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
-    walked = null; // the document changed
     applied(verdict.detail);
   }
 

@@ -1,4 +1,5 @@
 import type { WalkResult } from "../docx";
+import type { UnappliedReason } from "../redline-validation/types";
 import type { RevisionIds } from "./ids";
 import { acceptRevisionsIn } from "../docx-accept";
 import { refsInSpan } from "./applicability";
@@ -8,12 +9,11 @@ import { rowCells, splitAcrossCells } from "./cell-split";
 import type { LocatedSpan } from "./types";
 
 /**
- * Replacing a table (the user's decision of 2026-09-07).
+ * Replacing a table: the original is struck and an edited copy inserted after it.
  *
- * A change confined to one cell is an ordinary in-place edit. A change spanning
- * cells cannot be: splicing across a cell boundary merges cells and leaves the
- * row short of its declared grid, which is the corruption Stage 0 measured. So
- * the original table is struck and an edited copy inserted after it.
+ * This is the fallback (the user's decision of 2026-10-08). A change spanning
+ * cells is first made cell by cell, in place, and the table is replaced only
+ * when the change can't be placed that way.
  *
  * **The copy is cloned from the original, never rebuilt.** Cloning carries
  * `tblPr`, `tblGrid`, `tcPr`, borders, shading, column widths and merged cells
@@ -149,6 +149,17 @@ function holdsTrackedChange(table: Element): boolean {
   return descendants(table, "*").some((el) => el.hasAttribute("w:author"));
 }
 
+const COMMENT_MARKERS = ["w:commentRangeStart", "w:commentRangeEnd", "w:commentReference"];
+
+/**
+ * True when a comment is anchored inside the table. A copy would repeat the
+ * comment's markers, and the struck original would take the comment with it
+ * when our change is accepted.
+ */
+function holdsComment(table: Element): boolean {
+  return COMMENT_MARKERS.some((name) => table.getElementsByTagName(name).length > 0);
+}
+
 /** An empty paragraph, marked as inserted, to keep two tables from merging into one. */
 function separatorParagraph(doc: Document, ids: RevisionIds, author: string, date: string): Element {
   const p = doc.createElement("w:p");
@@ -161,35 +172,39 @@ function separatorParagraph(doc: Document, ids: RevisionIds, author: string, dat
  * without is laid out by comparing it with the cells, or null when that can't
  * be done without guessing.
  */
-function cellPieces(replacement: string, groups: { runs: Element[] }[]): string[] | null {
-  if (replacement.includes("|") || groups.length < 2) return rowCells(replacement);
-  return splitAcrossCells(
-    groups.map((g) => g.runs.map(runText).join("")),
-    replacement
-  );
+function cellPieces(replacement: string, cells: string[]): string[] | null {
+  if (replacement.includes("|") || cells.length < 2) return rowCells(replacement);
+  return splitAcrossCells(cells, replacement);
 }
 
-export type TableReplacementResult = { ok: true } | { ok: false; reason: string };
+export type TableReplacementResult =
+  | { ok: true }
+  | { ok: false; reason: string; unapplied?: UnappliedReason };
 
-/** The wording for each covered cell, or why it can't be laid out across them. */
-function layOut(replacement: string, groups: { runs: Element[] }[]): { pieces: string[] } | { reason: string } {
-  const pieces = cellPieces(replacement, groups);
+/**
+ * The wording for each covered cell, or why it can't be laid out across them.
+ * `cells` is the wording each cell holds today.
+ */
+export function layOut(replacement: string, cells: string[]): { pieces: string[] } | { reason: string } {
+  const pieces = cellPieces(replacement, cells);
   if (!pieces) {
     return {
       reason:
-        `The change covers ${groups.length} cells, and the proposed wording can't be laid out across them ` +
+        `The change covers ${cells.length} cells, and the proposed wording can't be laid out across them ` +
         `without guessing which cell a change belongs to.`,
     };
   }
-  if (pieces.length !== groups.length) {
+  if (pieces.length !== cells.length) {
     return {
       reason:
-        `The change covers ${groups.length} cells but the proposed wording has ${pieces.length} ` +
+        `The change covers ${cells.length} cells but the proposed wording has ${pieces.length} ` +
         `part${pieces.length === 1 ? "" : "s"}, so it cannot be laid back out across the row.`,
     };
   }
   return { pieces };
 }
+
+const wordingOf = (groups: { runs: Element[] }[]) => groups.map((g) => g.runs.map(runText).join(""));
 
 /**
  * The copy of a table this export has already inserted, when the span sits
@@ -232,7 +247,7 @@ export function editCopy({
   if (covered.length === 0) return { ok: false, reason: "The wording resolved to no editable runs." };
 
   const groups = byCell(covered);
-  const laid = layOut(replacement, groups);
+  const laid = layOut(replacement, wordingOf(groups));
   if ("reason" in laid) return { ok: false, reason: laid.reason };
 
   // Checked for every run before anything changes, so a refusal leaves the copy as it was.
@@ -296,8 +311,18 @@ export function replaceTable({
   const table = ancestorOf(covered[0], "w:tbl");
   if (!table) return { ok: false, reason: "The wording is not inside a table after all." };
 
+  if (holdsComment(table)) {
+    return {
+      ok: false,
+      unapplied: "table_holds_comment",
+      reason:
+        "The table holds a comment from the property, and the change can't be made one cell at a time. " +
+        "Replacing the table would remove the comment, so the table is left as it is.",
+    };
+  }
+
   const groups = byCell(covered);
-  const laid = layOut(replacement, groups);
+  const laid = layOut(replacement, wordingOf(groups));
   if ("reason" in laid) return { ok: false, reason: laid.reason };
   const { pieces } = laid;
 

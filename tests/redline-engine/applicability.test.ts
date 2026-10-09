@@ -60,19 +60,17 @@ describe("ordinary prose", () => {
 
 describe("tables", () => {
   it("edits in place when the change sits in one cell", async () => {
-    // The common case — "50% should be 40%". A whole-table replacement here
-    // would show the property the entire schedule struck through in red.
     const result = await assess(await buildDocx(table(SCHEDULE)), "50%");
 
     expect(result.applicability).toBe("applicable");
     expect(result.strategy).toBe("in_place");
   });
 
-  it("replaces the whole table when the change spans cells", async () => {
+  it("changes each cell when the change spans cells", async () => {
     const result = await assess(await buildDocx(table(SCHEDULE)), "180 to 91 | 50%");
 
     expect(result.applicability).toBe("applicable");
-    expect(result.strategy).toBe("table_replacement");
+    expect(result.strategy).toBe("across_cells");
     expect(result.tableIndex).toBe(0);
   });
 
