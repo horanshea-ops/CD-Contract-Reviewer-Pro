@@ -14,11 +14,12 @@ import { serializePart } from "./redline-engine/serialize";
  *
  *   w:ins / w:del around runs    unwrap the insertion, remove the deletion
  *   w:ins on a paragraph mark    remove the marker, keep the paragraph
- *   w:del on a paragraph mark    merge the paragraph into the next one
+ *   w:del on a paragraph mark    join the next paragraph onto this one
  *   w:ins / w:del on a table row remove the marker, or remove the row
  *
- * A table left with no rows is removed, and so is a paragraph left empty by
- * the merge.
+ * A joined paragraph keeps the first one's formatting, as Word does on accept
+ * (checked in Word for the web, 2026-10-09). A table left with no rows is
+ * removed.
  *
  * The export's own comments go too. They explain changes that, once accepted,
  * no longer show. The property's comments stay.
@@ -67,19 +68,30 @@ function remove(el: Element) {
 /** A paragraph's content: everything except its properties. */
 const contentOf = (p: Element) => childElements(p).filter((c) => c.nodeName !== "w:pPr");
 
-/** Merges a paragraph whose mark we deleted into the paragraph after it, as Word does on accept. */
-function mergeIntoNext(p: Element) {
-  let next = p.nextSibling;
-  while (next && next.nodeType !== 1) next = next.nextSibling;
-  const nextP = next as Element | null;
-  if (!nextP || nextP.nodeName !== "w:p") {
-    // Nothing to merge into, as at the end of a cell. The paragraph stays.
-    return;
+/**
+ * Joins onto each paragraph whose mark was deleted the paragraph after it,
+ * and the one after that while the marks keep being deleted ones. The first
+ * paragraph of a chain keeps its formatting.
+ */
+function joinFollowing(deleted: Set<Element>) {
+  for (const p of [...deleted]) {
+    // Already joined onto an earlier paragraph of its chain.
+    if (!p.parentNode) continue;
+
+    for (;;) {
+      let next = p.nextSibling;
+      while (next && next.nodeType !== 1) next = next.nextSibling;
+      const nextP = next as Element | null;
+      // Nothing to join, as at the end of a cell. The paragraph stays.
+      if (!nextP || nextP.nodeName !== "w:p") break;
+
+      for (const c of contentOf(nextP)) p.appendChild(c);
+      remove(nextP);
+      // A paragraph whose own mark stays ends the chain.
+      if (!deleted.has(nextP)) break;
+    }
+    deleted.delete(p);
   }
-  const content = contentOf(p);
-  const anchor = childElements(nextP).find((c) => c.nodeName !== "w:pPr") ?? null;
-  for (const c of content) nextP.insertBefore(c, anchor);
-  remove(p);
 }
 
 export function acceptOwnRevisionsInDoc(doc: Document, ownIds: ReadonlySet<string>) {
@@ -110,14 +122,15 @@ export function acceptRevisionsIn(root: Document | Element, accepts: (mark: Elem
     else unwrap(m);
   }
 
+  const deletedMarks = new Set<Element>();
   for (const m of paragraphMarks) {
     const p = ancestor(m, "w:p");
-    const deleted = REMOVES.has(m.nodeName);
     const rPr = m.parentNode as Element;
+    if (REMOVES.has(m.nodeName) && p) deletedMarks.add(p);
     remove(m);
     if (!childElements(rPr).length) remove(rPr);
-    if (deleted && p?.parentNode) mergeIntoNext(p);
   }
+  joinFollowing(deletedMarks);
 
   for (const table of elements(root, "w:tbl")) {
     if (!childElements(table).some((c) => c.nodeName === "w:tr")) remove(table);

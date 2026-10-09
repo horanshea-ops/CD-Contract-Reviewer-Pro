@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { acceptOwnRevisions } from "@/lib/docx-accept";
 import { generateRedline, type RevisionFinding } from "@/lib/redline-engine";
 import { validateRedline } from "@/lib/redline-validation";
-import { buildDocx, para, run, table } from "../helpers/docx-package";
+import { buildDocx, buildNumberedDocx, del, delRun, insertedPara, numbered, para, run, table } from "../helpers/docx-package";
 
 /**
  * A change whose quote spans paragraphs.
@@ -12,6 +12,12 @@ import { buildDocx, para, run, table } from "../helpers/docx-package";
  * the amount, then the formula behind it in brackets. The model quotes the
  * cell and proposes both lines changed. One tracked change can't cross a
  * paragraph break, so the engine makes one small change in each paragraph.
+ *
+ * A rewrite can't be split that way. The engine strikes the old wording in
+ * every paragraph, puts the new wording in the first, and deletes the breaks
+ * between so the emptied paragraphs close up into it. Word gives the joined
+ * paragraph the first one's formatting (checked in Word for the web,
+ * 2026-10-09).
  *
  * The amounts and wording here are invented in the same shape.
  */
@@ -45,9 +51,9 @@ async function redline(originalBytes: Uint8Array, findings: RevisionFinding[], c
 const failed = (report: { checks: { name: string; passed: boolean; detail: string }[] }) =>
   report.checks.filter((c) => !c.passed).map((c) => `${c.name}: ${c.detail}`);
 
-/** The text inside every tracked change of one kind, in order. */
+/** The text inside every tracked change of one kind, in order. A mark on a paragraph break wraps nothing and is left out. */
 const marked = (xml: string, tag: "ins" | "del") =>
-  [...xml.matchAll(new RegExp(`<w:${tag} [^>]*>([\\s\\S]*?)</w:${tag}>`, "g"))].map((m) =>
+  [...xml.matchAll(new RegExp(`<w:${tag} [^>]*[^/]>([\\s\\S]*?)</w:${tag}>`, "g"))].map((m) =>
     [...m[1].matchAll(/<w:(?:t|delText)[^>]*>([^<]*)</g)].map((t) => t[1]).join("")
   );
 
@@ -171,20 +177,153 @@ describe("a change spanning two body paragraphs", () => {
     expect(marked(xml, "del").join(" | ")).toContain("eighty percent (80%)");
     expect(marked(xml, "del").join(" | ")).toContain("one hundred percent (100%)");
   });
+});
 
-  it("still refuses a proposal that moves wording across the paragraph break", async () => {
-    // The second paragraph's opening is pulled up into the first, which no paragraph-by-paragraph change can show.
-    const { result, report } = await redline(await buildDocx(body()), [
+describe("a rewrite that runs across paragraphs", () => {
+  const FIRST = "Attrition applies below eighty percent (80%) of the room block.";
+  const SECOND = "Damages are charged at one hundred percent (100%) of the group rate.";
+  const LAST = "Deposits are due at signing.";
+  const REWRITE = "Attrition and damages follow the schedule attached as Exhibit B to this Agreement.";
+  const body = () => para(run(FIRST)) + para(run(SECOND)) + para(run(LAST));
+  const rewrite = (over: Partial<RevisionFinding> = {}) =>
+    finding({ clause_type: "attrition", quoted_text: `${FIRST}\n${SECOND}`, language: REWRITE, ...over });
+
+  /** Paragraph breaks this export marks as deleted. */
+  const deletedBreaks = (xml: string) => (xml.match(/<w:rPr><w:del [^>]*\/><\/w:rPr><\/w:pPr>/g) ?? []).length;
+  const paragraphs = (xml: string) => xml.match(/<w:p>[\s\S]*?<\/w:p>|<w:p\/>/g) ?? [];
+  const textOf = (xml: string) => [...xml.matchAll(/<w:t[^>]*>([^<]*)</g)].map((m) => m[1]).join("");
+
+  async function accepted(originalBytes: Uint8Array, findings: RevisionFinding[]) {
+    const out = await redline(originalBytes, findings);
+    const clean = await acceptOwnRevisions(out.result.docxBytes, new Set(out.result.ownRevisionIds));
+    const xml = await (await JSZip.loadAsync(clean)).file("word/document.xml")!.async("string");
+    return { ...out, clean: xml };
+  }
+
+  it("strikes both paragraphs, inserts the new wording once, and deletes the break between", async () => {
+    const { result, report, xml } = await redline(await buildDocx(body()), [rewrite()]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(1);
+    expect(failed(report)).toEqual([]);
+    expect(report.outcome).toBe("clean");
+    expect(marked(xml, "del")).toEqual([FIRST, SECOND]);
+    expect(marked(xml, "ins")).toEqual([REWRITE]);
+    expect(deletedBreaks(xml)).toBe(1);
+    // The new wording sits in the first paragraph, ahead of the wording it replaces.
+    expect(xml.indexOf(REWRITE)).toBeLessThan(xml.indexOf("eighty percent"));
+  });
+
+  it("leaves one paragraph once accepted", async () => {
+    const { clean } = await accepted(await buildDocx(body()), [rewrite()]);
+
+    expect(paragraphs(clean).map(textOf)).toEqual([REWRITE, LAST]);
+  });
+
+  it("joins three paragraphs, and the result keeps the first one's numbering", async () => {
+    const SUB = `<w:pPr><w:ind w:left="1620" w:hanging="540"/></w:pPr>`;
+    const clause =
+      numbered(run("Hotel will give notice of any renovation.")) +
+      numbered(run("We may then elect, within fifteen days,")) +
+      para(run("(A) to relocate your meeting, or"), SUB) +
+      para(run("(B) to refund your deposit."), SUB) +
+      numbered(run("This paragraph stays."));
+    const { result, report, xml, clean } = await accepted(await buildNumberedDocx(clause), [
       finding({
-        clause_type: "attrition",
-        quoted_text: `${FIRST}\n${SECOND}`,
-        language: "Attrition applies below seventy percent (70%) of the room block and damages follow the schedule attached as Exhibit B to this Agreement.",
+        quoted_text: "We may then elect, within fifteen days,\n(A) to relocate your meeting, or\n(B) to refund your deposit.",
+        language: "Hotel will relocate the meeting at its own cost.",
       }),
     ]);
 
-    expect(result.appliedCount).toBe(0);
-    expect(result.unapplied.map((u) => u.reason)).toEqual(["crosses_boundary"]);
+    expect(result.unapplied).toEqual([]);
     expect(failed(report)).toEqual([]);
+    expect(deletedBreaks(xml)).toBe(2);
+
+    const after = paragraphs(clean);
+    expect(after.map(textOf)).toEqual([
+      "Hotel will give notice of any renovation.",
+      "Hotel will relocate the meeting at its own cost.",
+      "This paragraph stays.",
+    ]);
+    expect(after[1]).toContain("<w:numPr>");
+    expect(clean).not.toContain(`w:left="1620"`);
+  });
+
+  it("leaves the last paragraph in place when the quote stops partway through it", async () => {
+    const LONG_SECOND = `${SECOND} Payment is due in thirty days.`;
+    const original = para(run(FIRST)) + para(run(LONG_SECOND)) + para(run(LAST));
+    const { result, report, xml, clean } = await accepted(await buildDocx(original), [rewrite()]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(failed(report)).toEqual([]);
+    expect(deletedBreaks(xml)).toBe(0);
+    expect(paragraphs(clean).map(textOf)).toEqual([REWRITE, " Payment is due in thirty days.", LAST]);
+  });
+
+  it("closes up an empty paragraph between the two", async () => {
+    const original = para(run(FIRST)) + para("") + para(run(SECOND)) + para(run(LAST));
+    const { result, report, xml, clean } = await accepted(await buildDocx(original), [
+      rewrite({ quoted_text: `${FIRST}\n\n${SECOND}` }),
+    ]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(failed(report)).toEqual([]);
+    expect(deletedBreaks(xml)).toBe(2);
+    expect(paragraphs(clean).map(textOf)).toEqual([REWRITE, LAST]);
+  });
+
+  it("anchors the finding's comment on the new wording", async () => {
+    const f = rewrite();
+    const { result, report } = await redline(await buildDocx(body()), [f], new Map([[f.id, NOTE]]));
+
+    expect(failed(report)).toEqual([]);
+    expect(result.ownCommentIds).toHaveLength(1);
+  });
+
+  describe("what it declines", () => {
+    const DEPOSIT = finding({ id: "deposit", quoted_text: LAST, language: "Deposits are due thirty days after signing." });
+
+    async function declined(original: string, findings: RevisionFinding[] = [rewrite(), DEPOSIT]) {
+      const { result, report, xml } = await redline(await buildDocx(original), findings);
+      expect(failed(report)).toEqual([]);
+      expect(deletedBreaks(xml)).toBe(0);
+      return result;
+    }
+
+    it("is a break that is also a section break", async () => {
+      const section = `<w:pPr><w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:pPr>`;
+      const result = await declined(para(run(FIRST), section) + para(run(SECOND)) + para(run(LAST)));
+
+      expect(result.appliedCount).toBe(1);
+      expect(result.unapplied.map((u) => u.reason)).toEqual(["crosses_boundary"]);
+    });
+
+    it("is a break the property's own tracked change sits on", async () => {
+      const result = await declined(insertedPara(5, "Dana Reyes", run(FIRST)) + para(run(SECOND)) + para(run(LAST)));
+
+      expect(result.appliedCount).toBe(1);
+      expect(result.unapplied.map((u) => u.reason)).toEqual(["crosses_boundary"]);
+    });
+
+    it("is a passage holding wording the property already struck", async () => {
+      const struck = para(run("Attrition applies below ") + del(9, "Dana Reyes", delRun("ninety or ")) + run("eighty percent (80%) of the room block."));
+      const result = await declined(struck + para(run(SECOND)) + para(run(LAST)));
+
+      expect(result.appliedCount).toBe(1);
+      expect(result.unapplied.map((u) => u.reason)).toEqual(["crosses_boundary"]);
+    });
+
+    it("is wording an earlier finding already changed", async () => {
+      const earlier = finding({ id: "earlier", quoted_text: "one hundred percent (100%)", language: "seventy percent (70%)" });
+      const later = rewrite({
+        id: "later",
+        quoted_text: `${FIRST}\nDamages are charged at seventy percent (70%) of the group rate.`,
+      });
+      const result = await declined(body(), [earlier, later]);
+
+      expect(result.appliedCount).toBe(1);
+      expect(result.unapplied.map((u) => u.reason)).toEqual(["overlaps_another_change"]);
+    });
   });
 });
 

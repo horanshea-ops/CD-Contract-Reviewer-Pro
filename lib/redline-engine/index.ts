@@ -8,8 +8,8 @@ import { RevisionIds } from "./ids";
 import { locateQuote } from "./locate";
 import { appendClauses } from "./paragraphs";
 import { dropRestated, rewritesExistingWording, struckSentences } from "./restated";
-import { replaceSpan } from "./revise";
-import { runsForSpan } from "./runs";
+import { childElements, replaceSpan, setParagraphMark, strikeAndInsert } from "./revise";
+import { isCommentAnchor, runsForSpan } from "./runs";
 import { copyHolding, editCopy, layOut, replaceTable } from "./tables";
 import { serializePart } from "./serialize";
 import { wordingProblem } from "./wording";
@@ -70,6 +70,24 @@ interface ParagraphPiece {
   changed: boolean;
 }
 
+/**
+ * One change over wording that runs across paragraphs, as a rewrite does. The
+ * old wording is struck in every paragraph, the new wording goes in the first,
+ * and the breaks between are deleted so the emptied paragraphs close up into
+ * it. Word gives the joined paragraph the first one's formatting.
+ */
+interface JoinedPiece {
+  /** The wording covered in each paragraph, in order. */
+  spans: LocatedSpan[];
+  wording: string;
+  /** False when the last paragraph keeps wording after the quote. It then stays a paragraph of its own. */
+  coversLast: boolean;
+}
+
+type Piece = ParagraphPiece | JoinedPiece;
+
+const isJoined = (piece: Piece): piece is JoinedPiece => "spans" in piece;
+
 /** The wording a span covers in one paragraph. */
 interface Stretch {
   cell: number | null;
@@ -104,6 +122,98 @@ function piecesFor(part: WalkResult, span: LocatedSpan, stretches: Stretch[], pr
   }));
 }
 
+/** The stretches as one joined change. */
+function joinedPiece(part: WalkResult, span: LocatedSpan, stretches: Stretch[], wording: string): JoinedPiece {
+  const last = stretches[stretches.length - 1];
+  let coversLast = true;
+  for (let i = last.end; i < part.map.length; i++) {
+    const entry = part.map[i];
+    if (isSynthetic(entry)) continue;
+    if (entry.paragraphIndex !== last.paragraph) break;
+    if (part.text[i].trim()) {
+      coversLast = false;
+      break;
+    }
+  }
+  return { spans: stretches.map((s) => ({ ...span, start: s.start, end: s.end })), wording: flat(wording), coversLast };
+}
+
+const paragraphOf = (run: Element): Element | null => {
+  for (let node = run.parentNode; node && node.nodeType === 1; node = node.parentNode) {
+    if ((node as Element).nodeName === "w:p") return node as Element;
+  }
+  return null;
+};
+
+const STRUCK = new Set(["w:del", "w:moveFrom"]);
+const MARK_REVISIONS = new Set(["w:ins", "w:del", "w:moveFrom", "w:moveTo"]);
+
+/** A paragraph's own runs that still read in the contract, in order. A comment's anchor is left out. */
+function liveRuns(p: Element): Element[] {
+  const runs = p.getElementsByTagName("w:r");
+  const out: Element[] = [];
+  for (let i = 0; i < runs.length; i++) {
+    const run = runs[i];
+    if (paragraphOf(run) !== p || isCommentAnchor(run)) continue;
+    if (revisionAncestors(run).some((el) => STRUCK.has(el.nodeName))) continue;
+    out.push(run);
+  }
+  return out;
+}
+
+/** True when a paragraph's break can be deleted: no section ends on it, and nobody has tracked a change to it. */
+function breakCanGo(p: Element): boolean {
+  const pPr = childElements(p).find((c) => c.nodeName === "w:pPr");
+  if (!pPr) return true;
+  if (childElements(pPr).some((c) => c.nodeName === "w:sectPr")) return false;
+  const rPr = childElements(pPr).find((c) => c.nodeName === "w:rPr");
+  return !rPr || !childElements(rPr).some((c) => MARK_REVISIONS.has(c.nodeName));
+}
+
+/**
+ * What a joined change strikes and which paragraph breaks it deletes, or null
+ * when the paragraphs can't be joined safely. `covered` holds the runs the
+ * quote covers in each paragraph.
+ */
+function joinTargets(piece: JoinedPiece, covered: Element[][]): { runs: Element[]; breaks: Element[] } | null {
+  // Wording the property already struck sits inside the passage.
+  if (covered.flat().some((run) => revisionAncestors(run).some((el) => STRUCK.has(el.nodeName)))) return null;
+
+  const first = paragraphOf(covered[0][0]);
+  const last = paragraphOf(covered[covered.length - 1][0]);
+  if (!first || !last || first === last) return null;
+
+  // Every paragraph from the first to the last, which must sit side by side.
+  const chain: Element[] = [first];
+  for (let node = first.nextSibling; chain[chain.length - 1] !== last; node = node.nextSibling) {
+    if (!node) return null;
+    if (node.nodeType !== 1) continue;
+    if ((node as Element).nodeName !== "w:p") return null;
+    chain.push(node as Element);
+  }
+
+  const runs: Element[] = [];
+  for (const [index, p] of chain.entries()) {
+    const live = liveRuns(p);
+    if (index === 0) {
+      const from = live.indexOf(covered[0][0]);
+      if (from === -1) return null;
+      runs.push(...live.slice(from));
+    } else if (index === chain.length - 1 && !piece.coversLast) {
+      const lastCovered = covered[covered.length - 1];
+      const to = live.indexOf(lastCovered[lastCovered.length - 1]);
+      if (to === -1) return null;
+      runs.push(...live.slice(0, to + 1));
+    } else {
+      runs.push(...live);
+    }
+  }
+
+  // The last paragraph's own break always stays. When it keeps wording, so does the break before it.
+  const breaks = chain.slice(0, piece.coversLast ? -1 : -2);
+  return breaks.every(breakCanGo) ? { runs, breaks } : null;
+}
+
 /**
  * Lays a proposal out across the paragraphs its quote covers.
  *
@@ -124,9 +234,9 @@ function paragraphPieces(part: WalkResult, span: LocatedSpan, proposal: string):
  *
  * The proposal is split per cell by the rule the table's copy uses. A cell
  * holding several paragraphs then has its piece laid across them, as
- * `paragraphPieces` does.
+ * `paragraphPieces` does, or joined when it can't be.
  */
-function cellPieces(part: WalkResult, span: LocatedSpan, proposal: string): ParagraphPiece[] | { reason: string } {
+function cellPieces(part: WalkResult, span: LocatedSpan, proposal: string): Piece[] | { reason: string } {
   const cells: Stretch[][] = [];
   for (const stretch of stretchesIn(part, span)) {
     const last = cells[cells.length - 1];
@@ -140,11 +250,10 @@ function cellPieces(part: WalkResult, span: LocatedSpan, proposal: string): Para
   );
   if ("reason" in laid) return laid;
 
-  const pieces: ParagraphPiece[] = [];
+  const pieces: Piece[] = [];
   for (const [index, cell] of cells.entries()) {
     const inCell = piecesFor(part, span, cell, laid.pieces[index]);
-    if (!inCell) return { reason: "A cell holds several paragraphs, and the change can't be laid out one paragraph at a time." };
-    pieces.push(...inCell);
+    pieces.push(...(inCell ?? [joinedPiece(part, span, cell, laid.pieces[index])]));
   }
   return pieces;
 }
@@ -285,15 +394,27 @@ export async function generateRedline({
   };
 
   /**
-   * Makes each changed piece as an ordinary in-place change. Every piece is
-   * checked before any is changed, so a refusal leaves the wording as it was.
+   * Makes each changed piece in place. Every piece is checked before any is
+   * changed, so a refusal leaves the wording as it was.
    */
-  const changeInPlace = (part: WalkResult, pieces: ParagraphPiece[]): "done" | "no_runs" | "overlaps" => {
-    const changes = pieces.filter((p) => p.changed).map((p) => ({ ...p, covered: runsForSpan(part, p.span) }));
-    if (changes.some((c) => c.covered.length === 0)) return "no_runs";
-    if (changes.some((c) => touchesOurs(c.covered))) return "overlaps";
+  const changeInPlace = (part: WalkResult, pieces: Piece[]): "done" | "no_runs" | "overlaps" | "cannot_join" => {
+    const changes = pieces
+      .filter((p): p is ParagraphPiece => !isJoined(p) && p.changed)
+      .map((p) => ({ ...p, covered: runsForSpan(part, p.span) }));
+    const joins = pieces.filter(isJoined).map((piece) => ({ piece, covered: piece.spans.map((s) => runsForSpan(part, s)) }));
+
+    const everyRun = [...changes.map((c) => c.covered), ...joins.flatMap((j) => j.covered)];
+    if (everyRun.some((runs) => runs.length === 0)) return "no_runs";
+    if (everyRun.some(touchesOurs)) return "overlaps";
+
+    const targets = joins.map((j) => ({ wording: j.piece.wording, target: joinTargets(j.piece, j.covered) }));
+    if (targets.some((t) => !t.target || touchesOurs(t.target.runs))) return "cannot_join";
 
     for (const change of changes) replaceSpan({ covered: change.covered, replacement: change.wording, author, date, ids });
+    for (const { wording, target } of targets) {
+      strikeAndInsert(target!.runs, wording, { author, date, ids });
+      for (const p of target!.breaks) setParagraphMark(p, "w:del", ids, author, date);
+    }
     return "done";
   };
 
@@ -432,19 +553,22 @@ export async function generateRedline({
     }
 
     if (verdict.strategy === "per_paragraph") {
-      const pieces = paragraphPieces(part, span, language);
-      if (!pieces) {
+      // One change per paragraph where the proposal can be laid out that way, and one joined change where it can't.
+      const stretches = stretchesIn(part, span);
+      const split = paragraphPieces(part, span, language);
+      const pieces: Piece[] = split ?? (stretches.length > 1 ? [joinedPiece(part, span, stretches, language)] : []);
+
+      const outcome = pieces.length ? changeInPlace(part, pieces) : "cannot_join";
+      if (outcome === "cannot_join") {
         refuse(
           finding,
           "crosses_boundary",
           span.resolution,
           "blocked_cross_paragraph",
-          "The wording runs across a paragraph break, and the change can't be laid out one paragraph at a time."
+          "The wording runs across a paragraph break, and the paragraphs can't be joined into one change."
         );
         continue;
       }
-
-      const outcome = changeInPlace(part, pieces);
       if (outcome === "no_runs") {
         refuse(finding, "not_located", span.resolution, "blocked_cross_paragraph", "The wording resolved to no editable runs.");
         continue;
@@ -461,7 +585,7 @@ export async function generateRedline({
       }
 
       editedParts.add(pkg.textParts.find((p) => p.name === span.part)!);
-      applied(verdict.detail);
+      applied(split ? verdict.detail : "The wording runs across paragraphs, so it is replaced as one change and the paragraphs are joined.");
       continue;
     }
 
