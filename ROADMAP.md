@@ -625,8 +625,8 @@ History of the switch, oldest first:
     appears twice.
 - **Left out across the 25 reviews, 52 of 653 changes.** A blank left in the
   wording 31, a table or paragraph boundary 9, a rewrite with no quote 7,
-  wording not found 4, a quote found twice 1. This is the core audit's
-  first piece.
+  wording not found 4, a quote found twice 1. On the four Sonnet 5.5 reviews,
+  3 of 188, all blanks. This is the core audit's first piece.
 
 **Core audit (user's goal, 2026-10-08). New features are on hold.**
 
@@ -650,7 +650,7 @@ warning whether it is needed and whether the work can be done more simply.
 
 | # | Piece | What it asks | State |
 |---|---|---|---|
-| 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Started 2026-10-08 |
+| 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Findings written 2026-10-08. Five fixes proposed, none built. |
 | 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Not started |
 | 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
 | 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Not started |
@@ -659,6 +659,17 @@ warning whether it is needed and whether the work can be done more simply.
 | 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
 | 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Not started |
 | 9 | Tests and CI | Tests that pass without checking anything (one was found on 2026-10-08), and gaps in the core path. | Not started |
+
+- **Piece 1's proposed fixes, in order.** Each waits for a plan and a yes.
+  1. Blanks as fields on the card. Blanks are 31 of the 52 left out, and
+     all 3 on Sonnet 5.5.
+  2. One engine route that replaces wording across paragraphs. It removes 4
+     refusals, the struck table's first trigger and the one skip left.
+  3. Widen the oracle's id check to every kind of tracked-change record.
+  4. Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing in
+     the app uses, and two refusal reasons that can't appear. This closes
+     CLAUDE.md deviation 4.
+- **Next piece is 2, what the associate is shown.**
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,
