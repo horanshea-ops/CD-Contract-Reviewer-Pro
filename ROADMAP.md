@@ -397,7 +397,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
 | Live on `main` | Everything built to date, except the table change below. `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at two files in Word. See "Table rows, cell by cell" below. `audit/1-1-blank-fields` merges after it. |
+| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at one more file in Word, `4f803f16-redline-cells.docx`. The made-up hotel-comment sample looked good (user, 2026-10-09). `audit/1-1-blank-fields` and `phase/1-5-across-paragraphs` merge after it, in that order. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -619,8 +619,9 @@ History of the switch, oldest first:
   `data/private/replay/`.
   - `4f803f16-redline-cells.docx`. The cancellation schedule appears once,
     with each fee struck and the new one beside it.
-  - `sample-hotel-comment-redline.docx`, a made-up schedule. Same, with the
-    hotel's comment still on the 75% cell.
+  - ~~`sample-hotel-comment-redline.docx`, a made-up schedule. Same, with the
+    hotel's comment still on the 75% cell.~~ Opened by the user on
+    2026-10-09. It looked good.
   - Look for a repair prompt, a figure in the wrong column, or a table that
     appears twice.
 - **Left out across the 25 reviews, 52 of 653 changes.** A blank left in the
@@ -669,19 +670,29 @@ warning whether it is needed and whether the work can be done more simply.
      writes to the shared database.
   2. One engine route that replaces wording across paragraphs. It removes 4
      refusals, the struck table's first trigger and the one skip left.
-     **Held 2026-10-08.** All four stored cases join paragraphs with
-     different formatting, and which formatting Word keeps on Accept is not
-     known. It waits on the Word test below.
+     ~~Held 2026-10-08.~~ **Built 2026-10-09 on
+     `phase/1-5-across-paragraphs`, not merged.** The user's Word test
+     showed joined paragraphs take the first one's formatting, which is what
+     the route needs. The replay goes from 601 to 605 applied, all four
+     stored cases apply, and no review uses the table copy. 1,658 tests pass.
+     The clean copy joined paragraphs the wrong way round and is fixed.
   3. Widen the oracle's id check to every kind of tracked-change record.
-     **Held 2026-10-08.** The engine repeats such an id itself when it
-     splits reformatted wording. It waits on the Word test below.
-- **Owed by the user: three small Word tests**, in `data/private/replay/`.
-  `docs/core-audit.md` findings 1.2 and 1.9 say what each one settles.
-  - `word-check-ids.docx`. Open it. Is there a repair message? View-only
-    Word is enough.
-  - `word-check-accept-all.docx`, in a Word that can edit (Word for the web
-    is free). Press Accept All and answer the two questions in the file.
-  - The same file again, with Reject All, against `word-check-original.docx`.
+     **Dropped 2026-10-09.** Word opened a file with a repeated id and
+     showed no repair message, so the check would guard against nothing.
+- **Word tests, run by the user on 2026-10-09 in Word for the web.**
+  - `word-check-ids.docx` opened with no repair message.
+  - Accept All on `word-check-accept-all.docx` gave AAA BBB on one centred
+    line and NEW WORDING as numbered clause 2. **Joined paragraphs take the
+    first paragraph's formatting.**
+  - Reject All restored every paragraph.
+  - This is the first time a person has pressed Accept All and Reject All
+    on a file of this app's making. Desktop Word is still untested.
+  - Only made-up files go to Word for the web. Redacted contract files
+    stay on the user's machine.
+- **Owed by the user.** Accept All and Reject All in Word for the web on
+  `sample-across-paragraphs-redline.docx`, against its `-original`. Clause 2
+  should become one numbered sentence, and the table cell should read
+  "$35,000 [35% of the minimum]".
   4. Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing in
      the app uses, and two refusal reasons that can't appear. This closes
      CLAUDE.md deviation 4.
