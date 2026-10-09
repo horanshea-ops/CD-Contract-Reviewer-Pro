@@ -68,6 +68,15 @@ meet. Four is a small sample, and three of the four are the same contract.
 - It would remove the 4, the struck table's first trigger, and the `table_holds_comment` skip. The struck table would then serve one case, a second finding that changes wording the first already changed. It could be retired after that, which removes about 300 lines.
 - Risk is real. Deleted paragraph breaks are where Stage 0 found corrupt files. It is §1.5 work with its own plan, proven on the replay and by a look in Word.
 - Priority is medium. It has not fired on Sonnet 5.5 yet.
+- **Measured 2026-10-08, and held. It waits on one test in Word.**
+  - The oracle, the clean copy and both PDFs already handle a deleted paragraph break. The engine route itself is small.
+  - In all four stored cases the first and last paragraphs carry different formatting. Three start on a numbered paragraph and end on an indented sub-point.
+  - When a hotel accepts the change, Word joins the paragraphs into one, and that one takes the formatting of either the first or the last. Which one is not known here. Word's rule changed between versions, and nobody on the project can press Accept, since the user's Word is view-only.
+  - If the guess is wrong, the new wording loses its clause number and sits indented as a sub-point. The words would be right and the layout wrong.
+  - A route limited to paragraphs with the same formatting would be safe under either rule. It would cover none of the four stored cases.
+  - **The test.** `data/private/replay/word-check-accept-all.docx`, opened in a Word that can edit (Word for the web is free with a Microsoft account). Press Accept All and answer the two questions in the file. `word-check-original.docx` is the comparison for Reject All.
+  - The same sitting closes "Accept All and Reject All, untested by a person", which covers everything the engine writes today.
+  - Found on the way. The document reader treats a paragraph whose break is deleted as still separate. A hotel file with a tracked deletion across paragraphs reads with a stray blank paragraph, and a stray list number if it was numbered. For piece 4.
 
 **1.3 A table row proposed as a sentence is refused, and should be.**
 
@@ -96,9 +105,10 @@ meet. Four is a small sample, and three of the four are the same contract.
 
 **1.7 The old redline engine is dead code.**
 
-- `lib/tracked-changes-docx.ts` (322 lines) is imported by nothing in the app. One Stage 0 script and two test files use it.
+- `lib/tracked-changes-docx.ts` (322 lines) is imported by nothing in the app. One Stage 0 script (`scripts/validate-live-engine.ts`) and one test file (`tests/tracked-changes.test.ts`) use it. The fuzz script already runs the new engine.
+- ROADMAP.md records it as deleted on 2026-09-08. The file, the script and the test are all still in the repository.
 - CLAUDE.md deviation 4 kept it switched on until the new engine passed every fixture. No fixture falls back to the PDF today.
-- Proposed fix. Delete the file, its script and its tests, and close deviation 4. Piece 6 checks first that the fuzz tests lose no cover of the new engine.
+- Proposed fix. Delete the file, its script and its test, and close deviation 4. Each of the old test's seven cases is checked first for a matching case on the new engine.
 - Risk is low. Needs the user's yes, since it ends a deviation.
 
 **1.8 One reason covers five different causes.**
@@ -113,6 +123,10 @@ meet. Four is a small sample, and three of the four are the same contract.
 - Found on 2026-10-08. New wording was copying a hotel's formatting-change record and repeating its id, and the oracle passed it. The engine is fixed. The oracle still wouldn't catch a second case.
 - Proposed fix, free. Count every record that carries an id and an author, and fail only on a repeat the export added. A hotel's own file may already hold repeats.
 - It is §1.6 work with its own plan. Risk is low, and the replay proves it.
+- **Held 2026-10-08. It also waits on a look in Word.**
+  - The engine itself repeats such an id today. When a quote starts partway through wording a hotel reformatted, the run is split, and each piece keeps the hotel's formatting record with the same id.
+  - A wider check would send those exports to the PDF. Whether Word minds a repeated formatting-record id is not known.
+  - **The test.** `data/private/replay/word-check-ids.docx` holds two pieces with one id. If Word opens it with no repair message, the repeat is harmless and this fix is dropped. View-only Word is enough.
 
 **1.10 A crash was live, and a crash gives the associate an error where a failed check gives the PDF.**
 
@@ -137,6 +151,6 @@ meet. Four is a small sample, and three of the four are the same contract.
 |---|---|---|---|
 | 1 | Merge the cell-by-cell table branch, which carries the crash fix | Done, waiting | The user's look at two files in Word |
 | 2 | Blanks as fields on the card (1.1) | Built, not merged | The table branch merged first |
-| 3 | Replace wording across paragraphs (1.2) | Free, engine work | A plan and a yes |
-| 4 | Widen the oracle's id check (1.9) | Free, small | A plan and a yes |
+| 3 | Replace wording across paragraphs (1.2) | Free, engine work | Held. The Accept All test in an editable Word |
+| 4 | Widen the oracle's id check (1.9) | Free, small | Held. A look at `word-check-ids.docx` |
 | 5 | Remove the old engine and the two dead reasons (1.6, 1.7) | Free, small | A yes, since it closes deviation 4 |

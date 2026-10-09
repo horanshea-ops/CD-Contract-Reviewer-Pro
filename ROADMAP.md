@@ -669,7 +669,19 @@ warning whether it is needed and whether the work can be done more simply.
      writes to the shared database.
   2. One engine route that replaces wording across paragraphs. It removes 4
      refusals, the struck table's first trigger and the one skip left.
+     **Held 2026-10-08.** All four stored cases join paragraphs with
+     different formatting, and which formatting Word keeps on Accept is not
+     known. It waits on the Word test below.
   3. Widen the oracle's id check to every kind of tracked-change record.
+     **Held 2026-10-08.** The engine repeats such an id itself when it
+     splits reformatted wording. It waits on the Word test below.
+- **Owed by the user: three small Word tests**, in `data/private/replay/`.
+  `docs/core-audit.md` findings 1.2 and 1.9 say what each one settles.
+  - `word-check-ids.docx`. Open it. Is there a repair message? View-only
+    Word is enough.
+  - `word-check-accept-all.docx`, in a Word that can edit (Word for the web
+    is free). Press Accept All and answer the two questions in the file.
+  - The same file again, with Reject All, against `word-check-original.docx`.
   4. Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing in
      the app uses, and two refusal reasons that can't appear. This closes
      CLAUDE.md deviation 4.
