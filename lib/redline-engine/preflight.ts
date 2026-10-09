@@ -76,13 +76,14 @@ export function previewFindings(findings: PreviewFinding[], contractText: string
     }
 
     const problem = wordingProblem(language, f.quoted_text);
+    if (problem?.reason === "unfilled_blank") {
+      // The card shows a field for each blank, so it needs no message.
+      previews.set(f.id, NONE);
+      continue;
+    }
     if (problem) {
-      const blank = problem.detail.match(/: (\[.*\])\.$/)?.[1];
       previews.set(f.id, {
-        export_issue:
-          problem.reason === "unfilled_blank"
-            ? `Won't go into the redline yet: the wording still has a blank, ${blank ?? "[X]"}. Use Edit to fill it in.`
-            : "Won't go into the redline: the wording reads as an instruction, not contract wording. Use Edit to rewrite it.",
+        export_issue: "Won't go into the redline: the wording reads as an instruction, not contract wording. Use Edit to rewrite it.",
         redline_language: null,
       });
       continue;

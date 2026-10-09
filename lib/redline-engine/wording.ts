@@ -3,10 +3,10 @@ import type { UnappliedReason } from "../redline-validation/types";
 /**
  * Proposed wording that isn't ready to go in front of the property.
  *
- * CD's own standard wording leaves blanks such as "[X]" or "[date]" for the
- * associate to fill, and the model copies them. It sometimes writes an
- * instruction to the associate instead of contract wording. Either would reach
- * the hotel as written, so the redline leaves the change out and says why.
+ * The model writes a blank such as "[X]" or "[date]" where it lacks a figure.
+ * It sometimes writes an instruction to the associate instead of contract
+ * wording. Either would reach the hotel as written, so the redline leaves the
+ * change out. The review card asks the associate for each blank's value.
  */
 
 export interface WordingProblem {
@@ -19,6 +19,10 @@ const BRACKET = /\[[^\]\n]*\]/g;
 
 /** A stand-in for a value nobody has supplied yet, inside a longer bracket. */
 const PLACEHOLDER = /\bX\b|_{2,}|\?{2,}/;
+const PLACEHOLDERS = new RegExp(PLACEHOLDER, "g");
+
+/** How many words of the wording to show on each side of a blank. */
+const CONTEXT_WORDS = 5;
 
 /** Words that open a bracket before it counts as the same one the quote has. */
 const SAME_OPENING_WORDS = 3;
@@ -50,12 +54,78 @@ function contractsOwn(bracket: string, quote: string): boolean {
 const INSTRUCTION =
   /^\s*["'“‘]?(state|confirm|specify|clarify|request|negotiate|ask|ensure|consider|propose|insert|replace|strike|revise|amend|change|reconcile|align|harmonize|conform|verify)\s+(the|that|whether|a|an|this|these|any|explicitly|clearly|in|with|to|for|how|what|which)\b/i;
 
-export function wordingProblem(language: string, quote: string | null): WordingProblem | null {
-  // A bracket the contract already has is its own wording, not a blank.
+/** One value the wording still needs. */
+export interface Blank {
+  /** The bracket as written, such as "[X]" or "[date]". */
+  bracket: string;
+  /** The stretch of the wording a value replaces. */
+  start: number;
+  end: number;
+}
+
+/**
+ * Every blank in the wording, in order.
+ *
+ * A bracket the contract already has is its own wording, not a blank. A longer
+ * bracket with a placeholder inside keeps its wording, and only the
+ * placeholder is filled.
+ */
+export function blanksIn(language: string, quote: string | null): Blank[] {
   const quoted = quote ?? "";
-  const blank = (language.match(BLANK) ?? []).find((b) => !quoted.includes(b) && !contractsOwn(b, quoted));
+  const blanks: Blank[] = [];
+
+  for (const match of language.matchAll(BLANK)) {
+    const bracket = match[0];
+    if (quoted.includes(bracket) || contractsOwn(bracket, quoted)) continue;
+
+    const inner = bracket.slice(1, -1);
+    const holes = [...inner.matchAll(PLACEHOLDERS)];
+    if (holes.length > 0 && holes[0][0].length < inner.trim().length) {
+      for (const hole of holes) {
+        const start = match.index + 1 + hole.index;
+        blanks.push({ bracket, start, end: start + hole[0].length });
+      }
+    } else {
+      blanks.push({ bracket, start: match.index, end: match.index + bracket.length });
+    }
+  }
+  return blanks;
+}
+
+/**
+ * The wording with a value in place of each blank, in order. Null when a value
+ * is missing or empty, so a half-filled wording is never saved.
+ */
+export function fillBlanks(language: string, quote: string | null, values: string[]): string | null {
+  const blanks = blanksIn(language, quote);
+  const typed = values.map((v) => v.trim());
+  if (typed.length !== blanks.length || typed.some((v) => !v)) return null;
+
+  // Last first, so each earlier position still holds.
+  let filled = language;
+  for (let i = blanks.length - 1; i >= 0; i--) {
+    filled = filled.slice(0, blanks[i].start) + typed[i] + filled.slice(blanks[i].end);
+  }
+  return filled;
+}
+
+/** A few words either side of a blank, so two written the same can be told apart. */
+export function blankContext(language: string, blank: Blank): { before: string; after: string } {
+  const head = language.slice(0, blank.start);
+  const tail = language.slice(blank.end);
+  const before = head.match(new RegExp(`(?:\\S+\\s*){0,${CONTEXT_WORDS}}$`))?.[0] ?? "";
+  const after = tail.match(new RegExp(`^(?:\\s*\\S+){0,${CONTEXT_WORDS}}`))?.[0] ?? "";
+
+  return {
+    before: before.length < head.trimStart().length ? `… ${before}` : before,
+    after: after.length < tail.trimEnd().length ? `${after} …` : after,
+  };
+}
+
+export function wordingProblem(language: string, quote: string | null): WordingProblem | null {
+  const [blank] = blanksIn(language, quote);
   if (blank) {
-    return { reason: "unfilled_blank", detail: `The proposed wording still has a blank to fill in: ${blank}.` };
+    return { reason: "unfilled_blank", detail: `The proposed wording still has a blank to fill in: ${blank.bracket}.` };
   }
   if (INSTRUCTION.test(language)) {
     return {

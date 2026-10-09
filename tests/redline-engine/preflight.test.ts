@@ -24,19 +24,16 @@ const finding = (over: Partial<PreviewFinding>): PreviewFinding => ({
 const preview = (f: PreviewFinding, contract: string | null = CONTRACT) => previewFindings([f], contract).get(f.id);
 
 describe("previewFindings", () => {
-  it("says a blank must be filled before the change can go in", () => {
+  it("leaves a blank to the card's own fields, and says nothing", () => {
     const out = preview(
       finding({ quoted_text: SERVICE, language: "Food and beverage prices carry a gratuity of [X]% and a service charge of 21%." })
     );
-    expect(out).toEqual({
-      export_issue: "Won't go into the redline yet: the wording still has a blank, [X]. Use Edit to fill it in.",
-      redline_language: null,
-    });
+    expect(out).toEqual({ export_issue: null, redline_language: null });
   });
 
-  it("checks the wording for blanks even without the contract text", () => {
+  it("says nothing about a blank without the contract text either", () => {
     const out = preview(finding({ quoted_text: SERVICE, language: "A gratuity of [X]% applies." }), null);
-    expect(out?.export_issue).toContain("[X]");
+    expect(out?.export_issue).toBeNull();
   });
 
   it("says a quote-less rewrite of existing wording can't be marked up", () => {
