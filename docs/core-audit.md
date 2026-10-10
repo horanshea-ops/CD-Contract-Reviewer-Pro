@@ -463,7 +463,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Proposed fix, free. The reader reads a text box's wording as paragraphs after the paragraph that anchors it, and reads through wrappers it doesn't know. All of it is locked against edits to start with. Whatever wording is still unread is counted at upload and noted on the review, the way an unread picture is today.
 - Risk is medium. It adds runs to the reader's map, which the engine and its oracle share. The lock keeps the engine out. The replay must place the same 605 changes.
 - Rests on one contract. Whether a box is ticked is a drawn shape in that file, and no reader could tell.
-- **Built 2026-10-10 on `audit/4-2-text-boxes`, not merged. It waits on the user's yes.**
+- **Built and merged to `main` on 2026-10-10** (`audit/4-2-text-boxes`, user's yes).
   - The reader takes one copy of each text box and reads its paragraphs after the paragraph that anchors it, in the same table cell when the anchor sits in one.
   - It reads through a simple field, a smart tag, custom XML, the text-direction wrappers, and a table row or cell wrapped in a content control.
   - **A change to wording in a text box is refused, with its own reason** (`in_unedited_part`). The card says "The wording sits in a text box, which the redline doesn't change." and offers Edit and the email to the property. Word stores most boxes twice, and a change written to one copy could show a hotel the old wording. Lifting the lock needs a made-up file checked in two viewers.
@@ -543,7 +543,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 | # | Fix | Cost | Needs |
 |---|---|---|---|
 | 1 | Clause numbers and headings (4.1, 4.4) | Done, on `main` | Nothing |
-| 2 | Text boxes and unread wording (4.2, 4.8) | Built, not merged | The user's yes |
+| 2 | Text boxes and unread wording (4.2, 4.8) | Done, on `main` | Nothing |
 | 3 | The size check (4.3) | Free, small | A yes |
 | 4 | Fail loudly when the Word file can't be read (4.7) | Free, small | A yes |
 | 5 | Skip the page-number step on the Word route (4.6), and the empty table (4.9) | Free, small | A yes |
