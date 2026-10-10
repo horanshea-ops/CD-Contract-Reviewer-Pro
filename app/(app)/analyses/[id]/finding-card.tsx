@@ -12,7 +12,9 @@ import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
 import { findingCategory } from "@/lib/findings-overview";
+import { blanksIn } from "@/lib/redline-engine/wording";
 import type { Category } from "@/lib/standards/types";
+import BlankFields from "./blank-fields";
 import ChangeView from "./change-view";
 
 export interface Finding {
@@ -161,8 +163,10 @@ export default function FindingCard({
     finding.current_action?.action === "edit" && finding.current_action.edited_language
       ? finding.current_action.edited_language
       : finding.proposed_language;
+  // A blank is filled on the card before the change can be accepted.
+  const hasBlank = !isLegal && blanksIn(language, finding.quoted_text).length > 0;
 
-  async function submitAction(action: "accept" | "edit" | "dismiss") {
+  async function submitAction(action: "accept" | "edit" | "dismiss", wording = editedLanguage) {
     setSaving(true);
     setError("");
 
@@ -174,7 +178,7 @@ export default function FindingCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          editedLanguage: action === "edit" ? editedLanguage : undefined,
+          editedLanguage: action === "edit" ? wording : undefined,
           dismissalReason: action === "dismiss" ? reason : undefined,
         }),
       });
@@ -186,7 +190,7 @@ export default function FindingCard({
       }
       onActionRecorded(finding.id, {
         action,
-        edited_language: action === "edit" ? editedLanguage : null,
+        edited_language: action === "edit" ? wording : null,
         dismissal_reason: action === "dismiss" ? reason : null,
       });
       setMode("view");
@@ -312,6 +316,16 @@ export default function FindingCard({
         </Meta>
       )}
 
+      {hasBlank && mode === "view" && finding.current_action?.action !== "dismiss" && (
+        <BlankFields
+          key={language}
+          language={language}
+          quote={finding.quoted_text}
+          saving={saving}
+          onSave={(filled) => submitAction("edit", filled)}
+        />
+      )}
+
       {mode === "view" && finding.current_action && !changingDecision && (
         <div className="mt-4 flex items-center gap-3">
           <Meta as="span" className="font-medium text-[var(--text-secondary)]">
@@ -325,14 +339,16 @@ export default function FindingCard({
 
       {mode === "view" && (!finding.current_action || changingDecision) && (
         <div className="flex gap-2 mt-4">
-          <Button
-            size="sm"
-            onClick={() => submitAction("accept")}
-            loading={saving}
-            loadingText={isLegal ? "Flagging..." : "Accepting..."}
-          >
-            {isLegal ? "Flag for client" : "Accept"}
-          </Button>
+          {!hasBlank && (
+            <Button
+              size="sm"
+              onClick={() => submitAction("accept")}
+              loading={saving}
+              loadingText={isLegal ? "Flagging..." : "Accepting..."}
+            >
+              {isLegal ? "Flag for client" : "Accept"}
+            </Button>
+          )}
           {!isLegal && (
             <Button
               variant="secondary"
