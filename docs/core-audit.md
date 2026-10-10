@@ -243,6 +243,31 @@ Every stored Word review's cards were worked out as the screen works them out to
 - Cost. One engine run per load, about a second on a 1.2 MB file, cached until a decision changes.
 - To settle in its plan. The engine's answer depends on which findings are accepted together, so the dry run has to say what it assumes about undecided ones.
 - Priority is low on today's numbers. Do it if the beta shows refusals the card didn't foresee.
+- **The user overruled the priority on 2026-10-10.** An associate who has decided every change should not learn at export that one has no place, and "raise it another way" is not an instruction. The order of the steps is wrong however rarely it bites.
+- **Built 2026-10-10 on `audit/2-4-check-before-export`, not merged. It waits on migration 018.**
+  - **The check runs early.** When a Word upload's review screen loads, the server runs the redline engine and its oracle over every change that isn't dismissed. Each card shows the engine's own answer.
+  - **A change with no place can't be accepted as it stands.** Its card says why and offers a way to settle it.
+
+    | What is wrong | What the card offers |
+    |---|---|
+    | The quote is in several places | Each place, with "This one" |
+    | The quote isn't in the contract | "Show me where". The associate selects the wording in the document pane, sees the change against it, and confirms |
+    | Two changes cover the same words | "Keep this one" and "Keep the other", each naming the other change |
+    | A row that won't split, a locked part of the file, and the rest | The engine's sentence, with Edit |
+    | Any of the above but an overlap | "Send this in the email to the property" |
+
+  - **Sent by email is done by the app.** The property email's draft carries a list of those changes after the model's text, written by code in fixed words. The model's payload is unchanged and never holds them. A test pins that the list carries the clause, the contract's wording and the proposed wording, and none of CD's position.
+  - **The export screen lists nothing.** If a file's check still finds an accepted change with no place, the row says how many and takes the associate to the card. It offers no download of a file that lacks one.
+  - **The whole-file case is announced early.** The review screen says up front when the Word file would fall back to the marked-up PDF.
+  - Migration 018 adds three columns to a decision: the wording picked, the wording before it, and the email choice. Placing a change accepts it, as filling a blank does.
+  - Lint, the type check and 1,717 tests pass. The replay places the same 605 changes on all 25 reviews.
+  - Timing on the 25 stored reviews. The check took 1.7 seconds at worst, download included, and is cached until a decision changes it.
+  - Seen in the dev browser with nothing saved. `65f10383` lists the 10 places "Office" was found. `c27f414d` took a selection in the document pane and showed the change against it. Neither card offers Accept.
+  - **Three departures from the plan.**
+    - The card's older check (`lib/redline-engine/preflight.ts`) is not deleted. A PDF or .doc upload has no Word file to run the engine on, and still uses it.
+    - Both PDFs still list a change with no place after the contract. That list is the net under a Word file that falls back, and it is inside the file, not on the export screen.
+    - "Show me where" is offered only where the quote is the trouble. A row that won't split into its columns needs an edit, not a selection.
+  - Not checked in the browser: any save, since each writes to the shared database and needs the migration.
 
 **2.5 One export message gives advice that fits one of its causes.**
 
@@ -269,7 +294,7 @@ Every stored Word review's cards were worked out as the screen works them out to
 | 1 | Buttons on the amount check (2.2) | Done, on `main` | Nothing |
 | 2 | A decision on the document notes (2.3) | None | Left as they are until CD gives direction (user, 2026-10-10) |
 | 3 | The engine's own sentence in the export dialog (2.5) | Free, small | A plan and a yes |
-| 4 | The engine as the card's check (2.4, 2.6) | Free, larger | Evidence from the beta first |
+| 4 | The engine as the card's check (2.4, 2.6) | Built, not merged | Migration 018 applied by the user |
 
 ### Second pass, 2026-10-10. The export dialog, the email panels and the new-review form
 

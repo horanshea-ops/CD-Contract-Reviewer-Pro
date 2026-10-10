@@ -398,7 +398,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
 | Live on `main` | Everything built to date, including the four branches merged on 2026-10-10 (table cells, blank fields, across paragraphs, old engine removed) and the amount-check buttons. `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | Accept All and Reject All on `sample-across-paragraphs-redline.docx` in Word for the web. On the next real review, one click each of "Save and accept" on a blank field and "Use" or "Keep" on an amount check, which no one has clicked yet. |
+| Waiting on the user | **Apply migration 018** (`supabase/migrations/018_placement_fixes.sql`) in Supabase's SQL editor. `audit/2-4-check-before-export` merges after it. Accept All and Reject All on `sample-across-paragraphs-redline.docx` in Word for the web. On the next real review, one click each of "Save and accept" on a blank field and "Use" or "Keep" on an amount check, which no one has clicked yet. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -729,6 +729,23 @@ warning whether it is needed and whether the work can be done more simply.
   **Both built and merged 2026-10-10.** 1,667 tests pass. The clean copy's
   list was seen in the dev browser on `98d84aa5`. The crash screen rests on
   tests, since no stored file crashes the engine.
+- **The check before export (user's direction, 2026-10-10). Built on
+  `audit/2-4-check-before-export`, not merged. It waits on migration 018.**
+  - The user's rule. A change that can't be exported is raised before the
+    export screen, on its card, with a specific way to settle it. "Raise it
+    another way" is not an instruction.
+  - The redline engine now runs when a Word upload's review screen loads.
+    Each card shows what the redline will do with its change.
+  - A change with no place can't be accepted until it is settled. The card
+    offers a pick among several places, a selection in the document pane, a
+    choice between two overlapping changes, or the email to the property.
+  - The property email lists changes sent that way, written by code after
+    the model's draft. The model never sees the list.
+  - The export screen no longer lists changes that could not be included.
+  - 1,717 tests pass, and the replay places the same 605 changes. Details
+    and three departures from the plan are in `docs/core-audit.md`, 2.4.
+  - **No save has been clicked.** After the migration, one save on a made-up
+    review needs the user's yes.
 - **Next is piece 4, reading the Word file.**
 
 **Archived for the beta.** Three features are off the live build and kept in
