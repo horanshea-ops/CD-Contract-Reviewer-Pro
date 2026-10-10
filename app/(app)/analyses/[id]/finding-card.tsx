@@ -12,7 +12,9 @@ import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
 import { findingCategory } from "@/lib/findings-overview";
+import { needsPlacement, placementMessage } from "@/lib/placement-message";
 import { figureCheck, figureProblems, withWorkedAmounts } from "@/lib/proposed-figures";
+import type { UnappliedReason } from "@/lib/redline-validation/types";
 import { blanksIn } from "@/lib/redline-engine/wording";
 import type { Category } from "@/lib/standards/types";
 import BlankFields from "./blank-fields";
@@ -48,6 +50,23 @@ export interface Finding {
     action: "accept" | "edit" | "dismiss";
     edited_language: string | null;
     dismissal_reason: string | null;
+    /** The contract wording the associate picked for the change, in place of the model's quote. */
+    edited_quote?: string | null;
+    /** True when the change goes to the property by email and not in the redline. */
+    by_email?: boolean;
+  } | null;
+  /**
+   * What the redline will do with this change, from the redline engine itself.
+   * Present on a Word upload. Null when the change isn't one the redline takes.
+   */
+  placement?: {
+    placed: boolean;
+    reason: UnappliedReason | null;
+    detail: string;
+    conflictsWith: string | null;
+    places: { before: string; match: string; after: string }[] | null;
+    alsoStrikes: string | null;
+    redlineLanguage: string | null;
   } | null;
   /** Why the change, or part of it, won't go into the redline. Worked out by the analysis API. */
   export_issue?: string | null;
@@ -122,11 +141,14 @@ export default function FindingCard({
   finding,
   onActionRecorded,
   onSelectFinding,
+  conflictLabel = null,
   locateMode = "pdf",
   focused = false,
   nested = false,
 }: {
   finding: Finding;
+  /** The change this one overlaps, by its headline, when the redline can take only one of the two. */
+  conflictLabel?: string | null;
   onActionRecorded: (findingId: string, action: Finding["current_action"]) => void;
   onSelectFinding?: (finding: Finding) => void;
   /** "docx" for the HTML preview (no page concept — always offers to jump to the match). Defaults to "pdf". */
@@ -162,10 +184,15 @@ export default function FindingCard({
     finding.current_action?.action === "edit" && finding.current_action.edited_language
       ? finding.current_action.edited_language
       : finding.proposed_language;
+  // The contract wording the change replaces: the associate's pick where they made one.
+  const quote = finding.current_action?.edited_quote ?? finding.quoted_text;
+  const placement = finding.placement ?? null;
+  // The redline has no place for this change, so the card offers a way to give it one before it can be accepted.
+  const unplaced = !isLegal && finding.current_action?.action !== "dismiss" && needsPlacement(placement);
   // A blank is filled on the card before the change can be accepted.
-  const hasBlank = !isLegal && blanksIn(language, finding.quoted_text).length > 0;
+  const hasBlank = !isLegal && !unplaced && blanksIn(language, quote).length > 0;
   // A proposed amount that doesn't follow from its formula. The associate picks one before the change is accepted.
-  const amounts = isLegal ? [] : figureProblems(finding.quoted_text, language);
+  const amounts = isLegal || unplaced ? [] : figureProblems(quote, language);
   const deciding = !finding.current_action || changingDecision;
 
   async function submitAction(action: "accept" | "edit" | "dismiss", wording = editedLanguage) {
@@ -202,6 +229,31 @@ export default function FindingCard({
       const message = "Not saved. Check your connection and try again.";
       setError(message);
       showToast(message, "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /** Dismisses one of two overlapping changes, this one or the other, so the redline can take the one kept. */
+  async function dismissOverlap(findingId: string) {
+    setSaving(true);
+    setError("");
+    const reason = "Overlaps another change";
+    try {
+      const res = await fetch(`/api/findings/${findingId}/actions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "dismiss", dismissalReason: reason }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error || "Could not save.");
+        return;
+      }
+      onActionRecorded(findingId, { action: "dismiss", edited_language: null, dismissal_reason: reason });
+      showToast(findingId === finding.id ? "Dismissed." : "The other change was dismissed.");
+    } catch {
+      setError("Not saved. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -261,8 +313,8 @@ export default function FindingCard({
         </div>
       ) : (
         <ChangeView
-          quote={finding.quoted_text}
-          language={finding.redline_language ?? language}
+          quote={quote}
+          language={placement?.redlineLanguage ?? finding.redline_language ?? language}
           addition={finding.is_missing_clause || !finding.quoted_text}
           footnote={
             locateMode !== "docx" &&
@@ -303,7 +355,31 @@ export default function FindingCard({
         </Body>
       )}
 
+      {placement?.alsoStrikes && (
+        <Meta as="p" className="mt-2 text-[var(--text-secondary)]">
+          This change replaces the whole sentence, so it also strikes: &ldquo;{placement.alsoStrikes}&rdquo;
+        </Meta>
+      )}
+
       {!isLegal && language.trim() && <RedlineComment finding={finding} />}
+
+      {unplaced && mode === "view" && (
+        <div className="mt-3 space-y-2 rounded-md border border-[var(--border)] px-3 py-2.5">
+          <Meta as="p" className="text-[var(--text-primary)]">
+            {placementMessage(placement, conflictLabel)}
+          </Meta>
+          {placement.reason === "overlaps_another_change" && placement.conflictsWith && (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => dismissOverlap(placement.conflictsWith!)} loading={saving} loadingText="Saving...">
+                Keep this one
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => dismissOverlap(finding.id)} disabled={saving}>
+                Keep the other
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* A point raised without wording says so once, in the Other section's heading. */}
       {finding.export_issue && language.trim() && (
@@ -362,7 +438,7 @@ export default function FindingCard({
 
       {mode === "view" && deciding && (
         <div className="flex gap-2 mt-4">
-          {!hasBlank && amounts.length === 0 && (
+          {!hasBlank && amounts.length === 0 && !unplaced && (
             <Button
               size="sm"
               onClick={() => submitAction("accept")}
