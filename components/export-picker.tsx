@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import { Body, Meta } from "@/components/ui/typography";
 import { downloadFile } from "@/lib/download";
+import { memoFilename } from "@/lib/exports/memo-filename";
 import { getMarkupReason } from "@/lib/pdf-markup-reason";
 import { clauseLabel } from "@/lib/format";
 import { ORG } from "@/lib/org";
@@ -138,7 +139,7 @@ export function ExportPicker({
 
   // Only a fallback. The route names each file on the way out.
   const fallbackName: Record<ExportKey, string> = {
-    memo: `requested-revisions-${short}.pdf`,
+    memo: memoFilename(analysisId),
     markup: `marked-up-${short}.pdf`,
     redline: `tracked-changes-${short}.docx`,
     clean: `proposed-contract-${short}.pdf`,
