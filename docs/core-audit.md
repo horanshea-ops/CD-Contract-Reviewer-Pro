@@ -628,6 +628,12 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 - **Confirmed in the dev browser.** `/auth/callback?next=/%09/example.com`, opened while signed in, landed on example.com.
 - What it allows. A link that starts on the real app and ends on a look-alike page asking for a password. It gives no access to the app by itself.
 - Proposed fix, free and small. `safeNext` resolves the value the way a browser does and follows it only when it stays on the app's own address. Its test gains the cases above.
+- **Built on 2026-10-10** (`audit/8-2-8-3-redirect-and-memo`, user's yes to the plan).
+  - `safeNext` resolves the value with the standard URL parser against a stand-in address, and follows it only when the result is still on that address. It returns the cleaned path, so the app follows exactly what was checked.
+  - **A second gap turned up in planning.** `/.//example.com` stays on the app when first resolved and cleans to the path `//example.com`, which a browser reads as another site on the next read. The cleaned path is resolved a second time and refused unless it comes back unchanged.
+  - Only `lib/safe-next.ts` and its test changed. `/auth/callback` is the only caller.
+  - The test went from 3 cases to 12. One of them builds 2,197 values from slashes, backslashes, tabs, newlines, dots and other pieces, and checks that none leaves the app.
+  - **Proved in the dev browser, signed in.** Before the fix, `/auth/callback?next=/%09/example.com` landed on example.com. After it, that link, `next=/%0A/example.com` and `next=/.//example.com` each landed on the dashboard, and `next=/account` still landed on `/account`.
 
 **8.3 The internal memo travels with the hotel's files and isn't marked internal.**
 
@@ -642,6 +648,12 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
   - A zip never mixes the two groups. Picking from both gives two downloads.
 - This is the finding I would fix first for the beta, by what it would cost if it went wrong.
 - **The user's decision, 2026-10-10.** The memo's file name says it is internal. Everything can still be exported together as one zip, so the third part above is dropped.
+- **Asked on 2026-10-10 whether the memo's pages should carry a line too. The user chose the file name only**, so the pages and the dialog's grouping stay as they are.
+- **Built on 2026-10-10** (`audit/8-2-8-3-redirect-and-memo`, user's yes to the plan).
+  - The memo is saved as `internal-requested-revisions-<id>.pdf`.
+  - The name was written in two places. `memoFilename` in `lib/exports/memo-filename.ts` now builds it for the export route and for the dialog's fallback.
+  - One zip still holds every picked file, and the zip test expects the new name inside it.
+  - **Proved in the dev browser.** One memo export on the made-up Rome review (`65f10383`) answered with the file name `internal-requested-revisions-65f10383.pdf`. The export dialog opened with no error. The export wrote one row to `exports` and one to the audit log, which the plan named.
 
 **8.4 The review prompt doesn't say that a contract may carry instructions, and the proposed wording has no check of its own.**
 
@@ -703,8 +715,8 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 | # | Fix | Cost | Needs |
 |---|---|---|---|
 | 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Done, on `main` | Nothing |
-| 2 | Close the after-sign-in redirect (8.2) | Free, small | A yes |
-| 3 | Mark the memo internal by its file name, with one zip kept for everything (8.3) | Free, small | A short plan and a yes |
+| 2 | Close the after-sign-in redirect (8.2) | Built, 2026-10-10 | A yes to merge |
+| 3 | Mark the memo internal by its file name, with one zip kept for everything (8.3) | Built, 2026-10-10 | A yes to merge |
 | 4 | Hand the engine only its own fields (8.5) | Free, small | A yes |
 | 5 | Check proposed wording, and note hidden wording (8.4) | Free | A plan and a yes |
 | 6 | The prompt sentence about instructions in a contract (8.4) | About $0.30 | A quoted run and a yes |
