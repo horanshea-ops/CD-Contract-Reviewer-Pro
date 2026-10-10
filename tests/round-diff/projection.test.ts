@@ -15,7 +15,7 @@ import { buildDocx, buildNumberedDocx, numbered, para, run, table } from "../hel
 
 async function walk(bytes: Uint8Array): Promise<WalkResult> {
   const pkg = await loadDocx(bytes);
-  const numbering = new NumberingResolver(pkg.numbering);
+  const numbering = new NumberingResolver(pkg.numbering, pkg.styles);
   return pkg.textParts.map((p) => walkPart(p, numbering)).find((p) => p.part === "document")!;
 }
 

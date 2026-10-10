@@ -343,6 +343,7 @@ function Block({ block, partName, marking }: { block: PreviewBlock; partName: st
     const tag = `h${level}` as HeadingTag;
     return (
       <Text as={tag} className={className}>
+        {block.marker && <span className="mr-2">{block.marker}</span>}
         {runs}
       </Text>
     );

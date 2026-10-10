@@ -18,7 +18,7 @@ import { buildDocx, para, run, table } from "../helpers/docx-package";
 
 async function walk(bytes: Uint8Array | Buffer): Promise<WalkResult[]> {
   const pkg = await loadDocx(bytes);
-  const numbering = new NumberingResolver(pkg.numbering);
+  const numbering = new NumberingResolver(pkg.numbering, pkg.styles);
   return pkg.textParts.map((p) => walkPart(p, numbering));
 }
 

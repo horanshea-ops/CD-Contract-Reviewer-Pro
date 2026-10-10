@@ -319,10 +319,10 @@ function layoutParagraph(runs: PreviewRun[], ctx: LayoutContext, opts: Paragraph
   let textX = indent;
   let markerPiece: Piece | null = null;
   if (opts.marker) {
-    const f = font(ctx.fonts, false);
+    const f = font(ctx.fonts, bold);
     const text = drawable(opts.marker === "-" ? "•" : opts.marker, f);
     const w = f.widthOfTextAtSize(text, opts.size);
-    markerPiece = { text, mark: "plain", bold: false, size: opts.size, x: indent, width: w };
+    markerPiece = { text, mark: "plain", bold, size: opts.size, x: indent, width: w };
     textX = indent + Math.max(LIST_INDENT, w + MARKER_GAP);
   }
 
@@ -362,6 +362,7 @@ function layoutBlocks(blocks: PreviewBlock[], width: number, ctx: LayoutContext)
           width,
           size,
           bold: true,
+          marker: block.marker,
           gapBefore: first ? 0 : Math.max(gap, HEADING_GAP),
           keepWithNext: true,
         })

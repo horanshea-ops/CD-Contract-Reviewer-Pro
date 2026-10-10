@@ -19,7 +19,7 @@ const FIXTURES = path.join("tests", "fixtures");
 
 async function walkFixture(file: string) {
   const pkg = await loadDocx(await readFile(path.join(FIXTURES, file)));
-  const numbering = new NumberingResolver(pkg.numbering);
+  const numbering = new NumberingResolver(pkg.numbering, pkg.styles);
   return pkg.textParts.map((p) => walkPart(p, numbering));
 }
 
@@ -65,7 +65,7 @@ describe("a run holding more than one text child", () => {
       `<w:p><w:r><w:t xml:space="preserve">Deposit </w:t><w:t xml:space="preserve">schedule</w:t></w:r></w:p>`
     );
     const pkg = await loadDocx(bytes);
-    const [document] = pkg.textParts.map((p) => walkPart(p, new NumberingResolver(pkg.numbering)));
+    const [document] = pkg.textParts.map((p) => walkPart(p, new NumberingResolver(pkg.numbering, pkg.styles)));
 
     const at = document.text.indexOf("schedule");
     expect(at).toBeGreaterThan(-1);
@@ -111,7 +111,7 @@ describe("table and cell identity", () => {
 
   it("numbers tables in the same order the DOM reports them, nesting included", async () => {
     const pkg = await loadDocx(await readFile(path.join(FIXTURES, "13-nested-merged-tables.docx")));
-    const numbering = new NumberingResolver(pkg.numbering);
+    const numbering = new NumberingResolver(pkg.numbering, pkg.styles);
     const [document] = pkg.textParts.map((p) => walkPart(p, numbering));
 
     const seen = new Set<number>();

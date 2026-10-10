@@ -263,28 +263,35 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     }
   }
 
-  /** Prefix a paragraph with its heading marker or list number, both synthetic. */
-  function paragraphPrefix(node: Element): string {
-    const pPr = firstChild(node, "w:pPr");
-    if (!pPr) return "";
-
-    const numPr = firstChild(pPr, "w:numPr");
-    if (numPr) {
-      const numId = firstChild(numPr, "w:numId")?.getAttribute("w:val");
-      const ilvl = Number(firstChild(numPr, "w:ilvl")?.getAttribute("w:val") ?? "0");
-      if (numId) {
-        const label = numbering.next(numId, ilvl);
-        if (label) return `${"  ".repeat(ilvl)}${label} `;
-      }
-      return `${"  ".repeat(ilvl)}- `;
+  /** True when the paragraph holds wording, live or struck. */
+  function hasWording(node: Element): boolean {
+    for (const name of ["w:t", "w:delText"]) {
+      const texts = node.getElementsByTagName(name);
+      for (let i = 0; i < texts.length; i++) if (texts[i].textContent) return true;
     }
+    return false;
+  }
 
-    const style = firstChild(pPr, "w:pStyle")?.getAttribute("w:val") ?? "";
-    const outline = firstChild(pPr, "w:outlineLvl")?.getAttribute("w:val");
-    const m = /^Heading(\d)$/i.exec(style);
-    const level = m ? Number(m[1]) : outline != null ? Number(outline) + 1 : 0;
-    if (level >= 1 && level <= 6) return `${"#".repeat(level)} `;
-    return "";
+  /**
+   * Prefix a paragraph with its heading marker, its list number, or both, all
+   * synthetic. A numbered heading reads "# 1. ", and a list item is indented
+   * by its level.
+   *
+   * A heading style marks no heading on an empty paragraph or inside a table
+   * cell. Word's own outline leaves both out.
+   */
+  function paragraphPrefix(node: Element, ctx: Ctx): string {
+    const pPr = firstChild(node, "w:pPr");
+    const level = ctx.inCell || !hasWording(node) ? 0 : numbering.styles.headingLevelOf(pPr);
+    const hashes = level ? `${"#".repeat(level)} ` : "";
+
+    const list = numbering.numberingOf(pPr);
+    if (!list) return hashes;
+
+    const label = numbering.next(list.numId, list.ilvl);
+    if (label === "") return hashes;
+    if (hashes) return label === null ? hashes : `${hashes}${label} `;
+    return `${"  ".repeat(list.ilvl)}${label ?? "-"} `;
   }
 
   function walkTable(node: Element, ctx: Ctx) {
@@ -314,7 +321,7 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
 
   function walkParagraph(node: Element, ctx: Ctx) {
     paragraphIndex++;
-    sink.synthetic(paragraphPrefix(node));
+    sink.synthetic(paragraphPrefix(node, ctx));
     const field: FieldState = { inInstruction: false, inResult: false };
     walkChildren(node, ctx, field);
     // Inside a cell the paragraph break would break the table row apart.

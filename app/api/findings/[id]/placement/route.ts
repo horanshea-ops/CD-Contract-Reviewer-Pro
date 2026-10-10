@@ -54,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Could not load the original document." }, { status: 500 });
     }
     const pkg = await loadDocx(new Uint8Array(await blob.arrayBuffer()));
-    const numbering = new NumberingResolver(pkg.numbering);
+    const numbering = new NumberingResolver(pkg.numbering, pkg.styles);
     const parts = pkg.textParts.map((p) => walkPart(p, numbering));
 
     const problem = placementProblem(parts, input.quote, finding.location_section, input.context ?? null);

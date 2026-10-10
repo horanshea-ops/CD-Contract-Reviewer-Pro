@@ -27,8 +27,9 @@ import {
  *
  * Every literal string `Sink.synthetic()` is ever called with is one of a
  * small closed set (see CONTROL below); anything synthetic that isn't one of
- * those literals can only be a heading prefix or a resolved list marker —
- * the only other thing `paragraphPrefix()` in walk.ts produces. That gives an
+ * those literals can only be a heading prefix, a resolved list marker, or a
+ * heading prefix with its number ("# 1. ") — the only other things
+ * `paragraphPrefix()` in walk.ts produces. That gives an
  * unambiguous, context-free way to invert the emission, except for a bare
  * "\n" (an inline `w:br` vs. a table boundary), which is disambiguated by
  * *position* in the grammar below rather than content: a table boundary is
@@ -46,7 +47,7 @@ export interface PreviewRun {
 }
 
 export type PreviewBlock =
-  | { kind: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; runs: PreviewRun[] }
+  | { kind: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; /** The heading's number, when it is numbered. */ marker?: string; runs: PreviewRun[] }
   | { kind: "list-item"; indent: number; marker: string; runs: PreviewRun[] }
   | { kind: "paragraph"; runs: PreviewRun[] }
   | { kind: "table"; rows: PreviewRow[] };
@@ -65,7 +66,7 @@ export interface PreviewPart {
 }
 
 const CONTROL = new Set(["\t", "\n", "-", " ", "\n\n", "|", " |", " --- |"]);
-const HEADING_RE = /^#{1,6} $/;
+const HEADING_RE = /^(#{1,6}) (?:(.+) )?$/;
 
 function isAccepted(span: MarkupSpan): boolean {
   return span.revision === null || span.revision.kind === "ins" || span.revision.kind === "moveTo";
@@ -119,22 +120,22 @@ class Cursor {
   }
 }
 
-function parsePrefix(text: string): { level: number } | { marker: string; indent: number } {
+function parsePrefix(text: string): { level: number; marker?: string } | { marker: string; indent: number } {
   const heading = HEADING_RE.exec(text);
-  if (heading) return { level: heading[0].length - 1 };
+  if (heading) return { level: heading[1].length, marker: heading[2] };
   const indentMatch = /^(?: {2})*/.exec(text);
   const indent = indentMatch ? indentMatch[0].length / 2 : 0;
   return { marker: text.slice(indentMatch?.[0].length ?? 0).trimEnd(), indent };
 }
 
 function parseParagraph(cur: Cursor, inCell: boolean): PreviewBlock {
-  let heading: number | null = null;
+  let heading: { level: number; marker?: string } | null = null;
   let listItem: { marker: string; indent: number } | null = null;
 
   if (cur.isPrefixCandidate()) {
     const prefix = cur.take();
     const parsed = parsePrefix(prefix.text);
-    if ("level" in parsed) heading = parsed.level;
+    if ("level" in parsed) heading = parsed;
     else listItem = parsed;
   }
 
@@ -145,7 +146,10 @@ function parseParagraph(cur: Cursor, inCell: boolean): PreviewBlock {
   }
   if (cur.isNext(terminator)) cur.skip();
 
-  if (heading != null) return { kind: "heading", level: heading as 1 | 2 | 3 | 4 | 5 | 6, runs };
+  if (heading) {
+    const level = heading.level as 1 | 2 | 3 | 4 | 5 | 6;
+    return heading.marker ? { kind: "heading", level, marker: heading.marker, runs } : { kind: "heading", level, runs };
+  }
   if (listItem) return { kind: "list-item", indent: listItem.indent, marker: listItem.marker, runs };
   return { kind: "paragraph", runs };
 }
