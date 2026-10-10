@@ -26,6 +26,14 @@ export interface PickedWording {
 
 type Placement = NonNullable<Finding["placement"]>;
 
+/** Wording around a place, for reading. The review's text marks a table with pipes and a rule under its first row. */
+const forReading = (text: string) =>
+  text
+    .replace(/(?:\|\s*-{3,}\s*)+\|?/g, " ")
+    .replace(/\s*\|\s*/g, " · ")
+    .replace(/(?:\s*·\s*){2,}/g, " · ")
+    .replace(/\s+/g, " ");
+
 export default function PlacementFix({
   finding,
   placement,
@@ -90,6 +98,8 @@ export default function PlacementFix({
 
   const overlap = placement.reason === "overlaps_another_change" && placement.conflictsWith;
   const places = placement.reason === "ambiguous_quote" ? (placement.places ?? []) : [];
+  // Selecting wording helps when the quote is the trouble. A row that won't split into its columns needs an edit.
+  const quoteIsTheTrouble = placement.reason === "not_located" || placement.reason === "ambiguous_quote";
 
   return (
     <div className="mt-3 space-y-2 rounded-md border border-[var(--border)] px-3 py-2.5">
@@ -113,9 +123,9 @@ export default function PlacementFix({
           {places.map((place, i) => (
             <li key={i} className="flex items-start justify-between gap-3 rounded border border-[var(--border)] bg-white px-2 py-1.5">
               <Meta as="p" className="text-[var(--text-secondary)]">
-                …{place.before}
+                …{forReading(place.before)}
                 <span className="font-semibold text-[var(--text-primary)]">{place.match}</span>
-                {place.after}…
+                {forReading(place.after)}…
               </Meta>
               <Button
                 variant="secondary"
@@ -153,6 +163,7 @@ export default function PlacementFix({
       {!overlap && !picked && (
         <div className="flex flex-wrap gap-2">
           {canPick &&
+            quoteIsTheTrouble &&
             (picking ? (
               <Button variant="ghost" size="sm" onClick={onCancelPick}>
                 Stop selecting
