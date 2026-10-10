@@ -627,6 +627,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
   - The dialog groups its rows under "For the property" and "For CD and the client".
   - A zip never mixes the two groups. Picking from both gives two downloads.
 - This is the finding I would fix first for the beta, by what it would cost if it went wrong.
+- **The user's decision, 2026-10-10.** The memo's file name says it is internal. Everything can still be exported together as one zip, so the third part above is dropped.
 
 **8.4 The review prompt doesn't say that a contract may carry instructions, and the proposed wording has no check of its own.**
 
@@ -655,6 +656,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 - An outsider who signs up gets a session and nothing else. The probe shows a signed-in session can read no table and no file, and every route checks the associates list.
 - The sign-in page never creates an account, so sign-ups aren't needed for it.
 - Proposed, for the user. Switch sign-ups off in the Supabase dashboard, after checking how a new associate's account is made today. It belongs with the Microsoft sign-in set-up before hand-off to CD.
+- **The user asked on 2026-10-10 to be reminded of this**, so it stays on the roadmap's list of things owed by the user until it is done.
 
 **8.7 The app sends no security headers.**
 
@@ -688,7 +690,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 |---|---|---|---|
 | 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Free | A plan and a yes |
 | 2 | Close the after-sign-in redirect (8.2) | Free, small | A yes |
-| 3 | Mark the memo internal and keep it out of the hotel's zip (8.3) | Free | A plan and a yes |
+| 3 | Mark the memo internal by its file name, with one zip kept for everything (8.3) | Free, small | A short plan and a yes |
 | 4 | Hand the engine only its own fields (8.5) | Free, small | A yes |
 | 5 | Check proposed wording, and note hidden wording (8.4) | Free | A plan and a yes |
 | 6 | The prompt sentence about instructions in a contract (8.4) | About $0.30 | A quoted run and a yes |

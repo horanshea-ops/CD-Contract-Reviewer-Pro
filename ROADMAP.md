@@ -405,11 +405,20 @@ below wherever the two differ. Each item gets its own plan before any code.
 
 **Do first next session.**
 
-1. **Get the user's yes or no on piece 8's eight proposed fixes**
-   (`docs/core-audit.md`, "Piece 8"). The audit is on
-   `audit/8-security-boundaries`, with no app code changed. First by
-   exposure is the Next.js patch release. First by cost if it went wrong
-   is the internal memo travelling with the hotel's files.
+1. **Piece 8's fixes, in the order the user approved on 2026-10-10**, each
+   with its own plan: the Next.js patch release (8.1), the after-sign-in
+   redirect (8.2), the memo's file name (8.3), the engine's input (8.5),
+   the free parts of 8.4, then the headers (8.7). The prompt sentence in
+   8.4 needs a quoted paid run. See `docs/core-audit.md`, "Piece 8".
+   - On 8.3 the user chose a file name that says internal, and kept one
+     zip for every file.
+
+**Owed by the user. Remind them until each is done.**
+
+- **Switch sign-ups off in the Supabase dashboard** (audit 8.6, asked to
+  be reminded on 2026-10-10). Authentication, then Sign In / Providers,
+  then "Allow new users to sign up". First check how a new associate's
+  account is made today, since the sign-in page never creates one.
 2. **A change to wording in a text box is refused on purpose.** Lifting
    that needs a made-up file with a change in a box, checked by the user
    in two viewers.
