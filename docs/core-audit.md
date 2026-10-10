@@ -441,7 +441,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Proposed fix, free. The numbering resolver follows the list-style link, reads numbering from the paragraph style, counts per list with restarts honoured, and writes no marker where Word shows none.
 - Risk is low for the redline. List numbers are markers the reader adds, and the engine never edits them. It changes the text the model reads on files that use these forms, so the proof is a before-and-after of every stored file's text, and the Florida numbers checked by the user against the contract.
 - Rests on one contract in two forms. List styles are common in legal templates, so it will recur.
-- **Built 2026-10-10 on `audit/4-1-clause-numbers`, with 4.4. Not merged. It waits on the user's check of Florida's numbers.**
+- **Built and merged to `main` on 2026-10-10, with 4.4** (`audit/4-1-clause-numbers`). The user checked Florida's 30 clause numbers against the contract and they match.
   - The numbering resolver follows a list to its list style, reads numbering from the paragraph's style, keeps one count per list with restarts honoured, and uses a level an instance replaces.
   - No marker is written where Word shows none. A bullet stored as a symbol-font glyph reads "•".
   - A numbered heading reads "# 1. GENERAL INFORMATION", and the preview and both PDFs draw it as a heading with its number.
@@ -478,7 +478,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Word itself decides by the style's outline level, which both files set correctly.
 - What it costs. The preview shows those headings as body text, and the outline loses them.
 - Proposed fix, free and small. Read the outline level from the style, following the style it is based on. Goes with 4.1, since both read `styles.xml`.
-- **Built 2026-10-10 with 4.1, not merged.** The Ideal Standard gains 10 headings and the Word-saved Florida copy gains its four lettered sub-headings. Three of the Ideal Standard's ten are styles used for layout ("OR", "Hotel Chain Name", "Sit-down or Plated Meal"). Word treats them as headings too.
+- **Built and merged to `main` on 2026-10-10, with 4.1.** The Ideal Standard gains 10 headings and the Word-saved Florida copy gains its four lettered sub-headings. Three of the Ideal Standard's ten are styles used for layout ("OR", "Hotel Chain Name", "Sit-down or Plated Meal"). Word treats them as headings too.
 
 **4.5 A paragraph whose break is deleted still reads as its own paragraph.** The known lead.
 
@@ -528,7 +528,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 
 | # | Fix | Cost | Needs |
 |---|---|---|---|
-| 1 | Clause numbers and headings (4.1, 4.4) | Built, not merged | The user's check of Florida's 30 clause numbers against the contract |
+| 1 | Clause numbers and headings (4.1, 4.4) | Done, on `main` | Nothing |
 | 2 | Text boxes and unread wording (4.2, 4.8) | Free | A plan and a yes |
 | 3 | The size check (4.3) | Free, small | A yes |
 | 4 | Fail loudly when the Word file can't be read (4.7) | Free, small | A yes |

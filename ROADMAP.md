@@ -397,19 +397,19 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live model | Sonnet 5.5, since 2026-10-08. |
-| Live on `main` | Everything built to date, 1,717 tests. The check before export (`audit/2-4-check-before-export`) was merged on 2026-10-10. `phase/2-1-same-file-reuse` is parked. |
-| Built, not merged | `audit/4-1-clause-numbers`, 1,731 tests, pushed. Clause numbers and headings read the way Word reads them. It waits on the user's check of Florida's numbers. |
+| Live on `main` | Everything built to date, 1,731 tests. Merged on 2026-10-10: the check before export, the one-kind filter and bubble labels, and clause numbers and headings (audit 4.1, 4.4). `phase/2-1-same-file-reuse` is parked. |
+| Built, not merged | Nothing. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below and `docs/core-audit.md`. |
 | Migrations applied | 015 to 017, and **018 on 2026-10-10**, all by the user. 018's columns were confirmed present the same day. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
 
 **Do first next session.**
 
-1. **Merge `audit/4-1-clause-numbers` once the user confirms Florida's
-   30 clause numbers match the contract.** Name the tests run.
-2. **Get the user's yes on the next piece 4 fix.** Text boxes (4.2) is the
-   other large one. The small ones are 4.3, 4.7, and 4.6 with 4.9. Each
-   gets its own plan. See `docs/core-audit.md`, "Piece 4".
+1. **Text boxes and unread wording (audit 4.2, 4.8).** The user asked for
+   its plan on 2026-10-10. Build it on its own branch after the plan is
+   approved.
+2. **Then the small piece 4 fixes**, each with a yes: 4.3, 4.7, and 4.6
+   with 4.9. 4.5 is last. See `docs/core-audit.md`, "Piece 4".
 3. Then pieces 8, 3, 6, 7 and 9, in that order (user's "go", 2026-10-10).
 
 **The check before export is finished and merged (2026-10-10).** With the
@@ -718,7 +718,7 @@ warning whether it is needed and whether the work can be done more simply.
 | 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Findings written 2026-10-08. Five fixes proposed, none built. |
 | 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Finished 2026-10-10. The amount-check buttons are live. The second pass (export dialog, email panels, new-review form) proposed no new fix. 2.4 and 2.5 wait on evidence from the beta. |
 | 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
-| 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Findings written 2026-10-10. Six fixes proposed. The first is built and waits on the user's check. |
+| 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Findings written 2026-10-10. Six fixes proposed. The first (4.1, 4.4) is live. |
 | 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Finished 2026-10-10. Both fixes are live. 5.3, a format of its own for the clean copy in the record, is left for later. |
 | 6 | Dead and doubled code | The old engine (`lib/tracked-changes-docx.ts`), helpers written more than once, unused switches and scripts. | Not started |
 | 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
@@ -802,7 +802,7 @@ warning whether it is needed and whether the work can be done more simply.
   - **Migration 018 was applied by the user on 2026-10-10.**
   - **No save has been clicked.** One save on a made-up review needs the
     user's yes, and the merge follows it.
-- **Piece 4, reading the Word file (2026-10-10).** Findings written and six fixes proposed. The first, clause numbers and headings (4.1, 4.4), is built on `audit/4-1-clause-numbers` and waits on the user's check. The scripts in `data/private/audit/`, which git ignores, hold the before-and-after of the reader (`reader-snapshot.ts`, `reader-compare.ts`) and the replay (`replay.ts`).
+- **Piece 4, reading the Word file (2026-10-10).** Findings written and six fixes proposed. The first, clause numbers and headings (4.1, 4.4), was merged on 2026-10-10 after the user checked Florida's 30 numbers against the contract. The scripts in `data/private/audit/`, which git ignores, hold the before-and-after of the reader (`reader-snapshot.ts`, `reader-compare.ts`) and the replay (`replay.ts`).
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,
