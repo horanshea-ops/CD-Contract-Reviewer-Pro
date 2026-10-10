@@ -398,7 +398,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 |---|---|
 | Live model | Sonnet 5.5, since 2026-10-08. |
 | Live on `main` | Everything built to date, 1,791 tests. Merged on 2026-10-10: the check before export, the one-kind filter and bubble labels, clause numbers and headings (audit 4.1, 4.4), text boxes with the unread-wording note (4.2), three small reader fixes (4.3, 4.7, 4.6 with 4.9), the accepted reading (4.5), Next.js 16.3.8 (audit 8.1), the after-sign-in redirect (8.2), and the memo saved as `internal-requested-revisions-<id>.pdf` (8.3). `phase/2-1-same-file-reuse` is parked. |
-| Built, not merged | Nothing. |
+| Built, not merged | `audit/8-5-engine-input`, 1,796 tests. The redline engine is handed its own fields and no rationale or standard (audit 8.5). The free replay matches its baseline, and it waits for the user's yes to merge. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below and `docs/core-audit.md`. |
 | Migrations applied | 015 to 017, and **018 on 2026-10-10**, all by the user. 018's columns were confirmed present the same day. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -408,7 +408,8 @@ below wherever the two differ. Each item gets its own plan before any code.
 1. **Piece 8's fixes, in the order the user approved on 2026-10-10**, each
    with its own plan. The Next.js patch release (8.1) is live. The
    after-sign-in redirect (8.2) and the memo's file name (8.3) are live
-   too. Next are the engine's input (8.5), the free parts of 8.4, and the headers
+   too. The engine's input (8.5) is built on `audit/8-5-engine-input` and
+   waits for a yes to merge. Next are the free parts of 8.4 and the headers
    (8.7). The prompt sentence in 8.4 needs a quoted paid run. See
    `docs/core-audit.md`, "Piece 8".
    - On 8.3 the user chose a file name that says internal, kept one zip
