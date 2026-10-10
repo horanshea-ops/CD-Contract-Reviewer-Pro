@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkDocument, pictureNotes } from "@/lib/document-checks";
+import { checkDocument, pictureNotes, unreadNotes } from "@/lib/document-checks";
 import { toNotes, withoutRepeats } from "@/lib/document-notes";
 import { dryRunFor, type DryRunRow } from "@/lib/exports/dry-run";
 import { withoutArchivedExposure } from "@/lib/exposures/enabled";
@@ -100,9 +100,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // The contract text is only read here, never sent to the page.
   const { negotiation_threads, accepted_view_text, ...analysisFields } = analysis;
   const propertyName = (negotiation_threads as unknown as { property_name: string } | null)?.property_name ?? null;
+  const health = analysis.intake_health as { pictures?: { near: string }[]; unread?: { where: string; words: number; sample: string }[] } | null;
   const document_checks =
     analysis.status === "complete"
-      ? [...pictureNotes((analysis.intake_health as { pictures?: { near: string }[] } | null)?.pictures), ...checkDocument(accepted_view_text)]
+      ? [...pictureNotes(health?.pictures), ...unreadNotes(health?.unread), ...checkDocument(accepted_view_text)]
       : [];
   const document_notes = withoutRepeats(toNotes(analysis.document_notes), document_checks);
 

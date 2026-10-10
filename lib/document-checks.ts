@@ -275,6 +275,17 @@ export function pictureNotes(pictures: Picture[] | null | undefined): CheckNote[
   );
 }
 
+type Unread = { where: string; words: number; sample: string };
+
+/** One note per place the review did not read. */
+export function unreadNotes(unread: Unread[] | null | undefined): CheckNote[] {
+  return (unread ?? []).map(({ where, words, sample }) => ({
+    source: "check" as const,
+    headline: `The review didn't read ${words} ${words === 1 ? "word" : "words"} in ${where}.`,
+    detail: `The wording starts "${sample}". Read that part of the contract by hand. Findings here don't use it.`,
+  }));
+}
+
 const places = (pictures: Picture[]) => pictures.map(({ near }) => `"${near}"`).join(" and ");
 
 /**

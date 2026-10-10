@@ -549,7 +549,7 @@ export async function generateRedline({
 
     const verdict = assessApplicability(part, span);
     if (verdict.applicability !== "applicable") {
-      refuse(finding, REASON_FOR[verdict.applicability], span.resolution, verdict.applicability, verdict.detail);
+      refuse(finding, verdict.reason ?? REASON_FOR[verdict.applicability], span.resolution, verdict.applicability, verdict.detail);
       continue;
     }
 
