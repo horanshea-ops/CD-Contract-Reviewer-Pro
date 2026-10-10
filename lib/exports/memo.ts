@@ -3,6 +3,7 @@ import { generateRevisionsMemo } from "../export-memo";
 import { getActionedFindings } from "../get-actioned-findings";
 import { recordExport } from "../export-log";
 import type { ExportContext } from "./context";
+import { memoFilename } from "./memo-filename";
 import type { ExportBuildResult } from "./types";
 
 /**
@@ -30,7 +31,7 @@ export async function buildMemo(ctx: ExportContext): Promise<ExportBuildResult> 
 
   return {
     kind: "file",
-    filename: `requested-revisions-${analysisId.slice(0, 8)}.pdf`,
+    filename: memoFilename(analysisId),
     contentType: "application/pdf",
     bytes: pdfBytes,
     outcome: "clean",

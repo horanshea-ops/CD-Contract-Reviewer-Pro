@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
+import { memoFilename } from "@/lib/exports/memo-filename";
 import { assembleExportZip, ZIP_MANIFEST_FILENAME, type ZipEntry } from "@/lib/exports/zip";
 import type { ExportBuildResult } from "@/lib/exports/types";
 
@@ -30,10 +31,18 @@ async function namesIn(zipBytes: Uint8Array): Promise<string[]> {
   return Object.keys(zip.files).sort();
 }
 
+describe("memoFilename", () => {
+  it("opens with internal, so the file says who it is for wherever it lands", () => {
+    const name = memoFilename("abc12345-6789-4abc-8def-000000000000");
+    expect(name).toBe("internal-requested-revisions-abc12345.pdf");
+    expect(name.startsWith("internal-")).toBe(true);
+  });
+});
+
 describe("assembleExportZip", () => {
   it("packs every delivered file under the name its builder chose", async () => {
     const entries: ZipEntry[] = [
-      { format: "memo", result: file("requested-revisions-abc12345.pdf", "memo") },
+      { format: "memo", result: file(memoFilename("abc12345-0000"), "memo") },
       { format: "markup", result: file("marked-up-abc12345.pdf", "markup") },
       { format: "clean", result: file("proposed-contract-abc12345.pdf", "clean") },
     ];
@@ -43,9 +52,9 @@ describe("assembleExportZip", () => {
     expect(included).toEqual(["memo", "markup", "clean"]);
     expect(skipped).toEqual([]);
     expect(await namesIn(zipBytes)).toEqual([
+      "internal-requested-revisions-abc12345.pdf",
       "marked-up-abc12345.pdf",
       "proposed-contract-abc12345.pdf",
-      "requested-revisions-abc12345.pdf",
     ]);
 
     const zip = await JSZip.loadAsync(zipBytes);
