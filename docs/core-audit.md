@@ -484,6 +484,10 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - It has fired once, on a made-up 12 MB test file with 571 characters of real text.
 - Proposed fix, free and small. Measure the text against the size of the document's own XML, which pictures don't inflate. The floor of 200 characters stays.
 - Risk is low. A file of scanned pages still fails, since its XML holds almost no text either.
+- **Built 2026-10-10 on `audit/4-small-fixes`, not merged.**
+  - The check divides the characters read by the size of the XML the reader walks. The floor of 200 characters and the threshold of 3 per KB are unchanged.
+  - On the 16 stored files the new measure runs from 63 to 804 per KB. The made-up 12 MB test file moves from the PDF route to the Word route, and the other 15 keep theirs.
+  - **The risk line above was too strong.** A scan with a typed cover page of over 200 characters failed the old check and passes the new one. It stays on the Word route, where each scanned page is noted as a picture and the first four go to the model as images. The user was told this in the plan.
 
 **4.4 Headings are recognised by the style's code name, and CD's own contract uses another.**
 
@@ -508,6 +512,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Every Word upload is still turned into a text-only PDF with its line positions. That stays. It is the net under an export that falls back, and it is what a file that fails the upload checks is read from.
 - After each review the pipeline finds each finding's page in that PDF and writes it, one database write per finding. On the Word route no screen shows the page. 525 of 794 Word-route findings carry one.
 - Proposed fix, free and small. Skip the step on the Word route.
+- **Built 2026-10-10 on `audit/4-small-fixes`, not merged.** A Word-route review writes no page number and never fetches the converted PDF. A review that reads the PDF does both as before. Page numbers already stored are left.
 
 **4.7 If the Word file can't be read at review time, the review quietly reads the PDF.**
 
@@ -515,6 +520,11 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - The review then reads the flattened PDF, costs the same, and looks normal. The screen still shows the Word preview, and each card checks quotes taken from other text. Nothing is recorded but a server log line.
 - Proposed fix, free and small. Try the download three times, then fail the review with a plain message before the model is called. The standards loader has worked this way since 2026-10-08.
 - No known case. None could be known, since nothing records it.
+- **Built 2026-10-10 on `audit/4-small-fixes`, not merged.**
+  - `readOriginalDocx` in `lib/read-original.ts` reads the Word file with three tries. After the third the review fails with "The Word file couldn't be read, so nothing was reviewed. Use Retry to run it again."
+  - The failure comes before the model is called and before the monthly allowance counts the review. It takes the pipeline's usual failure path, so it leaves an audit row.
+  - A file that arrives and isn't a Word file fails the review with the reader's reason, with no retry.
+  - It rests on tests. Storage can't be broken from the browser.
 
 **4.8 Two of the seven upload checks can never fail.**
 
@@ -526,6 +536,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 
 - 5 of the 16 files, once or twice each. It shows as a small gap. Offsets and highlights are unaffected.
 - Proposed fix, free and tiny. The preview takes a table to start only where a row follows.
+- **Built 2026-10-10 on `audit/4-small-fixes`, not merged.** No stored file's preview holds an empty table now. Seen in the dev browser on `a70ff3c5`, which shows 3 tables and none empty.
 
 **4.10 Read and found sound.**
 
@@ -544,9 +555,11 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 |---|---|---|---|
 | 1 | Clause numbers and headings (4.1, 4.4) | Done, on `main` | Nothing |
 | 2 | Text boxes and unread wording (4.2, 4.8) | Done, on `main` | Nothing |
-| 3 | The size check (4.3) | Free, small | A yes |
-| 4 | Fail loudly when the Word file can't be read (4.7) | Free, small | A yes |
-| 5 | Skip the page-number step on the Word route (4.6), and the empty table (4.9) | Free, small | A yes |
+| 3 | The size check (4.3) | Built, not merged | The user's yes |
+| 4 | Fail loudly when the Word file can't be read (4.7) | Built, not merged | The user's yes |
+| 5 | Skip the page-number step on the Word route (4.6), and the empty table (4.9) | Built, not merged | The user's yes |
 | 6 | Deleted paragraph breaks (4.5) | Free | Its own plan, after the first round two or sooner if the user prefers |
+
+**Proof for fixes 3 to 5, 2026-10-10.** Lint, the type check and 1,761 tests pass, 14 of them new. The reader's text is identical on all 16 stored files, and the replay matches on all 736 changes.
 
 Fixes 1 and 2 change the contract text the model reads on files that use those forms. A before-and-after of each stored file's text shows which files change, at no cost. A paid review of a changed contract would need a quoted price and a yes.
