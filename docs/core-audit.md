@@ -213,6 +213,14 @@ Every stored Word review's cards were worked out as the screen works them out to
 - Risk. The check can be wrong when the contract's own arithmetic is off, or when the amount rests on another change. So the choice stays with the associate and nothing is applied on its own.
 - It is card work and reuses the Edit route. "Keep" needs somewhere to record the choice, which the plan must settle.
 - The user said on 2026-10-10 that this is fine to try.
+- **Built and merged to `main` on 2026-10-10** (`audit/2-2-amount-buttons`).
+  - The box keeps its sentence and carries "Use" the worked-out amount and "Keep" the amount as written. It is no longer yellow.
+  - "Use" saves an edit. "Keep" saves an accept, or saves an associate's edit again as it stands. Nothing new is stored.
+  - The box shows while the change is undecided and goes once either is pressed. Plain Accept is absent while it shows.
+  - The worked-out amount is written the way the wording writes its own, with or without cents.
+  - Lint, the type check and 1,660 tests pass. The check's arithmetic is unchanged.
+  - Seen in the dev browser on `4a7e89f6` (one card, "Use $35,000.00" and "Keep $80,000.00") and `4f803f16` (five cards, one of them with two amounts). No card on either review shows a yellow box.
+  - Not clicked: either button's save, which writes to the shared database. Both reuse the accept and edit route.
 
 **2.3 The notes on the document are reading with no decision.**
 
@@ -258,7 +266,7 @@ Every stored Word review's cards were worked out as the screen works them out to
 
 | # | Fix | Cost | Needs |
 |---|---|---|---|
-| 1 | Buttons on the amount check (2.2) | Free, card work | A plan and a yes |
+| 1 | Buttons on the amount check (2.2) | Done, on `main` | Nothing |
 | 2 | A decision on the document notes (2.3) | None | Left as they are until CD gives direction (user, 2026-10-10) |
 | 3 | The engine's own sentence in the export dialog (2.5) | Free, small | A plan and a yes |
 | 4 | The engine as the card's check (2.4, 2.6) | Free, larger | Evidence from the beta first |
