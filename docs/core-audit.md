@@ -212,6 +212,7 @@ Every stored Word review's cards were worked out as the screen works them out to
 - The user decided on 2026-10-08 that the check warns and doesn't hold the change out. That stays.
 - Risk. The check can be wrong when the contract's own arithmetic is off, or when the amount rests on another change. So the choice stays with the associate and nothing is applied on its own.
 - It is card work and reuses the Edit route. "Keep" needs somewhere to record the choice, which the plan must settle.
+- The user said on 2026-10-10 that this is fine to try.
 
 **2.3 The notes on the document are reading with no decision.**
 
@@ -222,6 +223,7 @@ Every stored Word review's cards were worked out as the screen works them out to
   - Each note gets "Raise with the property" and "Dismiss", and a raised note reaches the client email and the memo.
   - Notes stay as they are, closed under a count, as reference.
 - No work until the user chooses.
+- **The user's choice, 2026-10-10.** The notes stay as they are until CD gives direction.
 
 **2.4 The card's check is a second copy of the engine's rules, and it can't see the Word file.**
 
@@ -257,6 +259,6 @@ Every stored Word review's cards were worked out as the screen works them out to
 | # | Fix | Cost | Needs |
 |---|---|---|---|
 | 1 | Buttons on the amount check (2.2) | Free, card work | A plan and a yes |
-| 2 | A decision on the document notes (2.3) | None yet | The user's choice, with CD's answer on cards |
+| 2 | A decision on the document notes (2.3) | None | Left as they are until CD gives direction (user, 2026-10-10) |
 | 3 | The engine's own sentence in the export dialog (2.5) | Free, small | A plan and a yes |
 | 4 | The engine as the card's check (2.4, 2.6) | Free, larger | Evidence from the beta first |

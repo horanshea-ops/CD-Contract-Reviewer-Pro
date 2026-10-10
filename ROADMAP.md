@@ -397,8 +397,8 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
-| Live on `main` | Everything built to date, except the table change below. `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at one more file in Word, `4f803f16-redline-cells.docx`. The made-up hotel-comment sample looked good (user, 2026-10-09). `audit/1-1-blank-fields`, `phase/1-5-across-paragraphs` and `audit/1-7-remove-old-engine` merge after it, in that order. |
+| Live on `main` | Everything built to date, including the four branches merged on 2026-10-10 (table cells, blank fields, across paragraphs, old engine removed). `phase/2-1-same-file-reuse` is parked. |
+| Waiting on the user | Accept All and Reject All on `sample-across-paragraphs-redline.docx` in Word for the web. One click of "Save and accept" on a blank field, which no one has clicked yet. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -616,10 +616,18 @@ History of the switch, oldest first:
   every oracle check passes on both. `4f803f16` and `dd0f4ca0` each had five
   changes in a table copy. All ten now go in the cells, and no review uses
   the copy.
-- **Owed by the user before the merge: a look at two files in Word**, both in
-  `data/private/replay/`.
-  - `4f803f16-redline-cells.docx`. The cancellation schedule appears once,
-    with each fee struck and the new one beside it.
+- **The user's look in Word, done. Merged to `main` on 2026-10-10.** Both
+  files are in `data/private/replay/`.
+  - ~~`4f803f16-redline-cells.docx`. The cancellation schedule appears once,
+    with each fee struck and the new one beside it.~~ Opened by the user in
+    Word for the web on 2026-10-10. The schedule looked good.
+  - **The user noticed that the other tables sit oddly to the right.** That
+    comes from the uploaded file, and the app changed nothing there. Eight
+    of the nine tables are identical in the original and the redline,
+    character for character, and the ninth differs only by our changes.
+    The shifted tables are the five the file sets as centred with an indent.
+    The file's markup looks like an export from Apple Pages. A hotel's own
+    Word file is unlikely to carry it.
   - ~~`sample-hotel-comment-redline.docx`, a made-up schedule. Same, with the
     hotel's comment still on the 75% cell.~~ Opened by the user on
     2026-10-09. It looked good.
@@ -698,6 +706,9 @@ warning whether it is needed and whether the work can be done more simply.
      in the app uses, and two refusal reasons that can't appear.~~ **Done
      2026-10-10 on `audit/1-7-remove-old-engine`, not merged** (user's yes).
      717 lines gone, CLAUDE.md deviation 4 closed, 1,648 tests pass.
+- **The user's answers on piece 2 (2026-10-10).** Buttons on the amount
+  check are fine to try. The document notes stay as they are until CD
+  gives direction.
 - **Piece 2, first pass (2026-10-10).** On the four Sonnet 5.5 reviews (255
   findings) the only yellow box left is the amount check, 6 times. Proposed:
   buttons on the amount check so it is a decision, a choice for the user on
