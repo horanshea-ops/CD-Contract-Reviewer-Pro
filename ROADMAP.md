@@ -419,14 +419,14 @@ read "Accepted" and kept that after a reload, and the saved row holds the
 quote and the wording before the place picked. That card is now decided, so
 it no longer shows the 10 places.
 
-**Asked for by the user on 2026-10-10, to do when it fits.**
+**Asked for by the user on 2026-10-10. Both done and merged the same day** (`ui/filter-and-bubble-labels`).
 
-- **The Business, Legal and Other buttons filter to that list.** Today a
-  push hides that kind. The user wants a push to show only that kind, so
-  pushing Legal shows the legal findings alone.
-- **Margin bubbles say what they are.** With the review pane hidden, a
-  bubble for a tracked change and a bubble for a comment look alike. Each
-  should open with "Tracked change" or "Comment".
+- **The Business, Legal and Other buttons filter to that list.** A push
+  shows that kind alone, and a second push shows every kind.
+- **Margin bubbles say what they are.** Each opens with "Comment" and its
+  number, or with "Tracked change".
+- Seen in the dev browser on `c7148b08`. Lint, the type check and 1,717
+  tests passed on `main`.
 
 **Watch on every new review (user, 2026-10-10).** If a change with no place
 shows up on a real review, look at each one on its own before trusting the
