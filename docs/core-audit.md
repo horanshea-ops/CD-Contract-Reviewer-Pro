@@ -311,3 +311,69 @@ Evidence is the live record, read without changing it. It holds 99 exports and 5
 **Not covered here.** The dashboard and the admin screens. The Standards screen is in piece 7.
 
 **Result of the second pass.** No new fix is proposed. Piece 2 is finished apart from the two fixes already listed and waiting, 2.4 and 2.5.
+
+## Piece 5. Exports
+
+Audited 2026-10-10 on `audit/pieces-2-and-5`. It covers the five export files, the zip, and what each failure tells the associate. The two emails are in piece 2.
+
+### Evidence
+
+- The code under `lib/exports/` (1,334 lines) and the export dialog.
+- The live record, read without changing it. 99 exports and their audit-log rows.
+
+| From the record | Count |
+|---|---|
+| Word redlines, by result | 32 clean, 4 partial, 0 fell back |
+| Marked-up PDFs drawn from the redline, and from the older overlay | 6, 1 (the rest predate the label) |
+| A PDF that failed its own read-back check | 0 |
+| Reviews by upload type | 29 Word, 8 PDF, 1 older Word (.doc) |
+
+### Findings
+
+**5.1 An engine crash shows an error, offers no PDF, and leaves no record.**
+
+- When the engine fails a check, the associate sees "The Word file could not be produced safely" with a button for the marked-up PDF, and the export record gains a row marked as a fallback.
+- When the engine crashes, the row shows a bare error. No PDF is offered, and nothing is written to the record.
+- The marked-up PDF itself survives a crash. It falls back to the older overlay, which doesn't need the engine. The associate just isn't pointed at it.
+- The crash fixed on 2026-10-08 would have left no trace. The fallback rate the roadmap watches (1.5%) can't see a crash.
+- Proposed fix, free and small. A crash is treated as a fallback. The associate gets the same screen with the PDF button, and the record gains a fallback row with the crash's message.
+
+**5.2 The clean Word copy can lack a change and say nothing.**
+
+- The redline and the clean PDF are both checked before download. When a change was left out, the dialog lists it, and the clean PDF also lists it after the contract.
+- The clean Word copy has no check before download. When the redline left a change out, the copy lacks it too, and neither the screen nor the file says so.
+- An associate who picks only the clean Word copy could send a proposed contract that is missing an accepted change.
+- How often. 4 of 36 redlines in the record were partial, and the clean Word copy has been exported 8 times.
+- Proposed fix, free and small. The clean Word copy gets the redline's check before download, and the dialog lists what the copy lacks, with "Download anyway".
+- Finding 2.4 would move this to the card. Until then the dialog is where the redline already says it.
+
+**5.3 The export record can't tell a clean Word copy from a redline.**
+
+- Both are saved with the format `docx`. The fallback rate divides by all of them, and a clean copy can never fall back.
+- Proposed fix. A format of its own for the clean copy. The database lists the allowed formats, so it needs a migration.
+- Priority is low. The audit log already tells the two apart.
+
+**5.4 Two ways of drawing a PDF exist, and both are needed.**
+
+- A Word upload's PDFs are drawn from the redline file. A PDF or .doc upload has no Word file to mark up, so its PDFs are drawn over the original pages.
+- The overlay is also the net under a redline that fails. Nine of the 38 reviews were PDF or .doc uploads.
+- No change.
+
+**5.5 Read and found sound.**
+
+- The zip skips a file that couldn't be made and puts the reason in a note inside the archive.
+- Only the redline is kept as "what we sent", which is what the next round compares against.
+- A preflight writes nothing, so checking a file before download doesn't count it twice.
+- A real contract filename with a long dash no longer breaks the download.
+
+**5.6 Seen in the record, for piece 3.**
+
+- Seven reviews ended as failed. Three left a row in the audit log.
+
+### Proposed order
+
+| # | Fix | Cost | Needs |
+|---|---|---|---|
+| 1 | A crash takes the PDF route and is recorded (5.1) | Free, small | A plan and a yes |
+| 2 | The clean Word copy says what it lacks (5.2) | Free, small | The same plan |
+| 3 | A format of its own for the clean copy (5.3) | Free, one migration | Later, low priority |

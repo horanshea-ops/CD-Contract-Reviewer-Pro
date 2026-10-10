@@ -661,10 +661,10 @@ warning whether it is needed and whether the work can be done more simply.
 | # | Piece | What it asks | State |
 |---|---|---|---|
 | 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Findings written 2026-10-08. Five fixes proposed, none built. |
-| 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | First pass written 2026-10-10 (the card and the review screen). The export dialog, the email panels and the new-review form are a second pass. |
+| 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Finished 2026-10-10. The amount-check buttons are live. The second pass (export dialog, email panels, new-review form) proposed no new fix. 2.4 and 2.5 wait on evidence from the beta. |
 | 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
 | 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Not started |
-| 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Not started |
+| 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Findings written 2026-10-10. Two small fixes proposed. |
 | 6 | Dead and doubled code | The old engine (`lib/tracked-changes-docx.ts`), helpers written more than once, unused switches and scripts. | Not started |
 | 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
 | 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Not started |
@@ -720,7 +720,12 @@ warning whether it is needed and whether the work can be done more simply.
   the 4 to 7 document notes per review that no export uses, and the engine's
   own sentence in the export dialog. A larger idea, running the real engine
   as the card's check, waits on evidence from the beta.
-- **Next is piece 2's second pass, then piece 3, the review call.**
+- **Order for the rest (user's "go", 2026-10-10).** Piece 5, then 4, then
+  8, then 3, then 6, 7 and 9. It follows risk to the beta.
+- **Piece 5, exports (2026-10-10).** Two gaps. An engine crash shows a bare
+  error with no PDF and leaves no record, so the fallback rate can't see a
+  crash. And the clean Word copy can lack a left-out change with no notice
+  on the screen or in the file. Both fixes are small and free.
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,
