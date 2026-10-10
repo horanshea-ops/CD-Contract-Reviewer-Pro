@@ -398,7 +398,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 |---|---|
 | Live model | Sonnet 5.5, since 2026-10-08. |
 | Live on `main` | Everything built to date, 1,781 tests. Merged on 2026-10-10: the check before export, the one-kind filter and bubble labels, clause numbers and headings (audit 4.1, 4.4), text boxes with the unread-wording note (4.2), three small reader fixes (4.3, 4.7, 4.6 with 4.9), and the accepted reading (4.5). `phase/2-1-same-file-reuse` is parked. |
-| Built, not merged | Nothing. |
+| Built, not merged | `audit/8-1-next-patch`, pushed. Next.js 16.3.8 with the patched `sharp` and `source-map-js` (audit 8.1). It waits on the user's yes. It also holds piece 8's audit record. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below and `docs/core-audit.md`. |
 | Migrations applied | 015 to 017, and **018 on 2026-10-10**, all by the user. 018's columns were confirmed present the same day. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |

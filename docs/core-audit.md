@@ -608,6 +608,19 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 - Proposed fix, free. Move `next` to the newest 16.3 patch, run `npm audit fix`, and prove it with the three checks and a pass through the app in the dev browser.
 - Risk is low for a patch release. The repository's note that this Next differs from older ones still applies, so the release notes get read first.
 - I know these advisories only from `npm audit`'s output.
+- **Built 2026-10-10 on `audit/8-1-next-patch`, not merged. It waits on the user's yes.**
+  - `next` and `eslint-config-next` are pinned at 16.3.8. `sharp` is 0.35.5 and `source-map-js` is 1.2.2. Two development-only patch bumps of `brace-expansion` came with the audit fix. Only `package.json` and `package-lock.json` changed.
+  - The release notes for 16.3.5 to 16.3.8 list backported fixes only, and none touches the proxy file or route handlers.
+  - **`npm audit` on the production packages went from 6 findings (1 critical, 2 high, 3 moderate) to 3 moderate.**
+  - The three left are the `sprintf-js` chain under `mammoth`. It reaches the app only through `mammoth`'s command-line tool, which the app never runs. The only offered fix is a forced move back to a 2019 `mammoth`.
+  - **One thing the plan didn't name.** `npm audit fix` also moved `mammoth` from 1.12.2 to 1.13.0, which closes no advisory. It was put back, so this change stays to what was approved.
+  - Development-only: five high findings under `braces` were there before and remain. They are in the lint and test tooling and never reach the live app.
+  - Lint, the type check and 1,781 tests pass.
+  - **A production build runs clean**, which CI never checks.
+  - The built app, signed out. The dashboard and the API answer with a redirect to sign-in, and the image endpoint answers a request for an outside or an internal address with a refusal.
+  - The built app, signed in. The dashboard, a Word review, a PDF review with its viewer, the upload form, an admin page and the export dialog all load, with no error in the browser console or the server log. Nothing was saved or downloaded.
+  - The same pass on the dev server.
+  - Going back is one step: revert the merge, which restores 16.3.4.
 
 **8.2 The link that says where to go after sign-in can send an associate to another site.**
 
@@ -621,6 +634,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 - The memo carries each item's severity and CD's rationale, and legal points for the client's counsel. Its own code says it is "for internal review and the client, never the property".
 - It is titled "Requested Revisions" and saved as `requested-revisions-<id>.pdf`. Nothing on the page says who it is for. Its footer says "Confirm every item before sending."
 - The export dialog offers it beside the redline and the proposed contract, and several picked files arrive as one `exports-<id>.zip`.
+- **Corrected 2026-10-10.** The dialog's row for the memo already reads "Findings and CD's rationale, for internal review. Not for the property." So the dialog is sound, and the gap is the file once it has left the dialog: its name, its title and its pages.
 - An associate who attaches the zip, or who picks the file named for requested revisions, sends a hotel CD's reasoning. Deviations 6 and 8 exist to stop exactly that, and both say a step someone has to remember is a leak waiting to happen.
 - Proposed fix, free. Three parts, each small.
   - The memo says "Internal. For CD and the client. Not for the property." at the top of every page, and its file name starts with `internal-`.
@@ -688,7 +702,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 
 | # | Fix | Cost | Needs |
 |---|---|---|---|
-| 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Free | A plan and a yes |
+| 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Built, not merged | The user's yes |
 | 2 | Close the after-sign-in redirect (8.2) | Free, small | A yes |
 | 3 | Mark the memo internal by its file name, with one zip kept for everything (8.3) | Free, small | A short plan and a yes |
 | 4 | Hand the engine only its own fields (8.5) | Free, small | A yes |
