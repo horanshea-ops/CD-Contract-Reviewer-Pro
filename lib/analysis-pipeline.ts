@@ -13,6 +13,7 @@ import { extractionRecord, termRows } from "./terms/extract";
 import { loadStandardsLibrary } from "./standards/load";
 import { logAudit } from "./audit";
 import { getPositionedLines } from "./get-positioned-lines";
+import { readOriginalDocx } from "./read-original";
 import { findMatchingLineIndices } from "./locate-text";
 import { scanForAiUseTerms, scanForAdjacentTerms } from "./ai-use-scan";
 import { MODEL_CALL_BUDGET_MS, STOPPED_AT_AI_USE_CHECK, stoppedAtAiUseCheck, type AnalysisRun } from "./analysis-status";
@@ -56,17 +57,6 @@ export async function processAnalysis(analysisId: string) {
     .eq("id", analysisId);
 
   try {
-    const { data: fileBlob, error: downloadError } = await admin.storage
-      .from(STORAGE_BUCKET)
-      .download(analysis.storage_path);
-
-    if (downloadError || !fileBlob) {
-      throw new Error(`Could not read uploaded file: ${downloadError?.message ?? "unknown error"}`);
-    }
-
-    const arrayBuffer = await fileBlob.arrayBuffer();
-    const pdfBase64 = Buffer.from(arrayBuffer).toString("base64");
-
     // The database is the source of truth for the library, so admin edits
     // actually change how contracts are reviewed. A fallback to the bundled
     // copy is allowed (a transient database problem should not fail an
@@ -101,8 +91,11 @@ export async function processAnalysis(analysisId: string) {
     // into prose. Extraction is re-run rather than cached: §1.1 forbids
     // persisting the map, since a stale one against a re-uploaded file places
     // edits in the wrong part of the document.
-    let document: AnalyzableDocument = { kind: "pdf", pdfBase64 };
-    let scanText: string | null = null;
+    let document: AnalyzableDocument;
+    // §1.10.1 — the text scanned locally before any network call. It is the exact text the model will read.
+    let scanText: string;
+    // The stored PDF, for a review that reads it. A Word-route review never fetches it.
+    let pdfBytes: Uint8Array | null = null;
     // The text quotes are checked against — the same text the model reads.
     let readParts: LocatablePart[] | null = null;
     // A PDF carries its pictures itself, so only extracted text needs a word about them.
@@ -111,41 +104,41 @@ export async function processAnalysis(analysisId: string) {
     let comments: DocumentComment[] = [];
     let commentsTotal = 0;
     if (analysis.intake_route === "docx_native" && analysis.original_storage_path) {
+      // A Word file that can't be read fails the review here, before the model
+      // is called. The converted PDF is never read in its place.
+      const original = await readOriginalDocx(admin, analysis.original_storage_path);
+      let extracted;
       try {
-        const { data: originalBlob, error: originalErr } = await admin.storage
-          .from(STORAGE_BUCKET)
-          .download(analysis.original_storage_path);
-        if (originalErr || !originalBlob) throw new Error(originalErr?.message ?? "original file unavailable");
-        const extracted = await extractDocx(new Uint8Array(await originalBlob.arrayBuffer()));
-        scanText = contractText(extracted);
-        document = { kind: "text", text: scanText, pictures: extracted.pictures };
-        pictures = extracted.health.pictures ?? [];
-        readParts = extracted.parts;
-        comments = extracted.comments;
-        commentsTotal = extracted.commentsTotal;
+        extracted = await extractDocx(original);
       } catch (extractErr) {
-        // Falling back to the PDF loses table structure but still produces an
-        // analysis, which beats failing the run outright. Recorded, not silent.
-        console.warn(
-          `processAnalysis: ${analysisId} could not extract the original DOCX, analysing the converted PDF instead —`,
-          extractErr
-        );
+        const reason = extractErr instanceof Error ? extractErr.message : String(extractErr);
+        throw new Error(`The Word file couldn't be read, so nothing was reviewed (${reason}).`);
       }
-    }
+      scanText = contractText(extracted);
+      document = { kind: "text", text: scanText, pictures: extracted.pictures };
+      pictures = extracted.health.pictures ?? [];
+      readParts = extracted.parts;
+      comments = extracted.comments;
+      commentsTotal = extracted.commentsTotal;
+    } else {
+      // A PDF upload, a .doc upload, or a Word file that failed the upload
+      // checks. The model reads the stored PDF, and the scan reads the same
+      // positioned lines the marked-up PDF export uses, which is local parsing.
+      const { data: fileBlob, error: downloadError } = await admin.storage
+        .from(STORAGE_BUCKET)
+        .download(analysis.storage_path);
+      if (downloadError || !fileBlob) {
+        throw new Error(`Could not read uploaded file: ${downloadError?.message ?? "unknown error"}`);
+      }
+      pdfBytes = new Uint8Array(await fileBlob.arrayBuffer());
+      document = { kind: "pdf", pdfBase64: Buffer.from(pdfBytes).toString("base64") };
 
-    // §1.10.1 — local text to scan before any network call. docx_native
-    // already has it above (the exact text the model will read). Every other
-    // route — genuine PDF, .doc, or a .docx that failed intake and fell back
-    // to the PDF just above — gets it from the same positioned-line data the
-    // markup-PDF export already relies on (lib/get-positioned-lines.ts),
-    // which is local (unpdf's own PDF parsing) either way, not a network call.
-    if (scanText === null) {
       const lines = await getPositionedLines({
         admin,
         associateId: analysis.associate_id,
         analysisId,
         sourceFormat: analysis.source_format,
-        pdfBytes: new Uint8Array(arrayBuffer),
+        pdfBytes: pdfBytes.slice(),
       });
       scanText = lines.map((l) => l.text).join("\n");
     }
@@ -244,31 +237,33 @@ export async function processAnalysis(analysisId: string) {
         .select("id, is_missing_clause, quoted_text");
       if (insertError) throw new Error(`Could not save findings: ${insertError.message}`);
 
-      // Best-effort: precompute which findings can be located on the
-      // rendered document, so the review screen can show that immediately
-      // instead of only discovering it lazily at export time. A failure
-      // here is a missed enhancement, not a failed analysis — it must never
-      // flip an otherwise-successful analysis to "failed".
-      try {
-        const lines = await getPositionedLines({
-          admin,
-          associateId: analysis.associate_id,
-          analysisId,
-          sourceFormat: analysis.source_format,
-          pdfBytes: new Uint8Array(arrayBuffer),
-        });
+      // Best-effort: precompute the page each finding sits on in the stored
+      // PDF, so the PDF viewer can jump to it. A Word-route review shows the
+      // Word file itself and has no use for a page. A failure here is a
+      // missed enhancement, not a failed analysis — it must never flip an
+      // otherwise-successful analysis to "failed".
+      if (pdfBytes) {
+        try {
+          const lines = await getPositionedLines({
+            admin,
+            associateId: analysis.associate_id,
+            analysisId,
+            sourceFormat: analysis.source_format,
+            pdfBytes: pdfBytes.slice(),
+          });
 
-        for (const finding of insertedFindings ?? []) {
-          if (finding.is_missing_clause || !finding.quoted_text) continue;
-          const matchedIndices = findMatchingLineIndices(lines, finding.quoted_text);
-          if (!matchedIndices) continue;
-          await admin
-            .from("findings")
-            .update({ location_page: lines[matchedIndices[0]].pageIndex + 1 })
-            .eq("id", finding.id);
+          for (const finding of insertedFindings ?? []) {
+            if (finding.is_missing_clause || !finding.quoted_text) continue;
+            const matchedIndices = findMatchingLineIndices(lines, finding.quoted_text);
+            if (!matchedIndices) continue;
+            await admin
+              .from("findings")
+              .update({ location_page: lines[matchedIndices[0]].pageIndex + 1 })
+              .eq("id", finding.id);
+          }
+        } catch (locateErr) {
+          console.error(`processAnalysis: could not precompute finding locations for ${analysisId}`, locateErr);
         }
-      } catch (locateErr) {
-        console.error(`processAnalysis: could not precompute finding locations for ${analysisId}`, locateErr);
       }
     }
 
@@ -291,10 +286,7 @@ export async function processAnalysis(analysisId: string) {
         standards_set_requested: standards.setNote ? standards.requestedSet : null,
         standards_set_note: standards.setNote ?? null,
         // §1.9.3 — the accepted-view text of this round, for the future diff
-        // engine (§2.1). Only meaningful when the model actually read the
-        // real DOCX text (`document.kind === "text"`) rather than a PDF — a
-        // docx_native document that fell back to the PDF after a failed
-        // extraction has no accepted-view text worth storing here.
+        // engine (§2.1). Only a review that read the Word file has one.
         accepted_view_text: document.kind === "text" ? scanText : null,
         document_notes: result.document_notes.length > 0 ? result.document_notes : null,
         token_usage: {

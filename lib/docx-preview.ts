@@ -34,7 +34,7 @@ import {
  * "\n" (an inline `w:br` vs. a table boundary), which is disambiguated by
  * *position* in the grammar below rather than content: a table boundary is
  * only ever tested at a block boundary, never from inside a paragraph's own
- * content loop.
+ * content loop, and it counts as one only when a row follows it.
  */
 
 export interface PreviewRun {
@@ -89,6 +89,12 @@ class Cursor {
   /** True if the next span is exactly this synthetic literal. */
   isNext(literal: string): boolean {
     const s = this.peekSpan();
+    return !!s && s.synthetic && s.text === literal;
+  }
+
+  /** True if the span after the next one is exactly this synthetic literal. */
+  isNextAfter(literal: string): boolean {
+    const s = this.spans[this.i + 1];
     return !!s && s.synthetic && s.text === literal;
   }
 
@@ -186,7 +192,10 @@ function parseTable(cur: Cursor): PreviewBlock {
 function parseBlocks(cur: Cursor, inCell: boolean, stop?: () => boolean): PreviewBlock[] {
   const blocks: PreviewBlock[] = [];
   while (!cur.done && !(stop && stop())) {
-    if (cur.isNext("\n")) blocks.push(parseTable(cur));
+    // A table opens with a blank line and then a row. A lone "\n" here is a
+    // line or page break that opens a paragraph, which isn't drawn.
+    if (cur.isNext("\n") && cur.isNextAfter("|")) blocks.push(parseTable(cur));
+    else if (cur.isNext("\n")) cur.skip();
     else blocks.push(parseParagraph(cur, inCell));
   }
   return blocks;

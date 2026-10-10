@@ -62,6 +62,9 @@ const db = {
   row: {} as Record<string, unknown>,
   thread: null as Record<string, unknown> | null,
   threadError: null as string | null,
+  /** Every path asked of storage, and the error storage answers with when one is set. */
+  downloads: [] as string[],
+  downloadError: null as string | null,
 };
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -104,11 +107,19 @@ vi.mock("@/lib/supabase/admin", () => ({
       };
       return query;
     },
-    storage: { from: () => ({ download: async () => ({ data: new Blob([db.bytes]), error: null }) }) },
+    storage: {
+      from: () => ({
+        download: async (path: string) => {
+          db.downloads.push(path);
+          return db.downloadError ? { data: null, error: { message: db.downloadError } } : { data: new Blob([db.bytes]), error: null };
+        },
+      }),
+    },
   }),
 }));
 
 const { processAnalysis } = await import("@/lib/analysis-pipeline");
+const { getPositionedLines } = await import("@/lib/get-positioned-lines");
 
 const toolResponse = (name: string, input: unknown) => ({
   content: [{ type: "tool_use", id: "toolu_test", name, input }],
@@ -138,6 +149,8 @@ beforeEach(() => {
   db.row = {};
   db.thread = null;
   db.threadError = null;
+  db.downloads = [];
+  db.downloadError = null;
   sets.asked = [];
   sets.unusable = [];
   sets.unreadable = false;
@@ -404,5 +417,57 @@ describe("the standards set a review reads", () => {
 
     expect(create).not.toHaveBeenCalled();
     expect(updatesTo("analyses").find((u) => u.status === "failed")?.error).toMatch(/migration 015 has not been applied/);
+  });
+});
+
+describe("which file a review reads", () => {
+  it("reads the Word file alone on the Word route, and never the converted PDF", async () => {
+    vi.mocked(getPositionedLines).mockClear();
+    await processAnalysis("analysis-1");
+
+    expect(db.downloads).toEqual(["a.docx"]);
+    // The page-number step reads the PDF's lines, so it can't have run.
+    expect(getPositionedLines).not.toHaveBeenCalled();
+    expect(updatesTo("findings")).toEqual([]);
+    expect(updatesTo("analyses").find((u) => u.status === "complete")).toMatchObject({ accepted_view_text: expect.stringContaining("Harborview") });
+  });
+
+  it("fails before the model is called when the Word file can't be read", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    db.downloadError = "gateway timeout";
+
+    await processAnalysis("analysis-1");
+
+    expect(create).not.toHaveBeenCalled();
+    expect(db.downloads).toEqual(["a.docx", "a.docx", "a.docx"]);
+    expect(updatesTo("analyses").at(-1)).toMatchObject({
+      status: "failed",
+      error: "The Word file couldn't be read, so nothing was reviewed (gateway timeout). Use Retry to run it again.",
+    });
+  });
+
+  it("fails with the reader's reason when the Word file arrives and isn't one", async () => {
+    const real = db.bytes;
+    db.bytes = new Uint8Array([1, 2, 3]);
+    try {
+      await processAnalysis("analysis-1");
+    } finally {
+      db.bytes = real;
+    }
+
+    expect(create).not.toHaveBeenCalled();
+    expect(db.downloads).toEqual(["a.docx"]);
+    expect(updatesTo("analyses").at(-1)).toMatchObject({ status: "failed", error: expect.stringMatching(/^The Word file couldn't be read, so nothing was reviewed \(/) });
+  });
+
+  it("reads the stored PDF and its lines for a review off the Word route", async () => {
+    vi.mocked(getPositionedLines).mockClear();
+    db.row = { source_format: "pdf", intake_route: "pdf", original_storage_path: null };
+
+    await processAnalysis("analysis-1");
+
+    expect(db.downloads).toEqual(["a.pdf"]);
+    expect(getPositionedLines).toHaveBeenCalled();
+    expect(updatesTo("analyses").find((u) => u.status === "complete")).toMatchObject({ accepted_view_text: null });
   });
 });

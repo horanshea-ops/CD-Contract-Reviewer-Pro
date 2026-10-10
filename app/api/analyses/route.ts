@@ -195,7 +195,7 @@ export async function POST(request: Request) {
   let existingRevisions: ExistingRevisions | null = null;
   if (sourceFormat === "docx") {
     try {
-      const extracted = await extractDocx(fileBytes, { fileSizeBytes: fileBytes.byteLength });
+      const extracted = await extractDocx(fileBytes);
       intakeHealth = extracted.health;
       existingRevisions = extracted.existingRevisions;
     } catch (err) {

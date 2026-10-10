@@ -31,10 +31,7 @@ export * from "./types";
  *    a re-uploaded file is a corruption bug that is very hard to trace, and the
  *    `line-positions.json` sidecar this replaces is exactly that pattern.
  */
-export async function extractDocx(
-  bytes: Uint8Array | Buffer,
-  opts: { fileSizeBytes?: number } = {}
-): Promise<ExtractedDocument> {
+export async function extractDocx(bytes: Uint8Array | Buffer): Promise<ExtractedDocument> {
   const pkg = await loadDocx(bytes);
 
   // One resolver across all parts so list counters continue rather than
@@ -55,7 +52,7 @@ export async function extractDocx(
     comments,
     commentsTotal: total,
     health: {
-      ...assessHealth({ pkg, parts, fileSizeBytes: opts.fileSizeBytes ?? bytes.byteLength }),
+      ...assessHealth({ pkg, parts }),
       pictures,
       ...(unread.length > 0 ? { unread } : {}),
     },
