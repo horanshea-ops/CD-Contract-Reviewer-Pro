@@ -70,3 +70,71 @@ describe("a struck table row", () => {
     expect(doc.originalText).not.toContain("30 to 0");
   });
 });
+
+const breakDeleted = (id: number, more = "") =>
+  `<w:pPr>${more}<w:rPr><w:del w:id="${id}" w:author="Hotel" w:date="2026-03-01T00:00:00Z"/></w:rPr></w:pPr>`;
+const inList = (level = 0) => `<w:numPr><w:ilvl w:val="${level}"/><w:numId w:val="1"/></w:numPr>`;
+const listItem = (text: string) => para(run(text), `<w:pPr>${inList()}</w:pPr>`);
+
+describe("a deleted paragraph break", () => {
+  it("joins the next paragraph into one sentence", async () => {
+    const doc = await read(para(run("The Group shall pay "), breakDeleted(1)) + para(run("the balance at checkout.")) + para(run("Deposits are due at signing.")));
+    expect(doc.text).toBe("The Group shall pay the balance at checkout.\n\nDeposits are due at signing.\n\n");
+    expect(doc.originalText).toBe("The Group shall pay \n\nthe balance at checkout.\n\nDeposits are due at signing.\n\n");
+    expect(doc.text.length).toBe(doc.map.length);
+  });
+
+  it("joins a chain under the first paragraph's number, and the next clause counts on from it", async () => {
+    const { buildNumberedDocx } = await import("../helpers/docx-package");
+    const body =
+      listItem("Hotel will give notice of any renovation.") +
+      para(run("Hotel will relocate the meeting"), breakDeleted(1, inList())) +
+      para(del(2, "Hotel", `<w:r><w:delText>to another hotel, or</w:delText></w:r>`), breakDeleted(3, inList())) +
+      para(run(" at its own cost."), `<w:pPr>${inList()}</w:pPr>`) +
+      listItem("This clause is not changed.");
+    const { document } = await extractDocx(await buildNumberedDocx(body));
+
+    expect(document.text.split("\n\n").filter(Boolean)).toEqual([
+      "1. Hotel will give notice of any renovation.",
+      "2. Hotel will relocate the meeting at its own cost.",
+      "3. This clause is not changed.",
+    ]);
+  });
+
+  it("joins nothing before a table or at the end of a cell", async () => {
+    const table = `<w:tbl><w:tr><w:tc>${para(run("Only cell"), breakDeleted(2))}</w:tc></w:tr></w:tbl>`;
+    const doc = await read(para(run("Fees follow."), breakDeleted(1)) + table + para(run("After.")));
+    expect(doc.text).toBe("Fees follow.\n\n\n| Only cell  |\n| --- |\n\nAfter.\n\n");
+  });
+
+  it("marks no heading where the paragraph's wording is all struck", async () => {
+    const heading = `<w:pPr><w:pStyle w:val="Heading1"/></w:pPr>`;
+    const doc = await read(para(del(1, "Hotel", `<w:r><w:delText>PARKING</w:delText></w:r>`), heading) + para(run("RATES"), heading));
+    expect(doc.text).toBe("\n\n# RATES\n\n");
+  });
+
+  it("keeps the first paragraph's heading when its own wording is struck and the next is joined on", async () => {
+    const heading = (id: number) => breakDeleted(id, `<w:pStyle w:val="Heading1"/>`);
+    const doc = await read(para(del(1, "Hotel", `<w:r><w:delText>PARKING</w:delText></w:r>`), heading(2)) + para(run("RATES")));
+    expect(doc.text).toBe("# RATES\n\n");
+  });
+
+  it("shows the paragraphs apart in the preview, and a highlight across the join lands on the right words", async () => {
+    const { buildPartPreview, resolveHighlight } = await import("@/lib/docx-preview");
+    const doc = await read(para(run("The Group shall pay "), breakDeleted(1)) + para(run("the balance at checkout.")));
+    const blocks = buildPartPreview(doc);
+
+    expect(blocks.map((b) => b.kind)).toEqual(["paragraph", "paragraph"]);
+    const runs = blocks.flatMap((b) => (b.kind === "table" ? [] : b.runs));
+    expect(runs.map((r) => r.range && doc.text.slice(r.range.start, r.range.end))).toEqual(["The Group shall pay ", "the balance at checkout."]);
+
+    const hit = resolveHighlight([{ part: "document", text: doc.text, blocks }], "shall pay the balance");
+    expect(hit && doc.text.slice(hit.start, hit.end)).toBe("shall pay the balance");
+  });
+
+  it("reads a text box anchored in a joined paragraph after the whole of it", async () => {
+    const box = `<w:r><w:pict><v:rect xmlns:v="urn:schemas-microsoft-com:vml"><v:textbox><w:txbxContent>${para(run("In the box"))}</w:txbxContent></v:textbox></v:rect></w:pict></w:r>`;
+    const doc = await read(para(run("First half, ") + box, breakDeleted(1)) + para(run("second half.")));
+    expect(doc.text).toBe("First half, second half.\n\nIn the box\n\n");
+  });
+});

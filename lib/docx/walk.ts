@@ -312,18 +312,58 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     for (const { box, ctx } of state.boxes.splice(0)) walkChildren(box, { ...ctx, insideTextBox: true });
   }
 
-  /** True when the paragraph holds wording of its own, live or struck. A text box it anchors doesn't count. */
+  /**
+   * True when the paragraph holds wording of its own that still reads. A text
+   * box it anchors doesn't count, and neither does wording a revision struck.
+   */
   function hasWording(node: Element): boolean {
     const own = (text: Element) => {
-      for (let at = text.parentNode; at && at !== node; at = at.parentNode) if (at.nodeName === "w:txbxContent") return false;
+      for (let at = text.parentNode; at && at !== node; at = at.parentNode) {
+        if (at.nodeName === "w:txbxContent" || at.nodeName === "w:del" || at.nodeName === "w:moveFrom") return false;
+      }
       return true;
     };
-    for (const name of ["w:t", "w:delText"]) {
-      const texts = node.getElementsByTagName(name);
-      for (let i = 0; i < texts.length; i++) if (texts[i].textContent && own(texts[i])) return true;
-    }
+    const texts = node.getElementsByTagName("w:t");
+    for (let i = 0; i < texts.length; i++) if (texts[i].textContent && own(texts[i])) return true;
     return false;
   }
+
+  /** The tracked change that deletes a paragraph's break, when one does. */
+  function struckBreak(p: Element): RevisionInfo | null {
+    const pPr = firstChild(p, "w:pPr");
+    const rPr = pPr ? firstChild(pPr, "w:rPr") : null;
+    const change = rPr ? childrenOf(rPr).find((c) => tag(c) === "w:del" || tag(c) === "w:moveFrom") : undefined;
+    return change ? revisionFrom(change) : null;
+  }
+
+  /** The paragraph that directly follows this one, or null when something else does, or nothing. */
+  function paragraphAfter(p: Element): Element | null {
+    let next: Node | null = p.nextSibling;
+    while (next && next.nodeType !== 1) next = next.nextSibling;
+    return next && next.nodeName === "w:p" ? (next as Element) : null;
+  }
+
+  /**
+   * A paragraph with the paragraphs joined onto it. Deleting a paragraph's
+   * break joins the next paragraph onto it once the change is accepted, and
+   * the one after that while the breaks keep being deleted ones. A break is
+   * joined only where a paragraph follows it directly, as the clean copy does
+   * (lib/docx-accept.ts).
+   */
+  function joinedChain(first: Element): { p: Element; struck: RevisionInfo | null }[] {
+    const chain: { p: Element; struck: RevisionInfo | null }[] = [];
+    let p: Element | null = first;
+    while (p) {
+      const follows: Element | null = paragraphAfter(p);
+      const struck: RevisionInfo | null = follows ? struckBreak(p) : null;
+      chain.push({ p, struck });
+      p = struck ? follows : null;
+    }
+    return chain;
+  }
+
+  /** Paragraphs already read as part of the paragraph before them. */
+  const joined = new Set<Element>();
 
   /**
    * Prefix a paragraph with its heading marker, its list number, or both, all
@@ -332,10 +372,13 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
    *
    * A heading style marks no heading on an empty paragraph, inside a table
    * cell or inside a text box. Word's own outline leaves all three out.
+   *
+   * Paragraphs joined onto this one take its number and heading, so `chain`
+   * is asked whether any of them holds wording.
    */
-  function paragraphPrefix(node: Element, ctx: Ctx): string {
+  function paragraphPrefix(node: Element, ctx: Ctx, chain: Element[]): string {
     const pPr = firstChild(node, "w:pPr");
-    const level = ctx.inCell || ctx.insideTextBox || !hasWording(node) ? 0 : numbering.styles.headingLevelOf(pPr);
+    const level = ctx.inCell || ctx.insideTextBox || !chain.some(hasWording) ? 0 : numbering.styles.headingLevelOf(pPr);
     const hashes = level ? `${"#".repeat(level)} ` : "";
 
     // A paragraph out of the accepted reading takes no number, so the count follows the contract as it now reads.
@@ -405,13 +448,21 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
   }
 
   function walkParagraph(node: Element, ctx: Ctx) {
-    paragraphIndex++;
-    mark(paragraphPrefix(node, ctx), ctx);
-    const state = newState();
-    walkChildren(node, ctx, state);
+    const chain = joinedChain(node);
     // Inside a cell the paragraph break would break the table row apart.
-    mark(ctx.inCell ? " " : "\n\n", ctx);
-    walkBoxes(state);
+    const ending = ctx.inCell ? " " : "\n\n";
+
+    mark(paragraphPrefix(node, ctx, chain.map((link) => link.p)), ctx);
+    const boxes: FieldState["boxes"] = [];
+    for (const { p, struck } of chain) {
+      paragraphIndex++;
+      if (p !== node) joined.add(p);
+      walkChildren(p, ctx, { ...newState(), boxes });
+      // A deleted break is out of the reading, so the next paragraph runs on.
+      // It stays in the markup as struck, which keeps the paragraphs apart in the preview.
+      mark(ending, struck ? under(ctx, struck) : ctx);
+    }
+    walkBoxes({ ...newState(), boxes });
   }
 
   function walkChildren(node: Element, ctx: Ctx, field?: FieldState) {
@@ -419,7 +470,10 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       const name = tag(child);
       if (name === "w:pPr" || name === "w:rPr" || name === "w:tblPr" || name === "w:tcPr" || name === "w:trPr" || name === "w:sectPr") continue;
 
-      if (name === "w:p") { walkParagraph(child, ctx); continue; }
+      if (name === "w:p") {
+        if (!joined.has(child)) walkParagraph(child, ctx);
+        continue;
+      }
       if (name === "w:tbl") { walkTable(child, ctx); continue; }
       if (name === "w:r") {
         const state = field ?? newState();
