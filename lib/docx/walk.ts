@@ -56,21 +56,32 @@ const newState = (): FieldState => ({ inInstruction: false, inResult: false, box
 /** Wrappers around runs or paragraphs that add no wording of their own. The redline leaves what they hold alone. */
 const UNEDITED_WRAPPERS = new Set(["w:smartTag", "w:customXml", "w:dir", "w:bdo"]);
 
+type Views = { accepted: boolean; original: boolean };
+const BOTH_VIEWS: Views = { accepted: true, original: true };
+
 class Sink {
   text = "";
   map: MapEntry[] = [];
   originalText = "";
   markup: MarkupSpan[] = [];
 
-  /** Structure we invented: table pipes, heading hashes, list numbers, breaks. */
-  synthetic(s: string) {
+  /**
+   * Structure we invented: table pipes, heading hashes, list numbers, breaks.
+   *
+   * `views` says which reading it belongs to, as for wording. A marker left
+   * out of the accepted reading carries the revision that struck it, which is
+   * how the preview knows it takes up no room in `text`.
+   */
+  synthetic(s: string, views: Views = BOTH_VIEWS, struckBy: RevisionInfo | null = null) {
     if (!s) return;
-    for (const ch of s) {
-      this.text += ch;
-      this.map.push({ synthetic: true });
+    if (views.accepted) {
+      for (const ch of s) {
+        this.text += ch;
+        this.map.push({ synthetic: true });
+      }
     }
-    this.originalText += s;
-    this.markup.push({ text: s, revision: null, synthetic: true });
+    if (views.original) this.originalText += s;
+    this.markup.push({ text: s, revision: views.accepted ? null : struckBy, synthetic: true });
   }
 
   /**
@@ -131,6 +142,18 @@ const REVISION_VIEWS: Record<RevisionKind, { accepted: boolean; original: boolea
 };
 
 const REVISION_TAGS = new Set(["w:ins", "w:del", "w:moveTo", "w:moveFrom"]);
+
+/** A revision that takes wording out of the contract as it now reads. */
+const strikes = (rev: RevisionInfo) => rev.kind === "del" || rev.kind === "moveFrom";
+
+/**
+ * The context under a revision. Content left out of the accepted reading is
+ * tagged with the revision that struck it, so the preview never counts it.
+ */
+function under<C extends { views: Views; revision: RevisionInfo | null }>(ctx: C, rev: RevisionInfo): C {
+  const views = bothOf(ctx.views, REVISION_VIEWS[rev.kind]);
+  return { ...ctx, views, revision: views.accepted || strikes(rev) ? rev : ctx.revision };
+}
 
 /**
  * Revisions compose by intersection. Wording the counterparty inserted and we
@@ -260,13 +283,13 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
         case "w:tab":
           // Synthetic: a tab is structure, not a character inside any run's text,
           // so it has nowhere to map back to and must never be edited.
-          sink.synthetic("\t");
+          sink.synthetic("\t", views, ctx.revision);
           break;
         case "w:br":
-          sink.synthetic("\n");
+          sink.synthetic("\n", views, ctx.revision);
           break;
         case "w:noBreakHyphen":
-          sink.synthetic("-");
+          sink.synthetic("-", views, ctx.revision);
           break;
         case "w:commentReference":
           markComment(child, "reference");
@@ -281,23 +304,66 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     }
   }
 
+  /** Adds a marker to the readings this content belongs to. */
+  const mark = (text: string, ctx: Ctx) => sink.synthetic(text, ctx.views, ctx.revision);
+
   /** Reads the text boxes a paragraph anchored, as paragraphs of their own after it. */
   function walkBoxes(state: FieldState) {
     for (const { box, ctx } of state.boxes.splice(0)) walkChildren(box, { ...ctx, insideTextBox: true });
   }
 
-  /** True when the paragraph holds wording of its own, live or struck. A text box it anchors doesn't count. */
+  /**
+   * True when the paragraph holds wording of its own that still reads. A text
+   * box it anchors doesn't count, and neither does wording a revision struck.
+   */
   function hasWording(node: Element): boolean {
     const own = (text: Element) => {
-      for (let at = text.parentNode; at && at !== node; at = at.parentNode) if (at.nodeName === "w:txbxContent") return false;
+      for (let at = text.parentNode; at && at !== node; at = at.parentNode) {
+        if (at.nodeName === "w:txbxContent" || at.nodeName === "w:del" || at.nodeName === "w:moveFrom") return false;
+      }
       return true;
     };
-    for (const name of ["w:t", "w:delText"]) {
-      const texts = node.getElementsByTagName(name);
-      for (let i = 0; i < texts.length; i++) if (texts[i].textContent && own(texts[i])) return true;
-    }
+    const texts = node.getElementsByTagName("w:t");
+    for (let i = 0; i < texts.length; i++) if (texts[i].textContent && own(texts[i])) return true;
     return false;
   }
+
+  /** The tracked change that deletes a paragraph's break, when one does. */
+  function struckBreak(p: Element): RevisionInfo | null {
+    const pPr = firstChild(p, "w:pPr");
+    const rPr = pPr ? firstChild(pPr, "w:rPr") : null;
+    const change = rPr ? childrenOf(rPr).find((c) => tag(c) === "w:del" || tag(c) === "w:moveFrom") : undefined;
+    return change ? revisionFrom(change) : null;
+  }
+
+  /** The paragraph that directly follows this one, or null when something else does, or nothing. */
+  function paragraphAfter(p: Element): Element | null {
+    let next: Node | null = p.nextSibling;
+    while (next && next.nodeType !== 1) next = next.nextSibling;
+    return next && next.nodeName === "w:p" ? (next as Element) : null;
+  }
+
+  /**
+   * A paragraph with the paragraphs joined onto it. Deleting a paragraph's
+   * break joins the next paragraph onto it once the change is accepted, and
+   * the one after that while the breaks keep being deleted ones. A break is
+   * joined only where a paragraph follows it directly, as the clean copy does
+   * (lib/docx-accept.ts).
+   */
+  function joinedChain(first: Element): { p: Element; struck: RevisionInfo | null }[] {
+    const chain: { p: Element; struck: RevisionInfo | null }[] = [];
+    let p: Element | null = first;
+    while (p) {
+      const follows: Element | null = paragraphAfter(p);
+      const struck: RevisionInfo | null = follows ? struckBreak(p) : null;
+      chain.push({ p, struck });
+      p = struck ? follows : null;
+    }
+    return chain;
+  }
+
+  /** Paragraphs already read as part of the paragraph before them. */
+  const joined = new Set<Element>();
 
   /**
    * Prefix a paragraph with its heading marker, its list number, or both, all
@@ -306,13 +372,17 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
    *
    * A heading style marks no heading on an empty paragraph, inside a table
    * cell or inside a text box. Word's own outline leaves all three out.
+   *
+   * Paragraphs joined onto this one take its number and heading, so `chain`
+   * is asked whether any of them holds wording.
    */
-  function paragraphPrefix(node: Element, ctx: Ctx): string {
+  function paragraphPrefix(node: Element, ctx: Ctx, chain: Element[]): string {
     const pPr = firstChild(node, "w:pPr");
-    const level = ctx.inCell || ctx.insideTextBox || !hasWording(node) ? 0 : numbering.styles.headingLevelOf(pPr);
+    const level = ctx.inCell || ctx.insideTextBox || !chain.some(hasWording) ? 0 : numbering.styles.headingLevelOf(pPr);
     const hashes = level ? `${"#".repeat(level)} ` : "";
 
-    const list = numbering.numberingOf(pPr);
+    // A paragraph out of the accepted reading takes no number, so the count follows the contract as it now reads.
+    const list = ctx.views.accepted ? numbering.numberingOf(pPr) : null;
     if (!list) return hashes;
 
     const label = numbering.next(list.numId, list.ilvl);
@@ -335,38 +405,64 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     });
   }
 
+  /** The tracked change on a table row itself, which strikes or adds the whole row. */
+  function rowRevision(row: Element): RevisionInfo | null {
+    const trPr = firstChild(row, "w:trPr");
+    const change = trPr ? childrenOf(trPr).find((c) => REVISION_TAGS.has(tag(c))) : undefined;
+    return change ? revisionFrom(change) : null;
+  }
+
   function walkTable(node: Element, ctx: Ctx) {
     const tableIndex = tableCount++;
-    sink.synthetic("\n");
-    unwrapped(node, "w:tr").forEach((row, rowIdx) => {
+    const rows = unwrapped(node, "w:tr").map((row) => {
+      const rev = rowRevision(row.el);
+      return { ...row, ctx: rev ? under(ctx, rev) : ctx };
+    });
+
+    // A table with no row left to read is out of the reading altogether.
+    // Accepting the changes removes it.
+    const edge = rows.length > 0 && !rows.some((row) => row.ctx.views.accepted) ? rows[0].ctx : ctx;
+
+    mark("\n", edge);
+    let ruled = false;
+    for (const row of rows) {
       const cells = unwrapped(row.el, "w:tc", row.lock);
-      sink.synthetic("|");
+      mark("|", row.ctx);
       for (const cell of cells) {
-        sink.synthetic(" ");
-        walkChildren(cell.el, { ...ctx, ...cell.lock, insideTable: true, inCell: true, tableIndex, cellIndex: cellCount++ });
-        sink.synthetic(" |");
+        mark(" ", row.ctx);
+        walkChildren(cell.el, { ...row.ctx, ...cell.lock, insideTable: true, inCell: true, tableIndex, cellIndex: cellCount++ });
+        mark(" |", row.ctx);
       }
-      sink.synthetic("\n");
-      // A separator after the first row is what makes this read as a table
+      mark("\n", row.ctx);
+      // A separator after the first row that reads is what makes this a table
       // rather than a row of pipes — §1.4.5's point about cancellation
       // schedules reaching the model as a grid.
-      if (rowIdx === 0) {
-        sink.synthetic("|");
-        for (let i = 0; i < cells.length; i++) sink.synthetic(" --- |");
-        sink.synthetic("\n");
+      if (!ruled && row.ctx.views.accepted) {
+        ruled = true;
+        mark("|", row.ctx);
+        for (let i = 0; i < cells.length; i++) mark(" --- |", row.ctx);
+        mark("\n", row.ctx);
       }
-    });
-    sink.synthetic("\n");
+    }
+    mark("\n", edge);
   }
 
   function walkParagraph(node: Element, ctx: Ctx) {
-    paragraphIndex++;
-    sink.synthetic(paragraphPrefix(node, ctx));
-    const state = newState();
-    walkChildren(node, ctx, state);
+    const chain = joinedChain(node);
     // Inside a cell the paragraph break would break the table row apart.
-    sink.synthetic(ctx.inCell ? " " : "\n\n");
-    walkBoxes(state);
+    const ending = ctx.inCell ? " " : "\n\n";
+
+    mark(paragraphPrefix(node, ctx, chain.map((link) => link.p)), ctx);
+    const boxes: FieldState["boxes"] = [];
+    for (const { p, struck } of chain) {
+      paragraphIndex++;
+      if (p !== node) joined.add(p);
+      walkChildren(p, ctx, { ...newState(), boxes });
+      // A deleted break is out of the reading, so the next paragraph runs on.
+      // It stays in the markup as struck, which keeps the paragraphs apart in the preview.
+      mark(ending, struck ? under(ctx, struck) : ctx);
+    }
+    walkBoxes({ ...newState(), boxes });
   }
 
   function walkChildren(node: Element, ctx: Ctx, field?: FieldState) {
@@ -374,7 +470,10 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       const name = tag(child);
       if (name === "w:pPr" || name === "w:rPr" || name === "w:tblPr" || name === "w:tcPr" || name === "w:trPr" || name === "w:sectPr") continue;
 
-      if (name === "w:p") { walkParagraph(child, ctx); continue; }
+      if (name === "w:p") {
+        if (!joined.has(child)) walkParagraph(child, ctx);
+        continue;
+      }
       if (name === "w:tbl") { walkTable(child, ctx); continue; }
       if (name === "w:r") {
         const state = field ?? newState();
@@ -385,12 +484,7 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       }
       if (REVISION_TAGS.has(name)) {
         const rev = revisionFrom(child);
-        const inner: Ctx = {
-          ...ctx,
-          insideIns: ctx.insideIns || rev.kind === "ins" || rev.kind === "moveTo",
-          revision: rev,
-          views: bothOf(ctx.views, REVISION_VIEWS[rev.kind]),
-        };
+        const inner: Ctx = { ...under(ctx, rev), insideIns: ctx.insideIns || rev.kind === "ins" || rev.kind === "moveTo" };
         // Descending through the same dispatch keeps the views: a revision can
         // wrap paragraphs, hyperlinks and further revisions, and each of those
         // carries runs that belong to the enclosing revision, not to both views.
