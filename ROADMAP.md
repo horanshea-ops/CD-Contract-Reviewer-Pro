@@ -405,8 +405,11 @@ below wherever the two differ. Each item gets its own plan before any code.
 
 **Do first next session.**
 
-1. **Audit piece 8, security boundaries.** The user said to start it on
-   2026-10-10. Piece 4 is finished, with all six of its fixes live.
+1. **Get the user's yes or no on piece 8's eight proposed fixes**
+   (`docs/core-audit.md`, "Piece 8"). The audit is on
+   `audit/8-security-boundaries`, with no app code changed. First by
+   exposure is the Next.js patch release. First by cost if it went wrong
+   is the internal memo travelling with the hotel's files.
 2. **A change to wording in a text box is refused on purpose.** Lifting
    that needs a made-up file with a change in a box, checked by the user
    in two viewers.
@@ -722,7 +725,7 @@ warning whether it is needed and whether the work can be done more simply.
 | 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Finished 2026-10-10. Both fixes are live. 5.3, a format of its own for the clean copy in the record, is left for later. |
 | 6 | Dead and doubled code | The old engine (`lib/tracked-changes-docx.ts`), helpers written more than once, unused switches and scripts. | Not started |
 | 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
-| 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Not started |
+| 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Findings written 2026-10-10. Eight fixes proposed, none built. The database wall and every route's checks were found sound. |
 | 9 | Tests and CI | Tests that pass without checking anything (one was found on 2026-10-08), and gaps in the core path. | Not started |
 
 - **Piece 1's proposed fixes, in order.** Each waits for a plan and a yes.

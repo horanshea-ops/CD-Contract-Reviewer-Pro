@@ -578,3 +578,119 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 **Proof for fixes 3 to 5, 2026-10-10.** Lint, the type check and 1,761 tests pass, 14 of them new. The reader's text is identical on all 16 stored files, and the replay matches on all 736 changes.
 
 Fixes 1 and 2 change the contract text the model reads on files that use those forms. A before-and-after of each stored file's text shows which files change, at no cost. A paid review of a changed contract would need a quoted price and a yes.
+
+## Piece 8. Security boundaries
+
+Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the database's row-level security, key handling, and the two allowlists that keep CD's position away from a hotel. Nothing was changed, and nothing was written to the database.
+
+### Evidence
+
+- The sign-in code, all 36 server routes, the 18 migrations, both allowlists, and every builder of a file a hotel can receive.
+- **A live probe of the Supabase project with the public key**, read-only (`data/private/audit/piece8-probe.ts`). It tried every table and the file store with no session, then with a real signed-in session.
+- A measurement over the 1,054 stored findings and the 16 stored Word files (`piece8-content.ts`).
+- One test in the dev browser of the after-sign-in redirect, with example.com as the target.
+- `npm audit` on the production dependencies.
+
+| From the live probe | No session | Signed in |
+|---|---|---|
+| Rows readable, across all 15 tables | 0 | 0 |
+| A write to the audit log | Refused | Refused |
+| Stored contracts listed | 0 | 0 |
+| A stored contract downloaded by its path | | Refused |
+
+### Findings
+
+**8.1 The app runs a version of Next.js with known vulnerabilities.**
+
+- `npm audit` lists seven advisories against the installed `next` 16.3.4. One is rated critical (remote code execution in `next/og`) and one high (server-side request forgery in image optimisation). Two more packages carry a high rating, `sharp` and `source-map-js`.
+- The app uses neither `next/og` nor `next/image`. The image endpoint exists in every Next app by default, and the sign-in proxy leaves it open by design, so I can't rule the high one out by reading.
+- Every `next` advisory is fixed by 16.3.8, a patch release in the same line. `sharp` and `source-map-js` are fixed by `npm audit fix`.
+- Proposed fix, free. Move `next` to the newest 16.3 patch, run `npm audit fix`, and prove it with the three checks and a pass through the app in the dev browser.
+- Risk is low for a patch release. The repository's note that this Next differs from older ones still applies, so the release notes get read first.
+- I know these advisories only from `npm audit`'s output.
+
+**8.2 The link that says where to go after sign-in can send an associate to another site.**
+
+- `/auth/callback?next=` is checked by `safeNext`, which refuses `//host` and `/\host`. A tab or a newline inside the path gets past it, and a browser drops those characters and then reads the path as another site.
+- **Confirmed in the dev browser.** `/auth/callback?next=/%09/example.com`, opened while signed in, landed on example.com.
+- What it allows. A link that starts on the real app and ends on a look-alike page asking for a password. It gives no access to the app by itself.
+- Proposed fix, free and small. `safeNext` resolves the value the way a browser does and follows it only when it stays on the app's own address. Its test gains the cases above.
+
+**8.3 The internal memo travels with the hotel's files and isn't marked internal.**
+
+- The memo carries each item's severity and CD's rationale, and legal points for the client's counsel. Its own code says it is "for internal review and the client, never the property".
+- It is titled "Requested Revisions" and saved as `requested-revisions-<id>.pdf`. Nothing on the page says who it is for. Its footer says "Confirm every item before sending."
+- The export dialog offers it beside the redline and the proposed contract, and several picked files arrive as one `exports-<id>.zip`.
+- An associate who attaches the zip, or who picks the file named for requested revisions, sends a hotel CD's reasoning. Deviations 6 and 8 exist to stop exactly that, and both say a step someone has to remember is a leak waiting to happen.
+- Proposed fix, free. Three parts, each small.
+  - The memo says "Internal. For CD and the client. Not for the property." at the top of every page, and its file name starts with `internal-`.
+  - The dialog groups its rows under "For the property" and "For CD and the client".
+  - A zip never mixes the two groups. Picking from both gives two downloads.
+- This is the finding I would fix first for the beta, by what it would cost if it went wrong.
+
+**8.4 The review prompt doesn't say that a contract may carry instructions, and the proposed wording has no check of its own.**
+
+- The contract is written by the other side. The model reads it while holding each standard's position and its walk-away condition, and it writes the proposed wording, which reaches the hotel in the redline.
+- The compromise range is never sent to the model, which is right.
+- The redline note has a word check in three places. The proposed wording has one check, that it doesn't read as an instruction.
+- So a contract that carried hidden text addressed to an AI reviewer could, if the model obeyed it, put a walk-away condition into a proposed change. The associate's reading of each card is the only barrier.
+- Likelihood is low. A hotel would have to attempt it, the model would have to comply, and the associate would have to miss it. The cost if it happened is the worst one this app has.
+- Measured. Of 757 stored proposed wordings, none shares a four-word run with its standard's walk-away condition. 23 share one with the compromise range, such as "complimentary room per 40", so that range is too noisy to check against.
+- No stored Word file holds hidden wording. Rome's 13 white runs are headings on dark table cells.
+- Proposed fixes, in three layers.
+  - Free. A check on proposed wording against the walk-away condition, run where the note's check runs: when the review saves, when the associate edits, and at export. On stored data it would never have fired wrongly.
+  - Free. Wording that Word hides (`w:vanish`, or white with no dark fill behind it) is noted on the review with its first words. A term a signer can't see matters with or without AI.
+  - Paid check, about $0.30 on Riverwalk. One sentence in the review prompt saying the contract is the counterparty's text and that instructions inside it are never followed. It changes what the model is asked, so it is held for a quoted run.
+
+**8.5 The redline engine is handed CD's internal text, which it never uses.**
+
+- `RevisionFinding`, the engine's input, extends the memo's shape. So every finding reaches the engine with its rationale, CD's standard and its severity.
+- The engine writes none of them. I searched every builder of a hotel-facing file for those fields and found them only in comments.
+- Both allowlists rest on a stronger rule, that an excluded field is never fetched, so a later change can't leak it. The engine, which writes the main file a hotel receives, doesn't follow that rule.
+- Proposed fix, free and small. The engine's input lists its own fields, and the caller passes those alone. No behaviour changes.
+
+**8.6 Anyone can create an account on the Supabase project.**
+
+- The project's public settings show sign-ups switched on, with email confirmation required and email as the only provider.
+- An outsider who signs up gets a session and nothing else. The probe shows a signed-in session can read no table and no file, and every route checks the associates list.
+- The sign-in page never creates an account, so sign-ups aren't needed for it.
+- Proposed, for the user. Switch sign-ups off in the Supabase dashboard, after checking how a new associate's account is made today. It belongs with the Microsoft sign-in set-up before hand-off to CD.
+
+**8.7 The app sends no security headers.**
+
+- `next.config.ts` sets none. Missing are the header that stops other sites framing the app, the one that stops a browser guessing a file's type, a referrer policy, and a content security policy.
+- The session cookie's own rules already keep a framed copy of the app signed out, so nothing here is open today.
+- Proposed fix, free and small. Add the first three headers. A content security policy needs testing against the PDF viewer and is left for later.
+
+**8.8 Three paid calls sit outside the monthly allowance.**
+
+- The allowance is checked when a review is uploaded. Retrying a failed review and drafting either email call the model with no count.
+- A signed-in associate is trusted, and the beta runs on CD's own key, so this is a note and not a hole.
+- No work proposed. Worth a look in piece 3.
+
+**8.9 Read and found sound.**
+
+- **The database wall.** Row-level security is on for all 15 tables with no policy that lets a browser in, and the live probe agrees. All access goes through the server's routes.
+- **Every one of the 36 routes checks sign-in.** Each associate route also checks that the review is the associate's own or that the associate is an admin, and each admin route checks the admin flag on the server.
+- **A revoked associate is cut off at the next request**, since every request re-reads the associates list.
+- **Keys.** No key is committed, now or in the repository's history. No browser code touches the service key or the Anthropic key. The two public variables are the project address and the public key.
+- **Both allowlists.** Each has a narrowed query, a pure function that lists its fields one by one, and tests. The property email's model is given three fields and no standards.
+- **The redline note** is checked when the review runs, when the associate saves and at export.
+- **No finding lacks a category** (0 of 1,054), so the filter that drops legal findings drops nothing else.
+- The sign-in form gives a known and an unknown email the same answer. The link to a stored file lasts ten minutes. The file store is private. No page writes raw HTML. An admin can't remove the last admin.
+- The tracked contract files are the made-up evaluation set and the test fixtures.
+
+**Not covered here.** The hosting set-up on Render, the Supabase dashboard beyond its public settings (password length, token lifetime, email templates, backups), and multi-factor sign-in, which the Microsoft set-up would bring.
+
+### Proposed order
+
+| # | Fix | Cost | Needs |
+|---|---|---|---|
+| 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Free | A plan and a yes |
+| 2 | Close the after-sign-in redirect (8.2) | Free, small | A yes |
+| 3 | Mark the memo internal and keep it out of the hotel's zip (8.3) | Free | A plan and a yes |
+| 4 | Hand the engine only its own fields (8.5) | Free, small | A yes |
+| 5 | Check proposed wording, and note hidden wording (8.4) | Free | A plan and a yes |
+| 6 | The prompt sentence about instructions in a contract (8.4) | About $0.30 | A quoted run and a yes |
+| 7 | Three security headers (8.7) | Free, small | A yes |
+| 8 | Switch sign-ups off in Supabase (8.6) | The user's action | Checking how accounts are made |
