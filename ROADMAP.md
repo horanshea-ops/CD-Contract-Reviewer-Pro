@@ -396,7 +396,9 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
-| Live on `main` | Everything built to date. Nothing is waiting on a branch except the parked `phase/2-1-same-file-reuse`. |
+| Live on `main` | Everything built to date, except the table change below. `phase/2-1-same-file-reuse` is parked. |
+| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at two files in Word. See "Table rows, cell by cell" below. |
+| Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
 
@@ -518,7 +520,9 @@ History of the switch, oldest first:
 1. ~~Streaming~~, done above.
 2. The card can't warn when a change inside a table cell will be left
    out, since the stored review text has no paragraph breaks inside a cell.
-3. A replaced table that holds a hotel comment still falls back to PDF.
+3. ~~A replaced table that holds a hotel comment still falls back to PDF.~~
+   Built 2026-10-08 on `phase/1-5-table-cells-in-place`, not merged. See
+   "Table rows, cell by cell" below.
 4. Items held for a paid run: `[X]%` on gratuity, table rows written as
    prose, and the model's own arithmetic in proposed wording. On
    `4a7e89f6` it changed an F&B formula to 35% and left the amount at
@@ -574,6 +578,98 @@ History of the switch, oldest first:
        and Sheraton correctly against the real lists.
    - Also here: a screen to add a fourth standards set.
 6. The hand-off guide (item 7 below).
+
+**Table rows, cell by cell (user's decision, 2026-10-08). Built on
+`phase/1-5-table-cells-in-place`, not merged.**
+
+- **The rule.** A change that spans table cells is made as one in-place
+  change per cell, and the table stays where it is. The engine strikes the
+  table and inserts an edited copy only when it can't place the change cell
+  by cell. This replaces the table rule of 2026-09-07.
+- **Why.** A row change on a table holding a hotel comment sent the whole
+  export to the PDF, because the copy repeated the comment's markers. The
+  roadmap's own fix was to refuse the change. The user rejected that. A
+  change is fixed in the redline before it is skipped.
+- **Order the engine tries, for a change spanning cells.**
+  1. The table is one this export already struck and copied. The change goes
+     into that copy.
+  2. Cell by cell, in place.
+  3. Strike the table and insert an edited copy.
+  4. Leave the change out.
+- **What sends a change to step 3.** A cell holds two lines and the change
+  runs across the break with no unchanged word between. Or the change
+  overlaps wording an earlier finding already marked up.
+- **One skip survives.** A step-3 case on a table holding a hotel comment is
+  left out under its own reason (`table_holds_comment`), since that table
+  can't be copied. No stored review hits it.
+- **Two defects found and fixed on the way.**
+  - New wording copied the old wording's formatting with any tracked
+    formatting change on it, which repeated that record's id. The oracle
+    doesn't count that kind of record.
+  - **A crash, live on `main` today.** A refused change could split a run,
+    and a later finding on the same run then threw. The export failed. Every
+    route that can split a run now reads the document afresh.
+- **Checks.** Lint, the type check and 1,623 tests pass.
+- **Free replay, 25 stored Word reviews, 653 findings, old engine against
+  new.** Every review applies the same findings on both (601 in all), and
+  every oracle check passes on both. `4f803f16` and `dd0f4ca0` each had five
+  changes in a table copy. All ten now go in the cells, and no review uses
+  the copy.
+- **Owed by the user before the merge: a look at two files in Word**, both in
+  `data/private/replay/`.
+  - `4f803f16-redline-cells.docx`. The cancellation schedule appears once,
+    with each fee struck and the new one beside it.
+  - `sample-hotel-comment-redline.docx`, a made-up schedule. Same, with the
+    hotel's comment still on the 75% cell.
+  - Look for a repair prompt, a figure in the wrong column, or a table that
+    appears twice.
+- **Left out across the 25 reviews, 52 of 653 changes.** A blank left in the
+  wording 31, a table or paragraph boundary 9, a rewrite with no quote 7,
+  wording not found 4, a quote found twice 1. On the four Sonnet 5.5 reviews,
+  3 of 188, all blanks. This is the core audit's first piece.
+
+**Core audit (user's goal, 2026-10-08). New features are on hold.**
+
+The beta should deliver a clean, polished core: upload, review, redline and
+export. Much of the code was written by Opus 5 and Sonnet 5. Opus 5.5 reads it
+again, piece by piece, and asks of every special case, refusal, fallback and
+warning whether it is needed and whether the work can be done more simply.
+
+- **Findings live in `docs/core-audit.md`**, one section per piece. Each
+  finding has its evidence, what it costs the associate, a proposed fix, the
+  fix's risk, and whether it needs a paid run.
+- **Rules.**
+  - The audit is free. It reads code, runs local tests, and replays stored
+    reviews read-only.
+  - A change is fixed in the redline before it is skipped (user, 2026-10-08).
+  - No fix is built from the audit without its own plan and the user's yes.
+  - A fix to the engine is proven on the replay before it merges.
+  - A change to what the model is asked is listed and held for a paid run.
+  - Archived features stay archived. The audit checks only that each is
+    cleanly off.
+
+| # | Piece | What it asks | State |
+|---|---|---|---|
+| 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Findings written 2026-10-08. Five fixes proposed, none built. |
+| 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Not started |
+| 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
+| 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Not started |
+| 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Not started |
+| 6 | Dead and doubled code | The old engine (`lib/tracked-changes-docx.ts`), helpers written more than once, unused switches and scripts. | Not started |
+| 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
+| 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Not started |
+| 9 | Tests and CI | Tests that pass without checking anything (one was found on 2026-10-08), and gaps in the core path. | Not started |
+
+- **Piece 1's proposed fixes, in order.** Each waits for a plan and a yes.
+  1. Blanks as fields on the card. Blanks are 31 of the 52 left out, and
+     all 3 on Sonnet 5.5.
+  2. One engine route that replaces wording across paragraphs. It removes 4
+     refusals, the struck table's first trigger and the one skip left.
+  3. Widen the oracle's id check to every kind of tracked-change record.
+  4. Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing in
+     the app uses, and two refusal reasons that can't appear. This closes
+     CLAUDE.md deviation 4.
+- **Next piece is 2, what the associate is shown.**
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,
@@ -1705,9 +1801,11 @@ for what is shown. Every pinned model request is unchanged.
            on a separate copy. Then run `scripts/word-roundtrip-check.ts` on
            both. This is the only test of Word's own comment-thread parts,
            and of our round-1 notes coming back inside a round-2 file.
-        6. **A replaced table that holds a hotel comment** fails the oracle
+        6. ~~**A replaced table that holds a hotel comment** fails the oracle
            and falls back to the PDF. The engine should refuse that one
-           change instead.
+           change instead.~~ Built 2026-10-08 a different way, at the user's
+           direction. The change is made in the cells. See "Table rows, cell
+           by cell" under "Beta preparation".
         7. **Tell the user what looked wrong on the export screen.** The
            warning's wording was rewritten on the card and in the export
            detail. The user saw it "come up weird" on the export screen, and

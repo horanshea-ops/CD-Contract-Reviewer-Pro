@@ -61,11 +61,22 @@ export function toDeletedText(run: Element) {
   }
 }
 
-/** A run carrying the replacement wording, formatted like the wording it replaces. */
+/**
+ * A run carrying the replacement wording, formatted like the wording it replaces.
+ *
+ * The formatting is copied without any tracked formatting change on it. That
+ * record belongs to the wording it was made on, and a copy would repeat its id.
+ */
 export function insertedRun(doc: Document, text: string, formatLike: Element | null): Element {
   const run = doc.createElement("w:r");
   const rPr = formatLike ? childElements(formatLike).find((c) => c.nodeName === "w:rPr") : null;
-  if (rPr) run.appendChild(rPr.cloneNode(true));
+  if (rPr) {
+    const copy = rPr.cloneNode(true) as Element;
+    for (const child of childElements(copy)) {
+      if (child.nodeName === "w:rPrChange") copy.removeChild(child);
+    }
+    run.appendChild(copy);
+  }
   const t = doc.createElement("w:t");
   t.setAttribute("xml:space", "preserve");
   t.appendChild(doc.createTextNode(text));

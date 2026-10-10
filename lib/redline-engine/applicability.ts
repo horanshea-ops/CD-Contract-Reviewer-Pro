@@ -4,28 +4,25 @@ import type { Applicability, LocatedSpan } from "./types";
 /**
  * Whether a located span can be edited, and how (MASTER_PLAN.md §1.5.3).
  *
- * Three strategies come out of this, because a table cannot be treated like
- * prose, and one tracked change cannot cross a paragraph break:
+ * Three strategies come out of this, because one tracked change cannot cross
+ * a paragraph break or a cell boundary:
  *
- *   in_place           wrap the runs the span covers in a deletion and an
- *                      insertion, leaving everything around them alone
- *   per_paragraph      the span covers several paragraphs, in the body or
- *                      inside one table cell, so each paragraph takes its own
- *                      in-place change
- *   table_replacement  strike the whole table and insert an edited copy
+ *   in_place       wrap the runs the span covers in a deletion and an
+ *                  insertion, leaving everything around them alone
+ *   per_paragraph  the span covers several paragraphs, in the body or inside
+ *                  one table cell, so each paragraph takes its own in-place
+ *                  change
+ *   across_cells   the span covers several cells of a table, so each cell
+ *                  takes its own in-place change
  *
- * The split is the user's decision of 2026-09-07. A change confined to one cell
- * is edited in place, which reads as one figure struck and one inserted. A
- * change spanning cells replaces the table, because splicing across a cell
- * boundary merges cells and leaves the row short of its declared grid — the
- * corruption Stage 0 measured.
- *
- * Whole-table replacement everywhere would show the property an entire
- * cancellation schedule struck through in red to change one number: legible as
- * a diff, poor as a negotiating document.
+ * A change across cells is made cell by cell (the user's decision of
+ * 2026-10-08), which reads as one figure struck and one inserted. One change
+ * spliced across a cell boundary would merge cells and leave the row short of
+ * its declared grid, the corruption Stage 0 measured. When a change can't be
+ * placed cell by cell, the engine strikes the table and inserts an edited copy.
  */
 
-export type EditStrategy = "in_place" | "per_paragraph" | "table_replacement";
+export type EditStrategy = "in_place" | "per_paragraph" | "across_cells";
 
 /** The verdicts that come from where the wording sits. `blocked_wording` comes from the wording itself. */
 type SpanApplicability = Exclude<Applicability, "blocked_wording">;
@@ -36,7 +33,7 @@ export interface ApplicabilityResult {
   detail: string;
   /** Present only when applicability is "applicable". */
   strategy?: EditStrategy;
-  /** Set for table_replacement — which table to replace. */
+  /** Set for across_cells. The table the cells belong to. */
   tableIndex?: number;
 }
 
@@ -90,8 +87,8 @@ export function assessApplicability(part: WalkResult, span: LocatedSpan): Applic
     if (cells.size > 1) {
       return {
         applicability: "applicable",
-        detail: "The wording spans several cells, so the whole table is replaced as a tracked change.",
-        strategy: "table_replacement",
+        detail: "The wording spans several cells, so each cell is changed in place.",
+        strategy: "across_cells",
         tableIndex,
       };
     }

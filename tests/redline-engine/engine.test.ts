@@ -149,6 +149,20 @@ describe("what it still refuses, and says so", () => {
     expect(result.unapplied[0].reason).toBe("overlaps_another_change");
   });
 
+  it("still marks up later wording in a run a refused finding had split", async () => {
+    const { result, report, xml } = await redline(await buildDocx(para(run("Alpha beta gamma delta epsilon zeta."))), [
+      finding({ id: "a", quoted_text: "beta", language: "BETA" }),
+      // Overlaps the change above and ends partway through the run that follows it.
+      finding({ id: "b", quoted_text: "BETA gamma", language: "BETA GAMMA" }),
+      finding({ id: "c", quoted_text: "epsilon", language: "EPSILON" }),
+    ]);
+
+    expect(result.appliedCount).toBe(2);
+    expect(result.unapplied.map((u) => u.reason)).toEqual(["overlaps_another_change"]);
+    expect(report.checks.filter((c) => !c.passed)).toEqual([]);
+    expect(xml).toContain("EPSILON");
+  });
+
   it("records how each finding resolved, for the weekly review", async () => {
     const { result } = await redline(await buildDocx(para(run(CLAUSE))), [
       SWAP,

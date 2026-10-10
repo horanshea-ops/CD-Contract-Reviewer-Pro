@@ -139,7 +139,7 @@ describe("where the comment is anchored", () => {
     expect(xml).toContain(`<w:commentReference w:id="${id}"/>`);
   });
 
-  it("annotates a replaced table on its new copy", async () => {
+  it("annotates a row change inside its table", async () => {
     const SCHEDULE = [
       ["Days Prior to Arrival", "Damages"],
       ["180 to 91", "50%"],
@@ -148,9 +148,26 @@ describe("where the comment is anchored", () => {
       finding({ quoted_text: "180 to 91 | 50%", language: "180 to 91 | 25%" }),
     ]);
     expect(report.checks.filter((c) => !c.passed)).toEqual([]);
-    const id = result.ownCommentIds[0];
+    const start = xml.indexOf(`<w:commentRangeStart w:id="${result.ownCommentIds[0]}"/>`);
+    expect(start).toBeGreaterThan(xml.indexOf("<w:tbl>"));
+    expect(start).toBeLessThan(xml.indexOf("</w:tbl>"));
+  });
+
+  it("annotates a replaced table on its new copy", async () => {
+    const SCHEDULE = [
+      ["Days Prior to Arrival", "Damages"],
+      ["180 to 91", "50%"],
+    ];
+    // The second finding changes wording the first already changed, which replaces the table.
+    const { xml, report, result } = await redline(await buildDocx(table(SCHEDULE)), [
+      finding({ id: "first", quoted_text: "180 to 91 | 50%", language: "180 to 91 | 25%" }),
+      finding({ id: "second", quoted_text: "180 to 91 | 25%", language: "180 to 91 | 20%" }),
+    ]);
+    expect(report.checks.filter((c) => !c.passed)).toEqual([]);
+    expect(result.unapplied).toEqual([]);
     const secondTable = xml.indexOf("<w:tbl>", xml.indexOf("<w:tbl>") + 1);
-    expect(xml.indexOf(`<w:commentRangeStart w:id="${id}"/>`)).toBeGreaterThan(secondTable);
+    expect(secondTable).toBeGreaterThan(-1);
+    expect(xml.indexOf(`<w:commentRangeStart w:id="${result.ownCommentIds[1]}"/>`)).toBeGreaterThan(secondTable);
   });
 
   it("annotates each appended clause, and not the heading", async () => {
