@@ -53,6 +53,9 @@ export function NoteBody({ note, clipped }: { note: MarginNote; clipped: boolean
     const { change } = note;
     return (
       <>
+        <Meta as="span" className="block font-semibold text-[var(--cd-navy)]">
+          Tracked change
+        </Meta>
         <Meta as="span" className="block text-[var(--text-muted)]">
           {byline(change.author, change.date)}
         </Meta>
@@ -71,7 +74,7 @@ export function NoteBody({ note, clipped }: { note: MarginNote; clipped: boolean
   return (
     <span className={resolved ? "block opacity-60" : "block"}>
       <Meta as="span" className="block font-semibold text-[var(--cd-navy)]">
-        {note.number}
+        Comment {note.number}
         {resolved && " · Resolved"}
       </Meta>
       <Comment comment={root} clipped={clipped} />

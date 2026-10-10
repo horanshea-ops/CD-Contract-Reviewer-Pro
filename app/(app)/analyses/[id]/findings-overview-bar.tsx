@@ -8,35 +8,36 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CategoryToggles } from "@/components/severity-toggles";
 
 /**
- * Sticky strip above the findings list — category counts doubling as filter
- * toggles, the undecided count, a hide-decided toggle, and the review's total
+ * Sticky strip above the findings list — category counts that each filter the
+ * list to that kind, the undecided count, a hide-decided toggle, and the review's total
  * exposure when any finding has a figure. Counts always reflect the whole
  * review, not the active filter, so they read as an honest total rather than
  * a live filter readout.
  */
 export default function FindingsOverviewBar({
   overview,
-  hiddenCategories,
-  onToggleCategory,
+  onlyCategory,
+  onPickCategory,
   hideDecided,
   onToggleHideDecided,
 }: {
   overview: FindingsOverview;
-  hiddenCategories: Set<Category>;
-  onToggleCategory: (category: Category) => void;
+  /** The one kind of finding shown, or null for every kind. */
+  onlyCategory: Category | null;
+  onPickCategory: (category: Category) => void;
   hideDecided: boolean;
   onToggleHideDecided: () => void;
 }) {
-  const filtersActive = hiddenCategories.size > 0 || hideDecided;
+  const filtersActive = onlyCategory !== null || hideDecided;
 
   function clearFilters() {
-    for (const category of hiddenCategories) onToggleCategory(category);
+    if (onlyCategory) onPickCategory(onlyCategory);
     if (hideDecided) onToggleHideDecided();
   }
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <CategoryToggles counts={overview.byCategory} hidden={hiddenCategories} onToggle={onToggleCategory} />
+      <CategoryToggles counts={overview.byCategory} only={onlyCategory} onPick={onPickCategory} />
 
       {overview.undecidedCount > 0 && (
         <Meta as="span" className="text-[var(--text-muted)]">
