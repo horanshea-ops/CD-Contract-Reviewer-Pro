@@ -2,17 +2,13 @@ import { describe, expect, it } from "vitest";
 import { runOne } from "@/scripts/fuzz-tracked-changes";
 
 /**
- * Seeds that produced a corrupt document before the structural-boundary gate
- * was widened (lib/tracked-changes-docx.ts).
+ * Seeds whose documents once came out corrupt. An earlier engine spliced
+ * across `</w:ins>` and `</w:sdtContent>` boundaries and wrote XML that does
+ * not parse, which is a file Word refuses to open. Documents carrying the
+ * counterparty's own tracked changes are where it bit.
  *
- * Randomised testing found a 16% corruption rate on realistic redlines — the
- * engine spliced across `</w:ins>` and `</w:sdtContent>` boundaries and emitted
- * XML that does not parse, which is a file Word refuses to open. Fifteen
- * hand-built fixtures had not caught it; documents carrying the counterparty's
- * own tracked changes are where it bites, i.e. every round after the first.
- *
- * These seeds are pinned so the specific documents that broke it are exercised
- * on every run, not just whatever a fresh random batch happens to produce.
+ * The seeds are pinned so those documents run through the engine on every
+ * test run, whatever a fresh random batch happens to produce.
  */
 const KNOWN_BAD_SEEDS = [
   331351351, 490586304, 12210920, 437977807, 943008115,

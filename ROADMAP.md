@@ -206,7 +206,8 @@ need not.
       byte-identical, and `span_resolution`/`applicability` are now populated. Not
       opened in Word — verification is the reject-all round trip, not a human eyeball.
       `lib/tracked-changes-docx.ts` is deleted along with the two harnesses that
-      existed only to exercise it; Stage 0's findings stay in
+      existed only to exercise it (it was not, in fact, deleted until
+      2026-10-10, on `audit/1-7-remove-old-engine`); Stage 0's findings stay in
       `docs/live-engine-validation.md`. 227 tests, 300 randomised documents, lint and
       typecheck clean.
       *Closed 2026-09-24:* a table quote that omits the extractor's `|` separators
@@ -397,7 +398,7 @@ below wherever the two differ. Each item gets its own plan before any code.
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
 | Live on `main` | Everything built to date, except the table change below. `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at one more file in Word, `4f803f16-redline-cells.docx`. The made-up hotel-comment sample looked good (user, 2026-10-09). `audit/1-1-blank-fields` and `phase/1-5-across-paragraphs` merge after it, in that order. |
+| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at one more file in Word, `4f803f16-redline-cells.docx`. The made-up hotel-comment sample looked good (user, 2026-10-09). `audit/1-1-blank-fields`, `phase/1-5-across-paragraphs` and `audit/1-7-remove-old-engine` merge after it, in that order. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -693,9 +694,10 @@ warning whether it is needed and whether the work can be done more simply.
   `sample-across-paragraphs-redline.docx`, against its `-original`. Clause 2
   should become one numbered sentence, and the table cell should read
   "$35,000 [35% of the minimum]".
-  4. Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing in
-     the app uses, and two refusal reasons that can't appear. This closes
-     CLAUDE.md deviation 4.
+  4. ~~Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing
+     in the app uses, and two refusal reasons that can't appear.~~ **Done
+     2026-10-10 on `audit/1-7-remove-old-engine`, not merged** (user's yes).
+     717 lines gone, CLAUDE.md deviation 4 closed, 1,648 tests pass.
 - **Next piece is 2, what the associate is shown.**
 
 **Archived for the beta.** Three features are off the live build and kept in

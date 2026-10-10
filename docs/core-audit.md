@@ -115,6 +115,7 @@ meet. Four is a small sample, and three of the four are the same contract.
 
 - `spans_non_text_content` and `in_header_footer` are in the list of reasons, with their text for the associate. The engine produces neither.
 - Proposed fix. Remove both with the old engine (1.7).
+- **Done 2026-10-10**, with 1.7.
 
 **1.7 The old redline engine is dead code.**
 
@@ -123,6 +124,12 @@ meet. Four is a small sample, and three of the four are the same contract.
 - CLAUDE.md deviation 4 kept it switched on until the new engine passed every fixture. No fixture falls back to the PDF today.
 - Proposed fix. Delete the file, its script and its test, and close deviation 4. Each of the old test's seven cases is checked first for a matching case on the new engine.
 - Risk is low. Needs the user's yes, since it ends a deviation.
+- **Done 2026-10-10 on `audit/1-7-remove-old-engine`, not merged** (user's yes, same day).
+  - The engine, its script and its test are deleted, 717 lines in all. CLAUDE.md deviation 4 is closed.
+  - Each of the old test's ten cases has a matching case on the new engine, so none was ported.
+  - Lint and the type check pass. The test count went from 1,658 to 1,648, which is the ten deleted cases.
+  - No file imports the deleted one, and nothing names the two removed reasons.
+  - The replay of 25 reviews matches the branch below on every review.
 
 **1.8 One reason covers five different causes.**
 
@@ -167,4 +174,4 @@ meet. Four is a small sample, and three of the four are the same contract.
 | 2 | Blanks as fields on the card (1.1) | Built, not merged | The table branch merged first |
 | 3 | Replace wording across paragraphs (1.2) | Built, not merged | The two branches below it merged first |
 | 4 | Widen the oracle's id check (1.9) | Dropped | Word opens a repeated id with no complaint |
-| 5 | Remove the old engine and the two dead reasons (1.6, 1.7) | Free, small | A yes, since it closes deviation 4 |
+| 5 | Remove the old engine and the two dead reasons (1.6, 1.7) | Done, not merged | The three branches below it merged first |
