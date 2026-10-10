@@ -270,3 +270,44 @@ Every stored Word review's cards were worked out as the screen works them out to
 | 2 | A decision on the document notes (2.3) | None | Left as they are until CD gives direction (user, 2026-10-10) |
 | 3 | The engine's own sentence in the export dialog (2.5) | Free, small | A plan and a yes |
 | 4 | The engine as the card's check (2.4, 2.6) | Free, larger | Evidence from the beta first |
+
+### Second pass, 2026-10-10. The export dialog, the email panels and the new-review form
+
+Evidence is the live record, read without changing it. It holds 99 exports and 551 audit-log rows from 2026-09-08 on, nearly all from testing.
+
+| What | Count |
+|---|---|
+| Word redline exports | 34 (31 clean, 3 partial, 0 fell back to the PDF) |
+| Memo exports | 39 |
+| PDF exports, marked-up and proposed | 26 |
+| Clean Word copies | 8 |
+| Client emails drafted, then edited | 8, 2 |
+| Property emails drafted, then edited | 8, 2 |
+| AI-use check stopped a review, and was then answered | 8, 8 |
+
+**2.8 The export dialog is sound.**
+
+- Three rows cover five files, and every one of the five has been used.
+- A file that isn't clean is held out of the zip and shown with its reasons, so the associate decides on it alone. That is the right shape.
+- One gap is already logged as finding 1.10. When the engine crashes, the row shows an error and offers no PDF. It belongs to piece 5.
+- With blanks and amounts now settled on the card, a partial verdict should be rarer. Count them during the beta.
+
+**2.9 The two email panels are the same screen written twice, and I would leave them.**
+
+- About 150 of each panel's 180 lines match once the audience's name is set aside.
+- The split that matters is on the server. Each audience has its own route and its own assembly, and the property's has an allowlist.
+- One shared panel would save about 150 lines. A mistake there could put CD's reasoning in front of a hotel, which is the worst outcome this app has.
+- No work. The saving is small and the downside is not.
+
+**2.10 The new-review form is sound.**
+
+- It asks for the file, new or continuing, the property name, the hotel brand, and an optional client name.
+- The line under each filled field shows the contract wording it came from, which supports the decision the field asks for.
+
+**2.11 The AI-use check is sound.**
+
+- It stops the review before anything is sent, shows the wording it found, and asks for one of two answers.
+
+**Not covered here.** The dashboard and the admin screens. The Standards screen is in piece 7.
+
+**Result of the second pass.** No new fix is proposed. Piece 2 is finished apart from the two fixes already listed and waiting, 2.4 and 2.5.
