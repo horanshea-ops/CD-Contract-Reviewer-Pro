@@ -56,21 +56,32 @@ const newState = (): FieldState => ({ inInstruction: false, inResult: false, box
 /** Wrappers around runs or paragraphs that add no wording of their own. The redline leaves what they hold alone. */
 const UNEDITED_WRAPPERS = new Set(["w:smartTag", "w:customXml", "w:dir", "w:bdo"]);
 
+type Views = { accepted: boolean; original: boolean };
+const BOTH_VIEWS: Views = { accepted: true, original: true };
+
 class Sink {
   text = "";
   map: MapEntry[] = [];
   originalText = "";
   markup: MarkupSpan[] = [];
 
-  /** Structure we invented: table pipes, heading hashes, list numbers, breaks. */
-  synthetic(s: string) {
+  /**
+   * Structure we invented: table pipes, heading hashes, list numbers, breaks.
+   *
+   * `views` says which reading it belongs to, as for wording. A marker left
+   * out of the accepted reading carries the revision that struck it, which is
+   * how the preview knows it takes up no room in `text`.
+   */
+  synthetic(s: string, views: Views = BOTH_VIEWS, struckBy: RevisionInfo | null = null) {
     if (!s) return;
-    for (const ch of s) {
-      this.text += ch;
-      this.map.push({ synthetic: true });
+    if (views.accepted) {
+      for (const ch of s) {
+        this.text += ch;
+        this.map.push({ synthetic: true });
+      }
     }
-    this.originalText += s;
-    this.markup.push({ text: s, revision: null, synthetic: true });
+    if (views.original) this.originalText += s;
+    this.markup.push({ text: s, revision: views.accepted ? null : struckBy, synthetic: true });
   }
 
   /**
@@ -260,13 +271,13 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
         case "w:tab":
           // Synthetic: a tab is structure, not a character inside any run's text,
           // so it has nowhere to map back to and must never be edited.
-          sink.synthetic("\t");
+          sink.synthetic("\t", views, ctx.revision);
           break;
         case "w:br":
-          sink.synthetic("\n");
+          sink.synthetic("\n", views, ctx.revision);
           break;
         case "w:noBreakHyphen":
-          sink.synthetic("-");
+          sink.synthetic("-", views, ctx.revision);
           break;
         case "w:commentReference":
           markComment(child, "reference");
