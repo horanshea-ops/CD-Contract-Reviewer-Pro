@@ -397,26 +397,24 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live model | Sonnet 5.5, since 2026-10-08. |
-| Live on `main` | `afdfab0`, 1,667 tests. Everything built to date except the branch below. `phase/2-1-same-file-reuse` is parked. |
-| Built, not merged | `audit/2-4-check-before-export`, 1,717 tests, pushed. It holds the check before export and this roadmap's latest state. |
+| Live on `main` | Everything built to date, 1,717 tests. The check before export (`audit/2-4-check-before-export`) was merged on 2026-10-10. `phase/2-1-same-file-reuse` is parked. |
+| Built, not merged | Nothing. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below and `docs/core-audit.md`. |
 | Migrations applied | 015 to 017, and **018 on 2026-10-10**, all by the user. 018's columns were confirmed present the same day. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
 
 **Do first next session.**
 
-1. **Finish the check before export.** Work on `audit/2-4-check-before-export`.
-   - Ask the user for a yes to one save on the made-up Harborview review
-     (`a70ff3c5`) or the made-up Rome review (`65f10383`). A save writes one
-     row to the shared database.
-   - In the dev browser, click one "This one" on the `65f10383` card whose
-     quote is found 10 times. The card should then show the change as
-     accepted and placed.
-   - Draft no email for this check. A property email draft is a paid call.
-   - Then merge to `main`, naming the tests run.
-2. **Go on to audit piece 4, reading the Word file.** The known lead is that
-   the reader treats a paragraph whose break is deleted as still separate.
-3. Then pieces 8, 3, 6, 7 and 9, in that order (user's "go", 2026-10-10).
+1. **Audit piece 4, reading the Word file.** The known lead is that the
+   reader treats a paragraph whose break is deleted as still separate.
+2. Then pieces 8, 3, 6, 7 and 9, in that order (user's "go", 2026-10-10).
+
+**The check before export is finished and merged (2026-10-10).** With the
+user's yes, one "This one" was clicked on the made-up Rome review
+(`65f10383`), on the card whose quote "Office" is found 10 times. The card
+read "Accepted" and kept that after a reload, and the saved row holds the
+quote and the wording before the place picked. That card is now decided, so
+it no longer shows the 10 places.
 
 **Watch on every new review (user, 2026-10-10).** If a change with no place
 shows up on a real review, look at each one on its own before trusting the
@@ -426,8 +424,9 @@ card offered, in `docs/core-audit.md`. None has appeared on Sonnet 5.5 in
 
 **Not yet clicked by a person.**
 
-- "This one", "Show me where" with its confirm, and "Send this in the email
-  to the property", on a card whose change has no place.
+- "Show me where" with its confirm, and "Send this in the email to the
+  property", on a card whose change has no place. "This one" was clicked by
+  Claude in the dev browser, not by a person.
 - "Save and accept" on a blank field, and "Use" or "Keep" on an amount check.
 - Accept All and Reject All on `data/private/replay/sample-across-paragraphs-redline.docx`
   in Word for the web.

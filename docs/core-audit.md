@@ -244,7 +244,7 @@ Every stored Word review's cards were worked out as the screen works them out to
 - To settle in its plan. The engine's answer depends on which findings are accepted together, so the dry run has to say what it assumes about undecided ones.
 - Priority is low on today's numbers. Do it if the beta shows refusals the card didn't foresee.
 - **The user overruled the priority on 2026-10-10.** An associate who has decided every change should not learn at export that one has no place, and "raise it another way" is not an instruction. The order of the steps is wrong however rarely it bites.
-- **Built 2026-10-10 on `audit/2-4-check-before-export`, not merged. It waits on migration 018.**
+- **Built and merged to `main` on 2026-10-10** (`audit/2-4-check-before-export`).
   - **The check runs early.** When a Word upload's review screen loads, the server runs the redline engine and its oracle over every change that isn't dismissed. Each card shows the engine's own answer.
   - **A change with no place can't be accepted as it stands.** Its card says why and offers a way to settle it.
 
@@ -267,7 +267,9 @@ Every stored Word review's cards were worked out as the screen works them out to
     - The card's older check (`lib/redline-engine/preflight.ts`) is not deleted. A PDF or .doc upload has no Word file to run the engine on, and still uses it.
     - Both PDFs still list a change with no place after the contract. That list is the net under a Word file that falls back, and it is inside the file, not on the export screen.
     - "Show me where" is offered only where the quote is the trouble. A row that won't split into its columns needs an edit, not a selection.
-  - Not checked in the browser: any save, since each writes to the shared database. Migration 018 was applied by the user on 2026-10-10, and its columns were confirmed present.
+  - Migration 018 was applied by the user on 2026-10-10, and its columns were confirmed present.
+  - **One save checked in the dev browser, with the user's yes.** On `65f10383`, "This one" on the first of the 10 places. The save returned 200, the card read "Accepted" with the places gone, and it read the same after a reload, when the server ran the engine again from the saved row. The row holds the quote "Office" and the wording before the 27/09/2027 table row.
+  - Not checked in the browser: "Show me where" with its confirm, "Keep this one" and "Keep the other", and "Send this in the email to the property". Each writes to the shared database.
   - **To watch (user, 2026-10-10).** When a change with no place first shows up on a real review, look at each one on its own. Record the contract's wording, the model's quote, and what the card offered.
 
 **2.5 One export message gives advice that fits one of its causes.**
@@ -295,7 +297,7 @@ Every stored Word review's cards were worked out as the screen works them out to
 | 1 | Buttons on the amount check (2.2) | Done, on `main` | Nothing |
 | 2 | A decision on the document notes (2.3) | None | Left as they are until CD gives direction (user, 2026-10-10) |
 | 3 | The engine's own sentence in the export dialog (2.5) | Free, small | A plan and a yes |
-| 4 | The engine as the card's check (2.4, 2.6) | Built, not merged | Migration 018 applied by the user |
+| 4 | The engine as the card's check (2.4, 2.6) | Done, on `main` | Nothing |
 
 ### Second pass, 2026-10-10. The export dialog, the email panels and the new-review form
 
