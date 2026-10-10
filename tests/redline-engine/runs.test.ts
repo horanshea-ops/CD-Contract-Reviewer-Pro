@@ -17,7 +17,7 @@ import { buildDocx, para, run } from "../helpers/docx-package";
 
 async function walk(bytes: Uint8Array | Buffer): Promise<WalkResult[]> {
   const pkg = await loadDocx(bytes);
-  return pkg.textParts.map((p) => walkPart(p, new NumberingResolver(pkg.numbering)));
+  return pkg.textParts.map((p) => walkPart(p, new NumberingResolver(pkg.numbering, pkg.styles)));
 }
 
 // xmldom's serializer takes its own node type, not the DOM lib's.

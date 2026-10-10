@@ -38,7 +38,7 @@ export async function extractDocx(
 
   // One resolver across all parts so list counters continue rather than
   // restarting in each header.
-  const numbering = new NumberingResolver(pkg.numbering);
+  const numbering = new NumberingResolver(pkg.numbering, pkg.styles);
   const parts = pkg.textParts.map((p) => walkPart(p, numbering));
 
   const document = parts.find((p) => p.part === "document");

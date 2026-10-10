@@ -339,7 +339,7 @@ export async function generateRedline({
   const placed: { findingId: string; part: string; start: number; end: number }[] = [];
 
   const freshWalk = () => {
-    const numbering = new NumberingResolver(pkg.numbering);
+    const numbering = new NumberingResolver(pkg.numbering, pkg.styles);
     return pkg.textParts.map((p) => walkPart(p, numbering));
   };
 
