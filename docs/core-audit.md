@@ -506,7 +506,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Proposed fix, free. The reader joins the paragraphs in the accepted reading and keeps them apart in the original reading. A paragraph break inserted by a tracked change gets the mirror treatment.
 - Risk is real. Paragraph endings are how the preview finds its blocks and how the engine finds paragraph edges, and the oracle reads both views. It needs its own plan and the replay.
 - Priority is below 4.1 and 4.2. Those are wrong on real contracts today. This one waits for the first round two.
-- **Built 2026-10-10 on `audit/4-5-accepted-reading`, not merged. It waits on the user's yes.**
+- **Built and merged to `main` on 2026-10-10** (`audit/4-5-accepted-reading`, user's yes). Piece 4 is finished.
   - **The rule the fix is held to.** The reader's reading of a contract as it now reads equals a plain reading of the same file with every tracked change accepted. The clean Word copy accepts changes by its own code (`lib/docx-accept.ts`), so the two are worked out separately and compared.
   - **Measured before the fix.** 75 files, 47 with tracked changes, 11 where the reader and the accepted copy disagreed. Three causes, of which the audit had found one: a deleted paragraph break (8 files), a struck table row read as an empty grid line (2), and a tab or line break kept from struck wording (4). Every one of the 11 is a redline this app wrote, so the fault bites on round two.
   - **After the fix, 0 of 47 disagree.**
@@ -573,7 +573,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 | 3 | The size check (4.3) | Done, on `main` | Nothing |
 | 4 | Fail loudly when the Word file can't be read (4.7) | Done, on `main` | Nothing |
 | 5 | Skip the page-number step on the Word route (4.6), and the empty table (4.9) | Done, on `main` | Nothing |
-| 6 | Deleted paragraph breaks, struck rows and struck tabs (4.5) | Built, not merged | The user's yes |
+| 6 | Deleted paragraph breaks, struck rows and struck tabs (4.5) | Done, on `main` | Nothing |
 
 **Proof for fixes 3 to 5, 2026-10-10.** Lint, the type check and 1,761 tests pass, 14 of them new. The reader's text is identical on all 16 stored files, and the replay matches on all 736 changes.
 
