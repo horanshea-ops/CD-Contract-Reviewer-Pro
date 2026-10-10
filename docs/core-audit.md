@@ -407,3 +407,119 @@ Audited 2026-10-10 on `audit/pieces-2-and-5`. It covers the five export files, t
 | 1 | A crash takes the PDF route and is recorded (5.1) | Done, on `main` | Nothing |
 | 2 | The clean Word copy says what it lacks (5.2) | Done, on `main` | Nothing |
 | 3 | A format of its own for the clean copy (5.3) | Free, one migration | Later, low priority |
+
+## Piece 4. Reading the Word file
+
+Audited 2026-10-10 on `audit/4-reading-the-word-file`. It covers the reader (`lib/docx/`), the checks at upload, the preview, and the steps kept from before the HTML preview.
+
+### Evidence
+
+- The code under `lib/docx/` (1,358 lines), `lib/docx-preview.ts`, the upload route and the review pipeline.
+- Every stored Word upload, read without changing anything. Two scripts in `data/private/audit/` download each file, run the reader over it, and count what the reader did with each part of the file.
+
+| From the store | Count |
+|---|---|
+| Reviews | 38 |
+| Word uploads | 29 (22 on the Word route, 6 older with no route recorded, 1 sent to the PDF route) |
+| Distinct Word files | 16 |
+| Real contracts among them | 3 (CD's Ideal Standard, the redacted Florida contract in two forms, the redacted Rome contract) |
+| Files with a deleted paragraph break | 0 |
+| Files with a footnote, a simple field, a smart tag or a legacy checkbox | 0 |
+| Upload checks that have ever failed | 1 of 7 (`text_volume`, once) |
+
+Three real contracts is a small sample. Every finding below that rests on one file says so.
+
+### Findings
+
+**4.1 Clause numbers don't reach the model or the preview on the Florida contract.**
+
+- The copy saved by Word (`c7148b08`) numbers its 30 headings through a list style. The numbering file points from the list to the style and from the style to the definition. The reader doesn't follow that link, so all 46 numbered paragraphs read "- GENERAL INFORMATION" where Word shows "1. GENERAL INFORMATION".
+- The Pages export of the same contract (`2ffd7890`) numbers its 30 headings through the paragraph style. The reader looks only at the paragraph itself, so those headings carry no number at all.
+- A second fault sits behind the first. The reader keeps one counter per list instance. Word keeps one counter per list and lets an instance restart it at a stated number. The Florida file restarts at 2, 3, 8, 16, 17, 20 and 25, and each of those is the right clause number only under Word's rule. Fixing the link alone would give 1, 1, 1, 2, 3.
+- A third fault adds a dash where Word shows nothing. A paragraph marked "no number", or a list level whose marker is empty, reads "- ". It happens 11 times in the Pages export and 11 times in CD's Ideal Standard.
+- What it costs. The model can't cite a clause by number, the associate's preview doesn't match the contract in Word, and the outline that tells two copies of the same wording apart has no sections to work with. Rome and the Ideal Standard number their clauses directly and read correctly.
+- Proposed fix, free. The numbering resolver follows the list-style link, reads numbering from the paragraph style, counts per list with restarts honoured, and writes no marker where Word shows none.
+- Risk is low for the redline. List numbers are markers the reader adds, and the engine never edits them. It changes the text the model reads on files that use these forms, so the proof is a before-and-after of every stored file's text, and the Florida numbers checked by the user against the contract.
+- Rests on one contract in two forms. List styles are common in legal templates, so it will recur.
+
+**4.2 Wording in a text box is never read.**
+
+- Rome holds one text box with 264 characters, the billing choices: "Check all that may apply", "Room, tax, and incidentals to Master", "Room and tax to Master, individuals pay incidentals", "Direct bill for organized function(s) Individuals pay own", "Staff & VIPs to Master".
+- The model never saw it and the preview doesn't show it. Nothing on the screen says so. The redline keeps the box, since the file itself is untouched.
+- The cause is general. The reader walks the elements it knows and skips any other. A text box, a simple field, a smart tag and a custom-XML wrapper all drop their wording without a trace. Footnotes and endnotes are never opened. Only the text box appears in the stored files.
+- The upload check named `map_coverage` reads as if it would catch this. It compares two lists the reader builds together, so it can never fail.
+- Proposed fix, free. The reader reads a text box's wording as paragraphs after the paragraph that anchors it, and reads through wrappers it doesn't know. All of it is locked against edits to start with. Whatever wording is still unread is counted at upload and noted on the review, the way an unread picture is today.
+- Risk is medium. It adds runs to the reader's map, which the engine and its oracle share. The lock keeps the engine out. The replay must place the same 605 changes.
+- Rests on one contract. Whether a box is ticked is a drawn shape in that file, and no reader could tell.
+
+**4.3 A short contract with a large picture is sent down the PDF route.**
+
+- The `text_volume` check divides the characters read by the size of the whole file and fails under 3 per kilobyte. A 2,000-character addendum fails as soon as the file passes 667 KB, which one logo or one scanned signature page does.
+- A failed check costs the associate the Word redline, the tables and the HTML preview, and the review reads flattened text. The message blames scanned pages.
+- It has fired once, on a made-up 12 MB test file with 571 characters of real text.
+- Proposed fix, free and small. Measure the text against the size of the document's own XML, which pictures don't inflate. The floor of 200 characters stays.
+- Risk is low. A file of scanned pages still fails, since its XML holds almost no text either.
+
+**4.4 Headings are recognised by the style's code name, and CD's own contract uses another.**
+
+- The reader treats a paragraph as a heading when its style is called `Heading1` to `Heading6`. CD's Ideal Standard uses `Heading1AA`, `Heading2AA` and so on, so none of its 14 headings is marked. The Word-saved Florida copy misses 4 more.
+- Word itself decides by the style's outline level, which both files set correctly.
+- What it costs. The preview shows those headings as body text, and the outline loses them.
+- Proposed fix, free and small. Read the outline level from the style, following the style it is based on. Goes with 4.1, since both read `styles.xml`.
+
+**4.5 A paragraph whose break is deleted still reads as its own paragraph.** The known lead.
+
+- When a tracked change deletes a paragraph break, Word shows the two paragraphs as one once accepted. The reader always ends the paragraph and numbers the next one.
+- On `sample-across-paragraphs-redline.docx` the accepted reading shows clause 2 followed by two empty paragraphs. Had the struck paragraphs been numbered by Word, each would leave a stray number and push every later number up by one.
+- A sentence a hotel joined across a break reads as two halves. A quote across the join is refused, and the card says the change has no place.
+- No stored file holds one. The app's own redlines have written them since 2026-10-09, so a hotel that returns a round-one redline with the changes left in will send one back.
+- Proposed fix, free. The reader joins the paragraphs in the accepted reading and keeps them apart in the original reading. A paragraph break inserted by a tracked change gets the mirror treatment.
+- Risk is real. Paragraph endings are how the preview finds its blocks and how the engine finds paragraph edges, and the oracle reads both views. It needs its own plan and the replay.
+- Priority is below 4.1 and 4.2. Those are wrong on real contracts today. This one waits for the first round two.
+
+**4.6 A Word review still writes page numbers nothing shows.**
+
+- Every Word upload is still turned into a text-only PDF with its line positions. That stays. It is the net under an export that falls back, and it is what a file that fails the upload checks is read from.
+- After each review the pipeline finds each finding's page in that PDF and writes it, one database write per finding. On the Word route no screen shows the page. 525 of 794 Word-route findings carry one.
+- Proposed fix, free and small. Skip the step on the Word route.
+
+**4.7 If the Word file can't be read at review time, the review quietly reads the PDF.**
+
+- The reader ran on the same bytes at upload, so a failure here means storage didn't hand the file over.
+- The review then reads the flattened PDF, costs the same, and looks normal. The screen still shows the Word preview, and each card checks quotes taken from other text. Nothing is recorded but a server log line.
+- Proposed fix, free and small. Try the download three times, then fail the review with a plain message before the model is called. The standards loader has worked this way since 2026-10-08.
+- No known case. None could be known, since nothing records it.
+
+**4.8 Two of the seven upload checks can never fail.**
+
+- `map_coverage` is covered in 4.2. `revision_integrity` counts opening and closing tags, and the XML has already passed a strict parse by then.
+- Proposed fix. 4.2 replaces the first with a real count of unread wording. The second goes in piece 6.
+
+**4.9 A paragraph that opens with a line or page break draws an empty table in the preview.**
+
+- 5 of the 16 files, once or twice each. It shows as a small gap. Offsets and highlights are unaffected.
+- Proposed fix, free and tiny. The preview takes a table to start only where a row follows.
+
+**4.10 Read and found sound.**
+
+- The reader's text and its map are built in one pass and can't drift apart.
+- A change inside a change is read into the right view (the invariant from the nested-revisions bug holds).
+- The preview shows every character the reader produced, in order, on all 16 files. The scan checks this.
+- Headers and footers are read as parts of their own, and comments are read beside the text and never into it.
+- Field results and content controls are read and locked.
+- The spaces inside Rome's figures ("€7 50.00") are in the file as uploaded. The reader adds none.
+
+**Not covered here.** The .doc and PDF readers, which nine of 38 reviews used. The clean copy's accept step, covered in pieces 1 and 5.
+
+### Proposed order
+
+| # | Fix | Cost | Needs |
+|---|---|---|---|
+| 1 | Clause numbers and headings (4.1, 4.4) | Free | A plan and a yes. The user checks Florida's numbers against the contract. |
+| 2 | Text boxes and unread wording (4.2, 4.8) | Free | A plan and a yes |
+| 3 | The size check (4.3) | Free, small | A yes |
+| 4 | Fail loudly when the Word file can't be read (4.7) | Free, small | A yes |
+| 5 | Skip the page-number step on the Word route (4.6), and the empty table (4.9) | Free, small | A yes |
+| 6 | Deleted paragraph breaks (4.5) | Free | Its own plan, after the first round two or sooner if the user prefers |
+
+Fixes 1 and 2 change the contract text the model reads on files that use those forms. A before-and-after of each stored file's text shows which files change, at no cost. A paid review of a changed contract would need a quoted price and a yes.

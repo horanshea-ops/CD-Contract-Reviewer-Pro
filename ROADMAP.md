@@ -405,8 +405,11 @@ below wherever the two differ. Each item gets its own plan before any code.
 
 **Do first next session.**
 
-1. **Audit piece 4, reading the Word file.** The known lead is that the
-   reader treats a paragraph whose break is deleted as still separate.
+1. **Get the user's yes or no on piece 4's six proposed fixes**
+   (`docs/core-audit.md`, "Piece 4"). The audit is on
+   `audit/4-reading-the-word-file`, with no app code changed. The two that
+   matter most are clause numbers lost on the Florida contract and a text
+   box on Rome that is never read.
 2. Then pieces 8, 3, 6, 7 and 9, in that order (user's "go", 2026-10-10).
 
 **The check before export is finished and merged (2026-10-10).** With the
@@ -706,7 +709,7 @@ warning whether it is needed and whether the work can be done more simply.
 | 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Findings written 2026-10-08. Five fixes proposed, none built. |
 | 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Finished 2026-10-10. The amount-check buttons are live. The second pass (export dialog, email panels, new-review form) proposed no new fix. 2.4 and 2.5 wait on evidence from the beta. |
 | 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
-| 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Not started |
+| 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Findings written 2026-10-10. Six fixes proposed, none built. |
 | 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Finished 2026-10-10. Both fixes are live. 5.3, a format of its own for the clean copy in the record, is left for later. |
 | 6 | Dead and doubled code | The old engine (`lib/tracked-changes-docx.ts`), helpers written more than once, unused switches and scripts. | Not started |
 | 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
@@ -790,7 +793,7 @@ warning whether it is needed and whether the work can be done more simply.
   - **Migration 018 was applied by the user on 2026-10-10.**
   - **No save has been clicked.** One save on a made-up review needs the
     user's yes, and the merge follows it.
-- **Next is piece 4, reading the Word file.**
+- **Piece 4, reading the Word file (2026-10-10).** Findings written, six fixes proposed, none built. The scan scripts are in `data/private/audit/`, which git ignores.
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,
