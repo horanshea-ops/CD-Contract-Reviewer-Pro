@@ -506,6 +506,21 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Proposed fix, free. The reader joins the paragraphs in the accepted reading and keeps them apart in the original reading. A paragraph break inserted by a tracked change gets the mirror treatment.
 - Risk is real. Paragraph endings are how the preview finds its blocks and how the engine finds paragraph edges, and the oracle reads both views. It needs its own plan and the replay.
 - Priority is below 4.1 and 4.2. Those are wrong on real contracts today. This one waits for the first round two.
+- **Built 2026-10-10 on `audit/4-5-accepted-reading`, not merged. It waits on the user's yes.**
+  - **The rule the fix is held to.** The reader's reading of a contract as it now reads equals a plain reading of the same file with every tracked change accepted. The clean Word copy accepts changes by its own code (`lib/docx-accept.ts`), so the two are worked out separately and compared.
+  - **Measured before the fix.** 75 files, 47 with tracked changes, 11 where the reader and the accepted copy disagreed. Three causes, of which the audit had found one: a deleted paragraph break (8 files), a struck table row read as an empty grid line (2), and a tab or line break kept from struck wording (4). Every one of the 11 is a redline this app wrote, so the fault bites on round two.
+  - **After the fix, 0 of 47 disagree.**
+  - A paragraph whose break is deleted is read with the paragraphs joined onto it, under the first one's number and heading. Later paragraphs of the chain take no number and don't advance the count. A break joins only where a paragraph follows it directly.
+  - A struck row is out of the reading, and a table with every row struck leaves nothing. A tab or break belongs to the reading its run belongs to.
+  - A heading style on a paragraph whose wording is all struck marks no heading.
+  - The preview and both PDFs draw from the tagged stream, which keeps a struck break and a struck row as struck. They look as they did. The marked-up PDF of the redline of `0c324ca0` has the same 1,529 lines of text before and after.
+  - **The rule is now a test in the repository** (`tests/docx/accepted-rule.test.ts`), over every fixture that holds tracked changes and over redlines the engine writes in the test.
+  - **Better than planned on one point.** A change quoted across a hotel's join is placed where each paragraph can take its part. On the test file "shall pay the balance" becomes "will pay the balance" and the file passes its check. A whole rewrite across the join is still refused, since that break isn't ours to delete.
+  - **The risk named in the plan did not show.** Joined numbered paragraphs shift later clause numbers inside one export. The replay compared 736 changes across 25 reviews and no verdict moved, with 606 placed on each side.
+  - The 16 stored uploads read identically. None holds these marks.
+  - Lint, the type check and 1,781 tests pass. 20 are new.
+  - **One line of the plan was wrong.** It said the preview and the marked-up PDF show stray blank paragraphs today. They don't. The blanks were in the text the model reads and the engine places against.
+  - Left as it is: the reading of the contract as first written, which nothing in the app uses. Piece 6 can remove it or put it right.
 
 **4.6 A Word review still writes page numbers nothing shows.**
 
@@ -558,7 +573,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 | 3 | The size check (4.3) | Done, on `main` | Nothing |
 | 4 | Fail loudly when the Word file can't be read (4.7) | Done, on `main` | Nothing |
 | 5 | Skip the page-number step on the Word route (4.6), and the empty table (4.9) | Done, on `main` | Nothing |
-| 6 | Deleted paragraph breaks (4.5) | Free | Its own plan, after the first round two or sooner if the user prefers |
+| 6 | Deleted paragraph breaks, struck rows and struck tabs (4.5) | Built, not merged | The user's yes |
 
 **Proof for fixes 3 to 5, 2026-10-10.** Lint, the type check and 1,761 tests pass, 14 of them new. The reader's text is identical on all 16 stored files, and the replay matches on all 736 changes.
 
