@@ -463,6 +463,19 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Proposed fix, free. The reader reads a text box's wording as paragraphs after the paragraph that anchors it, and reads through wrappers it doesn't know. All of it is locked against edits to start with. Whatever wording is still unread is counted at upload and noted on the review, the way an unread picture is today.
 - Risk is medium. It adds runs to the reader's map, which the engine and its oracle share. The lock keeps the engine out. The replay must place the same 605 changes.
 - Rests on one contract. Whether a box is ticked is a drawn shape in that file, and no reader could tell.
+- **Built and merged to `main` on 2026-10-10** (`audit/4-2-text-boxes`, user's yes).
+  - The reader takes one copy of each text box and reads its paragraphs after the paragraph that anchors it, in the same table cell when the anchor sits in one.
+  - It reads through a simple field, a smart tag, custom XML, the text-direction wrappers, and a table row or cell wrapped in a content control.
+  - **A change to wording in a text box is refused, with its own reason** (`in_unedited_part`). The card says "The wording sits in a text box, which the redline doesn't change." and offers Edit and the email to the property. Word stores most boxes twice, and a change written to one copy could show a hotel the old wording. Lifting the lock needs a made-up file checked in two viewers.
+  - **Wording still unread is counted at upload and noted on the review**, footnotes and endnotes included. The count is kept beside `pictures` on the upload's health record and never changes the route. The model is told nothing new.
+  - The table check counts a text box's table once. Before, a box holding a table would have sent the file down the PDF route.
+  - Lint, the type check and 1,747 tests pass. 16 are new and built from made-up XML.
+  - Before and after on all 16 stored files. No wording was removed or changed. The three Rome copies each gain 264 characters, the billing choices and two footer lines. One footer line names the brand, "HILTON – CONFERENCE DIRECT CE AGREEMENT - EMEA". The Ideal Standard gains two blank paragraphs from two empty boxes. Twelve files are identical.
+  - Every stored file keeps its route, and none has wording left unread.
+  - The replay compared 736 changes across 25 reviews. None differs, 606 are placed on each side, and the place saved on Rome holds.
+  - Seen in the dev browser on `65f10383`. The billing choices sit under "Payment Breakdown".
+  - **Two departures from the plan.** The stored block kind is the existing locked one, since the database lists the allowed kinds and a new one would need a migration. The text box is told apart by its reason and its sentence. And the Ideal Standard changes by two blank paragraphs, where the plan expected 13 identical files.
+  - No stored review gains a note. The count is taken at upload.
 
 **4.3 A short contract with a large picture is sent down the PDF route.**
 
@@ -507,6 +520,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 
 - `map_coverage` is covered in 4.2. `revision_integrity` counts opening and closing tags, and the XML has already passed a strict parse by then.
 - Proposed fix. 4.2 replaces the first with a real count of unread wording. The second goes in piece 6.
+- **2026-10-10.** The count of unread wording is built with 4.2. Both dead checks are left for piece 6.
 
 **4.9 A paragraph that opens with a line or page break draws an empty table in the preview.**
 
@@ -529,7 +543,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 | # | Fix | Cost | Needs |
 |---|---|---|---|
 | 1 | Clause numbers and headings (4.1, 4.4) | Done, on `main` | Nothing |
-| 2 | Text boxes and unread wording (4.2, 4.8) | Free | A plan and a yes |
+| 2 | Text boxes and unread wording (4.2, 4.8) | Done, on `main` | Nothing |
 | 3 | The size check (4.3) | Free, small | A yes |
 | 4 | Fail loudly when the Word file can't be read (4.7) | Free, small | A yes |
 | 5 | Skip the page-number step on the Word route (4.6), and the empty table (4.9) | Free, small | A yes |

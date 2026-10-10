@@ -39,6 +39,10 @@ export interface SourceRef {
   insideField: boolean;
   /** Inside a hyperlink — editing across its boundary orphans the relationship. */
   insideHyperlink: boolean;
+  /** Inside a text box. Word may store the box twice, so the redline leaves its wording alone. */
+  insideTextBox: boolean;
+  /** Inside a wrapper the redline doesn't edit: a smart tag, custom XML, a text-direction wrapper or alternate content. */
+  insideUneditedMarkup: boolean;
 }
 
 export interface SyntheticRef {
@@ -124,6 +128,15 @@ export interface PictureImage {
   data: string;
 }
 
+/** Wording in the file that the review did not read. */
+export interface UnreadWording {
+  /** Where it sits, in plain words. */
+  where: string;
+  words: number;
+  /** Its first few words, to find it by. */
+  sample: string;
+}
+
 export interface IntakeHealth {
   route: IntakeRoute;
   checks: HealthCheck[];
@@ -131,6 +144,8 @@ export interface IntakeHealth {
   reason: string | null;
   /** Pictures that may hold a table or figures. Informational; they never change the route. Absent on older uploads. */
   pictures?: ContractPicture[];
+  /** Wording the review did not read. Informational; it never changes the route. Absent when everything was read, and on older uploads. */
+  unread?: UnreadWording[];
 }
 
 /**

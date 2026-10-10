@@ -1,6 +1,7 @@
 import { readComments } from "./comments";
 import { assessHealth } from "./health";
 import { findPictures } from "./pictures";
+import { findUnread } from "./unread";
 import { NumberingResolver } from "./numbering";
 import { DocxParseError, loadDocx } from "./parts";
 import { walkPart } from "./walk";
@@ -46,6 +47,7 @@ export async function extractDocx(
 
   const { pictures, images } = await findPictures(pkg);
   const { comments, total } = await readComments(pkg, parts);
+  const unread = await findUnread(pkg, parts);
   return {
     parts,
     document,
@@ -55,6 +57,7 @@ export async function extractDocx(
     health: {
       ...assessHealth({ pkg, parts, fileSizeBytes: opts.fileSizeBytes ?? bytes.byteLength }),
       pictures,
+      ...(unread.length > 0 ? { unread } : {}),
     },
     pictures: images,
   };

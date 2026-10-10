@@ -1,5 +1,6 @@
 import { normalizeChar } from "./normalize";
 import { NumberingResolver } from "./numbering";
+import { branchRead, textBoxesIn } from "./text-boxes";
 import type { ParsedPart } from "./parts";
 import type {
   ExtractedPart,
@@ -30,6 +31,8 @@ interface Ctx {
   insideHyperlink: boolean;
   /** Set between a field's "separate" and "end" — the visible field result. */
   insideField: boolean;
+  insideTextBox: boolean;
+  insideUneditedMarkup: boolean;
   /** The revision this content belongs to, for the markup view. */
   revision: RevisionInfo | null;
   /** True inside a table cell, where paragraphs separate with a space, not a blank line. */
@@ -38,13 +41,20 @@ interface Ctx {
   views: { accepted: boolean; original: boolean };
 }
 
-/** Mutable per-paragraph state for the field-code machine. */
+/** Mutable per-paragraph state: the field-code machine, and the text boxes the paragraph anchors. */
 interface FieldState {
   /** Between "begin" and "separate": instruction text, never shown to the model. */
   inInstruction: boolean;
   /** Between "separate" and "end": the result, readable but not modifiable. */
   inResult: boolean;
+  /** Text boxes met in the paragraph's runs, each with the context of the run that anchors it. */
+  boxes: { box: Element; ctx: Ctx }[];
 }
+
+const newState = (): FieldState => ({ inInstruction: false, inResult: false, boxes: [] });
+
+/** Wrappers around runs or paragraphs that add no wording of their own. The redline leaves what they hold alone. */
+const UNEDITED_WRAPPERS = new Set(["w:smartTag", "w:customXml", "w:dir", "w:bdo"]);
 
 class Sink {
   text = "";
@@ -201,6 +211,8 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     insideContentControl: false,
     insideHyperlink: false,
     insideField: false,
+    insideTextBox: false,
+    insideUneditedMarkup: false,
     revision: null,
     inCell: false,
     views: { accepted: true, original: true },
@@ -221,6 +233,8 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       insideContentControl: ctx.insideContentControl,
       insideField: ctx.insideField || field.inResult,
       insideHyperlink: ctx.insideHyperlink,
+      insideTextBox: ctx.insideTextBox,
+      insideUneditedMarkup: ctx.insideUneditedMarkup,
     };
 
     let baseOffset = 0;
@@ -257,17 +271,30 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
         case "w:commentReference":
           markComment(child, "reference");
           break;
+        case "w:rPr":
+          break;
         default:
-          break; // w:rPr, w:sym, w:drawing, w:footnoteReference and friends
+          // A drawing can hold text boxes. Their wording is read once the paragraph ends.
+          for (const box of textBoxesIn(child)) field.boxes.push({ box, ctx });
+          break; // w:sym, w:footnoteReference and friends add no wording
       }
     }
   }
 
-  /** True when the paragraph holds wording, live or struck. */
+  /** Reads the text boxes a paragraph anchored, as paragraphs of their own after it. */
+  function walkBoxes(state: FieldState) {
+    for (const { box, ctx } of state.boxes.splice(0)) walkChildren(box, { ...ctx, insideTextBox: true });
+  }
+
+  /** True when the paragraph holds wording of its own, live or struck. A text box it anchors doesn't count. */
   function hasWording(node: Element): boolean {
+    const own = (text: Element) => {
+      for (let at = text.parentNode; at && at !== node; at = at.parentNode) if (at.nodeName === "w:txbxContent") return false;
+      return true;
+    };
     for (const name of ["w:t", "w:delText"]) {
       const texts = node.getElementsByTagName(name);
-      for (let i = 0; i < texts.length; i++) if (texts[i].textContent) return true;
+      for (let i = 0; i < texts.length; i++) if (texts[i].textContent && own(texts[i])) return true;
     }
     return false;
   }
@@ -277,12 +304,12 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
    * synthetic. A numbered heading reads "# 1. ", and a list item is indented
    * by its level.
    *
-   * A heading style marks no heading on an empty paragraph or inside a table
-   * cell. Word's own outline leaves both out.
+   * A heading style marks no heading on an empty paragraph, inside a table
+   * cell or inside a text box. Word's own outline leaves all three out.
    */
   function paragraphPrefix(node: Element, ctx: Ctx): string {
     const pPr = firstChild(node, "w:pPr");
-    const level = ctx.inCell || !hasWording(node) ? 0 : numbering.styles.headingLevelOf(pPr);
+    const level = ctx.inCell || ctx.insideTextBox || !hasWording(node) ? 0 : numbering.styles.headingLevelOf(pPr);
     const hashes = level ? `${"#".repeat(level)} ` : "";
 
     const list = numbering.numberingOf(pPr);
@@ -294,16 +321,29 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     return `${"  ".repeat(list.ilvl)}${label ?? "-"} `;
   }
 
+  /**
+   * A table's rows, or a row's cells, with those a content control or a
+   * custom-XML wrapper holds. Each comes with the lock its wrapper puts on it.
+   */
+  function unwrapped(node: Element, name: string, lock: Partial<Ctx> = {}): { el: Element; lock: Partial<Ctx> }[] {
+    return childrenOf(node).flatMap((child) => {
+      const kind = tag(child);
+      if (kind === name) return [{ el: child, lock }];
+      if (kind === "w:sdt" || kind === "w:sdtContent") return unwrapped(child, name, { ...lock, insideContentControl: true });
+      if (kind === "w:customXml") return unwrapped(child, name, { ...lock, insideUneditedMarkup: true });
+      return [];
+    });
+  }
+
   function walkTable(node: Element, ctx: Ctx) {
     const tableIndex = tableCount++;
     sink.synthetic("\n");
-    const rows = childrenOf(node).filter((c) => tag(c) === "w:tr");
-    rows.forEach((row, rowIdx) => {
-      const cells = childrenOf(row).filter((c) => tag(c) === "w:tc");
+    unwrapped(node, "w:tr").forEach((row, rowIdx) => {
+      const cells = unwrapped(row.el, "w:tc", row.lock);
       sink.synthetic("|");
       for (const cell of cells) {
         sink.synthetic(" ");
-        walkChildren(cell, { ...ctx, insideTable: true, inCell: true, tableIndex, cellIndex: cellCount++ });
+        walkChildren(cell.el, { ...ctx, ...cell.lock, insideTable: true, inCell: true, tableIndex, cellIndex: cellCount++ });
         sink.synthetic(" |");
       }
       sink.synthetic("\n");
@@ -322,10 +362,11 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
   function walkParagraph(node: Element, ctx: Ctx) {
     paragraphIndex++;
     sink.synthetic(paragraphPrefix(node, ctx));
-    const field: FieldState = { inInstruction: false, inResult: false };
-    walkChildren(node, ctx, field);
+    const state = newState();
+    walkChildren(node, ctx, state);
     // Inside a cell the paragraph break would break the table row apart.
     sink.synthetic(ctx.inCell ? " " : "\n\n");
+    walkBoxes(state);
   }
 
   function walkChildren(node: Element, ctx: Ctx, field?: FieldState) {
@@ -336,7 +377,10 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       if (name === "w:p") { walkParagraph(child, ctx); continue; }
       if (name === "w:tbl") { walkTable(child, ctx); continue; }
       if (name === "w:r") {
-        walkRun(child, ctx, field ?? { inInstruction: false, inResult: false }, ctx.views);
+        const state = field ?? newState();
+        walkRun(child, ctx, state, ctx.views);
+        // A run outside any paragraph has no paragraph end to wait for.
+        if (!field) walkBoxes(state);
         continue;
       }
       if (REVISION_TAGS.has(name)) {
@@ -360,6 +404,14 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
         continue;
       }
       if (name === "w:sdtContent") { walkChildren(child, { ...ctx, insideContentControl: true }, field); continue; }
+      if (name === "w:fldSimple") { walkChildren(child, { ...ctx, insideField: true }, field); continue; }
+      if (name === "mc:AlternateContent") {
+        // Two copies of the same content, of which one is read.
+        const branch = branchRead(child);
+        if (branch) walkChildren(branch, { ...ctx, insideUneditedMarkup: true }, field);
+        continue;
+      }
+      if (UNEDITED_WRAPPERS.has(name)) { walkChildren(child, { ...ctx, insideUneditedMarkup: true }, field); continue; }
 
       // Structural containers we simply descend into.
       if (name === "w:body" || name === "w:tc" || name === "w:tr" || name === "w:hdr" || name === "w:ftr") {

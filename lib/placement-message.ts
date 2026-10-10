@@ -35,6 +35,8 @@ export function placementMessage(problem: PlacementProblem, otherChange: string 
     case "in_content_control":
     case "in_field":
       return `${problem.detail} Word won't let that part of the file be changed.`;
+    case "in_unedited_part":
+      return problem.detail;
     default:
       return `${problem.detail} So this change has no place in the Word file as it is written.`;
   }
