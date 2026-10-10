@@ -608,7 +608,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 - Proposed fix, free. Move `next` to the newest 16.3 patch, run `npm audit fix`, and prove it with the three checks and a pass through the app in the dev browser.
 - Risk is low for a patch release. The repository's note that this Next differs from older ones still applies, so the release notes get read first.
 - I know these advisories only from `npm audit`'s output.
-- **Built 2026-10-10 on `audit/8-1-next-patch`, not merged. It waits on the user's yes.**
+- **Built and merged to `main` on 2026-10-10** (`audit/8-1-next-patch`, user's yes).
   - `next` and `eslint-config-next` are pinned at 16.3.8. `sharp` is 0.35.5 and `source-map-js` is 1.2.2. Two development-only patch bumps of `brace-expansion` came with the audit fix. Only `package.json` and `package-lock.json` changed.
   - The release notes for 16.3.5 to 16.3.8 list backported fixes only, and none touches the proxy file or route handlers.
   - **`npm audit` on the production packages went from 6 findings (1 critical, 2 high, 3 moderate) to 3 moderate.**
@@ -702,7 +702,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 
 | # | Fix | Cost | Needs |
 |---|---|---|---|
-| 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Built, not merged | The user's yes |
+| 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Done, on `main` | Nothing |
 | 2 | Close the after-sign-in redirect (8.2) | Free, small | A yes |
 | 3 | Mark the memo internal by its file name, with one zip kept for everything (8.3) | Free, small | A short plan and a yes |
 | 4 | Hand the engine only its own fields (8.5) | Free, small | A yes |

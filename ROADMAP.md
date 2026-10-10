@@ -397,8 +397,8 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live model | Sonnet 5.5, since 2026-10-08. |
-| Live on `main` | Everything built to date, 1,781 tests. Merged on 2026-10-10: the check before export, the one-kind filter and bubble labels, clause numbers and headings (audit 4.1, 4.4), text boxes with the unread-wording note (4.2), three small reader fixes (4.3, 4.7, 4.6 with 4.9), and the accepted reading (4.5). `phase/2-1-same-file-reuse` is parked. |
-| Built, not merged | `audit/8-1-next-patch`, pushed. Next.js 16.3.8 with the patched `sharp` and `source-map-js` (audit 8.1). It waits on the user's yes. It also holds piece 8's audit record. |
+| Live on `main` | Everything built to date, 1,781 tests. Merged on 2026-10-10: the check before export, the one-kind filter and bubble labels, clause numbers and headings (audit 4.1, 4.4), text boxes with the unread-wording note (4.2), three small reader fixes (4.3, 4.7, 4.6 with 4.9), the accepted reading (4.5), and Next.js 16.3.8 (audit 8.1). `phase/2-1-same-file-reuse` is parked. |
+| Built, not merged | Nothing. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below and `docs/core-audit.md`. |
 | Migrations applied | 015 to 017, and **018 on 2026-10-10**, all by the user. 018's columns were confirmed present the same day. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -406,9 +406,10 @@ below wherever the two differ. Each item gets its own plan before any code.
 **Do first next session.**
 
 1. **Piece 8's fixes, in the order the user approved on 2026-10-10**, each
-   with its own plan: the Next.js patch release (8.1), the after-sign-in
-   redirect (8.2), the memo's file name (8.3), the engine's input (8.5),
-   the free parts of 8.4, then the headers (8.7). The prompt sentence in
+   with its own plan. The Next.js patch release (8.1) is live. Next are the
+   after-sign-in redirect (8.2) and the memo's file name (8.3), which are
+   small enough to plan together. Then the engine's input (8.5), the free
+   parts of 8.4, and the headers (8.7). The prompt sentence in
    8.4 needs a quoted paid run. See `docs/core-audit.md`, "Piece 8".
    - On 8.3 the user chose a file name that says internal, and kept one
      zip for every file.
@@ -734,7 +735,7 @@ warning whether it is needed and whether the work can be done more simply.
 | 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Finished 2026-10-10. Both fixes are live. 5.3, a format of its own for the clean copy in the record, is left for later. |
 | 6 | Dead and doubled code | The old engine (`lib/tracked-changes-docx.ts`), helpers written more than once, unused switches and scripts. | Not started |
 | 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
-| 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Findings written 2026-10-10. Eight fixes proposed, none built. The database wall and every route's checks were found sound. |
+| 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Findings written 2026-10-10. Eight fixes proposed. The first (8.1) is live. The database wall and every route's checks were found sound. |
 | 9 | Tests and CI | Tests that pass without checking anything (one was found on 2026-10-08), and gaps in the core path. | Not started |
 
 - **Piece 1's proposed fixes, in order.** Each waits for a plan and a yes.
