@@ -143,6 +143,18 @@ const REVISION_VIEWS: Record<RevisionKind, { accepted: boolean; original: boolea
 
 const REVISION_TAGS = new Set(["w:ins", "w:del", "w:moveTo", "w:moveFrom"]);
 
+/** A revision that takes wording out of the contract as it now reads. */
+const strikes = (rev: RevisionInfo) => rev.kind === "del" || rev.kind === "moveFrom";
+
+/**
+ * The context under a revision. Content left out of the accepted reading is
+ * tagged with the revision that struck it, so the preview never counts it.
+ */
+function under<C extends { views: Views; revision: RevisionInfo | null }>(ctx: C, rev: RevisionInfo): C {
+  const views = bothOf(ctx.views, REVISION_VIEWS[rev.kind]);
+  return { ...ctx, views, revision: views.accepted || strikes(rev) ? rev : ctx.revision };
+}
+
 /**
  * Revisions compose by intersection. Wording the counterparty inserted and we
  * then struck (§1.5.7 writes exactly that, a `w:del` inside their `w:ins`) is
@@ -292,6 +304,9 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     }
   }
 
+  /** Adds a marker to the readings this content belongs to. */
+  const mark = (text: string, ctx: Ctx) => sink.synthetic(text, ctx.views, ctx.revision);
+
   /** Reads the text boxes a paragraph anchored, as paragraphs of their own after it. */
   function walkBoxes(state: FieldState) {
     for (const { box, ctx } of state.boxes.splice(0)) walkChildren(box, { ...ctx, insideTextBox: true });
@@ -323,7 +338,8 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     const level = ctx.inCell || ctx.insideTextBox || !hasWording(node) ? 0 : numbering.styles.headingLevelOf(pPr);
     const hashes = level ? `${"#".repeat(level)} ` : "";
 
-    const list = numbering.numberingOf(pPr);
+    // A paragraph out of the accepted reading takes no number, so the count follows the contract as it now reads.
+    const list = ctx.views.accepted ? numbering.numberingOf(pPr) : null;
     if (!list) return hashes;
 
     const label = numbering.next(list.numId, list.ilvl);
@@ -346,37 +362,55 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
     });
   }
 
+  /** The tracked change on a table row itself, which strikes or adds the whole row. */
+  function rowRevision(row: Element): RevisionInfo | null {
+    const trPr = firstChild(row, "w:trPr");
+    const change = trPr ? childrenOf(trPr).find((c) => REVISION_TAGS.has(tag(c))) : undefined;
+    return change ? revisionFrom(change) : null;
+  }
+
   function walkTable(node: Element, ctx: Ctx) {
     const tableIndex = tableCount++;
-    sink.synthetic("\n");
-    unwrapped(node, "w:tr").forEach((row, rowIdx) => {
+    const rows = unwrapped(node, "w:tr").map((row) => {
+      const rev = rowRevision(row.el);
+      return { ...row, ctx: rev ? under(ctx, rev) : ctx };
+    });
+
+    // A table with no row left to read is out of the reading altogether.
+    // Accepting the changes removes it.
+    const edge = rows.length > 0 && !rows.some((row) => row.ctx.views.accepted) ? rows[0].ctx : ctx;
+
+    mark("\n", edge);
+    let ruled = false;
+    for (const row of rows) {
       const cells = unwrapped(row.el, "w:tc", row.lock);
-      sink.synthetic("|");
+      mark("|", row.ctx);
       for (const cell of cells) {
-        sink.synthetic(" ");
-        walkChildren(cell.el, { ...ctx, ...cell.lock, insideTable: true, inCell: true, tableIndex, cellIndex: cellCount++ });
-        sink.synthetic(" |");
+        mark(" ", row.ctx);
+        walkChildren(cell.el, { ...row.ctx, ...cell.lock, insideTable: true, inCell: true, tableIndex, cellIndex: cellCount++ });
+        mark(" |", row.ctx);
       }
-      sink.synthetic("\n");
-      // A separator after the first row is what makes this read as a table
+      mark("\n", row.ctx);
+      // A separator after the first row that reads is what makes this a table
       // rather than a row of pipes — §1.4.5's point about cancellation
       // schedules reaching the model as a grid.
-      if (rowIdx === 0) {
-        sink.synthetic("|");
-        for (let i = 0; i < cells.length; i++) sink.synthetic(" --- |");
-        sink.synthetic("\n");
+      if (!ruled && row.ctx.views.accepted) {
+        ruled = true;
+        mark("|", row.ctx);
+        for (let i = 0; i < cells.length; i++) mark(" --- |", row.ctx);
+        mark("\n", row.ctx);
       }
-    });
-    sink.synthetic("\n");
+    }
+    mark("\n", edge);
   }
 
   function walkParagraph(node: Element, ctx: Ctx) {
     paragraphIndex++;
-    sink.synthetic(paragraphPrefix(node, ctx));
+    mark(paragraphPrefix(node, ctx), ctx);
     const state = newState();
     walkChildren(node, ctx, state);
     // Inside a cell the paragraph break would break the table row apart.
-    sink.synthetic(ctx.inCell ? " " : "\n\n");
+    mark(ctx.inCell ? " " : "\n\n", ctx);
     walkBoxes(state);
   }
 
@@ -396,12 +430,7 @@ export function walkPart(part: ParsedPart, numbering: NumberingResolver): WalkRe
       }
       if (REVISION_TAGS.has(name)) {
         const rev = revisionFrom(child);
-        const inner: Ctx = {
-          ...ctx,
-          insideIns: ctx.insideIns || rev.kind === "ins" || rev.kind === "moveTo",
-          revision: rev,
-          views: bothOf(ctx.views, REVISION_VIEWS[rev.kind]),
-        };
+        const inner: Ctx = { ...under(ctx, rev), insideIns: ctx.insideIns || rev.kind === "ins" || rev.kind === "moveTo" };
         // Descending through the same dispatch keeps the views: a revision can
         // wrap paragraphs, hyperlinks and further revisions, and each of those
         // carries runs that belong to the enclosing revision, not to both views.
