@@ -441,6 +441,18 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Proposed fix, free. The numbering resolver follows the list-style link, reads numbering from the paragraph style, counts per list with restarts honoured, and writes no marker where Word shows none.
 - Risk is low for the redline. List numbers are markers the reader adds, and the engine never edits them. It changes the text the model reads on files that use these forms, so the proof is a before-and-after of every stored file's text, and the Florida numbers checked by the user against the contract.
 - Rests on one contract in two forms. List styles are common in legal templates, so it will recur.
+- **Built 2026-10-10 on `audit/4-1-clause-numbers`, with 4.4. Not merged. It waits on the user's check of Florida's numbers.**
+  - The numbering resolver follows a list to its list style, reads numbering from the paragraph's style, keeps one count per list with restarts honoured, and uses a level an instance replaces.
+  - No marker is written where Word shows none. A bullet stored as a symbol-font glyph reads "•".
+  - A numbered heading reads "# 1. GENERAL INFORMATION", and the preview and both PDFs draw it as a heading with its number.
+  - The resolver takes the numbering part and the styles part together. The compiler flagged every caller, so the reader, the redline engine and the placement route number a file the same way.
+  - **Both Florida files now give the same 30 clauses, 1 to 30.** They store the numbering two different ways, so each confirms the other.
+  - Lint, the type check and 1,731 tests pass. 14 of the tests are new and built from made-up XML.
+  - Before and after on all 16 stored files. No character that came from a file changed. Seven files changed in the markers the reader adds (Florida in three copies, Rome in three, the Ideal Standard), and nine are identical.
+  - The replay compared 736 changes across 25 reviews, verdict by verdict. None differs, 606 are placed on each side, and the place saved on Rome on 2026-10-10 holds.
+  - Seen in the dev browser on `c7148b08` (Florida) and `65f10383` (Rome).
+  - Rome's 30 numbered clause titles sit in a heading style, so they now draw as headings. Their numbers are unchanged.
+  - Two rules were added while building, both taken from Word's own outline. An empty paragraph in a heading style marks no heading, and neither does a heading style inside a table cell.
 
 **4.2 Wording in a text box is never read.**
 
@@ -466,6 +478,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 - Word itself decides by the style's outline level, which both files set correctly.
 - What it costs. The preview shows those headings as body text, and the outline loses them.
 - Proposed fix, free and small. Read the outline level from the style, following the style it is based on. Goes with 4.1, since both read `styles.xml`.
+- **Built 2026-10-10 with 4.1, not merged.** The Ideal Standard gains 10 headings and the Word-saved Florida copy gains its four lettered sub-headings. Three of the Ideal Standard's ten are styles used for layout ("OR", "Hotel Chain Name", "Sit-down or Plated Meal"). Word treats them as headings too.
 
 **4.5 A paragraph whose break is deleted still reads as its own paragraph.** The known lead.
 
@@ -515,7 +528,7 @@ Three real contracts is a small sample. Every finding below that rests on one fi
 
 | # | Fix | Cost | Needs |
 |---|---|---|---|
-| 1 | Clause numbers and headings (4.1, 4.4) | Free | A plan and a yes. The user checks Florida's numbers against the contract. |
+| 1 | Clause numbers and headings (4.1, 4.4) | Built, not merged | The user's check of Florida's 30 clause numbers against the contract |
 | 2 | Text boxes and unread wording (4.2, 4.8) | Free | A plan and a yes |
 | 3 | The size check (4.3) | Free, small | A yes |
 | 4 | Fail loudly when the Word file can't be read (4.7) | Free, small | A yes |
