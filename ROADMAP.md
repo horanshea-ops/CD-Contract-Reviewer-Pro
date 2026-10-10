@@ -419,6 +419,15 @@ read "Accepted" and kept that after a reload, and the saved row holds the
 quote and the wording before the place picked. That card is now decided, so
 it no longer shows the 10 places.
 
+**Asked for by the user on 2026-10-10, to do when it fits.**
+
+- **The Business, Legal and Other buttons filter to that list.** Today a
+  push hides that kind. The user wants a push to show only that kind, so
+  pushing Legal shows the legal findings alone.
+- **Margin bubbles say what they are.** With the review pane hidden, a
+  bubble for a tracked change and a bubble for a comment look alike. Each
+  should open with "Tracked change" or "Comment".
+
 **Watch on every new review (user, 2026-10-10).** If a change with no place
 shows up on a real review, look at each one on its own before trusting the
 general fix. Record the contract's wording, the model's quote, and what the
