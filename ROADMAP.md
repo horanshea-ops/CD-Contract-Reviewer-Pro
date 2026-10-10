@@ -664,7 +664,7 @@ warning whether it is needed and whether the work can be done more simply.
 | 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Finished 2026-10-10. The amount-check buttons are live. The second pass (export dialog, email panels, new-review form) proposed no new fix. 2.4 and 2.5 wait on evidence from the beta. |
 | 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
 | 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Not started |
-| 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Findings written 2026-10-10. Two small fixes proposed. |
+| 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Finished 2026-10-10. Both fixes are live. 5.3, a format of its own for the clean copy in the record, is left for later. |
 | 6 | Dead and doubled code | The old engine (`lib/tracked-changes-docx.ts`), helpers written more than once, unused switches and scripts. | Not started |
 | 7 | Upload, brands and standards | The intake rules, the brand lists and the set loader. | Not started |
 | 8 | Security boundaries | Sign-in, row-level security, key handling, and the two allowlists that keep CD's position out of what a hotel sees. | Not started |
@@ -726,6 +726,10 @@ warning whether it is needed and whether the work can be done more simply.
   error with no PDF and leaves no record, so the fallback rate can't see a
   crash. And the clean Word copy can lack a left-out change with no notice
   on the screen or in the file. Both fixes are small and free.
+  **Both built and merged 2026-10-10.** 1,667 tests pass. The clean copy's
+  list was seen in the dev browser on `98d84aa5`. The crash screen rests on
+  tests, since no stored file crashes the engine.
+- **Next is piece 4, reading the Word file.**
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,

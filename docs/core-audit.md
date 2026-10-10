@@ -337,6 +337,7 @@ Audited 2026-10-10 on `audit/pieces-2-and-5`. It covers the five export files, t
 - The marked-up PDF itself survives a crash. It falls back to the older overlay, which doesn't need the engine. The associate just isn't pointed at it.
 - The crash fixed on 2026-10-08 would have left no trace. The fallback rate the roadmap watches (1.5%) can't see a crash.
 - Proposed fix, free and small. A crash is treated as a fallback. The associate gets the same screen with the PDF button, and the record gains a fallback row with the crash's message.
+- **Built and merged to `main` on 2026-10-10.** A crash returns the fallback verdict, and the real request writes one fallback row with the crash's message. A preflight writes nothing. The clean Word copy's route refuses without recording the crash a second time, and says the PDF is still available. Covered by tests on an in-memory database, with a file that is not a Word file. The screen itself can't be reached in the browser without a broken file.
 
 **5.2 The clean Word copy can lack a change and say nothing.**
 
@@ -346,6 +347,7 @@ Audited 2026-10-10 on `audit/pieces-2-and-5`. It covers the five export files, t
 - How often. 4 of 36 redlines in the record were partial, and the clean Word copy has been exported 8 times.
 - Proposed fix, free and small. The clean Word copy gets the redline's check before download, and the dialog lists what the copy lacks, with "Download anyway".
 - Finding 2.4 would move this to the card. Until then the dialog is where the redline already says it.
+- **Built and merged to `main` on 2026-10-10.** The clean Word copy answers a preflight with the redline's verdict, and the dialog lists what the copy lacks. A copy built from a widened change also asks for a look, as the redline does. Seen in the dev browser on `98d84aa5`, where the dialog read "2 changes applied. 1 could not be." and named the cutoff-date change. Nothing was downloaded, so nothing was written.
 
 **5.3 The export record can't tell a clean Word copy from a redline.**
 
@@ -374,6 +376,6 @@ Audited 2026-10-10 on `audit/pieces-2-and-5`. It covers the five export files, t
 
 | # | Fix | Cost | Needs |
 |---|---|---|---|
-| 1 | A crash takes the PDF route and is recorded (5.1) | Free, small | A plan and a yes |
-| 2 | The clean Word copy says what it lacks (5.2) | Free, small | The same plan |
+| 1 | A crash takes the PDF route and is recorded (5.1) | Done, on `main` | Nothing |
+| 2 | The clean Word copy says what it lacks (5.2) | Done, on `main` | Nothing |
 | 3 | A format of its own for the clean copy (5.3) | Free, one migration | Later, low priority |
