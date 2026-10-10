@@ -267,7 +267,8 @@ Every stored Word review's cards were worked out as the screen works them out to
     - The card's older check (`lib/redline-engine/preflight.ts`) is not deleted. A PDF or .doc upload has no Word file to run the engine on, and still uses it.
     - Both PDFs still list a change with no place after the contract. That list is the net under a Word file that falls back, and it is inside the file, not on the export screen.
     - "Show me where" is offered only where the quote is the trouble. A row that won't split into its columns needs an edit, not a selection.
-  - Not checked in the browser: any save, since each writes to the shared database and needs the migration.
+  - Not checked in the browser: any save, since each writes to the shared database. Migration 018 was applied by the user on 2026-10-10, and its columns were confirmed present.
+  - **To watch (user, 2026-10-10).** When a change with no place first shows up on a real review, look at each one on its own. Record the contract's wording, the model's quote, and what the card offered.
 
 **2.5 One export message gives advice that fits one of its causes.**
 

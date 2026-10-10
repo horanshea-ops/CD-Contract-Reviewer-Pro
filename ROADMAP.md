@@ -392,16 +392,63 @@ contract review: upload, review, redline and export. Work until then goes to
 getting those right. This section orders that work and overrides "Next up"
 below wherever the two differ. Each item gets its own plan before any code.
 
-**Start here (state at the end of 2026-10-08).**
+**Start here (state at the end of 2026-10-10).**
 
 | | |
 |---|---|
-| Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
-| Live on `main` | Everything built to date, including the four branches merged on 2026-10-10 (table cells, blank fields, across paragraphs, old engine removed) and the amount-check buttons. `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | **Apply migration 018** (`supabase/migrations/018_placement_fixes.sql`) in Supabase's SQL editor. `audit/2-4-check-before-export` merges after it. Accept All and Reject All on `sample-across-paragraphs-redline.docx` in Word for the web. On the next real review, one click each of "Save and accept" on a blank field and "Use" or "Keep" on an amount check, which no one has clicked yet. |
-| Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
-| Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
+| Live model | Sonnet 5.5, since 2026-10-08. |
+| Live on `main` | `afdfab0`, 1,667 tests. Everything built to date except the branch below. `phase/2-1-same-file-reuse` is parked. |
+| Built, not merged | `audit/2-4-check-before-export`, 1,717 tests, pushed. It holds the check before export and this roadmap's latest state. |
+| Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below and `docs/core-audit.md`. |
+| Migrations applied | 015 to 017, and **018 on 2026-10-10**, all by the user. 018's columns were confirmed present the same day. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
+
+**Do first next session.**
+
+1. **Finish the check before export.** Work on `audit/2-4-check-before-export`.
+   - Ask the user for a yes to one save on the made-up Harborview review
+     (`a70ff3c5`) or the made-up Rome review (`65f10383`). A save writes one
+     row to the shared database.
+   - In the dev browser, click one "This one" on the `65f10383` card whose
+     quote is found 10 times. The card should then show the change as
+     accepted and placed.
+   - Draft no email for this check. A property email draft is a paid call.
+   - Then merge to `main`, naming the tests run.
+2. **Go on to audit piece 4, reading the Word file.** The known lead is that
+   the reader treats a paragraph whose break is deleted as still separate.
+3. Then pieces 8, 3, 6, 7 and 9, in that order (user's "go", 2026-10-10).
+
+**Watch on every new review (user, 2026-10-10).** If a change with no place
+shows up on a real review, look at each one on its own before trusting the
+general fix. Record the contract's wording, the model's quote, and what the
+card offered, in `docs/core-audit.md`. None has appeared on Sonnet 5.5 in
+188 changes, so the first real one is worth a close look.
+
+**Not yet clicked by a person.**
+
+- "This one", "Show me where" with its confirm, and "Send this in the email
+  to the property", on a card whose change has no place.
+- "Save and accept" on a blank field, and "Use" or "Keep" on an amount check.
+- Accept All and Reject All on `data/private/replay/sample-across-paragraphs-redline.docx`
+  in Word for the web.
+
+**Open question for the user.** Does CD ever send a hotel wording with a
+blank for the hotel to fill?
+
+**What went live on 2026-10-10.**
+
+- **Table rows are changed cell by cell.** The struck table and its copy are
+  the fallback, used when two changes overlap.
+- **A blank is a field on the card**, with "Save and accept".
+- **Wording that runs across paragraphs is replaced as one joined change.**
+  The user's test in Word for the web showed the joined paragraph keeps the
+  first paragraph's formatting.
+- **The old redline engine is deleted.** CLAUDE.md deviation 4 is closed.
+- **The amount check has two buttons**, "Use" and "Keep".
+- **An engine crash takes the marked-up PDF route** and is recorded as a
+  fallback.
+- **The clean Word copy is checked before download.** The check before
+  export replaces the list it showed.
 
 **What went live on 2026-10-08.**
 
@@ -417,15 +464,12 @@ below wherever the two differ. Each item gets its own plan before any code.
 - **Each standards set lists the brands it covers**, at the foot of the
   Standards screen, one to a row, and an admin adds or removes them.
 
-**Do first next session.**
+**Carried over from 2026-10-08, still open.**
 
-1. **Ask how the first live review on Sonnet 5.5 went.** No real contract
-   has run on the final setting. The gate was a synthetic contract. If the
-   user hasn't run one, it is the smoke test.
-2. **One client-email draft on the new setting**, about 2 cents, with a yes.
-   Emails are unproven at thinking allowed, effort `medium`.
-3. **Ask the user to look at the brand a real upload reads.** The dev
-   browser can't pick a file, so that path rests on tests.
+1. Ask how the first live review on Sonnet 5.5 went. No real contract has
+   run on the final setting.
+2. One client-email draft on the new setting, about 2 cents, with a yes.
+3. Ask the user to look at the brand a real upload reads.
 
 **Waiting on CD. Each needs a check on Riverwalk (about $0.30) when it lands,
 because it changes the library or the instructions.**
@@ -744,8 +788,9 @@ warning whether it is needed and whether the work can be done more simply.
   - The export screen no longer lists changes that could not be included.
   - 1,717 tests pass, and the replay places the same 605 changes. Details
     and three departures from the plan are in `docs/core-audit.md`, 2.4.
-  - **No save has been clicked.** After the migration, one save on a made-up
-    review needs the user's yes.
+  - **Migration 018 was applied by the user on 2026-10-10.**
+  - **No save has been clicked.** One save on a made-up review needs the
+    user's yes, and the merge follows it.
 - **Next is piece 4, reading the Word file.**
 
 **Archived for the beta.** Three features are off the live build and kept in
