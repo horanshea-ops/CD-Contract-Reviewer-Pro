@@ -13,7 +13,7 @@ import { isCommentAnchor, runsForSpan } from "./runs";
 import { copyHolding, editCopy, layOut, replaceTable } from "./tables";
 import { serializePart } from "./serialize";
 import { wordingProblem } from "./wording";
-import { isLocated, type Applicability, type LocatedSpan, type RevisionFinding, type SpanResolution } from "./types";
+import { isLocated, type Applicability, type LocatedSpan, type QuotePlace, type RevisionFinding, type SpanResolution } from "./types";
 
 export * from "./types";
 
@@ -38,14 +38,28 @@ const REASON_FOR: Record<Exclude<Applicability, "applicable" | "blocked_wording"
   blocked_already_deleted: "overlaps_another_change",
 };
 
+/** What became of one finding. The review card and the export both read this. */
+export interface Resolution {
+  findingId: string;
+  spanResolution: SpanResolution;
+  applicability: Applicability;
+  /** One sentence in plain language. */
+  detail: string;
+  /** Why the change was left out, or null when it went in. */
+  reason: UnappliedReason | null;
+  /** The finding whose change this one overlaps, when that is why it was left out. */
+  conflictsWith?: string;
+  /** Each place the quote was found, when nothing says which is meant. */
+  places?: QuotePlace[];
+  /** The wording that went in, which can differ from the proposal when a repeated sentence was dropped. */
+  wording?: string;
+  /** Contract wording the change strikes beyond the finding's quote. */
+  alsoStrikes?: string;
+}
+
 export interface RedlineOutcome extends RedlineEngineResult {
   /** Per finding, for writing back to `findings` (§1.5.1, §1.5.3). */
-  resolutions: {
-    findingId: string;
-    spanResolution: SpanResolution;
-    applicability: Applicability;
-    detail: string;
-  }[];
+  resolutions: Resolution[];
   /** Findings that were not applied, by id, in the order `unapplied` lists them. */
   unappliedIds: string[];
   /** Comment ids this run wrote, for the clean copy to strip. */
@@ -296,7 +310,7 @@ export async function generateRedline({
   const unapplied: UnappliedFinding[] = [];
   const unappliedIds: string[] = [];
   const widened: WidenedChange[] = [];
-  const resolutions: RedlineOutcome["resolutions"] = [];
+  const resolutions: Resolution[] = [];
   const editedParts = new Set<ParsedPart>();
   let appliedCount = 0;
 
@@ -305,7 +319,8 @@ export async function generateRedline({
     reason: UnappliedReason,
     spanResolution: SpanResolution,
     applicability: Applicability,
-    detail: string
+    detail: string,
+    more: Pick<Resolution, "conflictsWith" | "places"> = {}
   ) => {
     unapplied.push({
       clause_type: finding.clause_type,
@@ -314,8 +329,14 @@ export async function generateRedline({
       reason,
     });
     unappliedIds.push(finding.id);
-    resolutions.push({ findingId: finding.id, spanResolution, applicability, detail });
+    resolutions.push({ findingId: finding.id, spanResolution, applicability, detail, reason, ...more });
   };
+
+  const locate = (parts: WalkResult[], finding: RevisionFinding) =>
+    locateQuote(parts, finding.quoted_text, finding.location_section, finding.quote_context ?? null);
+
+  // Where each applied finding's quote sat in the contract as it arrived, for naming the one a later finding overlaps.
+  const placed: { findingId: string; part: string; start: number; end: number }[] = [];
 
   const freshWalk = () => {
     const numbering = new NumberingResolver(pkg.numbering);
@@ -384,13 +405,24 @@ export async function generateRedline({
       spanResolution: "unresolved",
       applicability: "applicable",
       detail: `Not in the contract — added to the appendix as a tracked insertion.${leavesOut(restated)}`,
+      reason: null,
+      wording: language.trim(),
     });
   };
+
+  // The finding whose change a refused one ran into, kept for the refusal that follows.
+  let collidedWith: string | undefined;
 
   // Runs this export has already marked up. Editing inside one would read as a change to a change.
   const touchesOurs = (runs: Element[]) => {
     const ours = new Set(ids.ownRevisionIds);
-    return runs.some((run) => revisionAncestors(run).some((el) => ours.has(el.getAttribute("w:id") ?? "")));
+    for (const run of runs) {
+      const id = revisionAncestors(run).map((el) => el.getAttribute("w:id") ?? "").find((v) => ours.has(v));
+      if (id === undefined) continue;
+      collidedWith = written.find((w) => w.revisionIds.includes(id))?.findingId;
+      return true;
+    }
+    return false;
   };
 
   /**
@@ -420,6 +452,7 @@ export async function generateRedline({
 
   for (const finding of findings) {
     const issuedBefore = ids.ownRevisionIds.length;
+    collidedWith = undefined;
 
     // A point raised without wording, such as a term outside the standards
     // library. Marking its quote against empty wording would strike it.
@@ -435,7 +468,7 @@ export async function generateRedline({
     }
 
     const parts = walk();
-    const located = locateQuote(parts, finding.quoted_text, finding.location_section);
+    const located = locate(parts, finding);
     if (!isLocated(located) && finding.is_missing_clause) {
       append(finding);
       continue;
@@ -445,15 +478,16 @@ export async function generateRedline({
       // was struck by an earlier finding. Saying "could not be found" would be
       // true and useless; the associate needs to know which of their decisions
       // took precedence.
-      const wasThere =
-        appliedCount > 0 && isLocated(locateQuote(pristine, finding.quoted_text, finding.location_section));
-      if (wasThere) {
+      const origin = appliedCount > 0 ? locate(pristine, finding) : null;
+      if (origin && isLocated(origin)) {
+        const other = placed.find((p) => p.part === origin.part && p.start < origin.end && origin.start < p.end);
         refuse(
           finding,
           "overlaps_another_change",
           "unresolved",
           "blocked_already_deleted",
-          "Another finding already marks up overlapping wording."
+          "Another finding already marks up overlapping wording.",
+          { conflictsWith: other?.findingId }
         );
       } else {
         refuse(
@@ -461,7 +495,8 @@ export async function generateRedline({
           located.ambiguous ? "ambiguous_quote" : "not_located",
           "unresolved",
           "blocked_cross_paragraph",
-          located.reason
+          located.reason,
+          { places: located.places }
         );
       }
       continue;
@@ -504,7 +539,12 @@ export async function generateRedline({
         applicability: "applicable",
         detail:
           (struck ? `${detail} Covers the whole sentence, so it also strikes: "${struck}".` : detail) + leavesOut(restated),
+        reason: null,
+        wording: language,
+        alsoStrikes: struck || undefined,
       });
+      const origin = locate(pristine, finding);
+      if (isLocated(origin)) placed.push({ findingId: finding.id, part: origin.part, start: origin.start, end: origin.end });
     };
 
     const verdict = assessApplicability(part, span);
@@ -579,7 +619,8 @@ export async function generateRedline({
           "overlaps_another_change",
           span.resolution,
           "blocked_already_deleted",
-          "Another finding already marks up overlapping wording."
+          "Another finding already marks up overlapping wording.",
+          { conflictsWith: collidedWith }
         );
         continue;
       }
@@ -603,7 +644,8 @@ export async function generateRedline({
         "overlaps_another_change",
         span.resolution,
         "blocked_already_deleted",
-        "Another finding already marks up overlapping wording."
+        "Another finding already marks up overlapping wording.",
+        { conflictsWith: collidedWith }
       );
       continue;
     }

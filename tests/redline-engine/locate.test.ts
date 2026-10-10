@@ -185,3 +185,45 @@ describe("quotes that span a table", () => {
     expect(isLocated(locateQuote(parts, "Tier A fifty percent (50%)", null))).toBe(true);
   });
 });
+
+describe("a quote found in several places", () => {
+  const body =
+    para(run("Rooms are released at the cutoff date.")) +
+    para(run("The Hotel office is open daily.")) +
+    para(run("Deliveries go to the loading dock, not the office.")) +
+    para(run("The sales office confirms each booking."));
+  const TEXT = [{ part: "document", text: "Alpha office beta. Gamma office delta. Epsilon office zeta." }];
+
+  it("lists each place with the wording around it", async () => {
+    const result = locateQuote(await walk(await buildDocx(body)), "office", null);
+
+    expect(isLocated(result)).toBe(false);
+    if (isLocated(result)) return;
+    expect(result.ambiguous).toBe(true);
+    expect(result.places).toHaveLength(3);
+    expect(result.places!.map((p) => p.before.slice(-10))).toEqual(["The Hotel ", ", not the ", "The sales "]);
+    expect(result.places!.every((p) => p.match.toLowerCase() === "office")).toBe(true);
+  });
+
+  it("takes the place a hint points at", () => {
+    const [first, second, third] = [0, 1, 2].map((i) => {
+      const places = locateQuote(TEXT, "office", null);
+      return isLocated(places) ? "" : places.places![i].before;
+    });
+
+    for (const [hint, at] of [[first, 6], [second, 25], [third, 47]] as const) {
+      const result = locateQuote(TEXT, "office", null, hint);
+      expect(isLocated(result) && result.start).toBe(at);
+    }
+  });
+
+  it("stays unresolved when the hint fits none of them better than another", () => {
+    const result = locateQuote(TEXT, "office", null, "nothing like the contract");
+    expect(isLocated(result)).toBe(false);
+  });
+
+  it("ignores a hint when the wording is found once", () => {
+    const result = locateQuote(TEXT, "Gamma office", null, "nothing like the contract");
+    expect(isLocated(result) && result.start).toBe(19);
+  });
+});

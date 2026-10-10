@@ -11,7 +11,7 @@ export interface LocatablePart {
   part: string;
   text: string;
 }
-import type { LocateResult, LocatedSpan } from "./types";
+import type { LocateResult, LocatedSpan, QuotePlace } from "./types";
 
 /**
  * Finding the wording a model quoted, in the document (MASTER_PLAN.md §1.5.1).
@@ -29,6 +29,10 @@ import type { LocateResult, LocatedSpan } from "./types";
  * this replaces took the first match, which is how a short repeated phrase gets
  * the wrong clause redlined. Redlining nothing is recoverable; redlining the
  * wrong clause is sent to a hotel.
+ *
+ * An unresolved quote lists the places it was found, so the associate can say
+ * which is meant. Their answer comes back as a hint: the wording just before
+ * the place they picked.
  */
 
 /** Below this, a fuzzy match is not a match. */
@@ -36,6 +40,12 @@ const FUZZY_THRESHOLD = 0.95;
 
 /** Two candidates closer than this in score are treated as tied, not ranked. */
 const TIE_EPSILON = 0.01;
+
+/** Characters of wording shown either side of a place, and saved as its hint. */
+export const PLACE_CONTEXT = 60;
+
+/** A hint must share at least this much with the wording before a place to pick it. */
+const MIN_HINT_OVERLAP = 3;
 
 interface Projection {
   /** Lower-cased, whitespace-collapsed text. */
@@ -189,10 +199,39 @@ function disambiguate(candidates: Candidate[], locationSection: string | null): 
   return inSection.length === 1 ? inSection[0] : null;
 }
 
+const before = (c: Candidate) => c.text.slice(Math.max(0, c.start - PLACE_CONTEXT), c.start);
+
+const placeOf = (c: Candidate): QuotePlace => ({
+  part: c.part,
+  start: c.start,
+  end: c.end,
+  before: before(c),
+  match: c.text.slice(c.start, c.end),
+  after: c.text.slice(c.end, c.end + PLACE_CONTEXT),
+});
+
+/** How many closing characters two stretches of wording share, whitespace and case aside. */
+function sharedEnding(a: string, b: string): number {
+  const x = project(normalizeText(a)).text.trim();
+  const y = project(normalizeText(b)).text.trim();
+  let n = 0;
+  while (n < x.length && n < y.length && x[x.length - 1 - n] === y[y.length - 1 - n]) n++;
+  return n;
+}
+
+/** The one candidate whose preceding wording ends as the hint does, or null when none stands out. */
+function byHint(candidates: Candidate[], hint: string | null): Candidate | null {
+  if (!hint?.trim()) return null;
+  const scored = candidates.map((c) => ({ c, score: sharedEnding(before(c), hint) })).sort((a, b) => b.score - a.score);
+  if (scored[0].score < MIN_HINT_OVERLAP || scored[0].score === scored[1].score) return null;
+  return scored[0].c;
+}
+
 function decide(
   candidates: Candidate[],
   locationSection: string | null,
-  resolution: LocatedSpan["resolution"]
+  resolution: LocatedSpan["resolution"],
+  hint: string | null
 ): LocateResult | null {
   if (candidates.length === 0) return null;
 
@@ -201,7 +240,7 @@ function decide(
     return { part: c.part, start: c.start, end: c.end, resolution, similarity: c.similarity };
   }
 
-  const picked = disambiguate(candidates, locationSection);
+  const picked = byHint(candidates, hint) ?? disambiguate(candidates, locationSection);
   if (picked) {
     return { part: picked.part, start: picked.start, end: picked.end, resolution, similarity: picked.similarity };
   }
@@ -211,13 +250,16 @@ function decide(
     reason:
       `The quoted wording appears ${candidates.length} times in the contract and the finding's ` +
       `section reference does not say which one is meant.`,
+    places: [...candidates].sort((a, b) => (a.part === b.part ? a.start - b.start : 0)).map(placeOf),
   };
 }
 
 export function locateQuote(
   parts: LocatablePart[],
   quotedText: string | null,
-  locationSection: string | null
+  locationSection: string | null,
+  /** The wording just before the place meant, when the associate has picked one of several. */
+  hint: string | null = null
 ): LocateResult {
   const raw = (quotedText ?? "").trim();
   if (!raw) return { resolution: "unresolved", reason: "The finding quotes no wording to mark up." };
@@ -232,7 +274,7 @@ export function locateQuote(
       exact.push({ part: part.part, start: at, end: at + raw.length, similarity: 1, text: part.text });
     }
   }
-  const exactResult = decide(exact, locationSection, "exact");
+  const exactResult = decide(exact, locationSection, "exact", hint);
   if (exactResult) return exactResult;
 
   // Tier 2 — whitespace and case set aside. A model rewraps and recapitalises.
@@ -249,7 +291,7 @@ export function locateQuote(
       });
     }
   }
-  const normalizedResult = decide(normalized, locationSection, "normalized");
+  const normalizedResult = decide(normalized, locationSection, "normalized", hint);
   if (normalizedResult) return normalizedResult;
 
   // Still tier 2, with table separators set aside as well. The "|" between
@@ -269,7 +311,7 @@ export function locateQuote(
       });
     }
   }
-  const acrossCellsResult = decide(acrossCells, locationSection, "normalized");
+  const acrossCellsResult = decide(acrossCells, locationSection, "normalized", hint);
   if (acrossCellsResult) return acrossCellsResult;
 
   // Tier 3 — fuzzy, for a quote the model reworded slightly.
@@ -284,5 +326,5 @@ export function locateQuote(
 
   // Only a genuinely close second is ambiguous; a clear winner is the answer.
   const contenders = best.filter((c) => best[0].similarity - c.similarity <= TIE_EPSILON);
-  return decide(contenders, locationSection, "fuzzy")!;
+  return decide(contenders, locationSection, "fuzzy", hint)!;
 }

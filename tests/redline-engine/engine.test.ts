@@ -170,14 +170,76 @@ describe("what it still refuses, and says so", () => {
     ]);
 
     expect(result.resolutions).toEqual([
-      { findingId: "finding-1", spanResolution: "exact", applicability: "applicable", detail: "Editable in place." },
+      {
+        findingId: "finding-1",
+        spanResolution: "exact",
+        applicability: "applicable",
+        detail: "Editable in place.",
+        reason: null,
+        wording: "seventy percent (70%)",
+        alsoStrikes: undefined,
+      },
       {
         findingId: "finding-2",
         spanResolution: "unresolved",
         applicability: "applicable",
         detail: "Not in the contract — added to the appendix as a tracked insertion.",
+        reason: null,
+        wording: "Resale credit language.",
       },
     ]);
+  });
+});
+
+describe("what the engine reports for each finding", () => {
+  const TWO = "Attrition applies below eighty percent (80%). Damages are eighty percent (80%) of the rate.";
+
+  it("names the finding an overlapping one collides with", async () => {
+    const { result } = await redline(await buildDocx(para(run(CLAUSE))), [
+      finding({ id: "first", quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" }),
+      finding({ id: "second", quoted_text: "for eighty percent (80%) of", language: "for sixty percent (60%) of" }),
+    ]);
+
+    expect(result.resolutions.find((r) => r.findingId === "second")).toMatchObject({ reason: "overlaps_another_change", conflictsWith: "first" });
+  });
+
+  it("names it when the later finding quotes wording the earlier one put in", async () => {
+    const { result } = await redline(await buildDocx(para(run(CLAUSE))), [
+      finding({ id: "first", quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" }),
+      finding({ id: "second", quoted_text: "seventy percent (70%) of the group", language: "sixty percent (60%) of the group" }),
+    ]);
+
+    expect(result.resolutions.find((r) => r.findingId === "second")).toMatchObject({ reason: "overlaps_another_change", conflictsWith: "first" });
+  });
+
+  it("lists the places a quote was found when it can't tell which is meant", async () => {
+    const { result } = await redline(await buildDocx(para(run(TWO))), [
+      finding({ id: "twice", quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" }),
+    ]);
+    const resolution = result.resolutions.find((r) => r.findingId === "twice")!;
+
+    expect(resolution.reason).toBe("ambiguous_quote");
+    expect(resolution.places).toHaveLength(2);
+  });
+
+  it("applies the change at the place a hint points at", async () => {
+    const { result, report, xml } = await redline(await buildDocx(para(run(TWO))), [
+      finding({ id: "twice", quoted_text: "eighty percent (80%)", language: "seventy percent (70%)", quote_context: "Damages are " }),
+    ]);
+
+    expect(result.unapplied).toEqual([]);
+    expect(report.checks.filter((c) => !c.passed)).toEqual([]);
+    expect(xml.indexOf("seventy percent (70%)")).toBeGreaterThan(xml.indexOf("Damages are"));
+  });
+
+  it("gives the reason and the wording put in, for every finding", async () => {
+    const { result } = await redline(await buildDocx(para(run(CLAUSE))), [
+      finding({ id: "in", quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" }),
+      finding({ id: "out", quoted_text: "ninety percent (90%) of gross revenue", language: "fifty percent (50%)" }),
+    ]);
+
+    expect(result.resolutions.find((r) => r.findingId === "in")).toMatchObject({ reason: null, wording: "seventy percent (70%)" });
+    expect(result.resolutions.find((r) => r.findingId === "out")).toMatchObject({ reason: "not_located" });
   });
 });
 
