@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { figureCheck } from "@/lib/proposed-figures";
+import { figureCheck, figureProblems, withWorkedAmounts } from "@/lib/proposed-figures";
 import { previewFindings } from "@/lib/redline-engine/preflight";
+import { blanksIn } from "@/lib/redline-engine/wording";
 
 /**
  * A proposed amount that no longer follows from the formula beside it.
@@ -79,18 +80,101 @@ describe("figureCheck", () => {
   });
 });
 
+describe("figureProblems", () => {
+  it("says where the amount sits, what it reads and what it should read", () => {
+    const language = `90 Days or Less | ${FB("$80,000.00", "35%")}`;
+    const [problem, ...rest] = figureProblems(FB("$80,000.00", "80%"), language);
+
+    expect(rest).toEqual([]);
+    expect(language.slice(problem.start, problem.end)).toBe("$80,000.00");
+    expect(problem).toMatchObject({ written: "$80,000.00", worked: "$35,000.00" });
+  });
+
+  it("lists each amount in a row, in order", () => {
+    const row = (room: string, fb: string) => `| 90 Days or Less  | ${room}  | ${fb}  |`;
+    const language = row(ROOM("$190,550.70", "times 70%, times 90%"), FB("$64,000.00", "80%"));
+    const problems = figureProblems(row(ROOM("$305,748.00", "times 90%"), FB("$80,000.00", "80%")), language);
+
+    expect(problems.map((p) => [language.slice(p.start, p.end), p.worked])).toEqual([
+      ["$190,550.70", "$214,023.60"],
+      ["$64,000.00", "$80,000.00"],
+    ]);
+  });
+
+  it("finds none where the check says nothing", () => {
+    expect(figureProblems(FB("$80,000.00", "80%"), FB("$35,000.00", "35%"))).toEqual([]);
+    expect(figureProblems(null, FB("$35,000.00", "35%"))).toEqual([]);
+  });
+
+  it("writes the worked-out amount the way the wording writes its own", () => {
+    const whole = figureProblems("$80,000 [the minimum times 80%]", "$80,000 [the minimum times 35%]");
+    const cents = figureProblems("$80,000.00 [the minimum times 80%]", "$80,000.00 [the minimum times 35%]");
+    const euros = figureProblems("€ 80,000 [the minimum times 80%]", "€ 80,000 [the minimum times 35%]");
+
+    expect(whole[0].worked).toBe("$35,000");
+    expect(cents[0].worked).toBe("$35,000.00");
+    expect(euros[0].worked).toBe("€ 35,000");
+  });
+});
+
+describe("withWorkedAmounts", () => {
+  // The six amounts the check flags across the stored Sonnet 5.5 reviews.
+  const STORED: [string, string, string, string, string][] = [
+    ["$16,986.00", "times 5%", "$10,586.15", "times 70%, times 5%", "$11,890.20"],
+    ["$169,860.00", "times 50%", "$105,861.50", "times 70%, times 50%", "$118,902.00"],
+    ["$220,818.00", "times 65%", "$137,619.95", "times 70%, times 65%", "$154,572.60"],
+    ["$254,790.00", "times 75%", "$158,792.25", "times 70%, times 75%", "$178,353.00"],
+    ["$305,748.00", "times 90%", "$190,550.70", "times 70%, times 90%", "$214,023.60"],
+  ];
+
+  it.each(STORED)("puts the worked-out room fee in place of %s's proposal", (was, rate, proposed, rates, worked) => {
+    const quote = ROOM(was, rate);
+    const language = ROOM(proposed, rates);
+    const fixed = withWorkedAmounts(language, figureProblems(quote, language));
+
+    expect(fixed).toBe(ROOM(worked, rates));
+    expect(figureCheck(quote, fixed)).toBeNull();
+  });
+
+  it("puts the worked-out catering fee in place of the stored proposal", () => {
+    const quote = FB("$80,000.00", "80%");
+    const fixed = withWorkedAmounts(FB("$80,000.00", "35%"), figureProblems(quote, FB("$80,000.00", "35%")));
+
+    expect(fixed).toBe(FB("$35,000.00", "35%"));
+    expect(figureCheck(quote, fixed)).toBeNull();
+  });
+
+  it("replaces every flagged amount in a row and leaves the rest of the wording alone", () => {
+    const row = (room: string, fb: string) => `| 90 Days or Less  | ${room}  | ${fb}  |`;
+    const quote = row(ROOM("$305,748.00", "times 90%"), FB("$80,000.00", "80%"));
+    const language = row(ROOM("$190,550.70", "times 70%, times 90%"), FB("$64,000.00", "80%"));
+
+    expect(withWorkedAmounts(language, figureProblems(quote, language))).toBe(
+      row(ROOM("$214,023.60", "times 70%, times 90%"), FB("$80,000.00", "80%"))
+    );
+  });
+
+  it("changes nothing when there is nothing to fix", () => {
+    const language = FB("$35,000.00", "35%");
+    expect(withWorkedAmounts(language, figureProblems(FB("$80,000.00", "80%"), language))).toBe(language);
+  });
+});
+
 describe("the card's preview", () => {
   const finding = (id: string, language: string) => ({ id, quoted_text: FB("$80,000.00", "80%"), is_missing_clause: false, language });
 
-  it("carries the check beside the export note, and leaves the change in the redline", () => {
-    const previews = previewFindings([finding("wrong", FB("$80,000.00", "35%")), finding("right", FB("$35,000.00", "35%"))], null);
-
-    expect(previews.get("wrong")).toMatchObject({ export_issue: null, figure_check: expect.stringMatching(/^Check this amount\./) });
-    expect(previews.get("right")).toEqual({ export_issue: null, redline_language: null });
+  it("leaves the amount check to the card, and leaves the change in the redline", () => {
+    const previews = previewFindings([finding("wrong", FB("$80,000.00", "35%"))], null);
+    expect(previews.get("wrong")).toEqual({ export_issue: null, redline_language: null });
   });
+});
 
-  it("checks the associate's edit, so a corrected amount clears the warning", () => {
-    const edited = previewFindings([finding("edited", FB("$35,000.00", "35%"))], null);
-    expect(edited.get("edited")?.figure_check).toBeUndefined();
+describe("a change with a blank and an amount that doesn't follow", () => {
+  it("has both, so the card shows both blocks", () => {
+    const quote = FB("$80,000.00", "80%");
+    const language = `${FB("$80,000.00", "35%")} Notice is due [X] days before arrival.`;
+
+    expect(figureProblems(quote, language)).toHaveLength(1);
+    expect(blanksIn(language, quote)).toHaveLength(1);
   });
 });

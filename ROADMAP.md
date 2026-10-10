@@ -397,8 +397,8 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
-| Live on `main` | Everything built to date, including the four branches merged on 2026-10-10 (table cells, blank fields, across paragraphs, old engine removed). `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | Accept All and Reject All on `sample-across-paragraphs-redline.docx` in Word for the web. One click of "Save and accept" on a blank field, which no one has clicked yet. |
+| Live on `main` | Everything built to date, including the four branches merged on 2026-10-10 (table cells, blank fields, across paragraphs, old engine removed) and the amount-check buttons. `phase/2-1-same-file-reuse` is parked. |
+| Waiting on the user | Accept All and Reject All on `sample-across-paragraphs-redline.docx` in Word for the web. On the next real review, one click each of "Save and accept" on a blank field and "Use" or "Keep" on an amount check, which no one has clicked yet. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -709,6 +709,11 @@ warning whether it is needed and whether the work can be done more simply.
 - **The user's answers on piece 2 (2026-10-10).** Buttons on the amount
   check are fine to try. The document notes stay as they are until CD
   gives direction.
+- **Buttons on the amount check, built and merged 2026-10-10.** The box
+  offers "Use" the worked-out amount or "Keep" the amount as written, and
+  goes once either is pressed. 1,660 tests pass. On the two Sonnet 5.5
+  reviews that carry the check, no card shows a yellow box any more.
+  Neither button's save has been clicked by a person.
 - **Piece 2, first pass (2026-10-10).** On the four Sonnet 5.5 reviews (255
   findings) the only yellow box left is the amount check, 6 times. Proposed:
   buttons on the amount check so it is a decision, a choice for the user on

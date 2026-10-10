@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
 import { findingCategory } from "@/lib/findings-overview";
+import { figureCheck, figureProblems, withWorkedAmounts } from "@/lib/proposed-figures";
 import { blanksIn } from "@/lib/redline-engine/wording";
 import type { Category } from "@/lib/standards/types";
 import BlankFields from "./blank-fields";
@@ -52,8 +53,6 @@ export interface Finding {
   export_issue?: string | null;
   /** The wording the redline will insert, when it differs from the proposal or edit. */
   redline_language?: string | null;
-  /** A proposed amount that doesn't follow from its formula, with the arithmetic. Worked out by the analysis API. */
-  figure_check?: string | null;
 }
 
 // Shared with the standards library screen.
@@ -165,6 +164,9 @@ export default function FindingCard({
       : finding.proposed_language;
   // A blank is filled on the card before the change can be accepted.
   const hasBlank = !isLegal && blanksIn(language, finding.quoted_text).length > 0;
+  // A proposed amount that doesn't follow from its formula. The associate picks one before the change is accepted.
+  const amounts = isLegal ? [] : figureProblems(finding.quoted_text, language);
+  const deciding = !finding.current_action || changingDecision;
 
   async function submitAction(action: "accept" | "edit" | "dismiss", wording = editedLanguage) {
     setSaving(true);
@@ -310,10 +312,31 @@ export default function FindingCard({
         </Meta>
       )}
 
-      {finding.figure_check && language.trim() && (
-        <Meta as="p" className="mt-3 rounded-md bg-[var(--severity-medium-bg)] text-[var(--text-primary)] px-2.5 py-1.5">
-          {finding.figure_check}
-        </Meta>
+      {amounts.length > 0 && mode === "view" && deciding && (
+        <div className="mt-3 space-y-2 rounded-md border border-[var(--border)] px-3 py-2.5">
+          <Meta as="p" className="text-[var(--text-primary)]">
+            {figureCheck(finding.quoted_text, language)}
+          </Meta>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={() => submitAction("edit", withWorkedAmounts(language, amounts))}
+              loading={saving}
+              loadingText="Saving..."
+            >
+              {amounts.length === 1 ? `Use ${amounts[0].worked}` : "Use the worked-out amounts"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              // An edit is saved again as it stands. A plain accept would go back to the proposal.
+              onClick={() => (finding.current_action?.action === "edit" ? submitAction("edit", language) : submitAction("accept"))}
+              disabled={saving}
+            >
+              {amounts.length === 1 ? `Keep ${amounts[0].written}` : "Keep the amounts as written"}
+            </Button>
+          </div>
+        </div>
       )}
 
       {hasBlank && mode === "view" && finding.current_action?.action !== "dismiss" && (
@@ -337,9 +360,9 @@ export default function FindingCard({
         </div>
       )}
 
-      {mode === "view" && (!finding.current_action || changingDecision) && (
+      {mode === "view" && deciding && (
         <div className="flex gap-2 mt-4">
-          {!hasBlank && (
+          {!hasBlank && amounts.length === 0 && (
             <Button
               size="sm"
               onClick={() => submitAction("accept")}
