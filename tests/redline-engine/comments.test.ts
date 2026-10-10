@@ -25,8 +25,6 @@ function finding(over: Partial<RevisionFinding> = {}): RevisionFinding {
     is_missing_clause: false,
     quoted_text: null,
     language: "",
-    finding_text: "Unfavourable to the client.",
-    cd_standard: "CD position.",
     location_section: null,
     ...over,
   };
@@ -225,14 +223,13 @@ describe("a document that already has comments (fixture 15)", () => {
 
 describe("what a comment can carry", () => {
   it("never writes a finding's own text anywhere in the file", async () => {
-    // The engine is handed findings that carry CD's reasoning. Comment text
-    // comes only from the comments map.
-    const leaky = finding({
-      quoted_text: "eighty percent (80%)",
-      language: "seventy percent (70%)",
+    // A finding that reaches the engine with CD's reasoning still leaves none
+    // of it in the file. Comment text comes only from the comments map.
+    const leaky = {
+      ...finding({ quoted_text: "eighty percent (80%)", language: "seventy percent (70%)" }),
       finding_text: "SENTINEL-FINDING-TEXT",
       cd_standard: "SENTINEL-CD-STANDARD",
-    });
+    };
     const { zip } = await redline(await buildDocx(para(run(CLAUSE))), [leaky]);
     for (const name of Object.keys(zip.files).filter((n) => !zip.files[n].dir)) {
       const text = await zip.file(name)!.async("string");

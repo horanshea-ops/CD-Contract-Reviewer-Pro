@@ -25,8 +25,6 @@ function finding(over: Partial<RevisionFinding> = {}): RevisionFinding {
     is_missing_clause: false,
     quoted_text: null,
     language: "",
-    finding_text: "Damages too high.",
-    cd_standard: "CD position.",
     location_section: null,
     ...over,
   };

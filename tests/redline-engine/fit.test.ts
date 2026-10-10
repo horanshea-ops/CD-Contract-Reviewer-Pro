@@ -23,8 +23,6 @@ const finding = (over: Partial<RevisionFinding>): RevisionFinding => ({
   is_missing_clause: false,
   quoted_text: null,
   language: "",
-  finding_text: "Unfavourable to the client.",
-  cd_standard: "CD position.",
   location_section: null,
   ...over,
 });

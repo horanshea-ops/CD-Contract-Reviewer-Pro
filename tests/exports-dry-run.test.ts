@@ -25,8 +25,6 @@ const row = (over: Partial<DryRunRow> = {}): DryRunRow => ({
   is_missing_clause: false,
   quoted_text: null,
   location_section: null,
-  finding_text: "Unfavourable to the client.",
-  cd_standard: "CD position.",
   proposed_language: "",
   current_action: null,
   ...over,

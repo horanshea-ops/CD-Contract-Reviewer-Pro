@@ -24,8 +24,6 @@ const finding = (over: Partial<RevisionFinding> = {}): RevisionFinding => ({
   is_missing_clause: false,
   quoted_text: null,
   language: "",
-  finding_text: "Cutoff too early.",
-  cd_standard: "CD position.",
   location_section: null,
   ...over,
 });

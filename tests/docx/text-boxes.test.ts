@@ -56,8 +56,6 @@ const finding = (over: Partial<RevisionFinding>): RevisionFinding => ({
   quoted_text: "",
   quote_context: null,
   language: "",
-  finding_text: "Made up for a test.",
-  cd_standard: "Made up for a test.",
   ...over,
 });
 

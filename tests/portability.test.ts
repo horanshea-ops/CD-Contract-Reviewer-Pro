@@ -7,7 +7,8 @@ import { extractDocx } from "@/lib/docx";
 import { assembleEmailFindings } from "@/lib/email-drafting/input-assembly";
 import { assemblePropertyEmailItems } from "@/lib/email-drafting/property-assembly";
 import { generateRevisionsMemo } from "@/lib/export-memo";
-import { generateRedline, type RevisionFinding } from "@/lib/redline-engine";
+import type { ActionedFinding } from "@/lib/get-actioned-findings";
+import { generateRedline, toRevisionFinding } from "@/lib/redline-engine";
 import { validateRedline } from "@/lib/redline-validation";
 import { STANDARDS_LIBRARY } from "@/lib/standards/v1";
 import { NORTHWIND_FINDINGS, NORTHWIND_ORG, NORTHWIND_STANDARDS, NORTHWIND_VERSION } from "./fixtures/portability/northwind";
@@ -100,7 +101,8 @@ describe("analysis for another client", () => {
 });
 
 describe("document mechanics for another client", () => {
-  const revisionFindings = (): RevisionFinding[] =>
+  // Accepted changes as the app holds them. The engine gets its own fields alone.
+  const actioned = (): ActionedFinding[] =>
     analysis.findings.map((f, i) => ({
       id: `northwind-${i}`,
       location_section: f.location_section,
@@ -114,7 +116,7 @@ describe("document mechanics for another client", () => {
     }));
 
   it("redlines every finding and passes the validation oracle", async () => {
-    const result = await generateRedline({ originalDocxBytes: originalBytes, findings: revisionFindings(), author: AUTHOR });
+    const result = await generateRedline({ originalDocxBytes: originalBytes, findings: actioned().map(toRevisionFinding), author: AUTHOR });
     const report = await validateRedline({ originalBytes, engineResult: result, author: AUTHOR });
 
     expect(report.checks.filter((c) => !c.passed)).toEqual([]);
@@ -128,7 +130,7 @@ describe("document mechanics for another client", () => {
       contractFilename: "01-clean-simple.docx",
       clientName: null,
       associateName: AUTHOR,
-      findings: revisionFindings(),
+      findings: actioned(),
     });
     expect(Buffer.from(pdf.subarray(0, 5)).toString()).toBe("%PDF-");
   });

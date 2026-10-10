@@ -258,7 +258,6 @@ export async function runOne(seed: number) {
   const base = {
     clause_type: "attrition", severity: "high" as const, is_missing_clause: false,
     quoted_text: quote, language: proposalFor(quote),
-    finding_text: "x", cd_standard: "y",
   };
   const findings: RevisionFinding[] = [{ ...base, id: "fuzz-1", location_section: section }];
 
