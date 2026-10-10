@@ -23,8 +23,6 @@ const finding = (quoted_text: string, language: string, id = "finding-1"): Revis
   is_missing_clause: false,
   quoted_text,
   language,
-  finding_text: "Unfavourable to the client.",
-  cd_standard: "CD position.",
   location_section: null,
 });
 

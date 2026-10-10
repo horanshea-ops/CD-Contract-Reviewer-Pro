@@ -33,8 +33,6 @@ function finding(over: Partial<RevisionFinding> = {}): RevisionFinding {
     is_missing_clause: false,
     quoted_text: null,
     language: "",
-    finding_text: "Fee is on gross revenue.",
-    cd_standard: "CD position.",
     location_section: null,
     ...over,
   };

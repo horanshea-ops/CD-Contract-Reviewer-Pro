@@ -1,7 +1,7 @@
 import type { createAdminClient } from "./supabase/admin";
 import type { RevisionFinding } from "./redline-engine/types";
 import { assertsNoChange } from "./proposed-language";
-import type { CounselItem } from "./export-memo";
+import type { CounselItem, MemoFinding } from "./export-memo";
 import { latestActions } from "./finding-actions";
 import { findingCategory } from "./findings-overview";
 
@@ -18,6 +18,12 @@ const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2, not
  * to tell two copies of the same wording apart, and the id to write back how
  * each one resolved; the memo and PDF exports ignore both.
  */
+/**
+ * An accepted change as the internal exports need it. It carries the rationale
+ * and the standard, so it passes through `toRevisionFinding` before the engine.
+ */
+export type ActionedFinding = RevisionFinding & MemoFinding;
+
 /** A finding accepted despite proposing no change. Excluded from every export. */
 export interface NonSubstantiveFinding {
   clause_type: string;
@@ -26,9 +32,9 @@ export interface NonSubstantiveFinding {
 
 export interface ActionedFindings {
   /** Changes to the contract that go into its files. Never holds a legal finding, or a change sent by email. */
-  findings: RevisionFinding[];
+  findings: ActionedFinding[];
   /** Accepted changes the associate chose to send in the email to the property, so no contract file carries them. */
-  byEmail: RevisionFinding[];
+  byEmail: ActionedFinding[];
   nonSubstantive: NonSubstantiveFinding[];
   /** Legal findings flagged for the client. They carry an explanation and no wording, and reach no contract export. */
   counsel: CounselItem[];

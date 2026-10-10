@@ -1,7 +1,7 @@
 import { extractDocx } from "../docx";
 import { getPositionedLines } from "../get-positioned-lines";
 import { getActionedFindings } from "../get-actioned-findings";
-import { generateRedline } from "../redline-engine";
+import { generateRedline, toRevisionFinding } from "../redline-engine";
 import type { createAdminClient } from "../supabase/admin";
 import { compareVersions, joinParts, type ComparedVersions, type VersionInput } from "./compare";
 
@@ -180,7 +180,7 @@ async function loadBaseline(admin: Admin, round: RoundRow): Promise<Baseline | n
       const { findings } = await getActionedFindings(admin, round.id);
       const rebuilt = await generateRedline({
         originalDocxBytes: original,
-        findings,
+        findings: findings.map(toRevisionFinding),
         author: associate?.name ?? "ConferenceDirect",
       });
       const version = await versionFromDocx(rebuilt.docxBytes);

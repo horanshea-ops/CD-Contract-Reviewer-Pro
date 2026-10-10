@@ -51,8 +51,6 @@ export async function redlineRun(run: RunRecord, originals: Map<string, Uint8Arr
       is_missing_clause: f.is_missing_clause,
       quoted_text: f.quoted_text,
       language: f.proposed_language,
-      finding_text: f.finding_text,
-      cd_standard: f.cd_standard,
       location_section: f.location_section,
     }));
 

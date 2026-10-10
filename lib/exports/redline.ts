@@ -1,7 +1,7 @@
 import { logAudit } from "../audit";
 import { getActionedFindings, type NonSubstantiveFinding } from "../get-actioned-findings";
 import { getRedlineComments } from "../redline-comments/assembly";
-import { generateRedline, type RedlineOutcome, type RevisionFinding } from "../redline-engine";
+import { generateRedline, toRevisionFinding, type RedlineOutcome, type RevisionFinding } from "../redline-engine";
 import { UNAPPLIED_REASON_TEXT, validateRedline, type ValidationReport } from "../redline-validation";
 import { recordExport, recordResolutions } from "../export-log";
 import { storeSentFile } from "./sent-file";
@@ -118,7 +118,10 @@ export async function loadRedline(
     );
   }
 
-  const { findings, nonSubstantive } = await getActionedFindings(admin, analysisId);
+  const actioned = await getActionedFindings(admin, analysisId);
+  const { nonSubstantive } = actioned;
+  // The engine writes the property's file, so it is handed its own fields alone.
+  const findings = actioned.findings.map(toRevisionFinding);
   // Comment text comes only from the allowlist, never from `findings`.
   const comments = ctx.includeComments ? await getRedlineComments(admin, analysisId) : new Map<string, string>();
   const originalBytes = new Uint8Array(await originalBlob.arrayBuffer());

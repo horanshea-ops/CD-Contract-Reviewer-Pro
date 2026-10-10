@@ -1,18 +1,19 @@
-import type { MemoFinding } from "../export-memo";
-
 /**
  * Types for the revision engine (MASTER_PLAN.md §1.5).
  */
 
 /**
- * What the engine needs about a finding, beyond what the export formats need.
+ * Everything the engine is told about a finding.
  *
- * `id` is here so the resolution tier and the applicability verdict can be
- * written back to the row (§1.5.1, §1.5.3), and `location_section` because it is
- * what separates two copies of the same wording (§1.5.1). Both are already
- * stored; `getActionedFindings` simply does not select them today.
+ * The engine writes the file the property receives, so its input holds no
+ * rationale and no standard. `severity` reaches the report the associate reads
+ * before download and never the document.
+ *
+ * `id` lets the resolution tier and the applicability verdict be written back
+ * to the row (§1.5.1, §1.5.3). `location_section` separates two copies of the
+ * same wording (§1.5.1).
  */
-export interface RevisionFinding extends MemoFinding {
+export interface RevisionFinding {
   id: string;
   location_section: string | null;
   /**
@@ -20,6 +21,28 @@ export interface RevisionFinding extends MemoFinding {
    * several places is meant. It picks that place and nothing else.
    */
   quote_context?: string | null;
+  clause_type: string;
+  severity: "high" | "medium" | "low" | "note";
+  is_missing_clause: boolean;
+  quoted_text: string | null;
+  language: string;
+}
+
+/**
+ * The allowlist for the engine's input. A caller holding a fuller finding
+ * passes it through here, so nothing else travels with it.
+ */
+export function toRevisionFinding(f: RevisionFinding): RevisionFinding {
+  return {
+    id: f.id,
+    location_section: f.location_section,
+    quote_context: f.quote_context,
+    clause_type: f.clause_type,
+    severity: f.severity,
+    is_missing_clause: f.is_missing_clause,
+    quoted_text: f.quoted_text,
+    language: f.language,
+  };
 }
 
 /** How confidently the wording was found. Written to `findings.span_resolution`. */

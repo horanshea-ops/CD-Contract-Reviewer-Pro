@@ -53,8 +53,6 @@ export interface DryRunRow {
   is_missing_clause: boolean;
   quoted_text: string | null;
   location_section: string | null;
-  finding_text: string;
-  cd_standard: string;
   proposed_language: string | null;
   current_action: { action: string; edited_language: string | null; edited_quote?: string | null; quote_context?: string | null; by_email?: boolean | null } | null;
 }
@@ -79,8 +77,6 @@ export function dryRunFindings(rows: DryRunRow[]): RevisionFinding[] {
         quoted_text: action?.edited_quote ?? f.quoted_text,
         quote_context: action?.quote_context ?? null,
         language: (action?.action === "edit" && action.edited_language ? action.edited_language : f.proposed_language) ?? "",
-        finding_text: f.finding_text,
-        cd_standard: f.cd_standard,
       };
     })
     .filter((f) => !assertsNoChange(f.language));

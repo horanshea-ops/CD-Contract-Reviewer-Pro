@@ -202,7 +202,7 @@ async function standInFindings(idPrefix: string): Promise<{ findings: RevisionFi
   const { data: rows, error: rowsError } = await admin
     .from("findings")
     .select(
-      "id, clause_type, severity, category, is_missing_clause, quoted_text, location_section, finding_text, cd_standard, proposed_language, redline_note"
+      "id, clause_type, severity, category, is_missing_clause, quoted_text, location_section, proposed_language, redline_note"
     )
     .eq("analysis_id", analysis.id);
   if (rowsError) throw rowsError;
@@ -221,8 +221,6 @@ async function standInFindings(idPrefix: string): Promise<{ findings: RevisionFi
       is_missing_clause: f.is_missing_clause,
       quoted_text: f.quoted_text,
       language: f.proposed_language,
-      finding_text: f.finding_text,
-      cd_standard: f.cd_standard,
     })),
     notes: standInNotes(usable),
   };
