@@ -675,7 +675,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 - The engine writes none of them. I searched every builder of a hotel-facing file for those fields and found them only in comments.
 - Both allowlists rest on a stronger rule, that an excluded field is never fetched, so a later change can't leak it. The engine, which writes the main file a hotel receives, doesn't follow that rule.
 - Proposed fix, free and small. The engine's input lists its own fields, and the caller passes those alone. No behaviour changes.
-- **Built on 2026-10-10** (`audit/8-5-engine-input`, user's yes to the plan).
+- **Built and merged to `main` on 2026-10-10** (`audit/8-5-engine-input`, user's yes to the plan and to the merge).
   - `RevisionFinding` no longer extends the memo's shape. It lists eight fields, and `finding_text` and `cd_standard` are not among them.
   - `toRevisionFinding` in `lib/redline-engine/types.ts` is the allowlist. It copies the eight fields by name, so a field added to a finding later stops there too.
   - The four callers pass the narrow shape: the export, the round comparison, the card's check and the evaluation run.
@@ -727,7 +727,7 @@ Audited 2026-10-10 on `audit/8-security-boundaries`. It covers sign-in, the data
 | 1 | Move Next.js to the patched release and run `npm audit fix` (8.1) | Done, on `main` | Nothing |
 | 2 | Close the after-sign-in redirect (8.2) | Done, on `main` | Nothing |
 | 3 | Mark the memo internal by its file name, with one zip kept for everything (8.3) | Done, on `main` | Nothing |
-| 4 | Hand the engine only its own fields (8.5) | Built, 2026-10-10 | A yes to merge |
+| 4 | Hand the engine only its own fields (8.5) | Done, on `main` | Nothing |
 | 5 | Check proposed wording, and note hidden wording (8.4) | Free | A plan and a yes |
 | 6 | The prompt sentence about instructions in a contract (8.4) | About $0.30 | A quoted run and a yes |
 | 7 | Three security headers (8.7) | Free, small | A yes |
