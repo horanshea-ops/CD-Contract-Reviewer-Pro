@@ -13,7 +13,7 @@ import {
 import { currentText } from "../redline-validation/views";
 import { cachedBuild, fingerprint } from "./build-cache";
 import type { ExportContext } from "./context";
-import { hasEditableWordFile, loadRedline } from "./redline";
+import { hasEditableWordFile, loadRedline, redlineVerdict } from "./redline";
 import type { ExportBuildResult, ExportRefusalResult } from "./types";
 
 const DOCX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -38,6 +38,14 @@ export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildRes
   }
 
   const loaded = await loadRedline(ctx);
+  if (!loaded.ok && loaded.crashed) {
+    // The redline's own route records the crash. This one only says where to turn.
+    return refusal(
+      409,
+      { error: "The tracked changes could not be generated, so no Word copy can be built. The proposed contract is still available as a PDF." },
+      "The proposed contract (Word) was not exported. The tracked changes could not be generated."
+    );
+  }
   if (!loaded.ok) {
     return { ...loaded.refusal, summary: "The proposed contract (Word) was not exported. The tracked changes could not be generated." };
   }
@@ -84,7 +92,8 @@ export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildRes
     contentType: DOCX_CONTENT_TYPE,
     bytes: built.bytes.slice(),
     outcome,
-    preflight: null,
+    // The copy lacks whatever the redline left out, so the dialog is told the same things.
+    preflight: redlineVerdict(report, `/api/analyses/${analysisId}/export-markup`),
     commit: async () => {
       await recordExport(admin, {
         analysisId,

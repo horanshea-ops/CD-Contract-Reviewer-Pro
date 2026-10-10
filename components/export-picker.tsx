@@ -14,9 +14,10 @@ import { ORG } from "@/lib/org";
  * One "Export" button over the export routes, replacing four separate buttons
  * that each grew their own trigger as its feature landed.
  *
- * Exporting runs in two phases. First every selected format settles — the two
- * with a server preflight (tracked-changes DOCX, proposed contract) fetch
- * `?preflight=1`, and a verdict that isn't clean expands that row in place.
+ * Exporting runs in two phases. First every selected format settles — the
+ * three with a server preflight (tracked-changes DOCX, and the proposed
+ * contract as PDF or Word) fetch `?preflight=1`, and a verdict that isn't
+ * clean expands that row in place.
  * Then the formats that came back clean download as one zip.
  *
  * Keeping a non-clean format out of the zip is deliberate. A partial redline is
@@ -210,7 +211,7 @@ export function ExportPicker({
   }
 
   /** Runs a format's preflight. Returns true when it came back clean and can be zipped. */
-  async function settlePreflight(key: "redline" | "clean"): Promise<boolean> {
+  async function settlePreflight(key: "redline" | "clean" | "cleanDocx"): Promise<boolean> {
     setStatus(key, { kind: "checking" });
     try {
       const res = await fetch(withQuery(singleUrl[key], "preflight=1"));
@@ -227,9 +228,10 @@ export function ExportPicker({
         return false;
       }
       const verdict = await res.json();
-      // A clean redline that struck wording beyond a quote still needs a look.
-      if (verdict.outcome === "clean" && !(key === "redline" && verdict.widened?.length)) return true;
-      setStatus(key, key === "redline" ? { kind: "redline", verdict } : { kind: "clean", verdict });
+      // A clean redline that struck wording beyond a quote still needs a look, and so does the copy built from it.
+      if (verdict.outcome === "clean" && !(key !== "clean" && verdict.widened?.length)) return true;
+      // The Word copy is built from the redline, so it is told the same things in the same shape.
+      setStatus(key, key === "clean" ? { kind: "clean", verdict } : { kind: "redline", verdict });
       return false;
     } catch {
       setStatus(key, { kind: "error", message: "Could not reach the server." });
@@ -245,20 +247,21 @@ export function ExportPicker({
     const ready: ExportKey[] = [];
 
     if (selected.has("memo")) ready.push("memo");
-    if (selected.has("cleanDocx")) ready.push("cleanDocx");
 
     if (selected.has("markup")) {
       if (forcedDowngrade) setStatus("markup", { kind: "downgrade" });
       else ready.push("markup");
     }
 
-    // Both preflights are plain fetches, so they can run together.
-    const [redlineReady, cleanReady] = await Promise.all([
+    // The preflights are plain fetches, so they can run together.
+    const [redlineReady, cleanReady, cleanDocxReady] = await Promise.all([
       selected.has("redline") ? settlePreflight("redline") : Promise.resolve(false),
       selected.has("clean") ? settlePreflight("clean") : Promise.resolve(false),
+      selected.has("cleanDocx") ? settlePreflight("cleanDocx") : Promise.resolve(false),
     ]);
     if (redlineReady) ready.push("redline");
     if (cleanReady) ready.push("clean");
+    if (cleanDocxReady) ready.push("cleanDocx");
 
     if (ready.length === 0) {
       setBusy(false);
@@ -464,6 +467,16 @@ export function ExportPicker({
                 onDownloadFallback={(url) => downloadOne("clean", url, fallbackName.markup)}
               />
             )}
+            {statuses.cleanDocx.kind === "redline" && (
+              <RedlineVerdictRow
+                copy
+                verdict={statuses.cleanDocx.verdict}
+                busy={busy}
+                onSkip={() => setStatus("cleanDocx", { kind: "idle" })}
+                onDownload={() => downloadOne("cleanDocx", singleUrl.cleanDocx, fallbackName.cleanDocx)}
+                onDownloadFallback={(url) => downloadOne("cleanDocx", url, fallbackName.markup)}
+              />
+            )}
           </div>
         </div>
         )}
@@ -573,12 +586,15 @@ function RowStatusLine({ status }: { status: RowStatus }) {
 
 function RedlineVerdictRow({
   verdict,
+  copy = false,
   busy,
   onSkip,
   onDownload,
   onDownloadFallback,
 }: {
   verdict: RedlinePreflight;
+  /** True for the clean Word copy, which has the changes applied where the redline has them marked up. */
+  copy?: boolean;
   busy: boolean;
   onSkip: () => void;
   onDownload: () => void;
@@ -617,14 +633,15 @@ function RedlineVerdictRow({
   return (
     <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
       <Body as="p" className="font-medium text-[var(--text-primary)]">
-        {verdict.appliedCount} change{verdict.appliedCount === 1 ? "" : "s"} marked up.
+        {verdict.appliedCount} change{verdict.appliedCount === 1 ? "" : "s"} {copy ? "applied" : "marked up"}.
         {verdict.unapplied.length > 0 && ` ${verdict.unapplied.length} could not be.`}
       </Body>
 
       {verdict.unapplied.length > 0 && (
         <>
           <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
-            The file is safe to send. These items are not in the markup, so raise them another way.
+            The file is safe to send. These items are not in {copy ? "this copy" : "the markup"}, so raise them another
+            way.
           </Meta>
           <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
             {verdict.unapplied.map((u, i) => (

@@ -34,6 +34,35 @@ export interface LoadedRedline {
   nonSubstantive: NonSubstantiveFinding[];
 }
 
+const markupUrl = (analysisId: string) => `/api/analyses/${analysisId}/export-markup`;
+
+/** What the dialog is told about a tracked-changes file before download. */
+export function redlineVerdict(report: ValidationReport, markupPdfUrl: string) {
+  return {
+    outcome: report.outcome,
+    appliedCount: report.appliedCount,
+    unapplied: report.unapplied.map((u) => ({ ...u, explanation: UNAPPLIED_REASON_TEXT[u.reason] })),
+    widened: report.widened,
+    fallbackReason: report.fallbackReason,
+    markupPdfUrl,
+  };
+}
+
+/**
+ * The verdict when the engine threw. It reads as a fallback, so the associate
+ * is sent to the marked-up PDF as they are when a file fails its checks.
+ */
+export function crashVerdict(message: string, markupPdfUrl: string) {
+  return {
+    outcome: "fallback" as const,
+    appliedCount: 0,
+    unapplied: [],
+    widened: [],
+    fallbackReason: `The tracked changes could not be generated: ${message}`,
+    markupPdfUrl,
+  };
+}
+
 /** A Word upload that passed the upload check, so its own file can carry the changes. */
 export function hasEditableWordFile(analysis: ExportContext["analysis"]): boolean {
   return analysis.source_format === "docx" && analysis.intake_route !== "pdf" && !!analysis.original_storage_path;
@@ -46,9 +75,9 @@ export function hasEditableWordFile(analysis: ExportContext["analysis"]): boolea
  */
 export async function loadRedline(
   ctx: ExportContext
-): Promise<{ ok: true; redline: LoadedRedline } | { ok: false; refusal: ExportRefusalResult }> {
+): Promise<{ ok: true; redline: LoadedRedline } | { ok: false; refusal: ExportRefusalResult; crashed?: true }> {
   const { admin, associate, analysis, analysisId } = ctx;
-  const markupPdfUrl = `/api/analyses/${analysisId}/export-markup`;
+  const markupPdfUrl = markupUrl(analysisId);
 
   if (analysis.source_format !== "docx" || !analysis.original_storage_path) {
     return fail(
@@ -109,11 +138,45 @@ export async function loadRedline(
       }
     );
   } catch (err) {
-    return fail(
-      500,
-      { error: err instanceof Error ? err.message : "Could not generate tracked changes." },
-      "Tracked-changes DOCX was not exported. The tracked changes could not be generated."
-    );
+    // A crash is a fallback like any other. It is recorded, and the marked-up PDF carries the same findings.
+    const verdict = crashVerdict(err instanceof Error ? err.message : "unknown error", markupPdfUrl);
+    return {
+      ok: false,
+      crashed: true,
+      refusal: {
+        kind: "refusal",
+        status: 409,
+        body: {
+          error: "The tracked changes could not be generated, so no Word file was produced.",
+          outcome: verdict.outcome,
+          fallbackReason: verdict.fallbackReason,
+          markupPdfUrl,
+        },
+        preflight: verdict,
+        summary:
+          "Tracked-changes DOCX was not exported. The tracked changes could not be generated. " +
+          "The marked-up PDF carries the same findings.",
+        commit: async () => {
+          await recordExport(admin, {
+            analysisId,
+            associateId: associate.id,
+            format: "docx",
+            outcome: "fallback",
+            fallbackReason: verdict.fallbackReason,
+            findingsApplied: 0,
+            findingsUnapplied: findings.length,
+            analysisPaths: analysis,
+          });
+          await logAudit({
+            actorId: associate.id,
+            action: "redline_docx_exported",
+            entityType: "analysis",
+            entityId: analysisId,
+            metadata: { outcome: "fallback", matched: 0, unmatched: findings.length, fallback_reason: verdict.fallbackReason },
+          });
+        },
+      },
+    };
   }
 
   return { ok: true, redline: { ...built, findings, nonSubstantive } };
@@ -121,21 +184,12 @@ export async function loadRedline(
 
 export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResult> {
   const { admin, associate, analysis, analysisId } = ctx;
-  const markupPdfUrl = `/api/analyses/${analysisId}/export-markup`;
+  const markupPdfUrl = markupUrl(analysisId);
 
   const loaded = await loadRedline(ctx);
   if (!loaded.ok) return loaded.refusal;
   const { engineResult, report, nonSubstantive } = loaded.redline;
-  const unapplied = report.unapplied.map((u) => ({ ...u, explanation: UNAPPLIED_REASON_TEXT[u.reason] }));
-
-  const preflight = {
-    outcome: report.outcome,
-    appliedCount: report.appliedCount,
-    unapplied,
-    widened: report.widened,
-    fallbackReason: report.fallbackReason,
-    markupPdfUrl,
-  };
+  const preflight = redlineVerdict(report, markupPdfUrl);
 
   const filename = analysis.filename.replace(/\.docx$/i, "") + "-redline.docx";
 

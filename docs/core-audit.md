@@ -270,3 +270,112 @@ Every stored Word review's cards were worked out as the screen works them out to
 | 2 | A decision on the document notes (2.3) | None | Left as they are until CD gives direction (user, 2026-10-10) |
 | 3 | The engine's own sentence in the export dialog (2.5) | Free, small | A plan and a yes |
 | 4 | The engine as the card's check (2.4, 2.6) | Free, larger | Evidence from the beta first |
+
+### Second pass, 2026-10-10. The export dialog, the email panels and the new-review form
+
+Evidence is the live record, read without changing it. It holds 99 exports and 551 audit-log rows from 2026-09-08 on, nearly all from testing.
+
+| What | Count |
+|---|---|
+| Word redline exports | 34 (31 clean, 3 partial, 0 fell back to the PDF) |
+| Memo exports | 39 |
+| PDF exports, marked-up and proposed | 26 |
+| Clean Word copies | 8 |
+| Client emails drafted, then edited | 8, 2 |
+| Property emails drafted, then edited | 8, 2 |
+| AI-use check stopped a review, and was then answered | 8, 8 |
+
+**2.8 The export dialog is sound.**
+
+- Three rows cover five files, and every one of the five has been used.
+- A file that isn't clean is held out of the zip and shown with its reasons, so the associate decides on it alone. That is the right shape.
+- One gap is already logged as finding 1.10. When the engine crashes, the row shows an error and offers no PDF. It belongs to piece 5.
+- With blanks and amounts now settled on the card, a partial verdict should be rarer. Count them during the beta.
+
+**2.9 The two email panels are the same screen written twice, and I would leave them.**
+
+- About 150 of each panel's 180 lines match once the audience's name is set aside.
+- The split that matters is on the server. Each audience has its own route and its own assembly, and the property's has an allowlist.
+- One shared panel would save about 150 lines. A mistake there could put CD's reasoning in front of a hotel, which is the worst outcome this app has.
+- No work. The saving is small and the downside is not.
+
+**2.10 The new-review form is sound.**
+
+- It asks for the file, new or continuing, the property name, the hotel brand, and an optional client name.
+- The line under each filled field shows the contract wording it came from, which supports the decision the field asks for.
+
+**2.11 The AI-use check is sound.**
+
+- It stops the review before anything is sent, shows the wording it found, and asks for one of two answers.
+
+**Not covered here.** The dashboard and the admin screens. The Standards screen is in piece 7.
+
+**Result of the second pass.** No new fix is proposed. Piece 2 is finished apart from the two fixes already listed and waiting, 2.4 and 2.5.
+
+## Piece 5. Exports
+
+Audited 2026-10-10 on `audit/pieces-2-and-5`. It covers the five export files, the zip, and what each failure tells the associate. The two emails are in piece 2.
+
+### Evidence
+
+- The code under `lib/exports/` (1,334 lines) and the export dialog.
+- The live record, read without changing it. 99 exports and their audit-log rows.
+
+| From the record | Count |
+|---|---|
+| Word redlines, by result | 32 clean, 4 partial, 0 fell back |
+| Marked-up PDFs drawn from the redline, and from the older overlay | 6, 1 (the rest predate the label) |
+| A PDF that failed its own read-back check | 0 |
+| Reviews by upload type | 29 Word, 8 PDF, 1 older Word (.doc) |
+
+### Findings
+
+**5.1 An engine crash shows an error, offers no PDF, and leaves no record.**
+
+- When the engine fails a check, the associate sees "The Word file could not be produced safely" with a button for the marked-up PDF, and the export record gains a row marked as a fallback.
+- When the engine crashes, the row shows a bare error. No PDF is offered, and nothing is written to the record.
+- The marked-up PDF itself survives a crash. It falls back to the older overlay, which doesn't need the engine. The associate just isn't pointed at it.
+- The crash fixed on 2026-10-08 would have left no trace. The fallback rate the roadmap watches (1.5%) can't see a crash.
+- Proposed fix, free and small. A crash is treated as a fallback. The associate gets the same screen with the PDF button, and the record gains a fallback row with the crash's message.
+- **Built and merged to `main` on 2026-10-10.** A crash returns the fallback verdict, and the real request writes one fallback row with the crash's message. A preflight writes nothing. The clean Word copy's route refuses without recording the crash a second time, and says the PDF is still available. Covered by tests on an in-memory database, with a file that is not a Word file. The screen itself can't be reached in the browser without a broken file.
+
+**5.2 The clean Word copy can lack a change and say nothing.**
+
+- The redline and the clean PDF are both checked before download. When a change was left out, the dialog lists it, and the clean PDF also lists it after the contract.
+- The clean Word copy has no check before download. When the redline left a change out, the copy lacks it too, and neither the screen nor the file says so.
+- An associate who picks only the clean Word copy could send a proposed contract that is missing an accepted change.
+- How often. 4 of 36 redlines in the record were partial, and the clean Word copy has been exported 8 times.
+- Proposed fix, free and small. The clean Word copy gets the redline's check before download, and the dialog lists what the copy lacks, with "Download anyway".
+- Finding 2.4 would move this to the card. Until then the dialog is where the redline already says it.
+- **Built and merged to `main` on 2026-10-10.** The clean Word copy answers a preflight with the redline's verdict, and the dialog lists what the copy lacks. A copy built from a widened change also asks for a look, as the redline does. Seen in the dev browser on `98d84aa5`, where the dialog read "2 changes applied. 1 could not be." and named the cutoff-date change. Nothing was downloaded, so nothing was written.
+
+**5.3 The export record can't tell a clean Word copy from a redline.**
+
+- Both are saved with the format `docx`. The fallback rate divides by all of them, and a clean copy can never fall back.
+- Proposed fix. A format of its own for the clean copy. The database lists the allowed formats, so it needs a migration.
+- Priority is low. The audit log already tells the two apart.
+
+**5.4 Two ways of drawing a PDF exist, and both are needed.**
+
+- A Word upload's PDFs are drawn from the redline file. A PDF or .doc upload has no Word file to mark up, so its PDFs are drawn over the original pages.
+- The overlay is also the net under a redline that fails. Nine of the 38 reviews were PDF or .doc uploads.
+- No change.
+
+**5.5 Read and found sound.**
+
+- The zip skips a file that couldn't be made and puts the reason in a note inside the archive.
+- Only the redline is kept as "what we sent", which is what the next round compares against.
+- A preflight writes nothing, so checking a file before download doesn't count it twice.
+- A real contract filename with a long dash no longer breaks the download.
+
+**5.6 Seen in the record, for piece 3.**
+
+- Seven reviews ended as failed. Three left a row in the audit log.
+
+### Proposed order
+
+| # | Fix | Cost | Needs |
+|---|---|---|---|
+| 1 | A crash takes the PDF route and is recorded (5.1) | Done, on `main` | Nothing |
+| 2 | The clean Word copy says what it lacks (5.2) | Done, on `main` | Nothing |
+| 3 | A format of its own for the clean copy (5.3) | Free, one migration | Later, low priority |
