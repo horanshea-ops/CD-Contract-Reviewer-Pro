@@ -18,12 +18,15 @@ function Toggles<K extends string>({
   counts,
   hidden,
   onToggle,
+  pressed,
 }: {
   keys: K[];
   styleOf: (key: K) => { label: string; textColor: string; bg: string };
   counts: Record<K, number>;
   hidden: Set<K>;
   onToggle: (key: K) => void;
+  /** Which button reads as pressed. A button is pressed while its key shows, unless this says otherwise. */
+  pressed?: (key: K) => boolean;
 }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -35,7 +38,7 @@ function Toggles<K extends string>({
             key={key}
             type="button"
             onClick={() => onToggle(key)}
-            aria-pressed={!off}
+            aria-pressed={pressed ? pressed(key) : !off}
             style={off ? undefined : { background: style.bg, color: style.textColor }}
             className={cn(
               "text-xs font-semibold rounded-md px-3 py-1 border transition-colors",
@@ -64,16 +67,28 @@ export function SeverityToggles<K extends FindingSeverity>({
   return <Toggles keys={keys} styleOf={(k) => SEVERITY_STYLE[k]} counts={counts} hidden={hidden} onToggle={onToggle} />;
 }
 
+/**
+ * One button per kind of finding. Pushing one shows that kind alone, and
+ * pushing it again shows every kind.
+ */
 export function CategoryToggles({
   counts,
-  hidden,
-  onToggle,
+  only,
+  onPick,
 }: {
   counts: Record<Category, number>;
-  hidden: Set<Category>;
-  onToggle: (category: Category) => void;
+  only: Category | null;
+  onPick: (category: Category) => void;
 }) {
+  const dimmed = new Set(only ? CATEGORY_KEYS.filter((k) => k !== only) : []);
   return (
-    <Toggles keys={CATEGORY_KEYS} styleOf={(k) => CATEGORY_STYLE[k]} counts={counts} hidden={hidden} onToggle={onToggle} />
+    <Toggles
+      keys={CATEGORY_KEYS}
+      styleOf={(k) => CATEGORY_STYLE[k]}
+      counts={counts}
+      hidden={dimmed}
+      onToggle={onPick}
+      pressed={(k) => k === only}
+    />
   );
 }

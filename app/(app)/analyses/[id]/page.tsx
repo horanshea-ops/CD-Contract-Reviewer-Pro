@@ -105,7 +105,8 @@ export default function AnalysisPage() {
   const [offline, setOffline] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState("");
-  const [hiddenCategories, setHiddenCategories] = useState<Set<Category>>(new Set());
+  // The one kind of finding shown, or null for every kind.
+  const [onlyCategory, setOnlyCategory] = useState<Category | null>(null);
   const [hideDecided, setHideDecided] = useState(false);
   // The change whose wording the associate is selecting in the document pane, and what they selected.
   const [pick, setPick] = useState<{ findingId: string; wording: { quote: string; context: string } | null } | null>(null);
@@ -172,8 +173,8 @@ export default function AnalysisPage() {
   }, [data]);
 
   const visibleFindings = useMemo(
-    () => sortedFindings.filter((f) => !hiddenCategories.has(findingCategory(f)) && !(hideDecided && f.current_action)),
-    [sortedFindings, hiddenCategories, hideDecided]
+    () => sortedFindings.filter((f) => (!onlyCategory || findingCategory(f) === onlyCategory) && !(hideDecided && f.current_action)),
+    [sortedFindings, onlyCategory, hideDecided]
   );
 
   const handleSelectFinding = useCallback(
@@ -276,13 +277,9 @@ export default function AnalysisPage() {
     document.getElementById(`finding-${next.id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
-  function toggleCategory(category: Category) {
-    setHiddenCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
-    });
+  /** Shows one kind of finding alone. Picking the kind already shown brings every kind back. */
+  function pickCategory(category: Category) {
+    setOnlyCategory((prev) => (prev === category ? null : category));
   }
 
   function toggleHideDecided() {
@@ -414,7 +411,7 @@ export default function AnalysisPage() {
   const businessFindings = visibleFindings.filter((f) => findingCategory(f) === "business");
   const legalFindings = visibleFindings.filter((f) => findingCategory(f) === "legal");
   const otherFindings = visibleFindings.filter((f) => findingCategory(f) === "other");
-  const showOther = !hiddenCategories.has("other") && (otherFindings.length > 0 || notesInOther > 0);
+  const showOther = (!onlyCategory || onlyCategory === "other") && (otherFindings.length > 0 || notesInOther > 0);
   // The document pane marks the wording a change replaces: the associate's pick, where they made one.
   const pickTarget = (f: Finding | null) => (f ? { id: f.id, quoted_text: f.current_action?.edited_quote ?? f.quoted_text } : null);
   const labelOf = (id: string | null | undefined) => {
@@ -488,7 +485,7 @@ export default function AnalysisPage() {
               if (!target) return;
               // An accepted change is a decided one, so the filters that could hide its card are cleared first.
               setHideDecided(false);
-              setHiddenCategories(new Set());
+              setOnlyCategory(null);
               handleSelectFinding(target);
               setTimeout(() => document.getElementById(`finding-${findingId}`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 50);
             }}
@@ -555,8 +552,8 @@ export default function AnalysisPage() {
               <div className="sticky top-0 z-10 bg-[var(--surface-muted)] px-4 py-3 border-b border-[var(--border)]">
                 <FindingsOverviewBar
                   overview={bucketOverview}
-                  hiddenCategories={hiddenCategories}
-                  onToggleCategory={toggleCategory}
+                  onlyCategory={onlyCategory}
+                  onPickCategory={pickCategory}
                   hideDecided={hideDecided}
                   onToggleHideDecided={toggleHideDecided}
                 />
