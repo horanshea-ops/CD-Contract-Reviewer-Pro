@@ -137,6 +137,8 @@ describe("the clean Word copy's check before download", () => {
       reason: "not_located",
       explanation: "The quoted wording could not be found in the document.",
     });
+    // The dialog sends the associate to this change's card.
+    expect((unapplied[0] as unknown as { findingId: string }).findingId).toMatch(/-f1$/);
   });
 
   it("answers a preflight with the verdict and writes nothing", async () => {

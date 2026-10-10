@@ -483,6 +483,15 @@ export default function AnalysisPage() {
             sourceFormat={data.source_format}
             intakeRoute={data.intake_route}
             intakeHealthReason={data.intake_health?.reason ?? null}
+            onShowFinding={(findingId) => {
+              const target = data.findings.find((f) => f.id === findingId);
+              if (!target) return;
+              // An accepted change is a decided one, so the filters that could hide its card are cleared first.
+              setHideDecided(false);
+              setHiddenCategories(new Set());
+              handleSelectFinding(target);
+              setTimeout(() => document.getElementById(`finding-${findingId}`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 50);
+            }}
           />
           <EmailPicker analysisId={data.id} />
         </div>

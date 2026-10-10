@@ -36,12 +36,16 @@ export interface LoadedRedline {
 
 const markupUrl = (analysisId: string) => `/api/analyses/${analysisId}/export-markup`;
 
-/** What the dialog is told about a tracked-changes file before download. */
-export function redlineVerdict(report: ValidationReport, markupPdfUrl: string) {
+/**
+ * What the dialog is told about a tracked-changes file before download.
+ * `unappliedIds` names each left-out change, in the report's order, so the
+ * dialog can send the associate to its card.
+ */
+export function redlineVerdict(report: ValidationReport, markupPdfUrl: string, unappliedIds: string[] = []) {
   return {
     outcome: report.outcome,
     appliedCount: report.appliedCount,
-    unapplied: report.unapplied.map((u) => ({ ...u, explanation: UNAPPLIED_REASON_TEXT[u.reason] })),
+    unapplied: report.unapplied.map((u, i) => ({ ...u, findingId: unappliedIds[i] ?? null, explanation: UNAPPLIED_REASON_TEXT[u.reason] })),
     widened: report.widened,
     fallbackReason: report.fallbackReason,
     markupPdfUrl,
@@ -189,7 +193,7 @@ export async function buildRedline(ctx: ExportContext): Promise<ExportBuildResul
   const loaded = await loadRedline(ctx);
   if (!loaded.ok) return loaded.refusal;
   const { engineResult, report, nonSubstantive } = loaded.redline;
-  const preflight = redlineVerdict(report, markupPdfUrl);
+  const preflight = redlineVerdict(report, markupPdfUrl, engineResult.unappliedIds);
 
   const filename = analysis.filename.replace(/\.docx$/i, "") + "-redline.docx";
 
