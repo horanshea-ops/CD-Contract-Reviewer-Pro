@@ -15,7 +15,10 @@ import type { ExportBuildResult } from "./types";
 export async function buildMemo(ctx: ExportContext): Promise<ExportBuildResult> {
   const { admin, associate, analysis, analysisId } = ctx;
 
-  const { findings, nonSubstantive, counsel } = await getActionedFindings(admin, analysisId);
+  // The memo lists every accepted change, whichever way it reaches the property.
+  const actioned = await getActionedFindings(admin, analysisId);
+  const { nonSubstantive, counsel } = actioned;
+  const findings = [...actioned.findings, ...actioned.byEmail];
 
   const pdfBytes = await generateRevisionsMemo({
     contractFilename: analysis.filename,

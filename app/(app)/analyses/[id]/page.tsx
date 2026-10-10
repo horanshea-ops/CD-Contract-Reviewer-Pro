@@ -22,6 +22,7 @@ import { isStalledRun, stoppedAtAiUseCheck } from "@/lib/analysis-status";
 import { Button } from "@/components/ui/button";
 import { Body, Meta, Title } from "@/components/ui/typography";
 import type { DocumentNote } from "@/lib/document-notes";
+import { clauseLabel } from "@/lib/format";
 import { ORG } from "@/lib/org";
 
 interface AiUseMatch {
@@ -59,6 +60,8 @@ interface AnalysisResponse {
   document_checks?: DocumentNote[];
   /** The set of standards the review read. Null on a review from before sets. */
   standards?: { name: string; note: string | null } | null;
+  /** Why the Word redline would be discarded for the marked-up PDF. Null when it wouldn't. */
+  redline_fallback?: string | null;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -104,6 +107,8 @@ export default function AnalysisPage() {
   const [retryError, setRetryError] = useState("");
   const [hiddenCategories, setHiddenCategories] = useState<Set<Category>>(new Set());
   const [hideDecided, setHideDecided] = useState(false);
+  // The change whose wording the associate is selecting in the document pane, and what they selected.
+  const [pick, setPick] = useState<{ findingId: string; wording: { quote: string; context: string } | null } | null>(null);
   const pollNow = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -247,8 +252,8 @@ export default function AnalysisPage() {
   }
 
   function handleActionRecorded(findingId: string, action: Finding["current_action"]) {
-    // An edit changes what the redline would do, which the API works out.
-    if (action?.action === "edit") pollNow.current();
+    // Any decision can change what the redline does with this change or with one it overlaps, which the API works out.
+    pollNow.current();
     setData((prev) =>
       prev
         ? {
@@ -410,10 +415,24 @@ export default function AnalysisPage() {
   const legalFindings = visibleFindings.filter((f) => findingCategory(f) === "legal");
   const otherFindings = visibleFindings.filter((f) => findingCategory(f) === "other");
   const showOther = !hiddenCategories.has("other") && (otherFindings.length > 0 || notesInOther > 0);
+  // The document pane marks the wording a change replaces: the associate's pick, where they made one.
+  const pickTarget = (f: Finding | null) => (f ? { id: f.id, quoted_text: f.current_action?.edited_quote ?? f.quoted_text } : null);
+  const labelOf = (id: string | null | undefined) => {
+    const other = id ? data.findings.find((f) => f.id === id) : null;
+    return other ? (other.headline ?? clauseLabel(other.clause_type)) : null;
+  };
   const card = (f: Finding, nested = false) => (
     <FindingCard
       key={f.id}
       finding={f}
+      conflictLabel={labelOf(f.placement?.conflictsWith)}
+      picking={pick?.findingId === f.id}
+      picked={pick?.findingId === f.id ? pick.wording : null}
+      onStartPick={() => {
+        setPick({ findingId: f.id, wording: null });
+        handleSelectFinding(f);
+      }}
+      onCancelPick={() => setPick(null)}
       nested={nested}
       focused={f.id === selectedFindingId}
       onActionRecorded={handleActionRecorded}
@@ -464,6 +483,15 @@ export default function AnalysisPage() {
             sourceFormat={data.source_format}
             intakeRoute={data.intake_route}
             intakeHealthReason={data.intake_health?.reason ?? null}
+            onShowFinding={(findingId) => {
+              const target = data.findings.find((f) => f.id === findingId);
+              if (!target) return;
+              // An accepted change is a decided one, so the filters that could hide its card are cleared first.
+              setHideDecided(false);
+              setHiddenCategories(new Set());
+              handleSelectFinding(target);
+              setTimeout(() => document.getElementById(`finding-${findingId}`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 50);
+            }}
           />
           <EmailPicker analysisId={data.id} />
         </div>
@@ -494,7 +522,9 @@ export default function AnalysisPage() {
                 hadExistingRevisions={!!data.had_existing_revisions}
                 existingRevisionAuthors={data.existing_revision_authors ?? []}
                 existingRevisionCount={data.existing_revision_count ?? 0}
-                selectedFinding={sortedFindings.find((f) => f.id === selectedFindingId) ?? null}
+                selectedFinding={pickTarget(sortedFindings.find((f) => f.id === selectedFindingId) ?? null)}
+                picking={!!pick && !pick.wording}
+                onPick={(quote, context) => setPick((p) => (p ? { ...p, wording: { quote, context } } : p))}
                 highlightColor={
                   SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
                 }
@@ -533,6 +563,12 @@ export default function AnalysisPage() {
               </div>
             )}
             <div className="px-4 py-4 space-y-3">
+              {data.redline_fallback && (
+                <Meta as="p" role="status" className="rounded-md border border-[var(--border)] bg-white px-3 py-2 text-[var(--text-primary)]">
+                  This contract will export as a marked-up PDF and not as a Word redline, because the Word file fails its
+                  checks. Every change is still carried in the PDF.
+                </Meta>
+              )}
               {sortedFindings.length + notesInOther === 0 ? (
                 <Body as="p" className="text-[var(--text-secondary)]">
                   No findings. Nothing flagged against the standards library.

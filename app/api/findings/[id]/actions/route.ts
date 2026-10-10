@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
+import { latestActions } from "@/lib/finding-actions";
+import { carriedPlacement } from "@/lib/placement";
 
 const VALID_ACTIONS = ["accept", "edit", "dismiss"];
 
@@ -12,6 +14,9 @@ const VALID_ACTIONS = ["accept", "edit", "dismiss"];
  *
  * A legal finding can't be edited, because CD gives no legal advice and an
  * edit is contract wording. Accepting one flags it for the client.
+ *
+ * An accept or an edit keeps the place the associate had given the change. A
+ * dismissal drops it.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const associate = await getCurrentAssociate();
@@ -59,6 +64,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
+  const latest = action === "dismiss" ? null : ((await latestActions(admin, [findingId])).get(findingId) ?? null);
+
   const { data: actionRow, error } = await admin
     .from("finding_actions")
     .insert({
@@ -67,6 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       action,
       edited_language: action === "edit" ? editedLanguage : null,
       dismissal_reason: action === "dismiss" ? dismissalReason : null,
+      ...carriedPlacement(latest),
     })
     .select()
     .single();

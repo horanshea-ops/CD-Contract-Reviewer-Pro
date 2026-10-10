@@ -61,7 +61,7 @@ export async function buildStructuredContract(
         problems: await checkRenderedPdf(result),
         unplaced: extra.map((f) => {
           const reason = reasonFor.get(f.id);
-          return { clause_type: f.clause_type, reason: reason ? UNAPPLIED_REASON_TEXT[reason] : "Could not be placed." };
+          return { findingId: f.id, clause_type: f.clause_type, reason: reason ? UNAPPLIED_REASON_TEXT[reason] : "Could not be placed." };
         }),
       };
     }

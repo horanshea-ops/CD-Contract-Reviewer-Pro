@@ -3,7 +3,9 @@ import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkDocument, pictureNotes } from "@/lib/document-checks";
 import { toNotes, withoutRepeats } from "@/lib/document-notes";
+import { dryRunFor, type DryRunRow } from "@/lib/exports/dry-run";
 import { withoutArchivedExposure } from "@/lib/exposures/enabled";
+import { latestActions } from "@/lib/finding-actions";
 import { previewFindings } from "@/lib/redline-engine/preflight";
 
 const STORAGE_BUCKET = "contracts";
@@ -34,7 +36,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: analysis, error } = await admin
     .from("analyses")
     .select(
-      "id, associate_id, client_id, filename, storage_path, source_format, status, error, created_at, started_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at, thread_id, round_number, document_notes, accepted_view_text, negotiation_threads(property_name)"
+      "id, associate_id, client_id, filename, storage_path, original_storage_path, source_format, status, error, created_at, started_at, completed_at, model_id, library_version, intake_route, intake_health, had_existing_revisions, existing_revision_authors, existing_revision_count, ai_clause_scan_result, ai_clause_acknowledged_at, thread_id, round_number, document_notes, accepted_view_text, negotiation_threads(property_name)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -48,6 +50,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   let findings: unknown[] = [];
+  // Why the Word redline would be discarded for the marked-up PDF, known before anyone exports.
+  let redlineFallback: string | null = null;
   if (analysis.status === "complete" || analysis.status === "failed") {
     const { data: findingRows } = await admin
       .from("findings")
@@ -55,48 +59,36 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       .eq("analysis_id", id)
       .order("severity", { ascending: true });
 
-    const findingIds = (findingRows ?? []).map((f) => f.id);
-    const { data: actionRows } = findingIds.length
-      ? await admin
-          .from("finding_actions")
-          .select("finding_id, action, edited_language, dismissal_reason, created_at")
-          .in("finding_id", findingIds)
-          .order("created_at", { ascending: false })
-      : { data: [] };
-
-    type ActionRow = {
-      finding_id: string;
-      action: string;
-      edited_language: string | null;
-      dismissal_reason: string | null;
-      created_at: string;
-    };
-    const latestActionByFinding = new Map<string, ActionRow>();
-    for (const row of (actionRows ?? []) as ActionRow[]) {
-      if (!latestActionByFinding.has(row.finding_id)) {
-        latestActionByFinding.set(row.finding_id, row);
-      }
-    }
-
+    const latestActionByFinding = await latestActions(
+      admin,
+      (findingRows ?? []).map((f) => f.id)
+    );
     const withActions = (findingRows ?? []).map((f) => ({
       ...f,
       current_action: latestActionByFinding.get(f.id) ?? null,
     }));
 
-    // What the redline would do with each change, so a card can say so before export.
-    const previews = previewFindings(
-      withActions.map((f) => ({
-        id: f.id,
-        quoted_text: f.quoted_text,
-        is_missing_clause: f.is_missing_clause,
-        language:
-          f.current_action?.action === "edit" && f.current_action.edited_language
-            ? f.current_action.edited_language
-            : f.proposed_language,
-      })),
-      analysis.accepted_view_text
-    );
-    findings = withActions.map((f) => ({ ...withoutArchivedExposure(f), ...previews.get(f.id) }));
+    // A Word upload's cards are told what the redline will do by the redline engine itself.
+    const check = await dryRunFor(admin, analysis, withActions as DryRunRow[]);
+    if (check) {
+      redlineFallback = check.fallbackReason;
+      findings = withActions.map((f) => ({ ...withoutArchivedExposure(f), placement: check.verdicts.get(f.id) ?? null }));
+    } else {
+      // A PDF or .doc upload has no Word file to check, so its cards read the review's text.
+      const previews = previewFindings(
+        withActions.map((f) => ({
+          id: f.id,
+          quoted_text: f.quoted_text,
+          is_missing_clause: f.is_missing_clause,
+          language:
+            f.current_action?.action === "edit" && f.current_action.edited_language
+              ? f.current_action.edited_language
+              : f.proposed_language,
+        })),
+        analysis.accepted_view_text
+      );
+      findings = withActions.map((f) => ({ ...withoutArchivedExposure(f), ...previews.get(f.id) }));
+    }
   }
 
   let documentUrl: string | null = null;
@@ -116,9 +108,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   return NextResponse.json({
     ...analysisFields,
+    // Read above for the check, and of no use to the page.
+    original_storage_path: undefined,
     document_notes,
     propertyName,
     findings,
+    redline_fallback: redlineFallback,
     documentUrl,
     document_checks,
     standards: await standardsUsed(admin, id),

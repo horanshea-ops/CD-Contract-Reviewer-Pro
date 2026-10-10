@@ -15,6 +15,11 @@ import type { MemoFinding } from "../export-memo";
 export interface RevisionFinding extends MemoFinding {
   id: string;
   location_section: string | null;
+  /**
+   * The wording just before the quote, saved when the associate says which of
+   * several places is meant. It picks that place and nothing else.
+   */
+  quote_context?: string | null;
 }
 
 /** How confidently the wording was found. Written to `findings.span_resolution`. */
@@ -41,6 +46,16 @@ export interface LocatedSpan {
   similarity: number;
 }
 
+/** One place a quote was found, with the wording either side of it. */
+export interface QuotePlace {
+  part: string;
+  start: number;
+  end: number;
+  before: string;
+  match: string;
+  after: string;
+}
+
 export interface UnlocatedSpan {
   resolution: "unresolved";
   /** Plain language, recorded in `findings.applicability_detail`. */
@@ -51,6 +66,8 @@ export interface UnlocatedSpan {
    * and the associate needs to be told which.
    */
   ambiguous?: boolean;
+  /** Each place the wording was found, in document order, for the associate to pick from. */
+  places?: QuotePlace[];
 }
 
 export type LocateResult = LocatedSpan | UnlocatedSpan;

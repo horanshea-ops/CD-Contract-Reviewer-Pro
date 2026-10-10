@@ -93,7 +93,7 @@ export async function buildCleanDocx(ctx: ExportContext): Promise<ExportBuildRes
     bytes: built.bytes.slice(),
     outcome,
     // The copy lacks whatever the redline left out, so the dialog is told the same things.
-    preflight: redlineVerdict(report, `/api/analyses/${analysisId}/export-markup`),
+    preflight: redlineVerdict(report, `/api/analyses/${analysisId}/export-markup`, engineResult.unappliedIds),
     commit: async () => {
       await recordExport(admin, {
         analysisId,

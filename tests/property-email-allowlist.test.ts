@@ -1,8 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
+  assembleEmailedChanges,
   assemblePropertyEmailItems,
+  emailedChangesText,
+  withEmailedChanges,
   type PropertyActionRow,
+  type PropertyEmailedFindingRow,
   type PropertyFindingRow,
 } from "@/lib/email-drafting/property-assembly";
 import { buildPropertyEmailPayload } from "@/lib/anthropic";
@@ -221,5 +225,77 @@ describe("what the property email is assembled from", () => {
     const source = await readFile("lib/email-drafting/property-assembly.ts", "utf8");
     expect(source).not.toMatch(/from\("analyses"\)/);
     expect(source).not.toContain("document_notes");
+  });
+});
+
+/**
+ * A change the associate sends in the email itself, because the redline has no
+ * place for it. Code writes the list after the model's draft. The model is
+ * never given it.
+ */
+describe("changes sent in the email itself", () => {
+  const emailedRow = (overrides: Record<string, unknown> = {}) => pollutedRow(overrides) as unknown as PropertyEmailedFindingRow;
+  const BY_EMAIL = action({ by_email: true });
+  const SENSITIVE = [RATIONALE, CD_STANDARD, EXPOSURE_BASIS, HEADLINE, COMPROMISE, "42000", "42,000", "Do not sign above", "high"];
+
+  it("carries the clause, the contract's wording and the proposed wording, and nothing else", () => {
+    expect(assembleEmailedChanges([emailedRow()], [BY_EMAIL])).toEqual([
+      {
+        clause_type: "cancellation",
+        contract_wording: "seventy-five percent (75%) of anticipated revenue",
+        proposed_language: "fifty percent (50%) of anticipated revenue",
+      },
+    ]);
+  });
+
+  it("writes none of CD's position into the email's list", () => {
+    const text = emailedChangesText(assembleEmailedChanges([emailedRow()], [BY_EMAIL]));
+    for (const leak of SENSITIVE) expect(text, leak).not.toContain(leak);
+  });
+
+  it("writes the list in fixed words", () => {
+    expect(emailedChangesText(assembleEmailedChanges([emailedRow()], [BY_EMAIL]))).toBe(
+      [
+        "One further change is not shown in the attached contract:",
+        "",
+        "1. Cancellation",
+        'Current wording: "seventy-five percent (75%) of anticipated revenue"',
+        'Proposed wording: "fifty percent (50%) of anticipated revenue"',
+      ].join("\n")
+    );
+  });
+
+  it("uses the wording the associate picked, and their edit", () => {
+    const [change] = assembleEmailedChanges(
+      [emailedRow()],
+      [action({ action: "edit", edited_language: "sixty percent (60%)", by_email: true, edited_quote: "75% of anticipated revenue" })]
+    );
+    expect(change).toMatchObject({ contract_wording: "75% of anticipated revenue", proposed_language: "sixty percent (60%)" });
+  });
+
+  it("calls an added clause a new provision", () => {
+    const text = emailedChangesText(assembleEmailedChanges([emailedRow({ is_missing_clause: true })], [BY_EMAIL]));
+    expect(text).toContain("This is a new provision.");
+    expect(text).not.toContain("Current wording");
+  });
+
+  it("lists only accepted business changes the associate sent by email", () => {
+    expect(assembleEmailedChanges([emailedRow()], [action()])).toEqual([]);
+    expect(assembleEmailedChanges([emailedRow()], [action({ action: "dismiss", by_email: true })])).toEqual([]);
+    expect(assembleEmailedChanges([emailedRow({ category: "legal" })], [BY_EMAIL])).toEqual([]);
+    expect(assembleEmailedChanges([emailedRow()], [])).toEqual([]);
+  });
+
+  it("keeps such a change out of what the model is given", () => {
+    expect(assemblePropertyEmailItems([pollutedRow()], [BY_EMAIL])).toEqual([]);
+    expect(assemblePropertyEmailItems([pollutedRow()], [action()])).toHaveLength(1);
+  });
+
+  it("adds the list after the draft, and adds nothing when there is none", () => {
+    const changes = assembleEmailedChanges([emailedRow()], [BY_EMAIL]);
+    expect(withEmailedChanges("Dear team,\n\nPlease see the attached.\n", changes)).toMatch(
+      /^Dear team,\n\nPlease see the attached\.\n\nOne further change is not shown/
+    );
+    expect(withEmailedChanges("Dear team,", [])).toBe("Dear team,");
   });
 });

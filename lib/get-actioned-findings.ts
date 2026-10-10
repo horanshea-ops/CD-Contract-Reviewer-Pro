@@ -2,6 +2,7 @@ import type { createAdminClient } from "./supabase/admin";
 import type { RevisionFinding } from "./redline-engine/types";
 import { assertsNoChange } from "./proposed-language";
 import type { CounselItem } from "./export-memo";
+import { latestActions } from "./finding-actions";
 import { findingCategory } from "./findings-overview";
 
 const SEVERITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2, note: 3 };
@@ -24,8 +25,10 @@ export interface NonSubstantiveFinding {
 }
 
 export interface ActionedFindings {
-  /** Changes to the contract. Never holds a legal finding. */
+  /** Changes to the contract that go into its files. Never holds a legal finding, or a change sent by email. */
   findings: RevisionFinding[];
+  /** Accepted changes the associate chose to send in the email to the property, so no contract file carries them. */
+  byEmail: RevisionFinding[];
   nonSubstantive: NonSubstantiveFinding[];
   /** Legal findings flagged for the client. They carry an explanation and no wording, and reach no contract export. */
   counsel: CounselItem[];
@@ -52,25 +55,14 @@ export async function getActionedFindings(
   const findingRows = findingRowsRaw ?? [];
   type FindingRow = (typeof findingRows)[number];
 
-  const findingIds = findingRows.map((f) => f.id);
-  const { data: actionRows } = findingIds.length
-    ? await admin
-        .from("finding_actions")
-        .select("finding_id, action, edited_language, created_at")
-        .in("finding_id", findingIds)
-        .order("created_at", { ascending: false })
-    : { data: [] };
-
-  const latestActionByFinding = new Map<string, { action: string; edited_language: string | null }>();
-  for (const row of actionRows ?? []) {
-    if (!latestActionByFinding.has(row.finding_id)) {
-      latestActionByFinding.set(row.finding_id, { action: row.action, edited_language: row.edited_language });
-    }
-  }
+  const latestActionByFinding = await latestActions(
+    admin,
+    findingRows.map((f) => f.id)
+  );
 
   const actioned = findingRows
     .map((f) => ({ f, action: latestActionByFinding.get(f.id) }))
-    .filter((x): x is { f: FindingRow; action: { action: string; edited_language: string | null } } =>
+    .filter((x): x is { f: FindingRow; action: NonNullable<typeof x.action> } =>
       x.action != null && (x.action.action === "accept" || x.action.action === "edit")
     )
     .sort((a, b) => SEVERITY_ORDER[a.f.severity] - SEVERITY_ORDER[b.f.severity]);
@@ -90,23 +82,30 @@ export async function getActionedFindings(
   const changes = actioned
     .filter((x) => !isLegal(x))
     .map(({ f, action }) => ({
-      id: f.id,
-      location_section: f.location_section,
-      clause_type: f.clause_type,
-      severity: f.severity,
-      is_missing_clause: f.is_missing_clause,
-      quoted_text: f.quoted_text,
-      language: action.action === "edit" && action.edited_language ? action.edited_language : f.proposed_language,
-      finding_text: f.finding_text,
-      cd_standard: f.cd_standard,
+      byEmail: action.by_email,
+      finding: {
+        id: f.id,
+        location_section: f.location_section,
+        clause_type: f.clause_type,
+        severity: f.severity,
+        is_missing_clause: f.is_missing_clause,
+        // The wording the associate picked for the change, where they picked one.
+        quoted_text: action.edited_quote ?? f.quoted_text,
+        quote_context: action.quote_context,
+        language: action.action === "edit" && action.edited_language ? action.edited_language : f.proposed_language,
+        finding_text: f.finding_text,
+        cd_standard: f.cd_standard,
+      },
     }));
 
   const nonSubstantive = changes
-    .filter((f) => assertsNoChange(f.language))
-    .map((f) => ({ clause_type: f.clause_type, language: f.language }));
+    .filter((c) => assertsNoChange(c.finding.language))
+    .map((c) => ({ clause_type: c.finding.clause_type, language: c.finding.language }));
 
+  const substantive = changes.filter((c) => !assertsNoChange(c.finding.language));
   return {
-    findings: changes.filter((f) => !assertsNoChange(f.language)),
+    findings: substantive.filter((c) => !c.byEmail).map((c) => c.finding),
+    byEmail: substantive.filter((c) => c.byEmail).map((c) => c.finding),
     nonSubstantive,
     counsel,
   };

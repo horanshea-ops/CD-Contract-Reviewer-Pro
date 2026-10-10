@@ -20,10 +20,10 @@ import { ORG } from "@/lib/org";
  * clean expands that row in place.
  * Then the formats that came back clean download as one zip.
  *
- * Keeping a non-clean format out of the zip is deliberate. A partial redline is
- * safe to send but is missing findings, and the verdict row is where the
- * associate reads which ones before deciding — §1.6's whole point is that
- * degradation stays visible. They download that file on its own afterwards.
+ * A change with no place in the Word file is settled on its review card, before
+ * export, where the associate can give it one. If a file's check still finds
+ * such a change, the row sends the associate back to that card and offers no
+ * download of a file that lacks it.
  *
  * Nothing reports "Downloaded." until its response has resolved.
  */
@@ -40,6 +40,8 @@ function keyFor(row: ContractRow, format: ContractFormat): ExportKey {
 type Outcome = "clean" | "partial" | "fallback";
 
 interface RedlineUnapplied {
+  /** The change's card to go to. */
+  findingId?: string | null;
   clause_type: string;
   severity: string;
   quoted_text: string | null;
@@ -64,6 +66,8 @@ interface RedlinePreflight {
 }
 
 interface CleanUnplaced {
+  /** Present for a Word upload, whose changes are settled on their cards. */
+  findingId?: string | null;
   clause_type: string;
   reason: string;
 }
@@ -103,7 +107,10 @@ export function ExportPicker({
   sourceFormat,
   intakeRoute,
   intakeHealthReason,
+  onShowFinding,
 }: {
+  /** Takes the associate to a change's review card. */
+  onShowFinding?: (findingId: string) => void;
   analysisId: string;
   includedCount: number;
   undecidedCount: number;
@@ -228,8 +235,7 @@ export function ExportPicker({
         return false;
       }
       const verdict = await res.json();
-      // A clean redline that struck wording beyond a quote still needs a look, and so does the copy built from it.
-      if (verdict.outcome === "clean" && !(key !== "clean" && verdict.widened?.length)) return true;
+      if (verdict.outcome === "clean") return true;
       // The Word copy is built from the redline, so it is told the same things in the same shape.
       setStatus(key, key === "clean" ? { kind: "clean", verdict } : { kind: "redline", verdict });
       return false;
@@ -289,6 +295,12 @@ export function ExportPicker({
   function close() {
     setOpen(false);
     reset();
+  }
+
+  /** Leaves the dialog for the card of a change that still has no place. */
+  function showCard(findingId: string) {
+    close();
+    onShowFinding?.(findingId);
   }
 
   return (
@@ -435,7 +447,7 @@ export function ExportPicker({
                 verdict={statuses.redline.verdict}
                 busy={busy}
                 onSkip={() => setStatus("redline", { kind: "idle" })}
-                onDownload={() => downloadOne("redline", singleUrl.redline, fallbackName.redline)}
+                onShowCard={showCard}
                 onDownloadFallback={(url) => downloadOne("redline", url, fallbackName.markup)}
               />
             )}
@@ -462,6 +474,7 @@ export function ExportPicker({
               <CleanVerdictRow
                 verdict={statuses.clean.verdict}
                 busy={busy}
+                onShowCard={showCard}
                 onSkip={() => setStatus("clean", { kind: "idle" })}
                 onDownload={() => downloadOne("clean", singleUrl.clean, fallbackName.clean)}
                 onDownloadFallback={(url) => downloadOne("clean", url, fallbackName.markup)}
@@ -469,11 +482,10 @@ export function ExportPicker({
             )}
             {statuses.cleanDocx.kind === "redline" && (
               <RedlineVerdictRow
-                copy
                 verdict={statuses.cleanDocx.verdict}
                 busy={busy}
                 onSkip={() => setStatus("cleanDocx", { kind: "idle" })}
-                onDownload={() => downloadOne("cleanDocx", singleUrl.cleanDocx, fallbackName.cleanDocx)}
+                onShowCard={showCard}
                 onDownloadFallback={(url) => downloadOne("cleanDocx", url, fallbackName.markup)}
               />
             )}
@@ -584,20 +596,41 @@ function RowStatusLine({ status }: { status: RowStatus }) {
   return null;
 }
 
+/** A file that lacks an accepted change. The associate settles the change on its card and exports again. */
+function NeedsCardRow({ findingIds, busy, onSkip, onShowCard }: { findingIds: string[]; busy: boolean; onSkip: () => void; onShowCard: (findingId: string) => void }) {
+  const n = findingIds.length;
+  return (
+    <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
+      <Body as="p" className="font-medium text-[var(--text-primary)]">
+        {n} accepted change{n === 1 ? " has" : "s have"} no place in this file yet.
+      </Body>
+      <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
+        {n === 1 ? "Its card says" : "Their cards say"} why, and {n === 1 ? "offers" : "offer"} a way to settle it. Export again once
+        {n === 1 ? " it is" : " they are"} settled.
+      </Meta>
+      <div className="mt-2 flex justify-end gap-2">
+        <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
+          Skip this file
+        </Button>
+        <Button size="sm" disabled={busy} onClick={() => onShowCard(findingIds[0])}>
+          Show me {n === 1 ? "the change" : "the first one"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function RedlineVerdictRow({
   verdict,
-  copy = false,
   busy,
   onSkip,
-  onDownload,
+  onShowCard,
   onDownloadFallback,
 }: {
   verdict: RedlinePreflight;
-  /** True for the clean Word copy, which has the changes applied where the redline has them marked up. */
-  copy?: boolean;
   busy: boolean;
   onSkip: () => void;
-  onDownload: () => void;
+  onShowCard: (findingId: string) => void;
   onDownloadFallback: (url: string) => void;
 }) {
   if (verdict.outcome === "fallback") {
@@ -631,71 +664,12 @@ function RedlineVerdictRow({
   }
 
   return (
-    <div className="mt-2 rounded bg-[var(--surface-muted)] p-2">
-      <Body as="p" className="font-medium text-[var(--text-primary)]">
-        {verdict.appliedCount} change{verdict.appliedCount === 1 ? "" : "s"} {copy ? "applied" : "marked up"}.
-        {verdict.unapplied.length > 0 && ` ${verdict.unapplied.length} could not be.`}
-      </Body>
-
-      {verdict.unapplied.length > 0 && (
-        <>
-          <Meta as="p" className="mt-1 text-[var(--text-secondary)]">
-            The file is safe to send. These items are not in {copy ? "this copy" : "the markup"}, so raise them another
-            way.
-          </Meta>
-          <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
-            {verdict.unapplied.map((u, i) => (
-              <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
-                <Meta as="p" className="font-medium text-[var(--text-primary)]">
-                  {clauseLabel(u.clause_type)}
-                  <span className="ml-2 font-normal text-[var(--text-muted)]">{u.severity}</span>
-                </Meta>
-                {u.quoted_text && (
-                  <Meta as="p" className="mt-1 border-l-2 border-[var(--border)] pl-2 text-[var(--text-muted)]">
-                    &ldquo;{u.quoted_text}&rdquo;
-                  </Meta>
-                )}
-                <Meta as="p" className="mt-1 text-[var(--text-muted)]">
-                  {u.explanation}
-                </Meta>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {verdict.widened.length > 0 && (
-        <>
-          <Meta as="p" className="mt-2 text-[var(--text-secondary)]">
-            {verdict.widened.length === 1 ? "This change covers" : "These changes cover"} the whole sentence, so{" "}
-            {verdict.widened.length === 1 ? "it also strikes" : "they also strike"} wording the finding didn&rsquo;t
-            quote. Check {verdict.widened.length === 1 ? "it" : "them"} in Word before sending.
-          </Meta>
-          <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
-            {verdict.widened.map((w, i) => (
-              <li key={i} className="rounded border border-[var(--border)] bg-white p-2">
-                <Meta as="p" className="font-medium text-[var(--text-primary)]">
-                  {clauseLabel(w.clause_type)}
-                  <span className="ml-2 font-normal text-[var(--text-muted)]">{w.severity}</span>
-                </Meta>
-                <Meta as="p" className="mt-1 text-[var(--text-muted)]">
-                  Also struck: &ldquo;{w.struck}&rdquo;
-                </Meta>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      <div className="mt-2 flex justify-end gap-2">
-        <Button variant="ghost" size="sm" disabled={busy} onClick={onSkip}>
-          Skip
-        </Button>
-        <Button size="sm" disabled={busy} onClick={onDownload}>
-          {verdict.unapplied.length > 0 ? "Download anyway" : "Download"}
-        </Button>
-      </div>
-    </div>
+    <NeedsCardRow
+      findingIds={verdict.unapplied.map((u) => u.findingId).filter((id): id is string => !!id)}
+      busy={busy}
+      onSkip={onSkip}
+      onShowCard={onShowCard}
+    />
   );
 }
 
@@ -703,11 +677,13 @@ function CleanVerdictRow({
   verdict,
   busy,
   onSkip,
+  onShowCard,
   onDownload,
   onDownloadFallback,
 }: {
   verdict: CleanPreflight;
   busy: boolean;
+  onShowCard: (findingId: string) => void;
   onSkip: () => void;
   onDownload: () => void;
   onDownloadFallback: (url: string) => void;
@@ -743,6 +719,12 @@ function CleanVerdictRow({
         </div>
       </div>
     );
+  }
+
+  // A Word upload's changes are settled on their cards. A PDF upload has no such check, and keeps the list below.
+  const cardIds = verdict.unplaced.map((u) => u.findingId).filter((id): id is string => !!id);
+  if (cardIds.length > 0 && cardIds.length === verdict.unplaced.length) {
+    return <NeedsCardRow findingIds={cardIds} busy={busy} onSkip={onSkip} onShowCard={onShowCard} />;
   }
 
   return (
