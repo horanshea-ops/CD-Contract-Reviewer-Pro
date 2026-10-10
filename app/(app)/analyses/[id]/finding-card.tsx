@@ -12,13 +12,14 @@ import { cn } from "@/lib/cn";
 import { ORG } from "@/lib/org";
 import { SEVERITY_STYLE } from "@/components/severity-style";
 import { findingCategory } from "@/lib/findings-overview";
-import { needsPlacement, placementMessage } from "@/lib/placement-message";
+import { needsPlacement } from "@/lib/placement-message";
 import { figureCheck, figureProblems, withWorkedAmounts } from "@/lib/proposed-figures";
 import type { UnappliedReason } from "@/lib/redline-validation/types";
 import { blanksIn } from "@/lib/redline-engine/wording";
 import type { Category } from "@/lib/standards/types";
 import BlankFields from "./blank-fields";
 import ChangeView from "./change-view";
+import PlacementFix, { SentByEmail, type PickedWording } from "./placement-fix";
 
 export interface Finding {
   id: string;
@@ -142,6 +143,10 @@ export default function FindingCard({
   onActionRecorded,
   onSelectFinding,
   conflictLabel = null,
+  picking = false,
+  picked = null,
+  onStartPick,
+  onCancelPick,
   locateMode = "pdf",
   focused = false,
   nested = false,
@@ -149,6 +154,12 @@ export default function FindingCard({
   finding: Finding;
   /** The change this one overlaps, by its headline, when the redline can take only one of the two. */
   conflictLabel?: string | null;
+  /** True while the associate is selecting this change's wording in the document pane. */
+  picking?: boolean;
+  /** The wording they selected there. */
+  picked?: PickedWording | null;
+  onStartPick?: () => void;
+  onCancelPick?: () => void;
   onActionRecorded: (findingId: string, action: Finding["current_action"]) => void;
   onSelectFinding?: (finding: Finding) => void;
   /** "docx" for the HTML preview (no page concept — always offers to jump to the match). Defaults to "pdf". */
@@ -364,22 +375,22 @@ export default function FindingCard({
       {!isLegal && language.trim() && <RedlineComment finding={finding} />}
 
       {unplaced && mode === "view" && (
-        <div className="mt-3 space-y-2 rounded-md border border-[var(--border)] px-3 py-2.5">
-          <Meta as="p" className="text-[var(--text-primary)]">
-            {placementMessage(placement, conflictLabel)}
-          </Meta>
-          {placement.reason === "overlaps_another_change" && placement.conflictsWith && (
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => dismissOverlap(placement.conflictsWith!)} loading={saving} loadingText="Saving...">
-                Keep this one
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => dismissOverlap(finding.id)} disabled={saving}>
-                Keep the other
-              </Button>
-            </div>
-          )}
-        </div>
+        <PlacementFix
+          finding={finding}
+          placement={placement}
+          language={language}
+          conflictLabel={conflictLabel}
+          canPick={locateMode === "docx" && !!onStartPick}
+          picking={picking}
+          picked={picked}
+          onStartPick={() => onStartPick?.()}
+          onCancelPick={() => onCancelPick?.()}
+          onDismiss={dismissOverlap}
+          onActionRecorded={onActionRecorded}
+        />
       )}
+
+      {finding.current_action?.by_email && mode === "view" && <SentByEmail finding={finding} onActionRecorded={onActionRecorded} />}
 
       {/* A point raised without wording says so once, in the Other section's heading. */}
       {finding.export_issue && language.trim() && (

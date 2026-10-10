@@ -107,6 +107,8 @@ export default function AnalysisPage() {
   const [retryError, setRetryError] = useState("");
   const [hiddenCategories, setHiddenCategories] = useState<Set<Category>>(new Set());
   const [hideDecided, setHideDecided] = useState(false);
+  // The change whose wording the associate is selecting in the document pane, and what they selected.
+  const [pick, setPick] = useState<{ findingId: string; wording: { quote: string; context: string } | null } | null>(null);
   const pollNow = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -413,6 +415,8 @@ export default function AnalysisPage() {
   const legalFindings = visibleFindings.filter((f) => findingCategory(f) === "legal");
   const otherFindings = visibleFindings.filter((f) => findingCategory(f) === "other");
   const showOther = !hiddenCategories.has("other") && (otherFindings.length > 0 || notesInOther > 0);
+  // The document pane marks the wording a change replaces: the associate's pick, where they made one.
+  const pickTarget = (f: Finding | null) => (f ? { id: f.id, quoted_text: f.current_action?.edited_quote ?? f.quoted_text } : null);
   const labelOf = (id: string | null | undefined) => {
     const other = id ? data.findings.find((f) => f.id === id) : null;
     return other ? (other.headline ?? clauseLabel(other.clause_type)) : null;
@@ -422,6 +426,13 @@ export default function AnalysisPage() {
       key={f.id}
       finding={f}
       conflictLabel={labelOf(f.placement?.conflictsWith)}
+      picking={pick?.findingId === f.id}
+      picked={pick?.findingId === f.id ? pick.wording : null}
+      onStartPick={() => {
+        setPick({ findingId: f.id, wording: null });
+        handleSelectFinding(f);
+      }}
+      onCancelPick={() => setPick(null)}
       nested={nested}
       focused={f.id === selectedFindingId}
       onActionRecorded={handleActionRecorded}
@@ -502,7 +513,9 @@ export default function AnalysisPage() {
                 hadExistingRevisions={!!data.had_existing_revisions}
                 existingRevisionAuthors={data.existing_revision_authors ?? []}
                 existingRevisionCount={data.existing_revision_count ?? 0}
-                selectedFinding={sortedFindings.find((f) => f.id === selectedFindingId) ?? null}
+                selectedFinding={pickTarget(sortedFindings.find((f) => f.id === selectedFindingId) ?? null)}
+                picking={!!pick && !pick.wording}
+                onPick={(quote, context) => setPick((p) => (p ? { ...p, wording: { quote, context } } : p))}
                 highlightColor={
                   SEVERITY_STYLE[sortedFindings.find((f) => f.id === selectedFindingId)?.severity ?? "note"].bg
                 }

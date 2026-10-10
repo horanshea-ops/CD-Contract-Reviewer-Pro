@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentAssociate } from "@/lib/current-associate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
-import { getPropertyEmailItems } from "@/lib/email-drafting/property-assembly";
+import { getPropertyEmailedChanges, getPropertyEmailItems, withEmailedChanges } from "@/lib/email-drafting/property-assembly";
 import { generatePropertyEmail } from "@/lib/anthropic";
 
 /**
@@ -40,6 +40,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   }
 
   const items = await getPropertyEmailItems(admin, id);
+  // Changes the associate sends in the email itself. The model is not given them.
+  const emailed = await getPropertyEmailedChanges(admin, id);
 
   // Nothing accepted means there is no redline, so there is no document for
   // this email to transmit. The client route drafts a "no changes" note in the
@@ -79,7 +81,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       associate_id: associate.id,
       audience: "property",
       subject: draft.subject,
-      body: draft.body,
+      body: withEmailedChanges(draft.body, emailed),
       edited_by_associate: false,
     })
     .select("id, subject, body, created_at")
@@ -94,7 +96,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     action: "property_email_drafted",
     entityType: "analysis",
     entityId: id,
-    metadata: { email_draft_id: inserted.id, items_included: items.length, model_id: draft.model_id },
+    metadata: { email_draft_id: inserted.id, items_included: items.length, sent_by_email: emailed.length, model_id: draft.model_id },
   });
 
   const signatureBlock = associate.signature_block || `Best,\n${associate.name}`;

@@ -50,7 +50,14 @@ export interface DocxPreviewProps {
   /** Whether the file's own comments and tracked changes show beside the wording. */
   commentView: boolean;
   onCommentViewChange: (on: boolean) => void;
+  /** True while the associate is choosing the wording a change replaces. */
+  picking?: boolean;
+  /** The wording they selected, and the wording just before it, which says which of several places is meant. */
+  onPick?: (quote: string, context: string) => void;
 }
+
+/** How much of the wording before a selection is kept, to tell one place from another. */
+const PICK_CONTEXT = 60;
 
 type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -73,6 +80,8 @@ export default function DocxPreview({
   highlightColor,
   commentView,
   onCommentViewChange,
+  picking = false,
+  onPick,
 }: DocxPreviewProps) {
   const [parts, setParts] = useState<PreviewPart[] | null>(null);
   const [comments, setComments] = useState<DocumentComment[]>([]);
@@ -250,9 +259,30 @@ export default function DocxPreview({
           )}
         </ol>
       )}
+      {picking && (
+        <Meta as="p" role="status" className="shrink-0 bg-[var(--cd-navy)] px-4 py-2 text-white">
+          Select the wording in the contract that this change replaces.
+        </Meta>
+      )}
       <div ref={containerRef} className="flex-1 overflow-auto bg-white">
         <div className="flex items-stretch">
-          <div className="flex-1 min-w-0 px-6 py-4">
+          <div
+            className="flex-1 min-w-0 px-6 py-4"
+            onMouseUp={(e) => {
+              if (!picking || !onPick) return;
+              const selection = window.getSelection();
+              if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+              const range = selection.getRangeAt(0);
+              if (!e.currentTarget.contains(range.commonAncestorContainer)) return;
+              const quote = selection.toString().trim();
+              if (!quote) return;
+
+              const lead = document.createRange();
+              lead.selectNodeContents(e.currentTarget);
+              lead.setEnd(range.startContainer, range.startOffset);
+              onPick(quote, lead.toString().slice(-PICK_CONTEXT));
+            }}
+          >
             {parts.map((part) => (
               <div key={part.part}>
                 {part.part !== "document" && (
