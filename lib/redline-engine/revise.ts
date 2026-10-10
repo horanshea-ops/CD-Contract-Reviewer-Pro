@@ -119,6 +119,25 @@ export function replaceSpan({ covered, replacement, ...stamp }: ReplaceOptions):
 }
 
 /**
+ * Marks a paragraph's own mark as added or struck. A struck mark joins the
+ * paragraph to the one after it when the change is accepted.
+ */
+export function setParagraphMark(p: Element, tagName: "w:ins" | "w:del", ids: RevisionIds, author: string, date: string) {
+  const doc = p.ownerDocument!;
+  let pPr = childElements(p).find((c) => c.nodeName === "w:pPr");
+  if (!pPr) {
+    pPr = doc.createElement("w:pPr");
+    p.insertBefore(pPr, p.firstChild);
+  }
+  let rPr = childElements(pPr).find((c) => c.nodeName === "w:rPr");
+  if (!rPr) {
+    rPr = doc.createElement("w:rPr");
+    pPr.appendChild(rPr); // rPr is the last child of pPr in the schema
+  }
+  rPr.insertBefore(revisionElement(doc, tagName, ids, author, date), rPr.firstChild);
+}
+
+/**
  * Inserts the replacement, then strikes the covered runs after it.
  *
  * New wording comes first because Word's margin note for a deletion runs on
@@ -129,7 +148,7 @@ export function replaceSpan({ covered, replacement, ...stamp }: ReplaceOptions):
  * wrapper. One wrapper spanning two parents is not something XML can express,
  * and reaching for it is how the old engine produced files Word would not open.
  */
-function strikeAndInsert(covered: Element[], replacement: string, { author, date, ids }: Stamp) {
+export function strikeAndInsert(covered: Element[], replacement: string, { author, date, ids }: Stamp) {
   const doc = covered[0].ownerDocument!;
   const formatLike = covered[0];
 

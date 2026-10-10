@@ -3,7 +3,7 @@ import type { UnappliedReason } from "../redline-validation/types";
 import type { RevisionIds } from "./ids";
 import { acceptRevisionsIn } from "../docx-accept";
 import { refsInSpan } from "./applicability";
-import { childElements, insertedRun, revisionElement, siblingGroups, toDeletedText } from "./revise";
+import { childElements, insertedRun, revisionElement, setParagraphMark, siblingGroups, toDeletedText } from "./revise";
 import { runText, runsForSpan } from "./runs";
 import { rowCells, splitAcrossCells } from "./cell-split";
 import type { LocatedSpan } from "./types";
@@ -88,21 +88,6 @@ function setRowMark(row: Element, tagName: "w:ins" | "w:del", ids: RevisionIds, 
     row.insertBefore(trPr, row.firstChild);
   }
   trPr.appendChild(revisionElement(doc, tagName, ids, author, date));
-}
-
-function setParagraphMark(p: Element, tagName: "w:ins" | "w:del", ids: RevisionIds, author: string, date: string) {
-  const doc = p.ownerDocument!;
-  let pPr = childElements(p).find((c) => c.nodeName === "w:pPr");
-  if (!pPr) {
-    pPr = doc.createElement("w:pPr");
-    p.insertBefore(pPr, p.firstChild);
-  }
-  let rPr = childElements(pPr).find((c) => c.nodeName === "w:rPr");
-  if (!rPr) {
-    rPr = doc.createElement("w:rPr");
-    pPr.appendChild(rPr); // rPr is the last child of pPr in the schema
-  }
-  rPr.insertBefore(revisionElement(doc, tagName, ids, author, date), rPr.firstChild);
 }
 
 /**

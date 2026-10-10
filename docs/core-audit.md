@@ -76,6 +76,19 @@ meet. Four is a small sample, and three of the four are the same contract.
   - A route limited to paragraphs with the same formatting would be safe under either rule. It would cover none of the four stored cases.
   - **The test.** `data/private/replay/word-check-accept-all.docx`, opened in a Word that can edit (Word for the web is free with a Microsoft account). Press Accept All and answer the two questions in the file. `word-check-original.docx` is the comparison for Reject All.
   - The same sitting closes "Accept All and Reject All, untested by a person", which covers everything the engine writes today.
+  - **The user ran the test on 2026-10-09, in Word for the web.**
+    - Accept All put AAA and BBB on one centred line, and left NEW WORDING as numbered clause 2 with no indent. Joined paragraphs take the first paragraph's formatting.
+    - Reject All put every paragraph back as the original has it.
+    - Desktop Word, which hotels mostly use, was not tested.
+  - **Built 2026-10-09 on `phase/1-5-across-paragraphs`, not merged.**
+    - The engine strikes the old wording in each paragraph, inserts the new wording in the first, and deletes the breaks between. A last paragraph that keeps wording after the quote stays its own paragraph.
+    - A table cell holding several paragraphs takes a rewrite in place by the same route. The struck table and its copy now serve one case, a second finding changing wording the first already changed.
+    - The route declines when the paragraphs don't sit side by side, when a break is a section break or carries the hotel's tracked change, when the passage holds wording the hotel struck, or when it overlaps an earlier change.
+    - **The clean copy was wrong and is fixed.** It gave a joined paragraph the next paragraph's formatting. Word gives it the first's. No export took that path with real content. A test now rebuilds the user's Word file and checks the clean copy against the screenshot.
+    - Lint, the type check and 1,658 tests pass.
+    - Replay of 25 reviews against the blank-fields branch. Applied changes go from 601 to 605. All four stored cases apply, no review loses a change, every oracle check passes, and no review uses the table copy.
+    - A made-up sample waits for an Accept All and Reject All in Word for the web: `data/private/replay/sample-across-paragraphs-redline.docx`, with its `-original` beside it.
+    - Limit. A whole-passage rewrite strikes all the old wording. It doesn't leave shared words unmarked.
   - Found on the way. The document reader treats a paragraph whose break is deleted as still separate. A hotel file with a tracked deletion across paragraphs reads with a stray blank paragraph, and a stray list number if it was numbered. For piece 4.
 
 **1.3 A table row proposed as a sentence is refused, and should be.**
@@ -127,6 +140,7 @@ meet. Four is a small sample, and three of the four are the same contract.
   - The engine itself repeats such an id today. When a quote starts partway through wording a hotel reformatted, the run is split, and each piece keeps the hotel's formatting record with the same id.
   - A wider check would send those exports to the PDF. Whether Word minds a repeated formatting-record id is not known.
   - **The test.** `data/private/replay/word-check-ids.docx` holds two pieces with one id. If Word opens it with no repair message, the repeat is harmless and this fix is dropped. View-only Word is enough.
+- **Dropped 2026-10-09.** The user opened the file and Word showed no repair message. The fix would guard against a problem Word doesn't have.
 
 **1.10 A crash was live, and a crash gives the associate an error where a failed check gives the PDF.**
 
@@ -151,6 +165,6 @@ meet. Four is a small sample, and three of the four are the same contract.
 |---|---|---|---|
 | 1 | Merge the cell-by-cell table branch, which carries the crash fix | Done, waiting | The user's look at two files in Word |
 | 2 | Blanks as fields on the card (1.1) | Built, not merged | The table branch merged first |
-| 3 | Replace wording across paragraphs (1.2) | Free, engine work | Held. The Accept All test in an editable Word |
-| 4 | Widen the oracle's id check (1.9) | Free, small | Held. A look at `word-check-ids.docx` |
+| 3 | Replace wording across paragraphs (1.2) | Built, not merged | The two branches below it merged first |
+| 4 | Widen the oracle's id check (1.9) | Dropped | Word opens a repeated id with no complaint |
 | 5 | Remove the old engine and the two dead reasons (1.6, 1.7) | Free, small | A yes, since it closes deviation 4 |

@@ -132,7 +132,7 @@ export function replaceRun(run: Element, pieces: (Element | null)[]) {
  * A run that only anchors a comment. It holds no wording, and a change that
  * wrapped it would take the comment with it when accepted or rejected.
  */
-function isCommentAnchor(run: Element): boolean {
+export function isCommentAnchor(run: Element): boolean {
   const content = childElements(run).filter((c) => c.nodeName !== "w:rPr");
   return content.length > 0 && content.every((c) => c.nodeName === "w:commentReference");
 }

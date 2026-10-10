@@ -5,6 +5,8 @@ import { generateRedline } from "@/lib/redline-engine";
 import { readPackage } from "@/lib/redline-validation";
 import { allRevisions, elementsByTag } from "@/lib/redline-validation/package";
 import { currentText } from "@/lib/redline-validation/views";
+import JSZip from "jszip";
+import { buildNumberedDocx, esc } from "./helpers/docx-package";
 import { FIXTURE_AUTHOR, FIXTURE_CORPUS, readFixture } from "./helpers/fixture-corpus";
 
 /**
@@ -76,6 +78,68 @@ describe("accepting this export's changes", () => {
     const text = alnum(currentText(await read(await acceptOwnRevisions(result.docxBytes, new Set(result.ownRevisionIds)))));
     expect(text).toContain("seventypercent70");
     expect(text).not.toContain("eightypercent80");
+  });
+});
+
+/**
+ * The file the user opened in Word for the web on 2026-10-09, rebuilt here.
+ * After Accept All, Word showed "AAA BBB" on one centred line and the new
+ * wording as numbered clause 2, with no indent. The clean copy must match.
+ */
+describe("joining paragraphs whose breaks this export deleted", () => {
+  const WHO = `w:author="${FIXTURE_AUTHOR}" w:date="2026-10-08T00:00:00Z"`;
+  const t = (text: string) => `<w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r>`;
+  const struck = (id: number, text: string) =>
+    `<w:del w:id="${id}" ${WHO}><w:r><w:delText xml:space="preserve">${esc(text)}</w:delText></w:r></w:del>`;
+  const added = (id: number, text: string) => `<w:ins w:id="${id}" ${WHO}>${t(text)}</w:ins>`;
+  /** A paragraph. A `breakId` marks its break as deleted. */
+  const p = (props: string, inner: string, breakId?: number) =>
+    `<w:p><w:pPr>${props}${breakId ? `<w:rPr><w:del w:id="${breakId}" ${WHO}/></w:rPr>` : ""}</w:pPr>${inner}</w:p>`;
+  const NUM = `<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>`;
+  const SUB = `<w:ind w:left="1620" w:hanging="540"/>`;
+
+  const body =
+    p(`<w:jc w:val="center"/>`, t("AAA "), 9001) +
+    p(`<w:jc w:val="right"/>`, t("BBB")) +
+    p(NUM, t("Hotel will give notice of any renovation.")) +
+    p(NUM, added(9002, "NEW WORDING. Hotel will relocate the meeting at its own cost.") + struck(9003, "We may then elect, within fifteen days,"), 9004) +
+    p(SUB, struck(9005, "(A) to relocate your meeting, or"), 9006) +
+    p(SUB, struck(9007, "(B) to refund your deposit.")) +
+    p(NUM, t("This paragraph stays."));
+  const own = new Set(["9001", "9002", "9003", "9004", "9005", "9006", "9007"]);
+
+  async function acceptedParagraphs() {
+    const clean = await acceptOwnRevisions(await buildNumberedDocx(body), own);
+    const xml = await (await JSZip.loadAsync(clean)).file("word/document.xml")!.async("string");
+    return (xml.match(/<w:p>[\s\S]*?<\/w:p>/g) ?? []).map((paragraph) => ({
+      text: [...paragraph.matchAll(/<w:t[^>]*>([^<]*)</g)].map((m) => m[1]).join(""),
+      xml: paragraph,
+    }));
+  }
+
+  it("leaves the paragraphs Word left", async () => {
+    expect((await acceptedParagraphs()).map((x) => x.text)).toEqual([
+      "AAA BBB",
+      "Hotel will give notice of any renovation.",
+      "NEW WORDING. Hotel will relocate the meeting at its own cost.",
+      "This paragraph stays.",
+    ]);
+  });
+
+  it("gives two joined paragraphs the first one's formatting", async () => {
+    const [joined] = await acceptedParagraphs();
+    expect(joined.xml).toContain(`<w:jc w:val="center"/>`);
+    expect(joined.xml).not.toContain(`w:val="right"`);
+  });
+
+  it("gives a chain of three the first one's formatting", async () => {
+    const rewritten = (await acceptedParagraphs())[2];
+    expect(rewritten.xml).toContain("<w:numPr>");
+    expect(rewritten.xml).not.toContain("<w:ind ");
+  });
+
+  it("leaves no mark of ours behind", async () => {
+    for (const { xml } of await acceptedParagraphs()) expect(xml).not.toMatch(/<w:(ins|del) /);
   });
 });
 

@@ -78,6 +78,12 @@ const STRADDLE = finding({
   language: "90 to 31 | $35,000 [35% of the minimum]",
 });
 
+/** Two findings on one row of SCHEDULE. The second changes wording the first put in, which takes the table's copy. */
+const TWICE = [
+  finding({ id: "first", quoted_text: "180 to 91 | 50%", language: "180 to 91 | 25%" }),
+  finding({ id: "second", quoted_text: "180 to 91 | 25%", language: "180 to 91 | 20%" }),
+];
+
 describe("a change spanning cells", () => {
   it("changes the cell in place and leaves the table alone", async () => {
     const { result, report, xml } = await redline(await buildDocx(table(SCHEDULE)), [
@@ -167,32 +173,49 @@ describe("a cell holding two paragraphs", () => {
     expect(xml).toMatch(/<w:delText[^>]*>50%\]<\/w:delText>/);
   });
 
-  it("strikes the table and inserts an edited copy when a change can't be laid across the lines", async () => {
-    const { result, report, xml } = await redline(await buildDocx(linedTable(FB)), [STRADDLE]);
+  it("rewrites both lines in the cell when the change can't be laid across them", async () => {
+    const original = await buildDocx(linedTable(FB));
+    const { result, report, xml } = await redline(original, [STRADDLE]);
 
     expect(result.unapplied).toEqual([]);
     expect(result.appliedCount).toBe(1);
     expect(failed(report)).toEqual([]);
     expect(report.outcome).toBe("clean");
-    // Two tables in the file, one struck and one added.
-    expect(tablesIn(xml)).toBe(2);
-    expect(xml).toContain("$35,000 [35% of the minimum]");
-    expect(result.resolutions[0].detail).toMatch(/table is replaced/);
+    expect(tablesIn(xml)).toBe(1);
+    expect(xml).not.toMatch(/<w:trPr>/);
+
+    const clean = await acceptOwnRevisions(result.docxBytes, new Set(result.ownRevisionIds));
+    const accepted = await (await JSZip.loadAsync(clean)).file("word/document.xml")!.async("string");
+    expect(accepted).toContain("$35,000 [35% of the minimum]");
+    expect(accepted).not.toContain("$80,000");
   });
 });
 
 describe("the struck table and its copy", () => {
+  it("replaces the table when a second finding changes wording the first already changed", async () => {
+    const { result, report, xml } = await redline(await buildDocx(table(SCHEDULE)), TWICE);
+
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(2);
+    expect(failed(report)).toEqual([]);
+    expect(report.outcome).toBe("clean");
+    // Two tables in the file, one struck and one added.
+    expect(tablesIn(xml)).toBe(2);
+    expect(xml).toContain("20%");
+    expect(result.resolutions[1].detail).toMatch(/table is replaced/);
+  });
+
   it("marks the rows themselves, not just the text", async () => {
     // Without the row markers Word renders the table wrongly — the same class
     // of omission as the paragraph-mark bug Stage 0 found.
-    const { xml } = await redline(await buildDocx(linedTable(FB)), [STRADDLE]);
+    const { xml } = await redline(await buildDocx(table(SCHEDULE)), TWICE);
 
     expect(xml).toMatch(/<w:trPr><w:del /);
     expect(xml).toMatch(/<w:trPr><w:ins /);
   });
 
   it("keeps the tables apart so Word does not merge them", async () => {
-    const { xml } = await redline(await buildDocx(linedTable(FB)), [STRADDLE]);
+    const { xml } = await redline(await buildDocx(table(SCHEDULE)), TWICE);
     // A paragraph between the two, or Word renders them as one table.
     expect(xml).toMatch(/<\/w:tbl><w:p>[\s\S]*?<\/w:p><w:tbl>/);
   });
@@ -201,9 +224,9 @@ describe("the struck table and its copy", () => {
     const shaded =
       `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders><w:top w:val="single" w:sz="8"/></w:tblBorders></w:tblPr>` +
       `<w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="1500"/></w:tblGrid>` +
-      `<w:tr><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:shd w:val="clear" w:fill="D9D9D9"/></w:tcPr>${para(run("90 to 31"))}</w:tc>` +
-      `<w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr>${para(run("$80,000"))}${para(run("[80% of the minimum]"))}</w:tc></w:tr></w:tbl>`;
-    const { xml } = await redline(await buildDocx(shaded), [STRADDLE]);
+      `<w:tr><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/><w:shd w:val="clear" w:fill="D9D9D9"/></w:tcPr>${para(run("180 to 91"))}</w:tc>` +
+      `<w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr>${para(run("50%"))}</w:tc></w:tr></w:tbl>`;
+    const { xml } = await redline(await buildDocx(shaded), TWICE);
 
     // Borders, shading and column widths appear twice — once per table.
     expect(count(xml, /w:fill="D9D9D9"/g)).toBe(2);
@@ -569,11 +592,22 @@ describe("a table holding the property's comment", () => {
     expect(count(commentsXml, /<w:comment /g)).toBe(2);
   });
 
-  it("leaves out a change that would need the table copied, and keeps the rest", async () => {
+  it("rewrites both lines of a cell in place, on a table that holds a comment", async () => {
     const body = linedTable(FB).replace(run("$50,000"), noted("$50,000")) + PROSE;
     const { result, report, xml } = await redline(await withHotelComment(body), [STRADDLE, DEPOSIT]);
 
-    expect(result.appliedCount).toBe(1);
+    expect(result.unapplied).toEqual([]);
+    expect(result.appliedCount).toBe(2);
+    expect(failed(report)).toEqual([]);
+    expect(tablesIn(xml)).toBe(1);
+    expect(markers(xml)).toEqual([1, 1, 1]);
+  });
+
+  it("leaves out a change that would need the table copied, and keeps the rest", async () => {
+    const body = table(SCHEDULE).replace(run("25%"), noted("25%")) + PROSE;
+    const { result, report, xml } = await redline(await withHotelComment(body), [...TWICE, DEPOSIT]);
+
+    expect(result.appliedCount).toBe(2);
     expect(result.unapplied.map((u) => u.reason)).toEqual(["table_holds_comment"]);
     expect(failed(report)).toEqual([]);
     expect(report.outcome).not.toBe("fallback");
