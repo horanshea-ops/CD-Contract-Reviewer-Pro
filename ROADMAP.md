@@ -206,7 +206,8 @@ need not.
       byte-identical, and `span_resolution`/`applicability` are now populated. Not
       opened in Word — verification is the reject-all round trip, not a human eyeball.
       `lib/tracked-changes-docx.ts` is deleted along with the two harnesses that
-      existed only to exercise it; Stage 0's findings stay in
+      existed only to exercise it (it was not, in fact, deleted until
+      2026-10-10, on `audit/1-7-remove-old-engine`); Stage 0's findings stay in
       `docs/live-engine-validation.md`. 227 tests, 300 randomised documents, lint and
       typecheck clean.
       *Closed 2026-09-24:* a table quote that omits the extractor's `|` separators
@@ -396,8 +397,8 @@ below wherever the two differ. Each item gets its own plan before any code.
 | | |
 |---|---|
 | Live model | Sonnet 5.5. The user set Render's `ANTHROPIC_MODEL` to `claude-sonnet-5-5` on 2026-10-08. |
-| Live on `main` | Everything built to date, except the table change below. `phase/2-1-same-file-reuse` is parked. |
-| Waiting on the user | `phase/1-5-table-cells-in-place` merges after a look at one more file in Word, `4f803f16-redline-cells.docx`. The made-up hotel-comment sample looked good (user, 2026-10-09). `audit/1-1-blank-fields` and `phase/1-5-across-paragraphs` merge after it, in that order. |
+| Live on `main` | Everything built to date, including the four branches merged on 2026-10-10 (table cells, blank fields, across paragraphs, old engine removed). `phase/2-1-same-file-reuse` is parked. |
+| Waiting on the user | Accept All and Reject All on `sample-across-paragraphs-redline.docx` in Word for the web. One click of "Save and accept" on a blank field, which no one has clicked yet. |
 | Current work | The core audit (user's goal, 2026-10-08). New features are on hold. See "Core audit" below. |
 | Migrations applied | 015, 016 (2026-10-07) and 017 (2026-10-08), all by the user. |
 | Rollback | Tag `archive/2026-10-08-pre-sonnet-5-5` is `main` before the 5.5 merge. Going back also means setting Render's model to `claude-sonnet-5`. |
@@ -615,10 +616,18 @@ History of the switch, oldest first:
   every oracle check passes on both. `4f803f16` and `dd0f4ca0` each had five
   changes in a table copy. All ten now go in the cells, and no review uses
   the copy.
-- **Owed by the user before the merge: a look at two files in Word**, both in
-  `data/private/replay/`.
-  - `4f803f16-redline-cells.docx`. The cancellation schedule appears once,
-    with each fee struck and the new one beside it.
+- **The user's look in Word, done. Merged to `main` on 2026-10-10.** Both
+  files are in `data/private/replay/`.
+  - ~~`4f803f16-redline-cells.docx`. The cancellation schedule appears once,
+    with each fee struck and the new one beside it.~~ Opened by the user in
+    Word for the web on 2026-10-10. The schedule looked good.
+  - **The user noticed that the other tables sit oddly to the right.** That
+    comes from the uploaded file, and the app changed nothing there. Eight
+    of the nine tables are identical in the original and the redline,
+    character for character, and the ninth differs only by our changes.
+    The shifted tables are the five the file sets as centred with an indent.
+    The file's markup looks like an export from Apple Pages. A hotel's own
+    Word file is unlikely to carry it.
   - ~~`sample-hotel-comment-redline.docx`, a made-up schedule. Same, with the
     hotel's comment still on the 75% cell.~~ Opened by the user on
     2026-10-09. It looked good.
@@ -652,7 +661,7 @@ warning whether it is needed and whether the work can be done more simply.
 | # | Piece | What it asks | State |
 |---|---|---|---|
 | 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Findings written 2026-10-08. Five fixes proposed, none built. |
-| 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Not started |
+| 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | First pass written 2026-10-10 (the card and the review screen). The export dialog, the email panels and the new-review form are a second pass. |
 | 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
 | 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Not started |
 | 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Not started |
@@ -693,10 +702,20 @@ warning whether it is needed and whether the work can be done more simply.
   `sample-across-paragraphs-redline.docx`, against its `-original`. Clause 2
   should become one numbered sentence, and the table cell should read
   "$35,000 [35% of the minimum]".
-  4. Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing in
-     the app uses, and two refusal reasons that can't appear. This closes
-     CLAUDE.md deviation 4.
-- **Next piece is 2, what the associate is shown.**
+  4. ~~Remove the old engine (`lib/tracked-changes-docx.ts`), which nothing
+     in the app uses, and two refusal reasons that can't appear.~~ **Done
+     2026-10-10 on `audit/1-7-remove-old-engine`, not merged** (user's yes).
+     717 lines gone, CLAUDE.md deviation 4 closed, 1,648 tests pass.
+- **The user's answers on piece 2 (2026-10-10).** Buttons on the amount
+  check are fine to try. The document notes stay as they are until CD
+  gives direction.
+- **Piece 2, first pass (2026-10-10).** On the four Sonnet 5.5 reviews (255
+  findings) the only yellow box left is the amount check, 6 times. Proposed:
+  buttons on the amount check so it is a decision, a choice for the user on
+  the 4 to 7 document notes per review that no export uses, and the engine's
+  own sentence in the export dialog. A larger idea, running the real engine
+  as the card's check, waits on evidence from the beta.
+- **Next is piece 2's second pass, then piece 3, the review call.**
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,

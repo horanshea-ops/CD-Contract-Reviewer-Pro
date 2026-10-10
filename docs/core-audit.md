@@ -115,6 +115,7 @@ meet. Four is a small sample, and three of the four are the same contract.
 
 - `spans_non_text_content` and `in_header_footer` are in the list of reasons, with their text for the associate. The engine produces neither.
 - Proposed fix. Remove both with the old engine (1.7).
+- **Done 2026-10-10**, with 1.7.
 
 **1.7 The old redline engine is dead code.**
 
@@ -123,6 +124,12 @@ meet. Four is a small sample, and three of the four are the same contract.
 - CLAUDE.md deviation 4 kept it switched on until the new engine passed every fixture. No fixture falls back to the PDF today.
 - Proposed fix. Delete the file, its script and its test, and close deviation 4. Each of the old test's seven cases is checked first for a matching case on the new engine.
 - Risk is low. Needs the user's yes, since it ends a deviation.
+- **Done 2026-10-10 on `audit/1-7-remove-old-engine`, not merged** (user's yes, same day).
+  - The engine, its script and its test are deleted, 717 lines in all. CLAUDE.md deviation 4 is closed.
+  - Each of the old test's ten cases has a matching case on the new engine, so none was ported.
+  - Lint and the type check pass. The test count went from 1,658 to 1,648, which is the ten deleted cases.
+  - No file imports the deleted one, and nothing names the two removed reasons.
+  - The replay of 25 reviews matches the branch below on every review.
 
 **1.8 One reason covers five different causes.**
 
@@ -167,4 +174,91 @@ meet. Four is a small sample, and three of the four are the same contract.
 | 2 | Blanks as fields on the card (1.1) | Built, not merged | The table branch merged first |
 | 3 | Replace wording across paragraphs (1.2) | Built, not merged | The two branches below it merged first |
 | 4 | Widen the oracle's id check (1.9) | Dropped | Word opens a repeated id with no complaint |
-| 5 | Remove the old engine and the two dead reasons (1.6, 1.7) | Free, small | A yes, since it closes deviation 4 |
+| 5 | Remove the old engine and the two dead reasons (1.6, 1.7) | Done, not merged | The three branches below it merged first |
+
+## Piece 2. What the associate is shown
+
+Audited 2026-10-10 on `audit/1-7-remove-old-engine`. This pass covers the review card and the review screen. The export dialog, the two email panels and the new-review form are a second pass.
+
+### Evidence
+
+Every stored Word review's cards were worked out as the screen works them out today, read-only.
+
+| | Sonnet 5 (21 reviews) | Sonnet 5.5 (4 reviews) |
+|---|---|---|
+| Findings | 666 | 255 |
+| Business, legal, other | 469, 141, 56 | 189, 43, 23 |
+| Yellow box, an amount that doesn't follow from its formula | 0 | 6 |
+| Yellow box, a table row not split by column | 8 | 0 |
+| Yellow box, a rewrite with nothing quoted | 7 | 0 |
+| Yellow box, leaves out a sentence | 21 | 0 |
+| Yellow box, wording reads as an instruction | 0 | 0 |
+| Blank to fill (a field since finding 1.1) | 29 | 3 |
+| Notes on the document, per review | not counted | 4 to 7 |
+
+### Findings
+
+**2.1 On Sonnet 5.5 one yellow box is left, the amount check.**
+
+- It fired 6 times, on 2 of the 4 reviews. Five are the tiers of one cancellation schedule.
+- The other four card warnings did not fire once in 255 findings. On Sonnet 5 they fired 36 times in 666.
+- Their code stays. Each one stops a change that would misplace wording or repeat a clause. Count them on each new review.
+
+**2.2 The amount check is something to read, with nothing to do.**
+
+- The box says "Check this amount. At 70% × 5% of the contract's $339,720.00 base it would be $11,890.20. The wording says $10,586.15."
+- The associate has to open Edit, find the figure and retype it. Blanks worked this way before finding 1.1.
+- Proposed fix, free. Two buttons under the message, "Use $11,890.20" and "Keep $10,586.15". The first saves the wording with the new amount as an edit. The second records that the associate looked, and the box goes.
+- The user decided on 2026-10-08 that the check warns and doesn't hold the change out. That stays.
+- Risk. The check can be wrong when the contract's own arithmetic is off, or when the amount rests on another change. So the choice stays with the associate and nothing is applied on its own.
+- It is card work and reuses the Edit route. "Keep" needs somewhere to record the choice, which the plan must settle.
+- The user said on 2026-10-10 that this is fine to try.
+
+**2.3 The notes on the document are reading with no decision.**
+
+- Each Sonnet 5.5 review carries 4 to 7. Examples are "Contract dates contradict each other" and "The $80,000 F&B cancellation fee does not match its stated formula."
+- No export uses them. The memo, both emails and the redline never see a note.
+- Some are worth raising with a hotel, and the screen gives no way to do it.
+- This belongs with the question already waiting on CD, which findings earn a card. Two routes for the user to choose between.
+  - Each note gets "Raise with the property" and "Dismiss", and a raised note reaches the client email and the memo.
+  - Notes stay as they are, closed under a count, as reference.
+- No work until the user chooses.
+- **The user's choice, 2026-10-10.** The notes stay as they are until CD gives direction.
+
+**2.4 The card's check is a second copy of the engine's rules, and it can't see the Word file.**
+
+- `lib/redline-engine/preflight.ts` restates the engine's rules against the stored review text, so a card can speak before export.
+- It can't foresee a refusal that needs the Word file. Those are wording not found, wording found twice, an overlap with another accepted change, a locked field or content control, and paragraphs or a table the engine can't join or copy.
+- Such a refusal first appears in the export dialog. The user's rule is that problems are not handled there.
+- How often. On Sonnet 5.5, none in 188 business findings. On Sonnet 5, five in 469 after this week's fixes.
+- Proposed fix, free. Run the real engine as a dry run when the review screen loads, and let each card show what the engine did with it. The card and the export then can't disagree, and about 200 lines of restated rules go.
+- Cost. One engine run per load, about a second on a 1.2 MB file, cached until a decision changes.
+- To settle in its plan. The engine's answer depends on which findings are accepted together, so the dry run has to say what it assumes about undecided ones.
+- Priority is low on today's numbers. Do it if the beta shows refusals the card didn't foresee.
+
+**2.5 One export message gives advice that fits one of its causes.**
+
+- The text for `crosses_boundary` tells the associate to rewrite the row with `|`. After this week's fixes the reason still covers a row that won't lay out, paragraphs that can't be joined, wording that leaves its table, and a table the copy can't carry.
+- The engine already writes one specific sentence per case, stored on the finding.
+- Proposed fix, free and small. The export dialog shows the engine's own sentence. Finding 2.4 would make this unnecessary.
+- It has not fired on Sonnet 5.5.
+
+**2.6 "Also strikes wording the finding didn't quote" is checked on the export screen.**
+
+- When a change is widened to a whole sentence, the export dialog asks the associate to check it before sending.
+- None on Sonnet 5.5. Six on Sonnet 5.
+- By the user's rule this belongs on the card. Finding 2.4 would put it there. No separate work.
+
+**2.7 Read and found sound.**
+
+- The blank fields, "Flag for client" on a legal finding, the hotel's tracked-changes strip, the comments button, and the notice when a review falls back to Independent's standards.
+- None of the four Sonnet 5.5 reviews tripped the fallback notice or the AI-use check.
+
+### Proposed order
+
+| # | Fix | Cost | Needs |
+|---|---|---|---|
+| 1 | Buttons on the amount check (2.2) | Free, card work | A plan and a yes |
+| 2 | A decision on the document notes (2.3) | None | Left as they are until CD gives direction (user, 2026-10-10) |
+| 3 | The engine's own sentence in the export dialog (2.5) | Free, small | A plan and a yes |
+| 4 | The engine as the card's check (2.4, 2.6) | Free, larger | Evidence from the beta first |

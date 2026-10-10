@@ -69,6 +69,8 @@ override it.
 4. **Part 1 is a rewrite, not a greenfield build.** `lib/tracked-changes-docx.ts`
    already does `w:ins`/`w:del`. It stays switched on until the §1.5 engine passes
    all 12 fixtures.
+   Closed 2026-10-10 (user's yes). The §1.5 engine runs all 16 fixtures with no
+   fallback, nothing in the app called the old one, and it is deleted.
 5. **The "everything must be a PDF" constraint is dropped** (confirmed by the user,
    2026-09-07). It appeared in one code comment citing a build-brief clause not in
    the repo. Uploads still accept DOCX, PDF and DOC; what changes is that the model
