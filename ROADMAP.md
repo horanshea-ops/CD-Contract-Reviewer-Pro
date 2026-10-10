@@ -653,7 +653,7 @@ warning whether it is needed and whether the work can be done more simply.
 | # | Piece | What it asks | State |
 |---|---|---|---|
 | 1 | Changes left out of the redline | Every refusal reason and oracle check. How often each fires on stored reviews, and whether a route exists that applies the change. | Findings written 2026-10-08. Five fixes proposed, none built. |
-| 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | Not started |
+| 2 | What the associate is shown | Every yellow box, card warning and export message. Whether each needs a decision, and whether fixing its cause removes it. | First pass written 2026-10-10 (the card and the review screen). The export dialog, the email panels and the new-review form are a second pass. |
 | 3 | The review call | Retries, the second ask, the reading call, findings the app raises itself, and every rule that patches the model's answer. Which exist for Sonnet 5 and are unneeded on 5.5. | Not started |
 | 4 | Reading the Word file | Extraction, the source map and the preview. Special cases and paths kept from before the HTML preview. | Not started |
 | 5 | Exports | Redline, clean copy, both PDFs, the zip, the memo and both emails. The fallback order and what each failure tells the associate. | Not started |
@@ -698,7 +698,13 @@ warning whether it is needed and whether the work can be done more simply.
      in the app uses, and two refusal reasons that can't appear.~~ **Done
      2026-10-10 on `audit/1-7-remove-old-engine`, not merged** (user's yes).
      717 lines gone, CLAUDE.md deviation 4 closed, 1,648 tests pass.
-- **Next piece is 2, what the associate is shown.**
+- **Piece 2, first pass (2026-10-10).** On the four Sonnet 5.5 reviews (255
+  findings) the only yellow box left is the amount check, 6 times. Proposed:
+  buttons on the amount check so it is a decision, a choice for the user on
+  the 4 to 7 document notes per review that no export uses, and the engine's
+  own sentence in the export dialog. A larger idea, running the real engine
+  as the card's check, waits on evidence from the beta.
+- **Next is piece 2's second pass, then piece 3, the review call.**
 
 **Archived for the beta.** Three features are off the live build and kept in
 the repository. `docs/archived-features.md` says where each one's code lives,
